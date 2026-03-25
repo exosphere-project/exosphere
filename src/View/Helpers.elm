@@ -22,6 +22,7 @@ module View.Helpers exposing
     , formContainer
     , friendlyCloudName
     , friendlyProjectTitle
+    , getAllowedServerActionOptions
     , getAllowedServerActions
     , getExoSetupStatusStr
     , getServerUiStatus
@@ -2235,11 +2236,11 @@ getVolumeStatusBadgeState status =
             StatusBadge.Warning
 
 
-getAllowedServerActions : Context -> OSTypes.ServerStatus -> OSTypes.ServerLockStatus -> List ServerActionName -> List ServerActionOption
-getAllowedServerActions context serverStatus serverLockStatus disallowedActions =
+getAllowedServerActions : OSTypes.ServerStatus -> OSTypes.ServerLockStatus -> List ServerActionName -> List ServerActions.ServerAction
+getAllowedServerActions serverStatus serverLockStatus disallowedActions =
     let
         allowedByServerStatus action =
-            case ServerActions.allowedServerStatuses action.serverAction of
+            case ServerActions.allowedServerStatuses action of
                 AnyServerStatus ->
                     True
 
@@ -2250,7 +2251,7 @@ getAllowedServerActions context serverStatus serverLockStatus disallowedActions 
                     False
 
         allowedByLockStatus action =
-            case ServerActions.allowedLockStatus action.serverAction of
+            case ServerActions.allowedLockStatus action of
                 Nothing ->
                     True
 
@@ -2258,12 +2259,19 @@ getAllowedServerActions context serverStatus serverLockStatus disallowedActions 
                     serverLockStatus == allowedLockStatus_
 
         allowedByDisallowedActions action =
-            not <| List.member action.name disallowedActions
+            not <| List.member (ServerActions.serverActionToString action) disallowedActions
     in
-    actions context
+    ServerActions.allServerActions
         |> List.filter allowedByServerStatus
         |> List.filter allowedByLockStatus
         |> List.filter allowedByDisallowedActions
+
+
+getAllowedServerActionOptions : Context -> OSTypes.ServerStatus -> OSTypes.ServerLockStatus -> List ServerActionName -> List ServerActionOption
+getAllowedServerActionOptions context serverStatus serverLockStatus disallowedActions =
+    actions context
+        |> List.filter
+            (\option -> List.member option.serverAction (getAllowedServerActions serverStatus serverLockStatus disallowedActions))
 
 
 actions : Context -> List ServerActionOption

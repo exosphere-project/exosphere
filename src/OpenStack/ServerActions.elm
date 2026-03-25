@@ -1,4 +1,4 @@
-module OpenStack.ServerActions exposing (ApplicableServerStatuses(..), ServerAction(..), ServerActionName, allowedLockStatus, allowedServerStatuses, serverActionToJsonBody, serverActionToString, stringToServerAction)
+module OpenStack.ServerActions exposing (ApplicableServerStatuses(..), ServerAction(..), ServerActionName, allServerActions, allowedLockStatus, allowedServerStatuses, serverActionToJsonBody, serverActionToString, stringToServerAction)
 
 import Json.Encode as Encode
 import OpenStack.Types exposing (ServerLockStatus(..), ServerStatus(..))
@@ -22,6 +22,27 @@ type ServerAction
     | CreateImage
     | Delete
     | UnsupportedAction String
+
+
+allServerActions : List ServerAction
+allServerActions =
+    [ ConfirmResize
+    , RevertResize
+    , Lock
+    , Unlock
+    , Start
+    , Stop
+    , Unpause
+    , Pause
+    , Resume
+    , Suspend
+    , Shelve
+    , Unshelve
+    , Reboot
+    , Resize
+    , CreateImage
+    , Delete
+    ]
 
 
 type alias ServerActionName =
