@@ -64,7 +64,6 @@ type alias ServerActionOption =
     { name : ServerActionName
     , description : String
     , serverAction : ServerActions.ServerAction
-    , allowedLockStatus : Maybe OSTypes.ServerLockStatus
     , action : ProjectIdentifier -> OSTypes.ServerUuid -> Bool -> SharedMsg
     , selectMod : SelectMod
     , confirmable : Bool

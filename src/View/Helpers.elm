@@ -2250,7 +2250,7 @@ getAllowedServerActions context serverStatus serverLockStatus disallowedActions 
                     False
 
         allowedByLockStatus action =
-            case action.allowedLockStatus of
+            case ServerActions.allowedLockStatus action.serverAction of
                 Nothing ->
                     True
 
@@ -2286,7 +2286,6 @@ actions context =
                 , "resize operation"
                 ]
       , serverAction = ServerActions.ConfirmResize
-      , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             doAction ServerActions.ConfirmResize
       , selectMod = Primary
@@ -2300,7 +2299,6 @@ actions context =
                 , "resize operation"
                 ]
       , serverAction = ServerActions.RevertResize
-      , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             doAction ServerActions.RevertResize
       , selectMod = NoMod
@@ -2314,7 +2312,6 @@ actions context =
                 , "actions until it is unlocked"
                 ]
       , serverAction = ServerActions.Lock
-      , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             doAction ServerActions.Lock
       , selectMod = NoMod
@@ -2328,7 +2325,6 @@ actions context =
                 , "actions"
                 ]
       , serverAction = ServerActions.Unlock
-      , allowedLockStatus = Just OSTypes.ServerLocked
       , action =
             doAction ServerActions.Unlock
       , selectMod = Warning
@@ -2341,7 +2337,6 @@ actions context =
                 , wordForServer
                 ]
       , serverAction = ServerActions.Start
-      , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             doAction ServerActions.Start
       , selectMod = Primary
@@ -2354,7 +2349,6 @@ actions context =
                 , wordForServer
                 ]
       , serverAction = ServerActions.Unpause
-      , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             doAction ServerActions.Unpause
       , selectMod = Primary
@@ -2367,7 +2361,6 @@ actions context =
                 , wordForServer
                 ]
       , serverAction = ServerActions.Resume
-      , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             doAction ServerActions.Resume
       , selectMod = Primary
@@ -2380,7 +2373,6 @@ actions context =
                 , wordForServer
                 ]
       , serverAction = ServerActions.Unshelve
-      , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             doAction ServerActions.Unshelve
       , selectMod = Primary
@@ -2389,7 +2381,6 @@ actions context =
     , { name = "Suspend"
       , description = "Save execution state to disk"
       , serverAction = ServerActions.Suspend
-      , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             doAction ServerActions.Suspend
       , selectMod = NoMod
@@ -2403,7 +2394,6 @@ actions context =
                 , "and offload it from compute host"
                 ]
       , serverAction = ServerActions.Shelve
-      , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             \projectId serverUuid deleteFloatingIp ->
                 ProjectMsg projectId <| ServerMsg serverUuid <| RequestShelveServer deleteFloatingIp
@@ -2419,7 +2409,6 @@ actions context =
                 , wordForFlavor
                 ]
       , serverAction = ServerActions.Resize
-      , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             -- This must be overridden in the Page to do anything
             \_ _ _ -> NoOp
@@ -2437,7 +2426,6 @@ actions context =
                 , wordForServer
                 ]
       , serverAction = ServerActions.CreateImage
-      , allowedLockStatus = Nothing
       , action =
             -- This must be overridden in the Page to do anything
             \_ _ _ -> SharedMsg.NoOp
@@ -2451,10 +2439,8 @@ actions context =
                 , wordForServer
                 ]
       , serverAction = ServerActions.Reboot
-      , allowedLockStatus = Just OSTypes.ServerUnlocked
-
-      -- TODO soft and hard reboot? Call hard reboot "reset"?
       , action =
+            -- TODO soft and hard reboot? Call hard reboot "reset"?
             doAction ServerActions.Reboot
       , selectMod = Warning
       , confirmable = False
@@ -2466,7 +2452,6 @@ actions context =
                 , wordForServer
                 ]
       , serverAction = ServerActions.Delete
-      , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             \projectId serverUuid retainFloatingIp ->
                 ProjectMsg projectId <| ServerMsg serverUuid <| RequestDeleteServer retainFloatingIp

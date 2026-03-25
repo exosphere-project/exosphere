@@ -1,7 +1,7 @@
-module OpenStack.ServerActions exposing (ApplicableServerStatuses(..), ServerAction(..), ServerActionName, allowedServerStatuses, serverActionToJsonBody, serverActionToString, stringToServerAction)
+module OpenStack.ServerActions exposing (ApplicableServerStatuses(..), ServerAction(..), ServerActionName, allowedLockStatus, allowedServerStatuses, serverActionToJsonBody, serverActionToString, stringToServerAction)
 
 import Json.Encode as Encode
-import OpenStack.Types exposing (ServerStatus(..))
+import OpenStack.Types exposing (ServerLockStatus(..), ServerStatus(..))
 
 
 type ServerAction
@@ -107,6 +107,19 @@ allowedServerStatuses action =
 
         UnsupportedAction _ ->
             NoServerStatuses
+
+
+allowedLockStatus : ServerAction -> Maybe ServerLockStatus
+allowedLockStatus action =
+    case action of
+        Unlock ->
+            Just ServerLocked
+
+        CreateImage ->
+            Nothing
+
+        _ ->
+            Just ServerUnlocked
 
 
 serverActionToJsonBody : ServerAction -> Encode.Value
