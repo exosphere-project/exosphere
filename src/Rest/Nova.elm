@@ -1,5 +1,6 @@
 module Rest.Nova exposing
-    ( receiveConsoleUrl
+    ( doAction
+    , receiveConsoleUrl
     , receiveFlavors
     , receiveKeypairs
     , receiveServer
@@ -11,6 +12,7 @@ module Rest.Nova exposing
     , requestDeleteKeypair
     , requestDeleteServer
     , requestDeleteServerMetadata
+    , requestDoAction
     , requestFlavors
     , requestKeypairs
     , requestServer
@@ -37,6 +39,7 @@ import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
+import OpenStack.ServerActions as ServerActions
 import OpenStack.ServerPassword as OSServerPassword
 import OpenStack.Types as OSTypes
 import Rest.Helpers
@@ -776,6 +779,45 @@ requestDeleteServerMetadata project serverUuid metadataKey =
         ( project.endpoints.nova, [ "servers", serverUuid, "metadata", metadataKey ], [] )
         Http.emptyBody
         (expectStringWithErrorBody resultToMsg)
+
+
+requestDoAction : Project -> OSTypes.ServerUuid -> ServerActions.ServerAction -> Cmd SharedMsg
+requestDoAction project serverUuid action =
+    let
+        projectId =
+            GetterSetters.projectIdentifier project
+
+        errorContext =
+            ErrorContext
+                ("perform action for server " ++ serverUuid)
+                ErrorCrit
+                Nothing
+
+        resultToMsg =
+            \result ->
+                ProjectMsg
+                    projectId
+                <|
+                    ServerMsg serverUuid <|
+                        ReceiveServerAction errorContext result
+    in
+    openstackCredentialedRequest
+        projectId
+        Post
+        Nothing
+        []
+        ( project.endpoints.nova, [ "servers", serverUuid, "action" ], [] )
+        (Http.jsonBody (ServerActions.serverActionToJsonBody action))
+        (expectVoidWithErrorBody
+            resultToMsg
+        )
+
+
+doAction : ServerActions.ServerAction -> ProjectIdentifier -> OSTypes.ServerUuid -> Bool -> SharedMsg
+doAction action projectId serverUuid _ =
+    ProjectMsg projectId <|
+        ServerMsg serverUuid <|
+            RequestServerAction action
 
 
 

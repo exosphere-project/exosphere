@@ -10,6 +10,7 @@ import Browser.Events
 import Http
 import OpenStack.DnsRecordSet
 import OpenStack.SecurityGroupRule as SecurityGroupRule
+import OpenStack.ServerActions as ServerActions
 import OpenStack.Types as OSTypes
 import OpenStack.VolumeSnapshots exposing (VolumeSnapshot)
 import Style.Types as ST
@@ -167,6 +168,6 @@ type ServerSpecificMsgConstructor
     | ReceiveSetServerMetadata OSTypes.MetadataItem ErrorContext (Result HttpErrorWithBody (List OSTypes.MetadataItem))
     | ReceiveDeleteServerMetadata OSTypes.MetadataKey ErrorContext (Result HttpErrorWithBody String)
     | ReceiveGuacamoleAuthToken (Result Http.Error GuacTypes.GuacamoleAuthToken)
-    | RequestServerAction (HelperTypes.Url -> Cmd SharedMsg) (Maybe (List OSTypes.ServerStatus)) Bool
+    | RequestServerAction ServerActions.ServerAction
     | ReceiveConsoleLog ErrorContext (Result HttpErrorWithBody String)
     | SetMinimumServerInteractivity InteractionLevel
