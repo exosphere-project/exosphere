@@ -2,7 +2,7 @@ module Tests.Helpers.Connectivity exposing (connectivitySuite)
 
 import Expect
 import Helpers.Connectivity exposing (ConnectionEtherType(..), ConnectionPorts(..), ConnectionRemote(..), isConnectionPermitted)
-import OpenStack.SecurityGroupRule exposing (SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), buildRuleAllowAllOutgoingIPv4, buildRuleSSH, securityGroupRuleTemplateToRule)
+import OpenStack.SecurityGroupRule exposing (SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), buildRuleAllowAllOutgoingIPv4, buildRuleSsh, securityGroupRuleTemplateToRule)
 import Test exposing (Test, describe, test)
 
 
@@ -47,12 +47,12 @@ connectivitySuite =
                   }
                 , { description = "Incoming SSH connections are permitted"
                   , connection = { prototype | direction = Ingress, ports = PortRange 22 22 }
-                  , rules = [ buildRuleSSH |> securityGroupRuleTemplateToRule ]
+                  , rules = [ buildRuleSsh |> securityGroupRuleTemplateToRule ]
                   , expected = True
                   }
                 , { description = "Incoming HTTP connections are not permitted"
                   , connection = { prototype | direction = Ingress, ports = PortRange 80 80 }
-                  , rules = [ buildRuleSSH |> securityGroupRuleTemplateToRule ]
+                  , rules = [ buildRuleSsh |> securityGroupRuleTemplateToRule ]
                   , expected = False
                   }
                 , { description = "Outgoing TCP connections are permitted"
