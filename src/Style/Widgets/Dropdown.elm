@@ -17,6 +17,10 @@ import Widget
 Takes a target label, a unique popover ID, and content that receives a
 close attribute. The target renders as a button with a chevron indicator.
 
+Outside clicks: Browser-level outside clicks from the `toggleIfTargetIsOutside`
+subscription can be handled by intercepting `TogglePopover` for the dropdown's
+popover ID in the consumer's update function.
+
     dropdown context
         msgMapper
         { id = "myDropdown"
