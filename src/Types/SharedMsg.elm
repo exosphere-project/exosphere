@@ -74,6 +74,7 @@ type ProjectSpecificMsgConstructor
     | ServerMsg OSTypes.ServerUuid ServerSpecificMsgConstructor
     | RequestCreateServer HelperTypes.CreateServerPageModel OSTypes.NetworkUuid OSTypes.FlavorId
     | RequestDeleteServers (List OSTypes.ServerUuid)
+    | RequestShelveServers (List OSTypes.ServerUuid) { deleteFloatingIps : Bool }
     | RequestServerActions (List ( OSTypes.ServerUuid, ServerActions.ServerAction ))
     | RequestCreateShare OSTypes.ShareName OSTypes.ShareDescription OSTypes.ShareSize OSTypes.ShareProtocol OSTypes.ShareTypeName
     | RequestDeleteShare OSTypes.ShareUuid

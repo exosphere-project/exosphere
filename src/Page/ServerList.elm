@@ -47,6 +47,7 @@ type alias Model =
     { showHeading : Bool
     , dataListModel : DataList.Model
     , retainFloatingIpsWhenDeleting : Bool
+    , deleteFloatingIpsWhenShelving : Bool
     , selectedBulkAction : Maybe ServerActions.ServerAction
     }
 
@@ -56,6 +57,7 @@ type Msg
     | GotRetainFloatingIpsWhenDeleting Bool
     | GotSelectBulkAction (Maybe ServerActions.ServerAction)
     | GotConfirmBulkAction SharedMsg.SharedMsg
+    | GotDeleteFloatingIpsWhenShelving Bool
     | OpenInteraction String
     | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
@@ -70,6 +72,7 @@ init context project showHeading =
             DataList.getDefaultFilterOptions
                 (filters context project project.auth.user.name (Time.millisToPosix 0))
     , retainFloatingIpsWhenDeleting = False
+    , deleteFloatingIpsWhenShelving = True
     , selectedBulkAction = Nothing
     }
 
@@ -109,9 +112,18 @@ update msg project model =
         GotConfirmBulkAction sharedMsg ->
             ( { model | selectedBulkAction = Nothing }, Cmd.none, sharedMsg )
 
+        GotDeleteFloatingIpsWhenShelving deleteFloatingIps ->
+            ( { model | deleteFloatingIpsWhenShelving = deleteFloatingIps }, Cmd.none, SharedMsg.NoOp )
+
         SharedMsg (SharedMsg.TogglePopover "serverActionsDropdown") ->
             -- Clear the dropdown selection when it is closed.
-            ( { model | selectedBulkAction = Nothing }, Cmd.none, SharedMsg.TogglePopover "serverActionsDropdown" )
+            ( { model
+                | selectedBulkAction = Nothing
+                , deleteFloatingIpsWhenShelving = True
+              }
+            , Cmd.none
+            , SharedMsg.TogglePopover "serverActionsDropdown"
+            )
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
@@ -560,7 +572,9 @@ serverActionsDropdown :
 serverActionsDropdown context project model servers serverIds =
     let
         availableActions =
-            [ ServerActions.Unshelve
+            [ -- Shelve action needs special handling.
+              ServerActions.Shelve
+            , ServerActions.Unshelve
             , ServerActions.Reboot
             , ServerActions.Pause
             , ServerActions.Unpause
@@ -614,14 +628,60 @@ serverActionsDropdown context project model servers serverIds =
 
                 onConfirm =
                     if count > 0 then
-                        Just <|
-                            GotConfirmBulkAction
-                                (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project)
-                                    (SharedMsg.RequestServerActions (applicableServers |> List.map (\server -> ( server.osProps.uuid, action ))))
-                                )
+                        case action of
+                            ServerActions.Shelve ->
+                                Just <|
+                                    SharedMsg
+                                        (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project)
+                                            (SharedMsg.RequestShelveServers (applicableServers |> List.map (\server -> server.osProps.uuid)) { deleteFloatingIps = model.deleteFloatingIpsWhenShelving })
+                                        )
+
+                            _ ->
+                                Just <|
+                                    GotConfirmBulkAction
+                                        (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project)
+                                            (SharedMsg.RequestServerActions (applicableServers |> List.map (\server -> ( server.osProps.uuid, action ))))
+                                        )
 
                     else
                         Nothing
+
+                determiner =
+                    if count == 1 then
+                        "this"
+
+                    else
+                        "these " ++ String.fromInt count
+
+                extras =
+                    case ( action, count ) of
+                        ( _, 0 ) ->
+                            Element.none
+
+                        ( ServerActions.Shelve, _ ) ->
+                            Input.checkbox
+                                [ Element.paddingEach { top = spacer.px8, right = 0, bottom = 0, left = 0 } ]
+                                { onChange = GotDeleteFloatingIpsWhenShelving
+                                , icon = Input.defaultCheckbox
+                                , checked = model.deleteFloatingIpsWhenShelving
+                                , label =
+                                    Input.labelLeft [ Element.width Element.fill ]
+                                        (Text.p [ Font.alignRight, Element.padding spacer.px4 ] <|
+                                            [ Text.text Text.Small [ Element.alignRight ] <|
+                                                String.join " "
+                                                    [ "Release"
+                                                    , context.localization.floatingIpAddress |> Helpers.String.pluralizeCount total
+                                                    , "from"
+                                                    , determiner
+                                                    , context.localization.virtualComputer |> Helpers.String.pluralizeCount total
+                                                    , "when shelving?"
+                                                    ]
+                                            ]
+                                        )
+                                }
+
+                        _ ->
+                            Element.none
 
                 note =
                     Text.text Text.Small [ Element.alignRight, Element.paddingXY 0 spacer.px4 ] <|
@@ -636,14 +696,6 @@ serverActionsDropdown context project model servers serverIds =
                 description =
                     Text.body <|
                         if count > 0 then
-                            let
-                                determiner =
-                                    if count == 1 then
-                                        "this"
-
-                                    else
-                                        "these " ++ String.fromInt count
-                            in
                             "Are you sure you want to "
                                 ++ ServerActions.serverActionToString action
                                 ++ " "
@@ -662,6 +714,7 @@ serverActionsDropdown context project model servers serverIds =
                 confirmation =
                     Element.column [ Element.spacing spacer.px8 ]
                         [ description
+                        , extras
                         , note
                         ]
             in
