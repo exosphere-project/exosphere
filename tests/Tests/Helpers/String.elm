@@ -1,4 +1,4 @@
-module Tests.Helpers.String exposing (indefiniteArticlesSuite)
+module Tests.Helpers.String exposing (indefiniteArticlesSuite, normalizeLineEndingsSuite)
 
 import Expect
 import Helpers.String
@@ -66,3 +66,19 @@ indefiniteArticlesSuite =
             )
             testData
         )
+
+
+normalizeLineEndingsSuite : Test
+normalizeLineEndingsSuite =
+    describe "normalizeLineEndings"
+        [ test "normalizes Windows CRLF to LF" <|
+            \_ ->
+                "first\u{000D}\nsecond\u{000D}\nthird"
+                    |> Helpers.String.normalizeLineEndings
+                    |> Expect.equal "first\nsecond\nthird"
+        , test "normalizes classic CR to LF" <|
+            \_ ->
+                "first\u{000D}second\u{000D}third"
+                    |> Helpers.String.normalizeLineEndings
+                    |> Expect.equal "first\nsecond\nthird"
+        ]

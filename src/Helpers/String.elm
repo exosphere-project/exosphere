@@ -4,6 +4,7 @@ module Helpers.String exposing
     , hyphenate
     , indefiniteArticle
     , itemsListToString
+    , normalizeLineEndings
     , pluralize
     , pluralizeCount
     , removeEmptiness
@@ -131,6 +132,12 @@ itemsListToString items =
                         String.join ", " (firstItem :: intermediateItems)
                             ++ ", and "
                             ++ lastItem
+
+
+normalizeLineEndings : String -> String
+normalizeLineEndings =
+    String.replace "\u{000D}\n" "\n"
+        >> String.replace "\u{000D}" "\n"
 
 
 {-| Remove extraneous whitespace & prefer `Nothing` to `Just ""`.

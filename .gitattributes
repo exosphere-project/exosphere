@@ -1,1 +1,39 @@
+* text=auto
+
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+*.css text eol=lf
+*.conf text eol=lf
+*.Dockerfile text eol=lf
+*.elm text eol=lf
+*.feature text eol=lf
+*.gitignore text eol=lf
+*.html text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.mjs text eol=lf
+*.properties text eol=lf
+*.py text eol=lf
+*.sh text eol=lf
+*.svg text eol=lf
+*.ts text eol=lf
+*.txt text eol=lf
+*.webmanifest text eol=lf
+*.xml text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+Dockerfile text eol=lf
+**/Dockerfile text eol=lf
+
+*.gif binary
+*.ico binary
+*.jpeg binary
+*.jpg binary
+*.png binary
+*.woff binary
+*.woff2 binary
+
 *.tar.gz filter=lfs diff=lfs merge=lfs -text
