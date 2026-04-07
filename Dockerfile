@@ -19,7 +19,7 @@ COPY elm.json ./
 COPY elm-git.json ./
 COPY elm-watch.json ./
 COPY elm.sideload.json ./
-COPY postprocess.js ./
+COPY postprocess.mjs ./
 RUN npm install
 
 # Copy files not using a bind mount

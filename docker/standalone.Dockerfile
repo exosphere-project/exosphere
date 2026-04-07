@@ -21,7 +21,7 @@ COPY elm.json ./
 COPY elm-git.json ./
 COPY elm-watch.json ./
 COPY elm.sideload.json ./
-COPY postprocess.js ./
+COPY postprocess.mjs ./
 COPY environment-configs/docker-config.js ./config.js
 RUN npm install
 
