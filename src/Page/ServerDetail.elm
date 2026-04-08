@@ -1267,7 +1267,7 @@ serverActionsDropdown context project model server =
             Element.column [ Element.spacing spacer.px8 ] <|
                 List.map
                     (renderServerAction context project model server closeDropdown)
-                    (VH.getAllowedServerActions context
+                    (VH.getAllowedServerActionOptions context
                         server.osProps.details.openstackStatus
                         server.osProps.details.lockStatus
                         disallowedActions

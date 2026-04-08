@@ -4,6 +4,8 @@ module View.Helpers exposing
     , compactKVSubRow
     , contentContainer
     , createdAgoByFromSize
+    , dangerPopconfirm
+    , dangerPopconfirmContent
     , deleteBulkResourcePopconfirm
     , deleteResourcePopconfirm
     , deleteResourcePopconfirmWithDisabledHint
@@ -20,6 +22,7 @@ module View.Helpers exposing
     , formContainer
     , friendlyCloudName
     , friendlyProjectTitle
+    , getAllowedServerActionOptions
     , getAllowedServerActions
     , getExoSetupStatusStr
     , getServerUiStatus
@@ -99,12 +102,13 @@ import Markdown.Parser
 import Markdown.Renderer
 import OpenStack.Quotas as OSQuotas
 import OpenStack.SecurityGroupRule exposing (Remote(..), SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), directionToString, etherTypeToString, protocolToString)
-import OpenStack.ServerActions as ServerActions exposing (ServerActionName)
+import OpenStack.ServerActions as ServerActions exposing (ApplicableServerStatuses(..), ServerActionName)
 import OpenStack.Types as OSTypes exposing (ShareStatus(..), Volume, VolumeStatus(..))
 import OpenStack.VolumeSnapshots as VS exposing (VolumeSnapshot)
 import Regex
 import Rest.Nova exposing (doAction)
 import Route
+import Set
 import String.Extra
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette)
@@ -112,9 +116,10 @@ import Style.Widgets.Button as Button
 import Style.Widgets.Card
 import Style.Widgets.Code exposing (codeBlock, codeSpan)
 import Style.Widgets.CopyableText exposing (copyableTextAccessory)
-import Style.Widgets.DeleteButton as DeleteButton exposing (DeleteButtonState, deleteIconButtonWithDisabledHint, deletePopconfirm)
-import Style.Widgets.Icon exposing (featherIcon)
+import Style.Widgets.DeleteButton as DeleteButton exposing (DeleteButtonState, PopconfirmContent, deleteIconButtonWithDisabledHint)
+import Style.Widgets.Icon exposing (featherIcon, sizedFeatherIcon)
 import Style.Widgets.Link as Link
+import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Spinner as Spinner
@@ -1600,7 +1605,7 @@ deleteResourcePopconfirmWithDisabledHint context project msgMapper resource popc
                 , resource.uuid
                 ]
     in
-    deletePopconfirm context
+    dangerPopconfirm context
         msgMapper
         deletePopconfirmId
         { confirmation =
@@ -1608,7 +1613,8 @@ deleteResourcePopconfirmWithDisabledHint context project msgMapper resource popc
                 "Are you sure you want to delete this "
                     ++ resource.word
                     ++ "?"
-        , buttonText = Nothing
+        , buttonText = "Delete"
+        , buttonVariant = Button.Danger
         , onCancel = onCancel
         , onConfirm = onConfirm
         }
@@ -1666,6 +1672,53 @@ deleteVolumeWarning context project volume =
             Nothing
 
 
+dangerPopconfirmContent : ExoPalette -> PopconfirmContent msg -> Element.Attribute msg -> Element.Element msg
+dangerPopconfirmContent palette { confirmation, buttonText, buttonVariant, onConfirm, onCancel } closePopconfirm =
+    Element.column
+        [ Element.spacing spacer.px16, Element.padding spacer.px4, Element.width Element.fill ]
+        [ Element.row [ Element.spacing spacer.px8 ]
+            [ Element.el [ Element.alignTop ] <|
+                sizedFeatherIcon 20 Icons.alertTriangle
+            , confirmation
+            ]
+        , Element.row [ Element.spacing spacer.px12, Element.alignRight ]
+            [ Element.el [ closePopconfirm ] <|
+                Button.default
+                    palette
+                    { text = "Cancel"
+                    , onPress = onCancel
+                    }
+            , Element.el [ closePopconfirm ] <|
+                Button.button buttonVariant
+                    palette
+                    { text = buttonText
+                    , onPress = onConfirm
+                    }
+            ]
+        ]
+
+
+dangerPopconfirm :
+    { viewContext | palette : ExoPalette, showPopovers : Set.Set PopoverId }
+    -> (PopoverId -> msg)
+    -> PopoverId
+    -> PopconfirmContent msg
+    -> ST.PopoverPosition
+    -> (msg -> Bool -> Element.Element msg)
+    -> Element.Element msg
+dangerPopconfirm context msgMapper id content position target =
+    popover context
+        msgMapper
+        { id = id
+        , content = dangerPopconfirmContent context.palette content
+        , contentStyleAttrs = []
+        , position = position
+        , distanceToTarget = Nothing
+        , target = target
+        , targetStyleAttrs = []
+        }
+
+
 deleteResourcePopconfirm : View.Types.Context -> Project -> (PopoverId -> msg) -> { r | uuid : String, word : String } -> String -> Maybe msg -> Maybe msg -> Element.Element msg
 deleteResourcePopconfirm context project msgMapper resource popconfirmTag onConfirm onCancel =
     deleteResourcePopconfirmWithDisabledHint
@@ -1689,7 +1742,7 @@ deleteBulkResourcePopconfirm context project msgMapper resource popconfirmTag on
                 , "bulk"
                 ]
     in
-    deletePopconfirm context
+    dangerPopconfirm context
         msgMapper
         deletePopconfirmId
         { confirmation =
@@ -1707,7 +1760,8 @@ deleteBulkResourcePopconfirm context project msgMapper resource popconfirmTag on
                     ++ " "
                     ++ (resource.word |> Helpers.String.pluralizeCount resource.count)
                     ++ "?"
-        , buttonText = Nothing
+        , buttonText = "Delete"
+        , buttonVariant = Button.Danger
         , onCancel = onCancel
         , onConfirm = onConfirm
         }
@@ -1766,7 +1820,7 @@ detachVolumeButton context project msgMapper popconfirmTag volume onConfirm onCa
         detachPopconfirmId =
             Helpers.String.hyphenate [ popconfirmTag, project.auth.project.uuid, volume.uuid ]
     in
-    deletePopconfirm context
+    dangerPopconfirm context
         msgMapper
         detachPopconfirmId
         { confirmation =
@@ -1780,7 +1834,8 @@ detachVolumeButton context project msgMapper popconfirmTag volume onConfirm onCa
                 , Element.text
                     "Make sure to close any open files before detaching."
                 ]
-        , buttonText = Just "Detach"
+        , buttonText = "Detach"
+        , buttonVariant = Button.Danger
         , onConfirm = onConfirm
         , onCancel = onCancel
         }
@@ -2181,19 +2236,22 @@ getVolumeStatusBadgeState status =
             StatusBadge.Warning
 
 
-getAllowedServerActions : Context -> OSTypes.ServerStatus -> OSTypes.ServerLockStatus -> List ServerActionName -> List ServerActionOption
-getAllowedServerActions context serverStatus serverLockStatus disallowedActions =
+getAllowedServerActions : OSTypes.ServerStatus -> OSTypes.ServerLockStatus -> List ServerActionName -> List ServerActions.ServerAction
+getAllowedServerActions serverStatus serverLockStatus disallowedActions =
     let
         allowedByServerStatus action =
-            case action.allowedStatuses of
-                Nothing ->
+            case ServerActions.allowedServerStatuses action of
+                AnyServerStatus ->
                     True
 
-                Just allowedStatuses ->
+                SpecificServerStatuses allowedStatuses ->
                     List.member serverStatus allowedStatuses
 
+                NoServerStatuses ->
+                    False
+
         allowedByLockStatus action =
-            case action.allowedLockStatus of
+            case ServerActions.allowedLockStatus action of
                 Nothing ->
                     True
 
@@ -2201,12 +2259,19 @@ getAllowedServerActions context serverStatus serverLockStatus disallowedActions 
                     serverLockStatus == allowedLockStatus_
 
         allowedByDisallowedActions action =
-            not <| List.member action.name disallowedActions
+            not <| List.member (ServerActions.serverActionToString action) disallowedActions
     in
-    actions context
+    ServerActions.allServerActions
         |> List.filter allowedByServerStatus
         |> List.filter allowedByLockStatus
         |> List.filter allowedByDisallowedActions
+
+
+getAllowedServerActionOptions : Context -> OSTypes.ServerStatus -> OSTypes.ServerLockStatus -> List ServerActionName -> List ServerActionOption
+getAllowedServerActionOptions context serverStatus serverLockStatus disallowedActions =
+    actions context
+        |> List.filter
+            (\option -> List.member option.serverAction (getAllowedServerActions serverStatus serverLockStatus disallowedActions))
 
 
 actions : Context -> List ServerActionOption
@@ -2228,8 +2293,7 @@ actions context =
                 , wordForServer
                 , "resize operation"
                 ]
-      , allowedStatuses = Just [ OSTypes.ServerVerifyResize ]
-      , allowedLockStatus = Just OSTypes.ServerUnlocked
+      , serverAction = ServerActions.ConfirmResize
       , action =
             doAction ServerActions.ConfirmResize
       , selectMod = Primary
@@ -2242,8 +2306,7 @@ actions context =
                 , wordForServer
                 , "resize operation"
                 ]
-      , allowedStatuses = Just [ OSTypes.ServerVerifyResize ]
-      , allowedLockStatus = Just OSTypes.ServerUnlocked
+      , serverAction = ServerActions.RevertResize
       , action =
             doAction ServerActions.RevertResize
       , selectMod = NoMod
@@ -2256,8 +2319,7 @@ actions context =
                 , wordForServer
                 , "actions until it is unlocked"
                 ]
-      , allowedStatuses = Nothing
-      , allowedLockStatus = Just OSTypes.ServerUnlocked
+      , serverAction = ServerActions.Lock
       , action =
             doAction ServerActions.Lock
       , selectMod = NoMod
@@ -2270,8 +2332,7 @@ actions context =
                 , wordForServer
                 , "actions"
                 ]
-      , allowedStatuses = Nothing
-      , allowedLockStatus = Just OSTypes.ServerLocked
+      , serverAction = ServerActions.Unlock
       , action =
             doAction ServerActions.Unlock
       , selectMod = Warning
@@ -2283,8 +2344,7 @@ actions context =
                 [ "Start stopped"
                 , wordForServer
                 ]
-      , allowedStatuses = Just [ OSTypes.ServerShutoff, OSTypes.ServerStopped ]
-      , allowedLockStatus = Just OSTypes.ServerUnlocked
+      , serverAction = ServerActions.Start
       , action =
             doAction ServerActions.Start
       , selectMod = Primary
@@ -2296,8 +2356,7 @@ actions context =
                 [ "Restore paused"
                 , wordForServer
                 ]
-      , allowedStatuses = Just [ OSTypes.ServerPaused ]
-      , allowedLockStatus = Just OSTypes.ServerUnlocked
+      , serverAction = ServerActions.Unpause
       , action =
             doAction ServerActions.Unpause
       , selectMod = Primary
@@ -2309,8 +2368,7 @@ actions context =
                 [ "Resume suspended"
                 , wordForServer
                 ]
-      , allowedStatuses = Just [ OSTypes.ServerSuspended ]
-      , allowedLockStatus = Just OSTypes.ServerUnlocked
+      , serverAction = ServerActions.Resume
       , action =
             doAction ServerActions.Resume
       , selectMod = Primary
@@ -2322,8 +2380,7 @@ actions context =
                 [ "Restore shelved"
                 , wordForServer
                 ]
-      , allowedStatuses = Just [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
-      , allowedLockStatus = Just OSTypes.ServerUnlocked
+      , serverAction = ServerActions.Unshelve
       , action =
             doAction ServerActions.Unshelve
       , selectMod = Primary
@@ -2331,8 +2388,7 @@ actions context =
       }
     , { name = "Suspend"
       , description = "Save execution state to disk"
-      , allowedStatuses = Just [ OSTypes.ServerActive ]
-      , allowedLockStatus = Just OSTypes.ServerUnlocked
+      , serverAction = ServerActions.Suspend
       , action =
             doAction ServerActions.Suspend
       , selectMod = NoMod
@@ -2345,8 +2401,7 @@ actions context =
                 , wordForServer
                 , "and offload it from compute host"
                 ]
-      , allowedStatuses = Just [ OSTypes.ServerActive, OSTypes.ServerPaused, OSTypes.ServerShutoff, OSTypes.ServerSuspended ]
-      , allowedLockStatus = Just OSTypes.ServerUnlocked
+      , serverAction = ServerActions.Shelve
       , action =
             \projectId serverUuid deleteFloatingIp ->
                 ProjectMsg projectId <| ServerMsg serverUuid <| RequestShelveServer deleteFloatingIp
@@ -2361,8 +2416,7 @@ actions context =
                 , "to a different"
                 , wordForFlavor
                 ]
-      , allowedStatuses = Just [ OSTypes.ServerActive, OSTypes.ServerShutoff ]
-      , allowedLockStatus = Just OSTypes.ServerUnlocked
+      , serverAction = ServerActions.Resize
       , action =
             -- This must be overridden in the Page to do anything
             \_ _ _ -> NoOp
@@ -2379,8 +2433,7 @@ actions context =
                 , "of"
                 , wordForServer
                 ]
-      , allowedStatuses = Just [ OSTypes.ServerActive, OSTypes.ServerPaused, OSTypes.ServerShutoff, OSTypes.ServerSuspended ]
-      , allowedLockStatus = Nothing
+      , serverAction = ServerActions.CreateImage
       , action =
             -- This must be overridden in the Page to do anything
             \_ _ _ -> SharedMsg.NoOp
@@ -2393,11 +2446,9 @@ actions context =
                 [ "Restart"
                 , wordForServer
                 ]
-      , allowedStatuses = Just [ OSTypes.ServerActive, OSTypes.ServerShutoff ]
-      , allowedLockStatus = Just OSTypes.ServerUnlocked
-
-      -- TODO soft and hard reboot? Call hard reboot "reset"?
+      , serverAction = ServerActions.Reboot
       , action =
+            -- TODO soft and hard reboot? Call hard reboot "reset"?
             doAction ServerActions.Reboot
       , selectMod = Warning
       , confirmable = False
@@ -2408,29 +2459,7 @@ actions context =
                 [ "Destroy"
                 , wordForServer
                 ]
-      , allowedStatuses =
-            Just
-                [ OSTypes.ServerActive
-                , OSTypes.ServerBuild
-                , OSTypes.ServerError
-                , OSTypes.ServerHardReboot
-                , OSTypes.ServerMigrating
-                , OSTypes.ServerPassword
-                , OSTypes.ServerPaused
-                , OSTypes.ServerReboot
-                , OSTypes.ServerRebuild
-                , OSTypes.ServerRescue
-                , OSTypes.ServerResize
-                , OSTypes.ServerRevertResize
-                , OSTypes.ServerShelved
-                , OSTypes.ServerShelvedOffloaded
-                , OSTypes.ServerShutoff
-                , OSTypes.ServerStopped
-                , OSTypes.ServerSuspended
-                , OSTypes.ServerUnknown
-                , OSTypes.ServerVerifyResize
-                ]
-      , allowedLockStatus = Just OSTypes.ServerUnlocked
+      , serverAction = ServerActions.Delete
       , action =
             \projectId serverUuid retainFloatingIp ->
                 ProjectMsg projectId <| ServerMsg serverUuid <| RequestDeleteServer retainFloatingIp
@@ -2442,7 +2471,7 @@ actions context =
        -- Not showing to users
        , { name = "Pause"
          , description = "Stop server execution but persist memory state"
-         , allowedStatuses = [ OSTypes.ServerActive ]
+         , serverAction = ServerActions.Pause
          , action = doAction ServerActions.Pause
          , selectMod = None
          , targetStatus = [ OSTypes.ServerPaused ]
@@ -2452,7 +2481,7 @@ actions context =
        -- Not showing to users
        , { name = "Stop"
          , description = "Shut down server"
-         , allowedStatuses = [ OSTypes.ServerActive ]
+         , serverAction = ServerActions.Stop
          , action = doAction ServerActions.Stop
          , selectMod = None
          , targetStatus = [ OSTypes.ServerStopped ]

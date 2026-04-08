@@ -13,8 +13,9 @@ import Route
 import Set
 import Style.Helpers as SH
 import Style.Types as ST
+import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirmContent)
+import Style.Widgets.DeleteButton exposing (deleteIconButton)
 import Style.Widgets.HumanTime exposing (relativeTimeElement)
 import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Spacer exposing (spacer)
@@ -326,7 +327,7 @@ securityGroupView context project currentTime securityGroupRecord =
                             , content =
                                 \confirmEl ->
                                     Element.column [ Element.spacing spacer.px8, Element.padding spacer.px4 ] <|
-                                        [ deletePopconfirmContent
+                                        [ VH.dangerPopconfirmContent
                                             context.palette
                                             { confirmation =
                                                 Element.column [ Element.spacingXY spacer.px4 spacer.px12 ]
@@ -336,7 +337,8 @@ securityGroupView context project currentTime securityGroupRecord =
                                                             ++ "?"
                                                     , warningSecurityGroupAffectsServers context project securityGroupRecord.id
                                                     ]
-                                            , buttonText = Nothing
+                                            , buttonText = "Delete"
+                                            , buttonVariant = Button.Danger
                                             , onCancel = Just NoOp
                                             , onConfirm = Just <| GotDeleteConfirm securityGroupRecord.securityGroup
                                             }

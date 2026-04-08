@@ -1753,6 +1753,7 @@ processProjectSpecificMsg outerModel project msg =
                 applyDelete serverUuid projCmdTuple =
                     let
                         ( delServerProj, delServerCmd ) =
+                            -- TODO: Take a delete / retain floating IPs parameter.
                             requestDeleteServer (Tuple.first projCmdTuple) serverUuid False
                     in
                     ( delServerProj, Cmd.batch [ Tuple.second projCmdTuple, delServerCmd ] )
@@ -1762,6 +1763,60 @@ processProjectSpecificMsg outerModel project msg =
                         applyDelete
                         ( project, Cmd.none )
                         serverUuidsToDelete
+            in
+            ( GetterSetters.modelUpdateProject sharedModel newProject
+            , cmd
+            )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        RequestShelveServers serverUuidsToShelve { deleteFloatingIps } ->
+            let
+                applyShelve : OSTypes.ServerUuid -> ( Project, Cmd SharedMsg ) -> ( Project, Cmd SharedMsg )
+                applyShelve serverUuid ( accProj, accCmd ) =
+                    case GetterSetters.serverLookup accProj serverUuid of
+                        Just server ->
+                            let
+                                ( actionProj, actionCmd ) =
+                                    requestShelveServer accProj server { deleteFloatingIps = deleteFloatingIps }
+                            in
+                            ( actionProj, Cmd.batch [ accCmd, actionCmd ] )
+
+                        Nothing ->
+                            ( accProj, accCmd )
+
+                ( newProject, cmd ) =
+                    List.foldl
+                        applyShelve
+                        ( project, Cmd.none )
+                        serverUuidsToShelve
+            in
+            ( GetterSetters.modelUpdateProject sharedModel newProject
+            , cmd
+            )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        RequestServerActions serverActions ->
+            let
+                applyAction : ( OSTypes.ServerUuid, ServerActions.ServerAction ) -> ( Project, Cmd SharedMsg ) -> ( Project, Cmd SharedMsg )
+                applyAction ( serverUuid, action ) ( accProj, accCmd ) =
+                    case GetterSetters.serverLookup accProj serverUuid of
+                        Just server ->
+                            let
+                                ( actionProj, actionCmd ) =
+                                    requestServerAction accProj server action
+                            in
+                            ( actionProj, Cmd.batch [ accCmd, actionCmd ] )
+
+                        Nothing ->
+                            ( accProj, accCmd )
+
+                ( newProject, cmd ) =
+                    List.foldl
+                        applyAction
+                        ( project, Cmd.none )
+                        serverActions
             in
             ( GetterSetters.modelUpdateProject sharedModel newProject
             , cmd
@@ -3568,7 +3623,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
         RequestShelveServer deleteFloatingIps ->
             let
                 ( newProject, cmd ) =
-                    requestShelveServer project server deleteFloatingIps
+                    requestShelveServer project server { deleteFloatingIps = deleteFloatingIps }
             in
             ( GetterSetters.modelUpdateProject sharedModel newProject, cmd )
                 |> mapToOuterMsg
@@ -4651,8 +4706,8 @@ createUnscopedProvider model authToken authUrl =
     )
 
 
-requestShelveServer : Project -> Server -> Bool -> ( Project, Cmd SharedMsg )
-requestShelveServer project server deleteFloatingIps =
+requestShelveServer : Project -> Server -> { deleteFloatingIps : Bool } -> ( Project, Cmd SharedMsg )
+requestShelveServer project server { deleteFloatingIps } =
     let
         targetStatus =
             Just [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]

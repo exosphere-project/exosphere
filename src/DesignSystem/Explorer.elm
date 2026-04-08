@@ -9,6 +9,7 @@ import DesignSystem.Stories.Code as CodeStories
 import DesignSystem.Stories.ColorPalette as ColorPalette
 import DesignSystem.Stories.CopyableText as CopyableTextStories
 import DesignSystem.Stories.DataList
+import DesignSystem.Stories.Dropdown as Dropdown
 import DesignSystem.Stories.Grid as GridStories
 import DesignSystem.Stories.IconButton as IconButtonStories
 import DesignSystem.Stories.Link as LinkStories
@@ -686,6 +687,7 @@ A chip filter is used as a multi select
                       )
                     ]
                 , CardStories.stories toHtml
+                , Dropdown.stories toHtml TogglePopover (Just NoOp)
                 , ToastStories.stories toHtml
                     ToastMsg
                     [ { name = "debug", onPress = Just (ToastShow ErrorDebug "request console log for server 5b8ad28f-3a82-4eec-aee6-7389f62ce04e") }

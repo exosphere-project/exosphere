@@ -11,14 +11,17 @@ import Helpers.Interaction as IHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String
+import OpenStack.ServerActions as ServerActions
 import OpenStack.Types as OSTypes
 import Page.QuotaUsage
 import Route
 import Set
 import Style.Helpers as SH
 import Style.Types as ST
+import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton)
+import Style.Widgets.Dropdown exposing (dropdown)
 import Style.Widgets.HumanTime exposing (relativeTimeElement)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Popover.Popover exposing (dropdownItemStyle, popover)
@@ -44,12 +47,17 @@ type alias Model =
     { showHeading : Bool
     , dataListModel : DataList.Model
     , retainFloatingIpsWhenDeleting : Bool
+    , deleteFloatingIpsWhenShelving : Bool
+    , selectedBulkAction : Maybe ServerActions.ServerAction
     }
 
 
 type Msg
     = GotDeleteConfirm OSTypes.ServerUuid
     | GotRetainFloatingIpsWhenDeleting Bool
+    | GotSelectBulkAction (Maybe ServerActions.ServerAction)
+    | GotConfirmBulkAction SharedMsg.SharedMsg
+    | GotDeleteFloatingIpsWhenShelving Bool
     | OpenInteraction String
     | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
@@ -58,12 +66,15 @@ type Msg
 
 init : View.Types.Context -> Project -> Bool -> Model
 init context project showHeading =
-    Model showHeading
-        (DataList.init <|
+    { showHeading = showHeading
+    , dataListModel =
+        DataList.init <|
             DataList.getDefaultFilterOptions
                 (filters context project project.auth.user.name (Time.millisToPosix 0))
-        )
-        False
+    , retainFloatingIpsWhenDeleting = False
+    , deleteFloatingIpsWhenShelving = True
+    , selectedBulkAction = Nothing
+    }
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -94,6 +105,25 @@ update msg project model =
 
         GotRetainFloatingIpsWhenDeleting retain ->
             ( { model | retainFloatingIpsWhenDeleting = retain }, Cmd.none, SharedMsg.NoOp )
+
+        GotSelectBulkAction action ->
+            ( { model | selectedBulkAction = action }, Cmd.none, SharedMsg.NoOp )
+
+        GotConfirmBulkAction sharedMsg ->
+            ( { model | selectedBulkAction = Nothing }, Cmd.none, sharedMsg )
+
+        GotDeleteFloatingIpsWhenShelving deleteFloatingIps ->
+            ( { model | deleteFloatingIpsWhenShelving = deleteFloatingIps }, Cmd.none, SharedMsg.NoOp )
+
+        SharedMsg (SharedMsg.TogglePopover "serverActionsDropdown") ->
+            -- Clear the dropdown selection when it is closed.
+            ( { model
+                | selectedBulkAction = Nothing
+                , deleteFloatingIpsWhenShelving = True
+              }
+            , Cmd.none
+            , SharedMsg.TogglePopover "serverActionsDropdown"
+            )
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
@@ -158,7 +188,9 @@ view context project currentTime model =
                             []
                             (serverView context currentTime project model.retainFloatingIpsWhenDeleting)
                             serversList
-                            [ deletionAction context project ]
+                            [ serverActionsDropdown context project model servers
+                            , deletionAction context project
+                            ]
                             (Just
                                 { filters = filters context project project.auth.user.name currentTime
                                 , dropdownMsgMapper =
@@ -422,14 +454,15 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
                 , content =
                     \confirmEl ->
                         Element.column [ Element.spacing spacer.px8, Element.padding spacer.px4 ] <|
-                            [ Style.Widgets.DeleteButton.deletePopconfirmContent
+                            [ VH.dangerPopconfirmContent
                                 context.palette
                                 { confirmation =
                                     Element.text <|
                                         "Are you sure you want to delete this "
                                             ++ context.localization.virtualComputer
                                             ++ "?"
-                                , buttonText = Nothing
+                                , buttonText = "Delete"
+                                , buttonVariant = Button.Danger
                                 , onCancel = Just NoOp
                                 , onConfirm =
                                     Just <| GotDeleteConfirm serverRecord.id
@@ -527,6 +560,188 @@ deletionAction context project serverIds =
                 )
         )
         (Just NoOp)
+
+
+serverActionsDropdown :
+    View.Types.Context
+    -> Project
+    -> Model
+    -> List Server
+    -> Set.Set OSTypes.ServerUuid
+    -> Element.Element Msg
+serverActionsDropdown context project model servers serverIds =
+    let
+        availableActions =
+            [ -- Shelve action needs special handling.
+              ServerActions.Shelve
+            , ServerActions.Unshelve
+            , ServerActions.Reboot
+            , ServerActions.Pause
+            , ServerActions.Unpause
+            ]
+
+        actionLabel action =
+            ServerActions.serverActionToString action |> Helpers.String.capitalizeWord
+
+        applicableServersForAction action =
+            let
+                selectedServers =
+                    servers
+                        |> List.filter (\server -> Set.member server.osProps.uuid serverIds)
+
+                disallowedActions server =
+                    GetterSetters.getServerFlavorGroup project context server
+                        |> Maybe.map .disallowedActions
+                        |> Maybe.withDefault []
+
+                allowedActionsForServer server =
+                    VH.getAllowedServerActions
+                        server.osProps.details.openstackStatus
+                        server.osProps.details.lockStatus
+                        (disallowedActions server)
+            in
+            selectedServers
+                |> List.filter (allowedActionsForServer >> List.member action)
+
+        actionPicker =
+            Element.column [ Element.spacing spacer.px8 ] <|
+                List.map
+                    (\action ->
+                        Button.button Button.Text
+                            context.palette
+                            { text = actionLabel action
+                            , onPress = Just <| GotSelectBulkAction (Just action)
+                            }
+                    )
+                    availableActions
+
+        confirmationView action closeDropdown =
+            let
+                applicableServers =
+                    applicableServersForAction action
+
+                count =
+                    List.length applicableServers
+
+                total =
+                    Set.size serverIds
+
+                onConfirm =
+                    if count > 0 then
+                        case action of
+                            ServerActions.Shelve ->
+                                Just <|
+                                    SharedMsg
+                                        (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project)
+                                            (SharedMsg.RequestShelveServers (applicableServers |> List.map (\server -> server.osProps.uuid)) { deleteFloatingIps = model.deleteFloatingIpsWhenShelving })
+                                        )
+
+                            _ ->
+                                Just <|
+                                    GotConfirmBulkAction
+                                        (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project)
+                                            (SharedMsg.RequestServerActions (applicableServers |> List.map (\server -> ( server.osProps.uuid, action ))))
+                                        )
+
+                    else
+                        Nothing
+
+                determiner =
+                    if count == 1 then
+                        "this"
+
+                    else
+                        "these " ++ String.fromInt count
+
+                extras =
+                    case ( action, count ) of
+                        ( _, 0 ) ->
+                            Element.none
+
+                        ( ServerActions.Shelve, _ ) ->
+                            Input.checkbox
+                                [ Element.paddingEach { top = spacer.px8, right = 0, bottom = 0, left = 0 } ]
+                                { onChange = GotDeleteFloatingIpsWhenShelving
+                                , icon = Input.defaultCheckbox
+                                , checked = model.deleteFloatingIpsWhenShelving
+                                , label =
+                                    Input.labelLeft [ Element.width Element.fill ]
+                                        (Text.p [ Font.alignRight, Element.padding spacer.px4 ] <|
+                                            [ Text.text Text.Small [ Element.alignRight ] <|
+                                                String.join " "
+                                                    [ "Release"
+                                                    , context.localization.floatingIpAddress |> Helpers.String.pluralizeCount total
+                                                    , "from"
+                                                    , determiner
+                                                    , context.localization.virtualComputer |> Helpers.String.pluralizeCount total
+                                                    , "when shelving?"
+                                                    ]
+                                            ]
+                                        )
+                                }
+
+                        _ ->
+                            Element.none
+
+                note =
+                    Text.text Text.Small [ Element.alignRight, Element.paddingXY 0 spacer.px4 ] <|
+                        "Action is applicable to "
+                            ++ String.fromInt count
+                            ++ " of "
+                            ++ String.fromInt total
+                            ++ " "
+                            ++ (context.localization.virtualComputer |> Helpers.String.pluralizeCount total)
+                            ++ "."
+
+                description =
+                    Text.body <|
+                        if count > 0 then
+                            "Are you sure you want to "
+                                ++ ServerActions.serverActionToString action
+                                ++ " "
+                                ++ determiner
+                                ++ " "
+                                ++ (context.localization.virtualComputer |> Helpers.String.pluralizeCount count)
+                                ++ "?"
+
+                        else
+                            "There are no eligible "
+                                ++ Helpers.String.pluralize context.localization.virtualComputer
+                                ++ " selected to "
+                                ++ ServerActions.serverActionToString action
+                                ++ "."
+
+                confirmation =
+                    Element.column [ Element.spacing spacer.px8 ]
+                        [ description
+                        , extras
+                        , note
+                        ]
+            in
+            VH.dangerPopconfirmContent
+                context.palette
+                { confirmation = confirmation
+                , buttonText = actionLabel action
+                , buttonVariant = Button.Warning
+                , onCancel = Just <| GotSelectBulkAction Nothing
+                , onConfirm = onConfirm
+                }
+                closeDropdown
+    in
+    dropdown
+        context
+        (SharedMsg << SharedMsg.TogglePopover)
+        { id = "serverActionsDropdown"
+        , label = "Actions"
+        , content =
+            \closeDropdown ->
+                case model.selectedBulkAction of
+                    Nothing ->
+                        actionPicker
+
+                    Just action ->
+                        confirmationView action closeDropdown
+        }
 
 
 searchByNameUuidFilter : View.Types.Context -> DataList.SearchFilter { record | name : String }
