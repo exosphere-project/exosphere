@@ -32,6 +32,7 @@ module View.Helpers exposing
     , hint
     , inputItemAttributes
     , invalidInputAttributes
+    , isConnectivityBroken
     , loginPickerButton
     , portRangeBoundsOptions
     , portRangeBoundsToString
@@ -84,6 +85,7 @@ import Element.Region as Region
 import FeatherIcons as Icons
 import FormatNumber
 import FormatNumber.Locales exposing (Decimals(..))
+import Helpers.Connectivity
 import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters exposing (LoadingProgress(..))
 import Helpers.Helpers as Helpers
@@ -101,7 +103,7 @@ import Markdown.Html
 import Markdown.Parser
 import Markdown.Renderer
 import OpenStack.Quotas as OSQuotas
-import OpenStack.SecurityGroupRule exposing (Remote(..), SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), directionToString, etherTypeToString, protocolToString)
+import OpenStack.SecurityGroupRule exposing (Remote(..), SecurityGroupRule, SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), directionToString, etherTypeToString, protocolToString)
 import OpenStack.ServerActions as ServerActions exposing (ApplicableServerStatuses(..), ServerActionName)
 import OpenStack.Types as OSTypes exposing (ShareStatus(..), Volume, VolumeStatus(..))
 import OpenStack.VolumeSnapshots as VS exposing (VolumeSnapshot)
@@ -2152,6 +2154,42 @@ remoteToStringInput remote =
                 else
                     remoteString
            )
+
+
+isConnectivityBroken :
+    View.Types.Context
+    -> List SecurityGroupRule
+    -> { guacamoleRequired : Bool, vncRequired : Bool }
+    -> { connectivityChecks : List ( Helpers.Connectivity.ConnectivityRule, Bool ), isConnectivityBroken : Bool }
+isConnectivityBroken context rules { guacamoleRequired, vncRequired } =
+    let
+        connectivityChecks =
+            ([ Helpers.Connectivity.outgoingHttpRule
+             , Helpers.Connectivity.outgoingHttpsRule
+             , Helpers.Connectivity.outgoingDnsUdpRule
+             , Helpers.Connectivity.outgoingDnsTcpRule
+             , Helpers.Connectivity.incomingSshRule context
+             ]
+                ++ (if guacamoleRequired then
+                        Helpers.Connectivity.incomingGuacamoleRule context
+                            :: (if vncRequired then
+                                    [ Helpers.Connectivity.incomingVncRule context ]
+
+                                else
+                                    []
+                               )
+
+                    else
+                        []
+                   )
+            )
+                |> List.map (\c -> ( c, Helpers.Connectivity.isConnectionPermitted c rules ))
+    in
+    { connectivityChecks = connectivityChecks
+    , isConnectivityBroken =
+        connectivityChecks
+            |> List.any (\( _, permitted ) -> not permitted)
+    }
 
 
 volumeStatusBadge : ExoPalette -> StatusBadgeSize -> Volume -> Element.Element msg

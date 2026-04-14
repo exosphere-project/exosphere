@@ -7,7 +7,6 @@ import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons exposing (edit2)
-import Helpers.Connectivity
 import Helpers.GetterSetters as GetterSetters exposing (DataDependent(..), isDefaultSecurityGroup, sortedSecurityGroups)
 import Helpers.List exposing (uniqueBy)
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -618,37 +617,23 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
             , let
                 connectivityWarningView server =
                     let
-                        connectivityChecks =
-                            ([ Helpers.Connectivity.outgoingHttpRule
-                             , Helpers.Connectivity.outgoingHttpsRule
-                             , Helpers.Connectivity.outgoingDnsUdpRule
-                             , Helpers.Connectivity.outgoingDnsTcpRule
-                             , Helpers.Connectivity.incomingSshRule context
-                             ]
-                                ++ (case server.exoProps.serverOrigin of
-                                        ServerFromExo serverFromExo ->
-                                            case serverFromExo.guacamoleStatus of
-                                                LaunchedWithGuacamole props ->
-                                                    Helpers.Connectivity.incomingGuacamoleRule context
-                                                        :: (if props.vncSupported then
-                                                                [ Helpers.Connectivity.incomingVncRule context ]
-
-                                                            else
-                                                                []
-                                                           )
-
-                                                _ ->
-                                                    []
+                        ( guacamoleRequired, vncRequired ) =
+                            case server.exoProps.serverOrigin of
+                                ServerFromExo serverFromExo ->
+                                    case serverFromExo.guacamoleStatus of
+                                        LaunchedWithGuacamole props ->
+                                            ( True, props.vncSupported )
 
                                         _ ->
-                                            []
-                                   )
-                            )
-                                |> List.map (\c -> ( c, Helpers.Connectivity.isConnectionPermitted c rules ))
+                                            ( False, False )
 
-                        isConnectivityBroken =
-                            connectivityChecks
-                                |> List.any (\( _, permitted ) -> not permitted)
+                                _ ->
+                                    ( False, False )
+
+                        { isConnectivityBroken, connectivityChecks } =
+                            VH.isConnectivityBroken context
+                                rules
+                                { guacamoleRequired = guacamoleRequired, vncRequired = vncRequired }
                     in
                     if isConnectivityBroken then
                         Alert.alert [ Element.width Element.fill ]
