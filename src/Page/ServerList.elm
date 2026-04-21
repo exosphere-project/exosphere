@@ -13,6 +13,7 @@ import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnA
 import Helpers.String
 import OpenStack.ServerActions as ServerActions
 import OpenStack.Types as OSTypes
+import Page.Jetstream2Allocation
 import Page.QuotaUsage
 import Route
 import Set
@@ -202,12 +203,20 @@ view context project currentTime model =
     in
     Element.column (VH.contentContainer ++ [ Element.spacing spacer.px32 ])
         [ if model.showHeading then
-            Text.heading context.palette
-                []
-                (Icon.featherIcon [] Icons.server)
-                (context.localization.virtualComputer
-                    |> Helpers.String.pluralize
-                    |> Helpers.String.toTitleCase
+            Element.el
+                [ Element.width Element.fill
+                , Element.inFront <|
+                    Element.el
+                        [ Element.alignRight, Element.centerY ]
+                        (Page.Jetstream2Allocation.renderTotalAllocationBurnRate context project)
+                ]
+                (Text.heading context.palette
+                    []
+                    (Icon.featherIcon [] Icons.server)
+                    (context.localization.virtualComputer
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                    )
                 )
 
           else

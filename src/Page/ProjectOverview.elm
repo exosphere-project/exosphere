@@ -51,8 +51,8 @@ update msg _ model =
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
 view context project currentTime _ =
     let
-        renderTile : Element.Element Msg -> String -> Route.ProjectRouteConstructor -> Maybe (Element.Element Msg) -> Element.Element Msg -> Element.Element Msg
-        renderTile icon str projRouteConstructor quotaMeter contents =
+        renderTile : Element.Element Msg -> String -> Element.Element Msg -> Route.ProjectRouteConstructor -> Maybe (Element.Element Msg) -> Element.Element Msg -> Element.Element Msg
+        renderTile icon str accessory projRouteConstructor quotaMeter contents =
             Element.link []
                 { url = Route.toUrl context.urlPathPrefix (Route.ProjectRoute (GetterSetters.projectIdentifier project) projRouteConstructor)
                 , label =
@@ -62,13 +62,18 @@ view context project currentTime _ =
                             , Element.width Element.fill
                             , Element.spacing spacer.px32
                             ]
-                            [ Text.subheading context.palette
-                                [ Element.padding 0
-                                , Border.width 0
-                                , Element.pointer
+                            [ Element.el
+                                [ Element.width Element.fill
+                                , Element.inFront <| accessory
                                 ]
-                                icon
-                                str
+                                (Text.subheading context.palette
+                                    [ Element.padding 0
+                                    , Border.width 0
+                                    , Element.pointer
+                                    ]
+                                    icon
+                                    str
+                                )
                             , case quotaMeter of
                                 Just quotaMeter_ ->
                                     Element.el [ Element.centerX ] quotaMeter_
@@ -116,6 +121,10 @@ view context project currentTime _ =
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
+                (Element.el
+                    [ Element.alignRight, Element.centerY ]
+                    (Page.Jetstream2Allocation.renderTotalAllocationBurnRate context project)
+                )
                 Route.ServerList
                 (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Compute project.computeQuota))
                 (serverTileContents context project)
@@ -125,6 +134,7 @@ view context project currentTime _ =
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
+                Element.none
                 Route.VolumeList
                 (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Volume ( project.volumeQuota, project.volumeSnapshots )))
                 (volumeTileContents context project)
@@ -136,6 +146,7 @@ view context project currentTime _ =
                             |> Helpers.String.pluralize
                             |> Helpers.String.toTitleCase
                         )
+                        Element.none
                         Route.ShareList
                         (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Share project.shareQuota))
                         (shareTileContents context project)
@@ -148,6 +159,7 @@ view context project currentTime _ =
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
+                Element.none
                 Route.FloatingIpList
                 (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.FloatingIp project.networkQuota))
                 (floatingIpTileContents context project)
@@ -157,6 +169,7 @@ view context project currentTime _ =
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
+                Element.none
                 Route.KeypairList
                 (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Keypair project.computeQuota keypairsUsedCount))
                 (keypairTileContents context project)
@@ -166,6 +179,7 @@ view context project currentTime _ =
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
+                Element.none
                 Route.ImageList
                 Nothing
                 (imageTileContents context project)
@@ -176,6 +190,7 @@ view context project currentTime _ =
                         |> Helpers.String.pluralize
                         |> Helpers.String.toTitleCase
                     )
+                    Element.none
                     Route.SecurityGroupList
                     Nothing
                     (securityGroupTileContents context project)
@@ -185,6 +200,7 @@ view context project currentTime _ =
             , renderTile
                 (Icon.featherIcon [] Icons.terminal)
                 (context.localization.credential |> Helpers.String.pluralize |> Helpers.String.toTitleCase)
+                Element.none
                 Route.Credentials
                 Nothing
                 (credentialTileContents context)
