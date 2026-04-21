@@ -1,13 +1,20 @@
-module Helpers.Jetstream2 exposing (calculateAllocationBurnRate)
+module Helpers.Jetstream2 exposing (calculateAllocationBurnRate, isJetstream2Cloud)
 
+import Helpers.Url
 import List.Extra
 import OpenStack.Types
+import Types.HelperTypes exposing (Url)
 
 
 
 {-
    https://docs.jetstream-cloud.org/general/access/
 -}
+
+
+isJetstream2Cloud : { a | keystone : Url } -> Bool
+isJetstream2Cloud { keystone } =
+    Helpers.Url.hostnameFromUrl keystone == "js2.jetstream-cloud.org"
 
 
 calculateAllocationBurnRate : List OpenStack.Types.Flavor -> OpenStack.Types.Server -> Maybe Float
