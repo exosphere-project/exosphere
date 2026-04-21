@@ -28,15 +28,10 @@ renderTotalAllocationBurnRate : View.Types.Context -> Project -> Element.Element
 renderTotalAllocationBurnRate context { endpoints, flavors, servers } =
     if Helpers.Jetstream2.isJetstream2Cloud endpoints then
         let
-            burnRates : List Float
-            burnRates =
-                RDPP.withDefault [] servers
-                    |> List.map .osProps
-                    |> List.filterMap (Helpers.Jetstream2.calculateAllocationBurnRate (RDPP.withDefault [] flavors))
-
             totalBurnRate =
-                burnRates
-                    |> List.sum
+                Helpers.Jetstream2.calculateTotalAllocationBurnRate
+                    (RDPP.withDefault [] flavors)
+                    (RDPP.withDefault [] servers |> List.map .osProps)
 
             subduedText =
                 Font.color (context.palette.neutral.text.subdued |> SH.toElementColor)

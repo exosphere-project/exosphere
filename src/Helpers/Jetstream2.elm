@@ -1,5 +1,6 @@
-module Helpers.Jetstream2 exposing (calculateAllocationBurnRate, isJetstream2Cloud)
+module Helpers.Jetstream2 exposing (allocationBurnRate, calculateAllocationBurnRate, calculateTotalAllocationBurnRate, isJetstream2Cloud)
 
+import Dict
 import Helpers.Url
 import List.Extra
 import OpenStack.Types
@@ -15,6 +16,27 @@ import Types.HelperTypes exposing (Url)
 isJetstream2Cloud : { a | keystone : Url } -> Bool
 isJetstream2Cloud { keystone } =
     Helpers.Url.hostnameFromUrl keystone == "js2.jetstream-cloud.org"
+
+
+calculateTotalAllocationBurnRate : List OpenStack.Types.Flavor -> List OpenStack.Types.Server -> Float
+calculateTotalAllocationBurnRate flavors servers =
+    let
+        flavorsById : Dict.Dict OpenStack.Types.FlavorId OpenStack.Types.Flavor
+        flavorsById =
+            flavors
+                |> List.map (\flavor -> ( flavor.id, flavor ))
+                |> Dict.fromList
+
+        burnRates : List Float
+        burnRates =
+            servers
+                |> List.filterMap
+                    (\server ->
+                        Dict.get server.details.flavorId flavorsById |> Maybe.andThen (allocationBurnRate server.details.openstackStatus)
+                    )
+    in
+    burnRates
+        |> List.sum
 
 
 calculateAllocationBurnRate : List OpenStack.Types.Flavor -> OpenStack.Types.Server -> Maybe Float
