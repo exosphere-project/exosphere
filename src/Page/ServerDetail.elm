@@ -40,6 +40,7 @@ import Style.Widgets.Tag exposing (tag)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Style.Widgets.Uuid exposing (copyableUuid)
+import Style.Widgets.Validation exposing (warningMessage)
 import Time
 import Types.Guacamole exposing (ServerGuacamoleStatus(..))
 import Types.HelperTypes exposing (FloatingIpOption(..), ProjectIdentifier, ServerResourceQtys, UserAppProxyHostname)
@@ -1619,8 +1620,11 @@ renderServerActionOption :
     -> ( List (Element.Element Msg), SharedMsg.SharedMsg )
 renderServerActionOption context project model server serverAction =
     let
+        floatingIps =
+            GetterSetters.getServerFloatingIps project server.osProps.uuid
+
         hasFloatingIps =
-            not <| List.isEmpty <| GetterSetters.getServerFloatingIps project server.osProps.uuid
+            not <| List.isEmpty <| floatingIps
 
         noOption =
             ( [], serverAction.action (GetterSetters.projectIdentifier project) server.osProps.uuid False )
@@ -1631,7 +1635,7 @@ renderServerActionOption context project model server serverAction =
                 deleteActionOption context project model server serverAction
 
             "Shelve" ->
-                shelveActionOption context project model server serverAction
+                shelveActionOption context project model server serverAction floatingIps
 
             _ ->
                 noOption
@@ -1676,10 +1680,11 @@ shelveActionOption :
     -> Model
     -> Server
     -> ServerActionOption
+    -> List OSTypes.FloatingIp
     -> ( List (Element.Element Msg), SharedMsg.SharedMsg )
-shelveActionOption context project model server serverAction =
+shelveActionOption context project model server serverAction floatingIps =
     ( [ Input.checkbox
-            []
+            [ Element.padding spacer.px8 ]
             { onChange = GotDeleteFloatingIpsWhenShelving
             , icon = Input.defaultCheckbox
             , checked = model.deleteFloatingIpsWhenShelving
@@ -1691,10 +1696,41 @@ shelveActionOption context project model server serverAction =
                             , context.localization.floatingIpAddress
                             , "from this"
                             , context.localization.virtualComputer
-                            , "while shelved"
+                            , "upon shelving."
                             ]
                     )
             }
+      , let
+            ipAddress =
+                floatingIps |> List.map .address |> List.filter Cidr.isValidIPv4 |> List.head
+
+            nudge =
+                "The "
+                    ++ context.localization.floatingIpAddress
+                    ++ (case ipAddress of
+                            Just ip ->
+                                " " ++ ip
+
+                            Nothing ->
+                                ""
+                       )
+        in
+        warningMessage context.palette <|
+            if model.deleteFloatingIpsWhenShelving then
+                String.join " "
+                    [ nudge
+                    , "will no longer be associated with this"
+                    , context.localization.virtualComputer ++ "."
+                    ]
+
+            else
+                String.join " "
+                    [ nudge
+                    , "will be retained by this"
+                    , context.localization.virtualComputer
+                    , "while shelved."
+                    , "Please remember this is a scarce resource."
+                    ]
       ]
     , serverAction.action (GetterSetters.projectIdentifier project) server.osProps.uuid model.deleteFloatingIpsWhenShelving
     )
