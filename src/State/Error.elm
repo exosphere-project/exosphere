@@ -1,4 +1,4 @@
-module State.Error exposing (formattedError, isNetworkError, processConnectivityError, processStringError, processSynchronousApiError)
+module State.Error exposing (formattedError, isNetworkError, processConnectivityError, processProjectStringError, processProjectSynchronousApiError, processStringError, processSynchronousApiError)
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
@@ -8,11 +8,14 @@ import OpenStack.Error as OSError
 import OpenStack.Types exposing (SynchronousAPIError)
 import Parser exposing ((|.), (|=))
 import Rest.Sentry
+import String
 import Style.Widgets.Toast as Toast
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody, Toast)
+import Types.Project exposing (Project)
 import Types.SharedModel
     exposing
         ( LogMessage
+        , LogMessageProject
         , SharedModel
         )
 import Types.SharedMsg exposing (SharedMsg(..))
@@ -44,6 +47,37 @@ processConnectivityError model online =
         error
 
 
+projectActionContext : Project -> ErrorContext -> ErrorContext
+projectActionContext project errorContext =
+    let
+        projectDescriptor =
+            case project.region of
+                Just region ->
+                    project.auth.project.name ++ " - " ++ region.id
+
+                Nothing ->
+                    project.auth.project.name
+    in
+    if String.contains projectDescriptor errorContext.actionContext then
+        errorContext
+
+    else
+        { errorContext
+            | actionContext =
+                errorContext.actionContext
+                    ++ " in "
+                    ++ projectDescriptor
+        }
+
+
+logMessageProject : Project -> LogMessageProject
+logMessageProject project =
+    { name = project.auth.project.name
+    , region = project.region |> Maybe.map .id
+    , uuid = project.auth.project.uuid
+    }
+
+
 isNetworkError : String -> Bool
 isNetworkError error =
     error == "NetworkError" || String.contains "Network error" error
@@ -51,6 +85,20 @@ isNetworkError error =
 
 processStringError : SharedModel -> ErrorContext -> String -> ( SharedModel, Cmd SharedMsg )
 processStringError model errorContext error =
+    processStringError_ Nothing model errorContext error
+
+
+processProjectStringError : SharedModel -> Project -> ErrorContext -> String -> ( SharedModel, Cmd SharedMsg )
+processProjectStringError model project errorContext error =
+    processStringError_
+        (Just <| logMessageProject project)
+        model
+        (projectActionContext project errorContext)
+        error
+
+
+processStringError_ : Maybe LogMessageProject -> SharedModel -> ErrorContext -> String -> ( SharedModel, Cmd SharedMsg )
+processStringError_ maybeProject model errorContext error =
     let
         silenceNetworkErrors =
             case model.networkConnectivity of
@@ -76,6 +124,7 @@ processStringError model errorContext error =
             LogMessage
                 error
                 newErrorContext
+                maybeProject
                 model.clientCurrentTime
 
         newLogMessages =
@@ -169,6 +218,20 @@ formattedError httpError =
 
 processSynchronousApiError : SharedModel -> ErrorContext -> HttpErrorWithBody -> ( SharedModel, Cmd SharedMsg )
 processSynchronousApiError model errorContext httpError =
+    processSynchronousApiError_ Nothing model errorContext httpError
+
+
+processProjectSynchronousApiError : SharedModel -> Project -> ErrorContext -> HttpErrorWithBody -> ( SharedModel, Cmd SharedMsg )
+processProjectSynchronousApiError model project errorContext httpError =
+    processSynchronousApiError_
+        (Just <| logMessageProject project)
+        model
+        (projectActionContext project errorContext)
+        httpError
+
+
+processSynchronousApiError_ : Maybe LogMessageProject -> SharedModel -> ErrorContext -> HttpErrorWithBody -> ( SharedModel, Cmd SharedMsg )
+processSynchronousApiError_ maybeProject model errorContext httpError =
     let
         apiErrorDecodeResult =
             decodeApiError httpError
@@ -185,4 +248,4 @@ processSynchronousApiError model errorContext httpError =
                 Err _ ->
                     errorContext
     in
-    processStringError model newErrorContext <| formattedError httpError
+    processStringError_ maybeProject model newErrorContext <| formattedError httpError

@@ -177,7 +177,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                                 Types.Error.ErrorWarn
                                 Nothing
                     in
-                    [ { message = error, context = context, timestamp = currentTime } ]
+                    [ { message = error, context = context, project = Nothing, timestamp = currentTime } ]
 
                 Nothing ->
                     []

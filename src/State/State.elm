@@ -82,7 +82,7 @@ import Style.Widgets.Toast as Toast
 import Task
 import Time
 import Types.Banner exposing (bannerId)
-import Types.Error as Error exposing (AppError, ErrorContext, ErrorLevel(..))
+import Types.Error as Error exposing (AppError, ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes exposing (UnscopedProviderProject)
 import Types.Interactivity as Interactivity exposing (InteractionLevel(..))
@@ -1324,6 +1324,14 @@ processProjectSpecificMsg outerModel project msg =
 
         { viewContext } =
             sharedModel
+
+        processProjectStringError : SharedModel -> ErrorContext -> String -> ( SharedModel, Cmd SharedMsg )
+        processProjectStringError model errorContext error =
+            State.Error.processProjectStringError model project errorContext error
+
+        processProjectSynchronousApiError : SharedModel -> ErrorContext -> HttpErrorWithBody -> ( SharedModel, Cmd SharedMsg )
+        processProjectSynchronousApiError model errorContext error =
+            State.Error.processProjectSynchronousApiError model project errorContext error
     in
     case msg of
         PrepareCredentialedRequest requestProto posixTime ->
@@ -1370,7 +1378,7 @@ processProjectSpecificMsg outerModel project msg =
                                     ErrorCrit
                                     (Just ("Please remove this " ++ viewContext.localization.unitOfTenancy ++ " from Exosphere and add it again."))
                         in
-                        State.Error.processStringError sharedModel errorContext e
+                        processProjectStringError sharedModel errorContext e
                             |> mapToOuterMsg
                             |> mapToOuterModel newOuterModel
 
@@ -1436,7 +1444,7 @@ processProjectSpecificMsg outerModel project msg =
                                 ErrorDebug
                                 Nothing
                     in
-                    State.Error.processStringError
+                    processProjectStringError
                         sharedModel
                         errorContext
                         (String.join " "
@@ -1470,12 +1478,12 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterModel outerModel
 
         ReceiveCreateDnsRecordSet context (Err e) ->
-            State.Error.processSynchronousApiError sharedModel context e
+            processProjectSynchronousApiError sharedModel context e
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
         ReceiveDeleteDnsRecordSet context (Err e) ->
-            State.Error.processSynchronousApiError sharedModel context e
+            processProjectSynchronousApiError sharedModel context e
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
@@ -1551,7 +1559,7 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
 
                 Nothing ->
-                    State.Error.processStringError
+                    processProjectStringError
                         sharedModel
                         (ErrorContext
                             ("create " ++ Helpers.String.indefiniteArticle viewContext.localization.share ++ " " ++ viewContext.localization.share ++ " with name " ++ createShareRequest.name)
@@ -1633,7 +1641,7 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterModel outerModel
 
                 Nothing ->
-                    State.Error.processStringError
+                    processProjectStringError
                         sharedModel
                         (ErrorContext
                             ("look for server UUID with attached " ++ viewContext.localization.blockDevice ++ " " ++ volumeUuid)
@@ -1647,7 +1655,7 @@ processProjectSpecificMsg outerModel project msg =
         RequestCreateProjectFloatingIp maybeIp ->
             case GetterSetters.getExternalNetwork project of
                 Nothing ->
-                    State.Error.processStringError
+                    processProjectStringError
                         sharedModel
                         (ErrorContext
                             ("create " ++ Helpers.String.indefiniteArticle viewContext.localization.floatingIpAddress ++ " " ++ sharedModel.viewContext.localization.floatingIpAddress)
@@ -1842,7 +1850,7 @@ processProjectSpecificMsg outerModel project msg =
                         newSharedModel =
                             GetterSetters.modelUpdateProject sharedModel newProject
                     in
-                    State.Error.processSynchronousApiError newSharedModel errorContext e
+                    processProjectSynchronousApiError newSharedModel errorContext e
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -1906,7 +1914,7 @@ processProjectSpecificMsg outerModel project msg =
                                         newSharedModel =
                                             GetterSetters.modelUpdateProject sharedModel newProject
                                     in
-                                    State.Error.processSynchronousApiError newSharedModel errorContext httpErrorWithBody
+                                    processProjectSynchronousApiError newSharedModel errorContext httpErrorWithBody
                                         |> mapToOuterMsg
                                         |> mapToOuterModel outerModel
                     in
@@ -1928,7 +1936,7 @@ processProjectSpecificMsg outerModel project msg =
                                     newModel =
                                         GetterSetters.modelUpdateProject sharedModel newProject
                                 in
-                                State.Error.processSynchronousApiError newModel newErrorContext httpErrorWithBody
+                                processProjectSynchronousApiError newModel newErrorContext httpErrorWithBody
                                     |> mapToOuterMsg
                                     |> mapToOuterModel outerModel
 
@@ -1962,7 +1970,7 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterModel outerModel
 
                 Err httpErrorWithBody ->
-                    State.Error.processSynchronousApiError sharedModel errorContext httpErrorWithBody
+                    processProjectSynchronousApiError sharedModel errorContext httpErrorWithBody
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -1986,7 +1994,7 @@ processProjectSpecificMsg outerModel project msg =
                         |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotServerSecurityGroups serverId))
 
                 Err httpErrorWithBody ->
-                    State.Error.processSynchronousApiError sharedModel errorContext httpErrorWithBody
+                    processProjectSynchronousApiError sharedModel errorContext httpErrorWithBody
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -2046,7 +2054,7 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterModel outerModel
 
                 Err httpErrorWithBody ->
-                    State.Error.processSynchronousApiError sharedModel errorContext httpErrorWithBody
+                    processProjectSynchronousApiError sharedModel errorContext httpErrorWithBody
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -2075,7 +2083,7 @@ processProjectSpecificMsg outerModel project msg =
                         newSharedModel =
                             GetterSetters.modelUpdateProject sharedModel newProject
                     in
-                    State.Error.processSynchronousApiError newSharedModel errorContext e
+                    processProjectSynchronousApiError newSharedModel errorContext e
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -2105,7 +2113,7 @@ processProjectSpecificMsg outerModel project msg =
                         newSharedModel =
                             GetterSetters.modelUpdateProject sharedModel newProject
                     in
-                    State.Error.processSynchronousApiError newSharedModel errorContext e
+                    processProjectSynchronousApiError newSharedModel errorContext e
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -2116,7 +2124,7 @@ processProjectSpecificMsg outerModel project msg =
         ReceiveDeleteKeypair errorContext keypairName result ->
             case result of
                 Err httpError ->
-                    State.Error.processStringError sharedModel errorContext (Helpers.httpErrorToString httpError)
+                    processProjectStringError sharedModel errorContext (Helpers.httpErrorToString httpError)
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -2182,7 +2190,7 @@ processProjectSpecificMsg outerModel project msg =
                                 _ ->
                                     outerModel
                     in
-                    State.Error.processStringError sharedModel errorContext httpError.body
+                    processProjectStringError sharedModel errorContext httpError.body
                         |> mapToOuterMsg
                         |> mapToOuterModel newOuterModel
 
@@ -2214,7 +2222,7 @@ processProjectSpecificMsg outerModel project msg =
                         newModel =
                             GetterSetters.modelUpdateProject sharedModel newProject
                     in
-                    State.Error.processSynchronousApiError newModel errorContext httpError
+                    processProjectSynchronousApiError newModel errorContext httpError
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -2255,7 +2263,7 @@ processProjectSpecificMsg outerModel project msg =
                             ApiModelHelpers.requestNetworks (GetterSetters.projectIdentifier project) newSharedModel
 
                         Err httpError ->
-                            State.Error.processSynchronousApiError newSharedModel errorContext httpError
+                            processProjectSynchronousApiError newSharedModel errorContext httpError
                                 |> Helpers.pipelineCmd (ApiModelHelpers.requestNetworks (GetterSetters.projectIdentifier project))
 
                 ( newOuterModel, underlyingCmd ) =
@@ -2306,7 +2314,7 @@ processProjectSpecificMsg outerModel project msg =
                         newSharedModel =
                             GetterSetters.modelUpdateProject sharedModel newProject
                     in
-                    State.Error.processSynchronousApiError newSharedModel errorContext httpError
+                    processProjectSynchronousApiError newSharedModel errorContext httpError
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -2318,7 +2326,7 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterModel outerModel
 
                 Err httpErrorWithBody ->
-                    State.Error.processSynchronousApiError sharedModel errorContext httpErrorWithBody
+                    processProjectSynchronousApiError sharedModel errorContext httpErrorWithBody
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -2379,7 +2387,7 @@ processProjectSpecificMsg outerModel project msg =
                         newModel =
                             GetterSetters.modelUpdateProject sharedModel newProject
                     in
-                    State.Error.processSynchronousApiError newModel errorContext httpError
+                    processProjectSynchronousApiError newModel errorContext httpError
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -2501,7 +2509,7 @@ processProjectSpecificMsg outerModel project msg =
                             GetterSetters.modelUpdateProject sharedModel newProject
 
                         ( newSharedModel, errorCmd ) =
-                            State.Error.processSynchronousApiError newModel errorContext httpError
+                            processProjectSynchronousApiError newModel errorContext httpError
                     in
                     ( newSharedModel, Cmd.batch [ errorCmd, releaseWebLockCmd ] )
                         |> mapToOuterMsg
@@ -2592,7 +2600,7 @@ processProjectSpecificMsg outerModel project msg =
                             GetterSetters.modelUpdateProject sharedModel newProject
 
                         ( newSharedModel, errorCmd ) =
-                            State.Error.processSynchronousApiError newModel errorContext httpError
+                            processProjectSynchronousApiError newModel errorContext httpError
                     in
                     ( newSharedModel, Cmd.batch [ errorCmd, releaseWebLockCmd ] )
                         |> mapToOuterMsg
@@ -2671,7 +2679,7 @@ processProjectSpecificMsg outerModel project msg =
                             GetterSetters.modelUpdateProject sharedModel newProject
 
                         ( newSharedModel, errorCmd ) =
-                            State.Error.processStringError newModel errorContext errorMessage
+                            processProjectStringError newModel errorContext errorMessage
                     in
                     ( newSharedModel, Cmd.batch [ errorCmd, releaseWebLockCmd ] )
                         |> mapToOuterMsg
@@ -2773,7 +2781,7 @@ processProjectSpecificMsg outerModel project msg =
                         newModel =
                             GetterSetters.modelUpdateProject sharedModel newProject
                     in
-                    State.Error.processSynchronousApiError newModel errorContext httpError
+                    processProjectSynchronousApiError newModel errorContext httpError
                         |> mapToOuterMsg
                         -- TODO: Make the page aware of the shared msg.
                         |> mapToOuterModel outerModel
@@ -2857,7 +2865,7 @@ processProjectSpecificMsg outerModel project msg =
                         newModel =
                             GetterSetters.modelUpdateProject sharedModel newProject
                     in
-                    State.Error.processSynchronousApiError newModel errorContext httpError
+                    processProjectSynchronousApiError newModel errorContext httpError
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -2984,7 +2992,7 @@ processProjectSpecificMsg outerModel project msg =
                         updatedSharedModel =
                             GetterSetters.modelUpdateProject sharedModel updatedProject
                     in
-                    State.Error.processSynchronousApiError updatedSharedModel errorContext httpError
+                    processProjectSynchronousApiError updatedSharedModel errorContext httpError
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -3072,7 +3080,7 @@ processProjectSpecificMsg outerModel project msg =
                 Err httpError ->
                     let
                         ( newSharedModel, errCmd ) =
-                            State.Error.processSynchronousApiError updatedSharedModel errorContext httpError
+                            processProjectSynchronousApiError updatedSharedModel errorContext httpError
                     in
                     ( newSharedModel, Cmd.batch [ errCmd, deleteCmd, queueCmd ] )
                         |> mapToOuterMsg
@@ -3323,7 +3331,7 @@ processProjectSpecificMsg outerModel project msg =
                         newModel =
                             GetterSetters.modelUpdateProject sharedModel newProject
                     in
-                    State.Error.processSynchronousApiError newModel errorContext httpError
+                    processProjectSynchronousApiError newModel errorContext httpError
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -3387,7 +3395,7 @@ processProjectSpecificMsg outerModel project msg =
                             GetterSetters.modelUpdateProject sharedModel newProject
 
                         ( newSharedModel, errCmd ) =
-                            State.Error.processSynchronousApiError updatedSharedModel errorContext httpError
+                            processProjectSynchronousApiError updatedSharedModel errorContext httpError
                     in
                     ( newSharedModel, errCmd )
                         |> mapToOuterMsg
@@ -3424,7 +3432,7 @@ processProjectSpecificMsg outerModel project msg =
                             GetterSetters.modelUpdateProject sharedModel newProject
 
                         ( newSharedModel, errCmd ) =
-                            State.Error.processSynchronousApiError updatedSharedModel errorContext httpError
+                            processProjectSynchronousApiError updatedSharedModel errorContext httpError
                     in
                     ( newSharedModel, errCmd )
                         |> mapToOuterMsg
@@ -3461,7 +3469,7 @@ processProjectSpecificMsg outerModel project msg =
                         newModel =
                             GetterSetters.modelUpdateProject sharedModel newProject
                     in
-                    State.Error.processSynchronousApiError newModel errorContext httpError
+                    processProjectSynchronousApiError newModel errorContext httpError
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -3488,7 +3496,7 @@ processProjectSpecificMsg outerModel project msg =
                         newModel =
                             GetterSetters.modelUpdateProject sharedModel newProject
                     in
-                    State.Error.processSynchronousApiError newModel errorContext httpError
+                    processProjectSynchronousApiError newModel errorContext httpError
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -3515,7 +3523,7 @@ processProjectSpecificMsg outerModel project msg =
                         newModel =
                             GetterSetters.modelUpdateProject sharedModel newProject
                     in
-                    State.Error.processSynchronousApiError newModel errorContext httpError
+                    processProjectSynchronousApiError newModel errorContext httpError
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -3537,7 +3545,7 @@ processProjectSpecificMsg outerModel project msg =
                         newModel =
                             GetterSetters.modelUpdateProject sharedModel newProject
                     in
-                    State.Error.processSynchronousApiError newModel errorContext httpError
+                    processProjectSynchronousApiError newModel errorContext httpError
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -3586,7 +3594,7 @@ processProjectSpecificMsg outerModel project msg =
                                 ErrorCrit
                                 (Just "Please open a ticket with Jetstream2 support.")
                     in
-                    State.Error.processSynchronousApiError newModel errorContext httpError
+                    processProjectSynchronousApiError newModel errorContext httpError
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -3609,6 +3617,14 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
     let
         sharedModel =
             outerModel.sharedModel
+
+        processProjectStringError : SharedModel -> ErrorContext -> String -> ( SharedModel, Cmd SharedMsg )
+        processProjectStringError model errorContext error =
+            State.Error.processProjectStringError model project errorContext error
+
+        processProjectSynchronousApiError : SharedModel -> ErrorContext -> HttpErrorWithBody -> ( SharedModel, Cmd SharedMsg )
+        processProjectSynchronousApiError model errorContext error =
+            State.Error.processProjectSynchronousApiError model project errorContext error
     in
     case serverMsgConstructor of
         RequestDeleteServer retainFloatingIps ->
@@ -3725,7 +3741,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
         RequestCreateServerFloatingIp maybeIp ->
             let
                 toError errMsg =
-                    State.Error.processStringError
+                    processProjectStringError
                         sharedModel
                         (ErrorContext
                             ("create " ++ Helpers.String.indefiniteArticle sharedModel.viewContext.localization.floatingIpAddress ++ " " ++ sharedModel.viewContext.localization.floatingIpAddress)
@@ -3865,7 +3881,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                 ErrorCrit
                                 Nothing
                     in
-                    State.Error.processStringError sharedModel errorContext errMsg
+                    processProjectStringError sharedModel errorContext errMsg
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -3914,7 +3930,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                             GetterSetters.modelUpdateProject sharedModel updatedProject
 
                         ( newSharedModel, errCmd ) =
-                            State.Error.processSynchronousApiError updatedSharedModel errorContext httpError
+                            processProjectSynchronousApiError updatedSharedModel errorContext httpError
                     in
                     ( newSharedModel, errCmd )
                         |> mapToOuterMsg
@@ -4031,7 +4047,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                             else
                                 { errorContext | level = ErrorDebug }
                     in
-                    State.Error.processSynchronousApiError sharedModel newErrorContext httpErrorWithBody
+                    processProjectSynchronousApiError sharedModel newErrorContext httpErrorWithBody
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -4108,7 +4124,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
         ReceiveSetServerName errorContext result ->
             case result of
                 Err e ->
-                    State.Error.processSynchronousApiError sharedModel errorContext e
+                    processProjectSynchronousApiError sharedModel errorContext e
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -4138,7 +4154,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             case result of
                 Err e ->
                     -- Error from API
-                    State.Error.processSynchronousApiError sharedModel errorContext e
+                    processProjectSynchronousApiError sharedModel errorContext e
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -4173,7 +4189,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
                     else
                         -- This is bonkers, throw an error
-                        State.Error.processStringError
+                        processProjectStringError
                             sharedModel
                             errorContext
                             "The metadata items returned by OpenStack did not include the metadata item that we tried to set."
@@ -4184,7 +4200,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             case result of
                 Err e ->
                     -- Error from API
-                    State.Error.processSynchronousApiError sharedModel errorContext e
+                    processProjectSynchronousApiError sharedModel errorContext e
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -4288,7 +4304,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                 |> mapToOuterModel outerModel
 
                         GuacTypes.NotLaunchedWithGuacamole ->
-                            State.Error.processStringError
+                            processProjectStringError
                                 sharedModel
                                 errorContext
                                 "Server does not appear to have been launched with Guacamole support"
@@ -4296,7 +4312,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                 |> mapToOuterModel outerModel
 
                 ServerNotFromExo ->
-                    State.Error.processStringError
+                    processProjectStringError
                         sharedModel
                         errorContext
                         "Server does not appear to have been launched from Exosphere"
@@ -4450,7 +4466,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     in
                     case result of
                         Err httpError ->
-                            State.Error.processSynchronousApiError newSharedModel errorContext httpError
+                            processProjectSynchronousApiError newSharedModel errorContext httpError
                                 |> mapToOuterMsg
                                 |> mapToOuterModel outerModel
 

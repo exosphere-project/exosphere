@@ -462,7 +462,7 @@ buildSupportRequest model context maybeSupportableResource requestDescription =
         , let
             logMsgStr =
                 model.logMessages
-                    |> List.map VH.renderMessageAsString
+                    |> List.map (VH.renderMessageAsString context)
                     |> List.map (\s -> String.append s "\n")
                     |> String.concat
           in

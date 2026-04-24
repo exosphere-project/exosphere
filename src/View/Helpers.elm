@@ -131,7 +131,7 @@ import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Types.HelperTypes exposing (Localization)
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoSetupStatus(..), Server, ServerOrigin(..), ServerUiStatus(..))
-import Types.SharedModel exposing (LogMessage, SharedModel, Style)
+import Types.SharedModel exposing (LogMessage, LogMessageProject, SharedModel, Style)
 import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import View.Types exposing (Context, PortRangeBounds(..), RemoteType(..), SelectMod(..), ServerActionOption)
 
@@ -287,6 +287,10 @@ renderMessageAsElement context message =
 
         copyable =
             copyableTextAccessory context.palette message.message
+
+        projectLabel =
+            message.project
+                |> Maybe.map renderLogMessageProject
     in
     Element.column [ Element.spacing spacer.px12, Element.width Element.fill ]
         [ Element.row [ Element.alignRight ]
@@ -308,6 +312,12 @@ renderMessageAsElement context message =
                 [ Element.width Element.fill, Element.spacing spacer.px8 ]
                 [ Element.paragraph [ copyable.id ] [ Element.text message.message ], copyable.accessory ]
             )
+        , case projectLabel of
+            Just project ->
+                compactKVRow (toTitleCase context.localization.unitOfTenancy) (Element.paragraph [] [ Element.text project ])
+
+            Nothing ->
+                Element.none
         , case message.context.recoveryHint of
             Just hint_ ->
                 compactKVRow "Recovery hint" (Element.paragraph [] [ Element.text hint_ ])
@@ -317,8 +327,8 @@ renderMessageAsElement context message =
         ]
 
 
-renderMessageAsString : LogMessage -> String
-renderMessageAsString message =
+renderMessageAsString : View.Types.Context -> LogMessage -> String
+renderMessageAsString context message =
     let
         levelStr : ErrorLevel -> String
         levelStr errLevel =
@@ -340,10 +350,27 @@ renderMessageAsString message =
     , humanReadableDateAndTime message.timestamp
     , " -- while trying to "
     , message.context.actionContext
+    , case message.project of
+        Just project ->
+            " -- " ++ (context.localization.unitOfTenancy |> Helpers.String.toTitleCase) ++ ": " ++ renderLogMessageProject project
+
+        Nothing ->
+            ""
     , " -- "
     , message.message
     ]
         |> String.concat
+
+
+renderLogMessageProject : LogMessageProject -> String
+renderLogMessageProject project =
+    let
+        regionLabel =
+            project.region
+                |> Maybe.map (\region -> " - " ++ region)
+                |> Maybe.withDefault ""
+    in
+    project.name ++ regionLabel ++ " (" ++ project.uuid ++ ")"
 
 
 resourceName : Maybe String -> String -> String
