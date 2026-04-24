@@ -211,7 +211,7 @@ requestCreateFloatingIp project network maybePortServerUuid maybeIp =
                 forPort =
                     maybePortServerUuid
                         |> Maybe.map Tuple.first
-                        |> Maybe.map (\port_ -> " for port" ++ port_.uuid)
+                        |> Maybe.map (\port_ -> " for port " ++ port_.uuid)
                         |> Maybe.withDefault ""
             in
             ErrorContext
