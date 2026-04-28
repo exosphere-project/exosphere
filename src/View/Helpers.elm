@@ -293,7 +293,8 @@ renderMessageAsElement context message =
                 |> Maybe.map renderLogMessageProject
     in
     Element.column [ Element.spacing spacer.px12, Element.width Element.fill ]
-        [ Element.row [ Element.alignRight ]
+        [ Element.el [ Element.width Element.fill, Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }, Border.color (context.palette.neutral.border |> SH.toElementColor) ] Element.none
+        , Element.row [ Element.alignRight ]
             [ Element.el
                 [ Font.color <| levelColor message.context.level
                 ]
@@ -301,26 +302,26 @@ renderMessageAsElement context message =
                     (toFriendlyErrorLevel message.context.level)
                 )
             , Element.el [ context.palette.neutral.text.subdued |> SH.toElementColor |> Font.color ]
-                (Element.text
+                (Text.body
                     (" at " ++ humanReadableDateAndTime message.timestamp)
                 )
             ]
         , compactKVRow "We were trying to"
-            (Element.paragraph [] [ Element.text message.context.actionContext ])
+            (Text.p [] [ Text.body (Helpers.String.capitalizeWord message.context.actionContext) ])
         , compactKVRow "Message"
             (Element.row
-                [ Element.width Element.fill, Element.spacing spacer.px8 ]
-                [ Element.paragraph [ copyable.id ] [ Element.text message.message ], copyable.accessory ]
+                ([ Element.width Element.fill, Element.paddingXY spacer.px8 spacer.px8 ] ++ Style.Widgets.Code.codeAttrs context.palette)
+                [ Text.p [ copyable.id ] [ Text.text Text.Small [] message.message ], copyable.accessory ]
             )
         , case projectLabel of
             Just project ->
-                compactKVRow (toTitleCase context.localization.unitOfTenancy) (Element.paragraph [] [ Element.text project ])
+                compactKVRow (Helpers.String.capitalizeWord context.localization.unitOfTenancy) (Text.p [] [ Text.body project ])
 
             Nothing ->
                 Element.none
         , case message.context.recoveryHint of
             Just hint_ ->
-                compactKVRow "Recovery hint" (Element.paragraph [] [ Element.text hint_ ])
+                compactKVRow "Recovery hint" (Text.p [] [ Text.body hint_ ])
 
             Nothing ->
                 Element.none
