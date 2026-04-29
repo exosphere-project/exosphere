@@ -14,12 +14,11 @@ recognizedPublicKeyTypes =
     [ "ssh-ed25519"
     , "ecdsa-sha2-nistp256"
     , "ecdsa-sha2-nistp384"
-    , "ecdsa-sha2-nistp512"
+    , "ecdsa-sha2-nistp521"
     , "rsa-sha2-512"
     , "rsa-sha2-256"
     , "ssh-rsa"
     , "ssh-dss"
-    , "ssh-dsa"
     ]
 
 

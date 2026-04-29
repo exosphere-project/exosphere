@@ -57,6 +57,10 @@ c2ysNqUmsRQkCyNqTT0D9wUK9A01KFL8RnDPu1Qp4MkOIH+cp0LNOJJRgdDEnQF94TC6sv
             \_ ->
                 Expect.equal Helpers.SshKeyTypeGuesser.PublicKey
                     (Helpers.SshKeyTypeGuesser.guessKeyType """ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDUUNdSxvLPTfmpcJoODn6rNshA7ykz6Z8Qlycr3oRo7uVIZKr1GDB5KKh6D3Vvksi2X1uHO1kNZHZBtQxdBnuOa3F9zXN5NOBdOEc1/2WmmCGGbw7a0wRAgkji1nSxpFRPHaxFyKdjDzQgsziInE47c/8/CN8hQeCLx3u/TITAmJmqU2x5SprivateIt81HEqonPi9cYqt1fN12EZPMRbIgfAQc+t0UZiouG8y/gqfVF03iXh+7xGuqDiAtJHzx8eL/EuTFGvNUpIoyEd+k9BNHCtRsFe3DxxANRlckEFWbdHnq+J5OsIAG1LiPwyFLd39BvGBvixCcZeq1JUbEKa70f7Yuhy0YCM+KdhtL/prnX39x7NWqkEhmT+mSWylO7cAPDltp00oj9smkC5Sd/A8OLlJfdGlBvT4O9G/kHzjWPwCnZWsv2+Wgz4B2ifVhm72j91lODluWEaZXaA6udJ6cx4UcS7LSalnFoyvPF8/ITqvMxwMcZFca9f8lEfAYRU= cmart@privateer""")
+        , test "nistp521 public key" <|
+            \_ ->
+                Expect.equal Helpers.SshKeyTypeGuesser.PublicKey
+                    (Helpers.SshKeyTypeGuesser.guessKeyType """ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAABBBLxT8l6OHQpQw0m8f6nT7w0zW4k0n1Yv2fM2mLJ8sY6QxQ9vM0KfK9V7r4d2O8r3bW2l7mQ1pJ4yYz8kK0q6Qe8= user@example""")
         , test "not an SSH key at all" <|
             \_ ->
                 Expect.equal Helpers.SshKeyTypeGuesser.Unknown
