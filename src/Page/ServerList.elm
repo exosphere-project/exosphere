@@ -670,11 +670,11 @@ serverActionsDropdown context project model servers serverIds =
                                             [ Text.text Text.Small [ Element.alignRight ] <|
                                                 String.join " "
                                                     [ "Release"
-                                                    , context.localization.floatingIpAddress |> Helpers.String.pluralizeCount total
+                                                    , context.localization.floatingIpAddress |> Helpers.String.pluralizeCount count
                                                     , "from"
                                                     , determiner
-                                                    , context.localization.virtualComputer |> Helpers.String.pluralizeCount total
-                                                    , "when shelving?"
+                                                    , context.localization.virtualComputer |> Helpers.String.pluralizeCount count
+                                                    , "upon shelving?"
                                                     ]
                                             ]
                                         )
