@@ -1701,19 +1701,14 @@ shelveActionOption context project model server serverAction floatingIps =
                     )
             }
       , let
-            ipAddress =
-                floatingIps |> List.map .address |> List.filter Cidr.isValidIPv4 |> List.head
+            ipAddresses =
+                floatingIps |> List.map .address |> List.filter Cidr.isValidIPv4
 
             nudge =
                 "The "
-                    ++ context.localization.floatingIpAddress
-                    ++ (case ipAddress of
-                            Just ip ->
-                                " " ++ ip
-
-                            Nothing ->
-                                ""
-                       )
+                    ++ (context.localization.floatingIpAddress |> Helpers.String.pluralizeCount (List.length ipAddresses))
+                    ++ " "
+                    ++ String.join ", " ipAddresses
         in
         warningMessage context.palette <|
             if model.deleteFloatingIpsWhenShelving then
