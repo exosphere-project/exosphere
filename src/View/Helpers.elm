@@ -286,7 +286,7 @@ renderMessageAsElement context message =
                     context.palette.danger.textOnNeutralBG |> SH.toElementColor
 
         copyable =
-            copyableTextAccessory context.palette message.message
+            copyableTextAccessory context.palette (message.message ++ (message.timestamp |> Time.posixToMillis |> String.fromInt))
 
         projectLabel =
             message.project
@@ -311,7 +311,7 @@ renderMessageAsElement context message =
         , compactKVRow "Message"
             (Element.row
                 ([ Element.width Element.fill, Element.paddingXY spacer.px8 spacer.px8 ] ++ Style.Widgets.Code.codeAttrs context.palette)
-                [ Text.p [ copyable.id ] [ Text.text Text.Small [] message.message ], copyable.accessory ]
+                [ Text.p [ copyable.id ] [ Text.text Text.Small [] message.message ], Element.el [ Element.alignTop, Element.paddingEach { top = 0, bottom = 0, left = spacer.px8, right = 0 } ] copyable.accessory ]
             )
         , case projectLabel of
             Just project ->
