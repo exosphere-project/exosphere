@@ -9,7 +9,7 @@ import Rest.Helpers
         ( expectJsonWithErrorBody
         , expectStringWithErrorBody
         , openstackCredentialedRequest
-        , resultToMsgErrorBody
+        , resultToProjectMsgErrorBody
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..))
@@ -27,7 +27,8 @@ requestServerPassword project serverUuid =
                 Nothing
 
         resultToMsg_ =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
             <|
                 \serverPassword ->
@@ -62,7 +63,11 @@ requestClearServerPassword project serverUuid =
         ( project.endpoints.nova, [ "servers", serverUuid, "os-server-password" ], [] )
         Http.emptyBody
         (expectStringWithErrorBody
-            (resultToMsgErrorBody errorContext (\_ -> NoOp))
+            (resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
+                errorContext
+                (\_ -> NoOp)
+            )
         )
 
 

@@ -38,7 +38,8 @@ requestRecordSets project =
                         Nothing
 
                 resultToMsg_ =
-                    Rest.Helpers.resultToMsgErrorBody
+                    Rest.Helpers.resultToProjectMsgErrorBody
+                        (Helpers.GetterSetters.projectIdentifier project)
                         errorContext
                         (\groups ->
                             Types.SharedMsg.ProjectMsg

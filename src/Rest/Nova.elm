@@ -48,7 +48,7 @@ import Rest.Helpers
         , expectStringWithErrorBody
         , expectVoidWithErrorBody
         , openstackCredentialedRequest
-        , resultToMsgErrorBody
+        , resultToProjectMsgErrorBody
         )
 import Rest.Naming
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
@@ -226,7 +226,8 @@ requestFlavors project =
                 Nothing
 
         resultToMsg_ =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
                 (\flavors -> ProjectMsg (GetterSetters.projectIdentifier project) <| ReceiveFlavors flavors)
     in
@@ -460,7 +461,8 @@ requestDeleteServer projectId novaUrl serverId =
                 Nothing
 
         resultToMsg_ =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                projectId
                 errorContext
                 (\_ ->
                     ProjectMsg projectId <|
@@ -565,7 +567,11 @@ requestCreateServerImage project serverUuid imageName =
         ( project.endpoints.nova, [ "servers", serverUuid, "action" ], [] )
         (Http.jsonBody body)
         (expectStringWithErrorBody
-            (resultToMsgErrorBody errorContext (\_ -> NoOp))
+            (resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
+                errorContext
+                (\_ -> NoOp)
+            )
         )
 
 

@@ -891,10 +891,17 @@ processSharedMsg sharedMsg outerModel =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
-        HandleApiErrorWithBody errorContext error ->
-            State.Error.processSynchronousApiError sharedModel errorContext error
-                |> mapToOuterMsg
-                |> mapToOuterModel outerModel
+        HandleApiErrorWithBody maybeProjectIdentifier errorContext error ->
+            case maybeProjectIdentifier |> Maybe.andThen (GetterSetters.projectLookup sharedModel) of
+                Just project ->
+                    State.Error.processProjectSynchronousApiError sharedModel project errorContext error
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Nothing ->
+                    State.Error.processSynchronousApiError sharedModel errorContext error
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
         RequestUnscopedToken openstackLoginUnscoped ->
             let

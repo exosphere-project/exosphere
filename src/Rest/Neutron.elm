@@ -40,7 +40,7 @@ import Rest.Helpers
         , expectStringWithErrorBody
         , expectVoidWithErrorBody
         , openstackCredentialedRequest
-        , resultToMsgErrorBody
+        , resultToProjectMsgErrorBody
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (FloatingIpOption(..), HttpRequestMethod(..))
@@ -140,7 +140,8 @@ requestFloatingIps project =
                 Nothing
 
         resultToMsg_ =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
                 (\ips ->
                     ProjectMsg
@@ -247,7 +248,8 @@ requestDeleteFloatingIp : Project -> Types.Error.ErrorContext -> OSTypes.IpAddre
 requestDeleteFloatingIp project errorContext uuid =
     let
         resultToMsg_ =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
                 (\_ ->
                     ProjectMsg
@@ -286,7 +288,8 @@ requestAssignFloatingIp project port_ floatingIpUuid =
                 Nothing
 
         resultToMsg_ =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
                 (\ip ->
                     ProjectMsg
@@ -326,7 +329,8 @@ requestUnassignFloatingIp project floatingIpUuid =
                 Nothing
 
         resultToMsg_ =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
                 (\ip ->
                     ProjectMsg
@@ -448,7 +452,8 @@ requestDeleteSecurityGroup project securityGroupUuid =
                 Nothing
 
         resultToMsg =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
                 (\_ ->
                     ProjectMsg
@@ -547,7 +552,8 @@ requestCreateSecurityGroupTags project securityGroupUuid tags =
                 Nothing
 
         resultToMsg =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
                 (\t ->
                     ProjectMsg
@@ -578,7 +584,8 @@ requestDeleteSecurityGroupTag project securityGroupUuid tag =
                 Nothing
 
         resultToMsg =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
                 (\_ ->
                     ProjectMsg

@@ -18,7 +18,7 @@ import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode
 import OpenStack.Types as OSTypes
-import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
+import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToProjectMsgErrorBody)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..), MetadataFilter)
 import Types.Project exposing (Project)
@@ -87,7 +87,8 @@ requestImagesWithVisibility maybeVisibility model project =
                 Nothing
 
         resultToMsg_ =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
                 (\images -> ProjectMsg (GetterSetters.projectIdentifier project) <| ReceiveImages images)
     in
@@ -108,7 +109,8 @@ requestImage : OSTypes.ImageUuid -> Project -> ErrorContext -> Cmd SharedMsg
 requestImage imageId project errorContext =
     let
         resultToMsg_ =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
                 (\image -> ProjectMsg (GetterSetters.projectIdentifier project) <| Types.SharedMsg.ReceiveServerImage image)
     in
@@ -147,7 +149,8 @@ requestChangeVisibility project imageUuid imageVisibility =
 
         resultToMsg_ : Result Types.Error.HttpErrorWithBody a -> SharedMsg
         resultToMsg_ =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
                 (\_ ->
                     ProjectMsg
@@ -182,7 +185,8 @@ requestDeleteImage project imageUuid =
                 Nothing
 
         resultToMsg_ =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
                 (\_ ->
                     ProjectMsg
