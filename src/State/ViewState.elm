@@ -230,6 +230,8 @@ routeToViewStateModelCmd sharedModel route =
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestImages (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestFlavors (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestJetstream2Allocation (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| ProjectOverview <| Page.ProjectOverview.init
