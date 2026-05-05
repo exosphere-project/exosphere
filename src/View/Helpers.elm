@@ -131,7 +131,7 @@ import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Types.HelperTypes exposing (Localization)
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoSetupStatus(..), Server, ServerOrigin(..), ServerUiStatus(..))
-import Types.SharedModel exposing (LogMessage, SharedModel, Style)
+import Types.SharedModel exposing (LogMessage, LogMessageProject, SharedModel, Style)
 import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import View.Types exposing (Context, PortRangeBounds(..), RemoteType(..), SelectMod(..), ServerActionOption)
 
@@ -286,10 +286,15 @@ renderMessageAsElement context message =
                     context.palette.danger.textOnNeutralBG |> SH.toElementColor
 
         copyable =
-            copyableTextAccessory context.palette message.message
+            copyableTextAccessory context.palette (message.message ++ (message.timestamp |> Time.posixToMillis |> String.fromInt))
+
+        projectLabel =
+            message.project
+                |> Maybe.map renderLogMessageProject
     in
     Element.column [ Element.spacing spacer.px12, Element.width Element.fill ]
-        [ Element.row [ Element.alignRight ]
+        [ Element.el [ Element.width Element.fill, Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }, Border.color (context.palette.neutral.border |> SH.toElementColor) ] Element.none
+        , Element.row [ Element.alignRight ]
             [ Element.el
                 [ Font.color <| levelColor message.context.level
                 ]
@@ -297,28 +302,34 @@ renderMessageAsElement context message =
                     (toFriendlyErrorLevel message.context.level)
                 )
             , Element.el [ context.palette.neutral.text.subdued |> SH.toElementColor |> Font.color ]
-                (Element.text
+                (Text.body
                     (" at " ++ humanReadableDateAndTime message.timestamp)
                 )
             ]
         , compactKVRow "We were trying to"
-            (Element.paragraph [] [ Element.text message.context.actionContext ])
+            (Text.p [] [ Text.body (Helpers.String.capitalizeWord message.context.actionContext) ])
         , compactKVRow "Message"
             (Element.row
-                [ Element.width Element.fill, Element.spacing spacer.px8 ]
-                [ Element.paragraph [ copyable.id ] [ Element.text message.message ], copyable.accessory ]
+                ([ Element.width Element.fill, Element.paddingXY spacer.px8 spacer.px8 ] ++ Style.Widgets.Code.codeAttrs context.palette)
+                [ Text.p [ copyable.id ] [ Text.text Text.Small [] message.message ], Element.el [ Element.alignTop, Element.paddingEach { top = 0, bottom = 0, left = spacer.px8, right = 0 } ] copyable.accessory ]
             )
+        , case projectLabel of
+            Just project ->
+                compactKVRow (Helpers.String.capitalizeWord context.localization.unitOfTenancy) (Text.p [] [ Text.body project ])
+
+            Nothing ->
+                Element.none
         , case message.context.recoveryHint of
             Just hint_ ->
-                compactKVRow "Recovery hint" (Element.paragraph [] [ Element.text hint_ ])
+                compactKVRow "Recovery hint" (Text.p [] [ Text.body hint_ ])
 
             Nothing ->
                 Element.none
         ]
 
 
-renderMessageAsString : LogMessage -> String
-renderMessageAsString message =
+renderMessageAsString : View.Types.Context -> LogMessage -> String
+renderMessageAsString context message =
     let
         levelStr : ErrorLevel -> String
         levelStr errLevel =
@@ -340,10 +351,27 @@ renderMessageAsString message =
     , humanReadableDateAndTime message.timestamp
     , " -- while trying to "
     , message.context.actionContext
+    , case message.project of
+        Just project ->
+            " -- " ++ (context.localization.unitOfTenancy |> Helpers.String.toTitleCase) ++ ": " ++ renderLogMessageProject project
+
+        Nothing ->
+            ""
     , " -- "
     , message.message
     ]
         |> String.concat
+
+
+renderLogMessageProject : LogMessageProject -> String
+renderLogMessageProject project =
+    let
+        regionLabel =
+            project.region
+                |> Maybe.map (\region -> " - " ++ region)
+                |> Maybe.withDefault ""
+    in
+    project.name ++ regionLabel ++ " (" ++ project.uuid ++ ")"
 
 
 resourceName : Maybe String -> String -> String

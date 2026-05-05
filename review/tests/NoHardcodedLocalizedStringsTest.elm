@@ -93,7 +93,7 @@ s = "Clouds"
                             , under = "\"Clouds\""
                             }
                         ]
-        , test "should report an error when a string is unecessarily tagged" <|
+        , test "should report an error when a string is unnecessarily tagged" <|
             \() ->
                 """module A exposing (..)
 s = {- @nonlocalized -} "This isn't a problem"

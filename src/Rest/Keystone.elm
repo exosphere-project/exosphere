@@ -25,6 +25,7 @@ import Rest.Helpers
         , openstackCredentialedRequest
         , proxyifyRequest
         , resultToMsgErrorBody
+        , resultToProjectMsgErrorBody
         )
 import Time
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
@@ -265,7 +266,8 @@ requestAppCredential clientUuid posixTime project =
                 (Just "Perhaps you are trying to use a cloud that is too old to support Application Credentials? Exosphere supports OpenStack Queens release and newer. Check with your cloud administrator if you are unsure.")
 
         resultToMsg_ =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
                 (\appCred ->
                     ProjectMsg

@@ -31,7 +31,7 @@ type SharedMsg
     = Tick TickInterval Time.Posix
     | ChangeSystemThemePreference ST.Theme
     | DoOrchestration Time.Posix
-    | HandleApiErrorWithBody ErrorContext HttpErrorWithBody
+    | HandleApiErrorWithBody (Maybe HelperTypes.ProjectIdentifier) ErrorContext HttpErrorWithBody
     | Logout
     | Batch (List SharedMsg)
     | RequestUnscopedToken OSTypes.OpenstackLogin

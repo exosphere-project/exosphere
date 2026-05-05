@@ -20,7 +20,7 @@ import Rest.Helpers
         ( expectJsonWithErrorBody
         , expectStringWithErrorBody
         , openstackCredentialedRequest
-        , resultToMsgErrorBody
+        , resultToProjectMsgErrorBody
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..), Uuid)
@@ -48,7 +48,8 @@ requestCreateVolume project createVolumeRequest =
                 (Just "Confirm that your quota has sufficient capacity to create a volume of this size, perhaps check with your cloud administrator.")
 
         resultToMsg_ =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
                 (\_ ->
                     ProjectMsg
@@ -106,7 +107,8 @@ requestVolumeSnapshots project =
                 Nothing
 
         resultToMsg_ =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
                 (\snapshots ->
                     ProjectMsg
@@ -137,7 +139,8 @@ requestDeleteVolume project volumeUuid =
                 (Just "Perhaps you are trying to delete a volume that is attached to a server? If so, please detach it first.")
 
         resultToMsg_ =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
                 (\_ -> ProjectMsg (GetterSetters.projectIdentifier project) ReceiveDeleteVolume)
     in
@@ -161,7 +164,8 @@ requestDeleteVolumeSnapshot project snapshotUuid =
                 Nothing
 
         resultToMsg_ =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
                 (\_ -> ProjectMsg (GetterSetters.projectIdentifier project) ReceiveDeleteVolumeSnapshot)
     in
@@ -194,7 +198,8 @@ requestUpdateVolumeName project volumeUuid name =
                 Nothing
 
         resultToMsg_ =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
                 (\_ -> ProjectMsg (GetterSetters.projectIdentifier project) ReceiveUpdateVolumeName)
     in

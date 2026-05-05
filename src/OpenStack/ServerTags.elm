@@ -3,7 +3,7 @@ module OpenStack.ServerTags exposing (requestCreateServerTag)
 import Helpers.GetterSetters as GetterSetters
 import Http
 import OpenStack.Types as OSTypes
-import Rest.Helpers exposing (expectStringWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
+import Rest.Helpers exposing (expectStringWithErrorBody, openstackCredentialedRequest, resultToProjectMsgErrorBody)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..))
 import Types.Project exposing (Project)
@@ -27,5 +27,9 @@ requestCreateServerTag project serverUuid tag =
         ( project.endpoints.nova, [ "servers", serverUuid, "tags", tag ], [] )
         Http.emptyBody
         (expectStringWithErrorBody
-            (resultToMsgErrorBody errorContext (\_ -> NoOp))
+            (resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
+                errorContext
+                (\_ -> NoOp)
+            )
         )

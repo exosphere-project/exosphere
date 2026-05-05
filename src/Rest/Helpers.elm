@@ -10,6 +10,7 @@ module Rest.Helpers exposing
     , openstackCredentialedRequest
     , proxyifyRequest
     , resultToMsgErrorBody
+    , resultToProjectMsgErrorBody
     )
 
 import Helpers.Helpers as Helpers
@@ -152,13 +153,23 @@ proxyifyRequest proxyServerUrl requestUrlStr =
 
 
 resultToMsgErrorBody : ErrorContext -> (a -> SharedMsg) -> Result HttpErrorWithBody a -> SharedMsg
-resultToMsgErrorBody errorContext successMsg result =
+resultToMsgErrorBody =
+    resultToMaybeProjectMsgErrorBody Nothing
+
+
+resultToProjectMsgErrorBody : HelperTypes.ProjectIdentifier -> ErrorContext -> (a -> SharedMsg) -> Result HttpErrorWithBody a -> SharedMsg
+resultToProjectMsgErrorBody projectIdentifier =
+    resultToMaybeProjectMsgErrorBody (Just projectIdentifier)
+
+
+resultToMaybeProjectMsgErrorBody : Maybe HelperTypes.ProjectIdentifier -> ErrorContext -> (a -> SharedMsg) -> Result HttpErrorWithBody a -> SharedMsg
+resultToMaybeProjectMsgErrorBody maybeProjectIdentifier errorContext successMsg result =
     -- Generates Msg to deal with result of API call
     -- TODO this is a _transitional_ function that should be removed when
     -- TODO https://gitlab.com/exosphere/exosphere/-/issues/339 is fixed
     case result of
         Err error ->
-            HandleApiErrorWithBody errorContext error
+            HandleApiErrorWithBody maybeProjectIdentifier errorContext error
 
         Ok stuff ->
             successMsg stuff

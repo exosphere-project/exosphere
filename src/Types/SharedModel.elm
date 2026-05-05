@@ -1,4 +1,4 @@
-module Types.SharedModel exposing (CloudCorsProxyUrl, LogMessage, SharedModel, Style)
+module Types.SharedModel exposing (CloudCorsProxyUrl, LogMessage, LogMessageProject, SharedModel, Style)
 
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
@@ -57,8 +57,16 @@ type alias CloudCorsProxyUrl =
     HelperTypes.Url
 
 
+type alias LogMessageProject =
+    { name : String
+    , region : Maybe OSTypes.RegionId
+    , uuid : OSTypes.ProjectUuid
+    }
+
+
 type alias LogMessage =
     { message : String
     , context : ErrorContext
+    , project : Maybe LogMessageProject
     , timestamp : Time.Posix
     }

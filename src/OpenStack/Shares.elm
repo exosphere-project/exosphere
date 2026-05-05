@@ -12,7 +12,7 @@ import Rest.Helpers
         ( expectJsonWithErrorBody
         , expectStringWithErrorBody
         , openstackCredentialedRequest
-        , resultToMsgErrorBody
+        , resultToProjectMsgErrorBody
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..), Url)
@@ -45,7 +45,8 @@ requestCreateShare project url createShareRequest =
                 (Just "Confirm that your quota has sufficient capacity to create a share of this size, perhaps check with your cloud administrator.")
 
         resultToMsg_ =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
                 (\share ->
                     ProjectMsg
@@ -90,7 +91,8 @@ requestCreateAccessRule project url createAccessRuleRequest =
                 (Just "Perhaps you are trying to create a share access rule with a name that already exists?")
 
         resultToMsg_ =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
                 (\accessRule ->
                     ProjectMsg
@@ -122,7 +124,8 @@ requestShareTypes project url =
                 Nothing
 
         resultToMsg_ =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
                 (\shareTypes ->
                     ProjectMsg
@@ -161,7 +164,8 @@ requestShares project url =
                 Nothing
 
         resultToMsg_ =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
                 (\shares ->
                     ProjectMsg
@@ -210,7 +214,8 @@ requestShareAccessRules project url shareUuid =
                 Nothing
 
         resultToMsg_ =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
                 (\accessRules ->
                     ProjectMsg
@@ -255,7 +260,8 @@ requestShareExportLocations project url shareUuid =
                 Nothing
 
         resultToMsg_ =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
                 (\exportLocations ->
                     ProjectMsg
@@ -296,7 +302,8 @@ requestDeleteShare project url shareUuid =
                 (Just "Perhaps you are trying to delete a share that has an action in progress? If so, please try again later.")
 
         resultToMsg_ =
-            resultToMsgErrorBody
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
                 errorContext
                 (\_ -> ProjectMsg (GetterSetters.projectIdentifier project) (ReceiveDeleteShare shareUuid))
     in

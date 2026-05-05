@@ -68,7 +68,7 @@ view context sharedModel model =
                 |> List.filter filter
 
         allMessagesStr =
-            List.map VH.renderMessageAsString shownMessages
+            List.map (VH.renderMessageAsString context) shownMessages
                 |> List.intersperse "\n"
                 |> String.concat
 
