@@ -9,7 +9,6 @@ import Element.Input as Input
 import FeatherIcons as Icons
 import FormatNumber
 import FormatNumber.Locales exposing (Decimals(..))
-import Helpers.Connectivity
 import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters exposing (isDefaultSecurityGroup)
 import Helpers.Helpers as Helpers
@@ -1912,38 +1911,12 @@ securityGroupPicker context project model =
                         |> Maybe.andThen (GetterSetters.securityGroupLookup project)
                         |> Maybe.map .rules
 
-                connectivityChecks =
-                    case maybeSecurityGroupRules of
-                        Just securityGroupRules ->
-                            ([ Helpers.Connectivity.outgoingHttpRule
-                             , Helpers.Connectivity.outgoingHttpsRule
-                             , Helpers.Connectivity.outgoingDnsUdpRule
-                             , Helpers.Connectivity.outgoingDnsTcpRule
-                             , Helpers.Connectivity.incomingSshRule context
-                             ]
-                                ++ (if model.deployGuacamole == Just True then
-                                        [ Helpers.Connectivity.incomingGuacamoleRule context ]
-
-                                    else
-                                        []
-                                   )
-                                ++ (if model.deployDesktopEnvironment then
-                                        [ Helpers.Connectivity.incomingVncRule context ]
-
-                                    else
-                                        []
-                                   )
-                            )
-                                |> List.map (\c -> ( c, Helpers.Connectivity.isConnectionPermitted c securityGroupRules ))
-
-                        Nothing ->
-                            []
-
-                isConnectivityBroken =
-                    connectivityChecks
-                        |> List.any (\( _, permitted ) -> not permitted)
+                { isConnectivityBroken, connectivityChecks } =
+                    VH.isConnectivityBroken context
+                        (maybeSecurityGroupRules |> Maybe.withDefault [])
+                        { guacamoleRequired = model.deployGuacamole == Just True, vncRequired = model.deployDesktopEnvironment }
             in
-            if isConnectivityBroken then
+            if isConnectivityBroken && maybeSecurityGroupRules /= Nothing then
                 Alert.alert []
                     context.palette
                     { state = Alert.Warning

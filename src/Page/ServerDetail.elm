@@ -7,7 +7,6 @@ import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons as Icons
 import Helpers.Cidr as Cidr
-import Helpers.Connectivity
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers exposing (serverCreatorName)
 import Helpers.Interaction as IHelpers
@@ -566,42 +565,23 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                         -- because an empty rule list will imply no incoming/outgoing connections are allowed.
                         |> Maybe.map (List.concatMap .rules)
 
-                connectivityChecks =
-                    case maybeSecurityGroupRules of
-                        Just securityGroupRules ->
-                            ([ Helpers.Connectivity.outgoingHttpRule
-                             , Helpers.Connectivity.outgoingHttpsRule
-                             , Helpers.Connectivity.outgoingDnsUdpRule
-                             , Helpers.Connectivity.outgoingDnsTcpRule
-                             , Helpers.Connectivity.incomingSshRule context
-                             ]
-                                ++ (case server.exoProps.serverOrigin of
-                                        ServerFromExo serverFromExo ->
-                                            case serverFromExo.guacamoleStatus of
-                                                LaunchedWithGuacamole props ->
-                                                    Helpers.Connectivity.incomingGuacamoleRule context
-                                                        :: (if props.vncSupported then
-                                                                [ Helpers.Connectivity.incomingVncRule context ]
+                ( guacamoleRequired, vncRequired ) =
+                    case server.exoProps.serverOrigin of
+                        ServerFromExo serverFromExo ->
+                            case serverFromExo.guacamoleStatus of
+                                LaunchedWithGuacamole props ->
+                                    ( True, props.vncSupported )
 
-                                                            else
-                                                                []
-                                                           )
+                                _ ->
+                                    ( False, False )
 
-                                                _ ->
-                                                    []
+                        _ ->
+                            ( False, False )
 
-                                        _ ->
-                                            []
-                                   )
-                            )
-                                |> List.map (\c -> ( c, Helpers.Connectivity.isConnectionPermitted c securityGroupRules ))
-
-                        Nothing ->
-                            []
-
-                isConnectivityBroken =
-                    connectivityChecks
-                        |> List.any (\( _, permitted ) -> not permitted)
+                { isConnectivityBroken, connectivityChecks } =
+                    VH.isConnectivityBroken context
+                        (maybeSecurityGroupRules |> Maybe.withDefault [])
+                        { guacamoleRequired = guacamoleRequired, vncRequired = vncRequired }
 
                 -- Don't show connectivity warnings when security group data may be unreliable or changing (esp. while building).
                 serverUiStatus =
@@ -622,7 +602,13 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                             , ServerUiStatusError
                             ]
             in
-            if context.experimentalFeaturesEnabled && isConnectivityBroken && isStatusStableForSecurityGroupCheck then
+            if
+                context.experimentalFeaturesEnabled
+                    && isConnectivityBroken
+                    && isStatusStableForSecurityGroupCheck
+                    && maybeSecurityGroupRules
+                    /= Nothing
+            then
                 Alert.alert [ Element.width Element.fill ]
                     context.palette
                     { state = Alert.Warning

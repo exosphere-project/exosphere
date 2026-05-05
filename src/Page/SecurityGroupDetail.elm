@@ -8,6 +8,7 @@ import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters exposing (LoadingProgress(..), isDefaultSecurityGroup)
 import Helpers.Helpers exposing (serverCreatorName)
+import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes exposing (SecurityGroup, SecurityGroupTagUpdate(..), securityGroupExoTags, securityGroupTaggedAs)
 import Page.SecurityGroupForm as SecurityGroupForm
@@ -24,10 +25,12 @@ import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Tag exposing (tagNeutral, tagPositive)
 import Style.Widgets.Text as Text
+import Style.Widgets.ToggleTip
 import Style.Widgets.Validation as Validation
 import Time
+import Types.Guacamole exposing (ServerGuacamoleStatus(..))
 import Types.Project exposing (Project)
-import Types.Server exposing (Server)
+import Types.Server exposing (Server, ServerOrigin(..))
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Forms as Forms
@@ -226,6 +229,92 @@ serversTable context project { servers, progress, currentTime } =
                               , view =
                                     \item ->
                                         VH.serverStatusBadge context.palette StatusBadge.Small project item
+                              }
+                            , { header = VH.tableHeader ""
+                              , width = Element.shrink
+                              , view =
+                                    \server ->
+                                        let
+                                            maybeServerSecurityGroupUuids =
+                                                GetterSetters.getServerSecurityGroups project server.osProps.uuid
+                                                    |> RDPP.toMaybe
+                                                    |> Maybe.map (List.map .uuid)
+
+                                            maybeProjectSecurityGroups =
+                                                project.securityGroups
+                                                    |> RDPP.toMaybe
+
+                                            maybeSecurityGroups =
+                                                case ( maybeServerSecurityGroupUuids, maybeProjectSecurityGroups ) of
+                                                    ( Just sgUuids, Just projectSecurityGroups ) ->
+                                                        Just
+                                                            (projectSecurityGroups
+                                                                |> List.filter (\sg -> List.member sg.uuid sgUuids)
+                                                            )
+
+                                                    _ ->
+                                                        Nothing
+
+                                            maybeSecurityGroupRules =
+                                                maybeSecurityGroups
+                                                    -- We make an effort to preserve maybe-ness instead of defaulting to []
+                                                    -- because an empty rule list will imply no incoming/outgoing connections are allowed.
+                                                    |> Maybe.map (List.concatMap .rules)
+
+                                            ( guacamoleRequired, vncRequired ) =
+                                                case server.exoProps.serverOrigin of
+                                                    ServerFromExo serverFromExo ->
+                                                        case serverFromExo.guacamoleStatus of
+                                                            LaunchedWithGuacamole props ->
+                                                                ( True, props.vncSupported )
+
+                                                            _ ->
+                                                                ( False, False )
+
+                                                    _ ->
+                                                        ( False, False )
+
+                                            { isConnectivityBroken, connectivityChecks } =
+                                                VH.isConnectivityBroken context
+                                                    (maybeSecurityGroupRules |> Maybe.withDefault [])
+                                                    { guacamoleRequired = guacamoleRequired, vncRequired = vncRequired }
+                                        in
+                                        if isConnectivityBroken && maybeSecurityGroupRules /= Nothing then
+                                            let
+                                                content =
+                                                    Element.column [ Element.spacing spacer.px8, Element.width Element.fill ] <|
+                                                        Text.p []
+                                                            [ Text.body <| "This " ++ context.localization.virtualComputer ++ "'s "
+                                                            , Text.body <| (context.localization.securityGroup ++ " configuration")
+                                                            , Text.body " may result in connectivity problems:"
+                                                            ]
+                                                            :: (connectivityChecks
+                                                                    |> List.filter (\( _, permitted ) -> not permitted)
+                                                                    |> List.map
+                                                                        (\( c, _ ) ->
+                                                                            Text.body <|
+                                                                                " • "
+                                                                                    ++ Maybe.withDefault "Other connections" c.description
+                                                                                    ++ " may be blocked."
+                                                                        )
+                                                               )
+
+                                                toggleTipId =
+                                                    Helpers.String.hyphenate
+                                                        [ "serverConnectivityWarningToggleTip"
+                                                        , project.auth.project.uuid
+                                                        , server.osProps.uuid
+                                                        ]
+                                            in
+                                            Style.Widgets.ToggleTip.warningToggleTip
+                                                context
+                                                (\serverConnectivityWarningToggleTip -> SharedMsg <| SharedMsg.TogglePopover serverConnectivityWarningToggleTip)
+                                                toggleTipId
+                                                content
+                                                ST.PositionRightTop
+
+                                        else
+                                            Element.none
                               }
                             ]
                         }

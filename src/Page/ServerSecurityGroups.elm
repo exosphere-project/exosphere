@@ -22,6 +22,7 @@ import Set
 import Set.Extra
 import Style.Helpers as SH
 import Style.Types as ST
+import Style.Widgets.Alert as Alert
 import Style.Widgets.Button as Button
 import Style.Widgets.Icon
 import Style.Widgets.IconButton exposing (clickableIcon)
@@ -31,9 +32,10 @@ import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Style.Widgets.Validation as Validation
 import Time
+import Types.Guacamole exposing (ServerGuacamoleStatus(..))
 import Types.Project exposing (Project)
 import Types.SecurityGroupActions as SecurityGroupActions
-import Types.Server exposing (Server)
+import Types.Server exposing (Server, ServerOrigin(..))
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -463,7 +465,55 @@ renderSecurityGroupListAndRules : View.Types.Context -> Project -> Time.Posix ->
 renderSecurityGroupListAndRules context project currentTime model securityGroups =
     Element.wrappedRow [ Element.spacing spacer.px24 ]
         [ renderSelectableSecurityGroupsList context project model securityGroups
-        , Element.column [ Element.alignTop, Element.spacing spacer.px24, Element.width Element.fill ]
+        , let
+            appliedSecurityGroupUuidsSet =
+                appliedSecurityGroupsUuids project model.serverUuid
+
+            appliedSecurityGroups : List OSTypes.SecurityGroup
+            appliedSecurityGroups =
+                securityGroups |> List.filter (\securityGroup -> Set.member securityGroup.uuid appliedSecurityGroupUuidsSet)
+
+            selectedSecurityGroups : List OSTypes.SecurityGroup
+            selectedSecurityGroups =
+                securityGroups
+                    |> List.filter (\securityGroup -> isSecurityGroupSelected model securityGroup.uuid)
+
+            ( newRules, nextGroups ) =
+                case model.securityGroupForm of
+                    -- With an active form, we have WIP rules.
+                    Just securityGroupForm ->
+                        case securityGroupForm.uuid of
+                            -- An existing security group being edited.
+                            Just uuid ->
+                                if isSecurityGroupSelected model uuid then
+                                    -- If the security group is selected, use the rules from the form.
+                                    ( securityGroupForm.rules
+                                    , selectedSecurityGroups |> List.filter (\sg -> sg.uuid /= uuid)
+                                    )
+
+                                else
+                                    -- If not, the edits don't matter.
+                                    ( []
+                                    , selectedSecurityGroups
+                                    )
+
+                            -- This is a new security group, which will be applied when created.
+                            Nothing ->
+                                ( securityGroupForm.rules
+                                , selectedSecurityGroups
+                                )
+
+                    Nothing ->
+                        ( []
+                        , selectedSecurityGroups
+                        )
+
+            rules =
+                List.concatMap .rules (appliedSecurityGroups ++ nextGroups)
+                    |> List.append newRules
+                    |> uniqueBy matchRule
+          in
+          Element.column [ Element.alignTop, Element.spacing spacer.px24, Element.width Element.fill ]
             [ VH.tile
                 context
                 [ Element.text
@@ -475,48 +525,6 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
                     )
                 ]
                 [ let
-                    appliedSecurityGroupUuidsSet =
-                        appliedSecurityGroupsUuids project model.serverUuid
-
-                    appliedSecurityGroups : List OSTypes.SecurityGroup
-                    appliedSecurityGroups =
-                        securityGroups |> List.filter (\securityGroup -> Set.member securityGroup.uuid appliedSecurityGroupUuidsSet)
-
-                    selectedSecurityGroups : List OSTypes.SecurityGroup
-                    selectedSecurityGroups =
-                        securityGroups
-                            |> List.filter (\securityGroup -> isSecurityGroupSelected model securityGroup.uuid)
-
-                    ( newRules, nextGroups ) =
-                        case model.securityGroupForm of
-                            -- With an active form, we have WIP rules.
-                            Just securityGroupForm ->
-                                case securityGroupForm.uuid of
-                                    -- An existing security group being edited.
-                                    Just uuid ->
-                                        if isSecurityGroupSelected model uuid then
-                                            -- If the security group is selected, use the rules from the form.
-                                            ( securityGroupForm.rules
-                                            , selectedSecurityGroups |> List.filter (\sg -> sg.uuid /= uuid)
-                                            )
-
-                                        else
-                                            -- If not, the edits don't matter.
-                                            ( []
-                                            , selectedSecurityGroups
-                                            )
-
-                                    -- This is a new security group, which will be applied when created.
-                                    Nothing ->
-                                        ( securityGroupForm.rules
-                                        , selectedSecurityGroups
-                                        )
-
-                            Nothing ->
-                                ( []
-                                , selectedSecurityGroups
-                                )
-
                     customiser : SecurityGroupRulesTable.RulesTableRowCustomiser Msg
                     customiser rule =
                         let
@@ -599,11 +607,6 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
                         , rightElementForRow = editingTag
                         , styleForRow = SecurityGroupRulesTable.defaultRowStyle ++ highlight ++ shadowed ++ [ Element.height Element.fill ]
                         }
-
-                    rules =
-                        List.concatMap .rules (appliedSecurityGroups ++ nextGroups)
-                            |> List.append newRules
-                            |> uniqueBy matchRule
                   in
                   SecurityGroupRulesTable.rulesTableWithRowCustomiser
                     context
@@ -611,6 +614,61 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
                     { rules = rules, securityGroupForUuid = GetterSetters.securityGroupLookup project }
                     customiser
                 ]
+            , let
+                connectivityWarningView server =
+                    let
+                        ( guacamoleRequired, vncRequired ) =
+                            case server.exoProps.serverOrigin of
+                                ServerFromExo serverFromExo ->
+                                    case serverFromExo.guacamoleStatus of
+                                        LaunchedWithGuacamole props ->
+                                            ( True, props.vncSupported )
+
+                                        _ ->
+                                            ( False, False )
+
+                                _ ->
+                                    ( False, False )
+
+                        { isConnectivityBroken, connectivityChecks } =
+                            VH.isConnectivityBroken context
+                                rules
+                                { guacamoleRequired = guacamoleRequired, vncRequired = vncRequired }
+                    in
+                    if isConnectivityBroken then
+                        Alert.alert [ Element.width Element.fill ]
+                            context.palette
+                            { state = Alert.Warning
+                            , showIcon = True
+                            , showContainer = True
+                            , content =
+                                Element.column [ Element.spacing spacer.px8, Element.width Element.fill ] <|
+                                    Text.p []
+                                        [ Text.body <| "This " ++ context.localization.virtualComputer ++ "'s "
+                                        , Text.body <| (context.localization.securityGroup ++ " configuration")
+                                        , Text.body " may result in connectivity problems:"
+                                        ]
+                                        :: (connectivityChecks
+                                                |> List.filter (\( _, permitted ) -> not permitted)
+                                                |> List.map
+                                                    (\( c, _ ) ->
+                                                        Text.body <|
+                                                            " • "
+                                                                ++ Maybe.withDefault "Other connections" c.description
+                                                                ++ " may be blocked."
+                                                    )
+                                           )
+                            }
+
+                    else
+                        Element.none
+              in
+              case GetterSetters.serverLookup project model.serverUuid of
+                Just server ->
+                    connectivityWarningView server
+
+                Nothing ->
+                    Element.none
             , case model.securityGroupForm of
                 Just securityGroupForm ->
                     let
