@@ -4,7 +4,7 @@ import Dict
 import Helpers.Url
 import List.Extra
 import OpenStack.Types
-import Types.HelperTypes exposing (Url)
+import Types.HelperTypes exposing (Localization, Url)
 
 
 
@@ -18,8 +18,8 @@ isJetstream2Cloud { keystone } =
     Helpers.Url.hostnameFromUrl keystone == "js2.jetstream-cloud.org"
 
 
-calculateTotalAllocationBurnRate : List OpenStack.Types.Flavor -> List OpenStack.Types.Server -> Float
-calculateTotalAllocationBurnRate flavors servers =
+calculateTotalAllocationBurnRate : Localization -> List OpenStack.Types.Flavor -> List OpenStack.Types.Server -> { totalBurnRate : Float, caveats : List String }
+calculateTotalAllocationBurnRate localization flavors servers =
     let
         flavorsById : Dict.Dict OpenStack.Types.FlavorId OpenStack.Types.Flavor
         flavorsById =
@@ -27,16 +27,23 @@ calculateTotalAllocationBurnRate flavors servers =
                 |> List.map (\flavor -> ( flavor.id, flavor ))
                 |> Dict.fromList
 
+        serverOutcomes : List { burnRate : Maybe Float, caveats : List String }
+        serverOutcomes =
+            servers
+                |> List.map (serverBurnRateOutcome localization flavorsById)
+
         burnRates : List Float
         burnRates =
-            servers
-                |> List.filterMap
-                    (\server ->
-                        Dict.get server.details.flavorId flavorsById |> Maybe.andThen (allocationBurnRate server.details.openstackStatus)
-                    )
+            serverOutcomes
+                |> List.filterMap .burnRate
+
+        caveats : List String
+        caveats =
+            serverOutcomes
+                |> List.concatMap .caveats
+                |> List.Extra.unique
     in
-    burnRates
-        |> List.sum
+    { totalBurnRate = burnRates |> List.sum, caveats = caveats }
 
 
 calculateAllocationBurnRate : List OpenStack.Types.Flavor -> OpenStack.Types.Server -> Maybe Float
@@ -48,6 +55,35 @@ calculateAllocationBurnRate flavors { details } =
     in
     serverFlavor
         |> Maybe.andThen (allocationBurnRate details.openstackStatus)
+
+
+serverBurnRateOutcome : Localization -> Dict.Dict OpenStack.Types.FlavorId OpenStack.Types.Flavor -> OpenStack.Types.Server -> { burnRate : Maybe Float, caveats : List String }
+serverBurnRateOutcome localization flavorsById server =
+    case Dict.get server.details.flavorId flavorsById of
+        Just flavor ->
+            case allocationBurnRate server.details.openstackStatus flavor of
+                Just burnRate ->
+                    { burnRate = Just burnRate, caveats = [] }
+
+                Nothing ->
+                    { burnRate = Nothing
+                    , caveats = [ missingBurnRateCaveat localization flavor ]
+                    }
+
+        Nothing ->
+            { burnRate = Nothing
+            , caveats = [ missingFlavorCaveat localization server ]
+            }
+
+
+missingBurnRateCaveat : Localization -> OpenStack.Types.Flavor -> String
+missingBurnRateCaveat localization flavor =
+    "Missing burn rate for " ++ localization.virtualComputerHardwareConfig ++ " " ++ flavor.name ++ " (" ++ flavor.id ++ ")"
+
+
+missingFlavorCaveat : Localization -> OpenStack.Types.Server -> String
+missingFlavorCaveat localization server =
+    "Missing " ++ localization.virtualComputerHardwareConfig ++ " " ++ server.details.flavorId ++ " for " ++ localization.virtualComputer ++ " " ++ server.name
 
 
 allocationBurnRate : OpenStack.Types.ServerStatus -> OpenStack.Types.Flavor -> Maybe Float

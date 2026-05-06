@@ -208,7 +208,9 @@ view context project currentTime model =
                 , Element.inFront <|
                     Element.el
                         [ Element.alignRight, Element.centerY ]
-                        (Page.Jetstream2Allocation.renderTotalAllocationBurnRate context project)
+                        (Page.Jetstream2Allocation.renderTotalAllocationBurnRate context project
+                            |> Element.map SharedMsg
+                        )
                 ]
                 (Text.heading context.palette
                     []

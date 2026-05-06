@@ -53,37 +53,45 @@ view context project currentTime _ =
     let
         renderTile : Element.Element Msg -> String -> Element.Element Msg -> Route.ProjectRouteConstructor -> Maybe (Element.Element Msg) -> Element.Element Msg -> Element.Element Msg
         renderTile icon str accessory projRouteConstructor quotaMeter contents =
-            Element.link []
-                { url = Route.toUrl context.urlPathPrefix (Route.ProjectRoute (GetterSetters.projectIdentifier project) projRouteConstructor)
-                , label =
-                    clickableTile context
-                        [ Element.column
-                            [ Element.padding spacer.px24
-                            , Element.width Element.fill
-                            , Element.spacing spacer.px32
-                            ]
-                            [ Element.el
-                                [ Element.width Element.fill
-                                , Element.inFront <| accessory
+            Element.el
+                [ Element.inFront <|
+                    Element.el
+                        [ Element.alignTop
+                        , Element.alignRight
+                        , Element.paddingEach { top = spacer.px32, right = spacer.px24, bottom = 0, left = 0 }
+
+                        -- Allow clicks to pass through the access to the tile.
+                        , Element.htmlAttribute <| Html.Attributes.style "pointer-events" "none"
+                        ]
+                        accessory
+                ]
+                (Element.link []
+                    { url = Route.toUrl context.urlPathPrefix (Route.ProjectRoute (GetterSetters.projectIdentifier project) projRouteConstructor)
+                    , label =
+                        clickableTile context
+                            [ Element.column
+                                [ Element.padding spacer.px24
+                                , Element.width Element.fill
+                                , Element.spacing spacer.px32
                                 ]
-                                (Text.subheading context.palette
+                                [ Text.subheading context.palette
                                     [ Element.padding 0
                                     , Border.width 0
                                     , Element.pointer
                                     ]
                                     icon
                                     str
-                                )
-                            , case quotaMeter of
-                                Just quotaMeter_ ->
-                                    Element.el [ Element.centerX ] quotaMeter_
+                                , case quotaMeter of
+                                    Just quotaMeter_ ->
+                                        Element.el [ Element.centerX ] quotaMeter_
 
-                                Nothing ->
-                                    Element.none
-                            , contents
+                                    Nothing ->
+                                        Element.none
+                                , contents
+                                ]
                             ]
-                        ]
-                }
+                    }
+                )
 
         renderDescription : String -> Element.Element Msg
         renderDescription description =
@@ -123,7 +131,9 @@ view context project currentTime _ =
                 )
                 (Element.el
                     [ Element.alignRight, Element.centerY ]
-                    (Page.Jetstream2Allocation.renderTotalAllocationBurnRate context project)
+                    (Page.Jetstream2Allocation.renderTotalAllocationBurnRate context project
+                        |> Element.map SharedMsg
+                    )
                 )
                 Route.ServerList
                 (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Compute project.computeQuota))
