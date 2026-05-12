@@ -9,6 +9,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.ConsoleLog
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
+import OpenStack.UnifiedLimits as OSUnifiedLimits
 import Page.Credentials
 import Page.FloatingIpAssign
 import Page.FloatingIpCreate
@@ -214,6 +215,8 @@ routeToViewStateModelCmd sharedModel route =
                                         , OSQuotas.requestComputeQuota project
                                         , OSQuotas.requestVolumeQuota project
                                         , OSQuotas.requestNetworkQuota project
+                                        , OSUnifiedLimits.requestRegisteredLimits project
+                                        , OSUnifiedLimits.requestLimits project
                                         , Ports.instantiateClipboardJs ()
                                         ]
                                     )

@@ -3528,6 +3528,60 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
+        ReceiveRegisteredLimits errorContext result ->
+            case result of
+                Ok registeredLimits ->
+                    let
+                        newProject =
+                            { project
+                                | registeredLimits =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave registeredLimits sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newProject =
+                            { project | registeredLimits = RDPP.setNotLoading (Just ( httpError, sharedModel.clientCurrentTime )) project.registeredLimits }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    processProjectSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveProjectLimits errorContext result ->
+            case result of
+                Ok projectLimits ->
+                    let
+                        newProject =
+                            { project
+                                | projectLimits =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave projectLimits sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newProject =
+                            { project | projectLimits = RDPP.setNotLoading (Just ( httpError, sharedModel.clientCurrentTime )) project.projectLimits }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    processProjectSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
         ReceiveVolumeQuota errorContext result ->
             case result of
                 Ok quota ->
@@ -4715,6 +4769,8 @@ createProject_ outerModel description authToken region endpoints =
             , ports = RDPP.empty
             , securityGroups = RDPP.empty
             , securityGroupActions = Dict.empty
+            , registeredLimits = RDPP.empty
+            , projectLimits = RDPP.empty
             , computeQuota = RDPP.empty
             , volumeQuota = RDPP.empty
             , networkQuota = RDPP.empty

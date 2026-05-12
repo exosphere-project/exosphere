@@ -48,6 +48,7 @@ module OpenStack.Types exposing
     , Port
     , PortUuid
     , ProjectDescription
+    , ProjectLimit
     , ProjectUuid
     , PublicKey
     , QuotaItem
@@ -55,6 +56,7 @@ module OpenStack.Types exposing
     , Region
     , RegionDescription
     , RegionId
+    , RegisteredLimit
     , ScopedAuthToken
     , SecurityGroup
     , SecurityGroupTag
@@ -165,6 +167,25 @@ type alias QuotaItem =
 type QuotaItemLimit
     = Limit Int
     | Unlimited
+
+
+type alias RegisteredLimit =
+    { id : String
+    , regionId : Maybe RegionId
+    , resourceName : String
+    , defaultLimit : Int
+    , description : Maybe String
+    }
+
+
+type alias ProjectLimit =
+    { id : String
+    , projectId : ProjectUuid
+    , regionId : Maybe RegionId
+    , resourceName : String
+    , resourceLimit : Int
+    , description : Maybe String
+    }
 
 
 type alias SynchronousAPIError =
