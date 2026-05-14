@@ -1528,7 +1528,7 @@ createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybe
 
             Nothing ->
                 Element.none
-        , if "js2.jetstream-cloud.org" == UrlHelpers.hostnameFromUrl endpoints.keystone then
+        , if Helpers.Jetstream2.isJetstream2Cloud endpoints then
             Element.row [ Element.padding spacer.px8 ]
                 [ Element.el [ subduedText ] (Element.text "Burn rate ")
                 , String.concat

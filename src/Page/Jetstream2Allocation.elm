@@ -1,4 +1,4 @@
-module Page.Jetstream2Allocation exposing (view)
+module Page.Jetstream2Allocation exposing (renderTotalAllocationBurnRate, view)
 
 import DateFormat.Relative
 import Element
@@ -6,8 +6,12 @@ import Element.Font as Font
 import Element.Region as Region
 import FormatNumber.Locales
 import Helpers.Formatting
+import Helpers.Jetstream2
+import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Helpers.Time
+import Html.Attributes
+import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Meter
 import Style.Widgets.Spacer exposing (spacer)
@@ -19,6 +23,75 @@ import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH exposing (edges)
 import View.Types
+
+
+renderTotalAllocationBurnRate : View.Types.Context -> Project -> Element.Element SharedMsg.SharedMsg
+renderTotalAllocationBurnRate context { auth, endpoints, flavors, servers } =
+    if Helpers.Jetstream2.isJetstream2Cloud endpoints then
+        let
+            subduedText =
+                Font.color (context.palette.neutral.text.subdued |> SH.toElementColor)
+
+            ( formattedBurnRate, burnRateCaveats ) =
+                case ( RDPP.toMaybe flavors, RDPP.toMaybe servers ) of
+                    ( Just flavorList, Just serverList ) ->
+                        let
+                            { totalBurnRate, caveats } =
+                                Helpers.Jetstream2.calculateTotalAllocationBurnRate
+                                    context.localization
+                                    flavorList
+                                    (serverList |> List.map .osProps)
+                        in
+                        ( totalBurnRate
+                            |> Helpers.Formatting.humanRatio context.locale
+                        , caveats
+                        )
+
+                    _ ->
+                        ( "-.--", [] )
+
+            burnRateCaveatsProps =
+                case burnRateCaveats of
+                    [] ->
+                        { suffix = ""
+                        , tip = []
+                        }
+
+                    _ ->
+                        { suffix = "*"
+                        , tip =
+                            [ Element.el
+                                [ -- Catch clicks on the toggle tip regardless of the parent's attributes.
+                                  Element.htmlAttribute <| Html.Attributes.style "pointer-events" "auto"
+                                ]
+                                (Style.Widgets.ToggleTip.toggleTip
+                                    context
+                                    SharedMsg.TogglePopover
+                                    (Helpers.String.hyphenate [ "js2-burn-rate-caveats", auth.project.uuid ])
+                                    (burnRateCaveats
+                                        |> List.map (Text.text Text.Small [])
+                                        |> Element.column [ Element.spacing spacer.px4 ]
+                                    )
+                                    ST.PositionBottomRight
+                                )
+                            ]
+                        }
+        in
+        Element.row
+            [ -- HACK: Preserve the element's height when the toggle tip is not visible so it doesn't jump.
+              Element.height <| Element.minimum 22 Element.shrink
+            ]
+            ([ Text.text Text.Small [ subduedText ] "Burn rate "
+             , Text.text Text.Small [] formattedBurnRate
+             , Text.text Text.Small
+                []
+                (" SUs/hour" ++ burnRateCaveatsProps.suffix)
+             ]
+                ++ burnRateCaveatsProps.tip
+            )
+
+    else
+        Element.none
 
 
 view : View.Types.Context -> Project -> Time.Posix -> Element.Element SharedMsg.SharedMsg
