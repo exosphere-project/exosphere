@@ -140,6 +140,7 @@ hydrateProjectFromStoredProject storedProject =
     , securityGroupActions = Dict.empty
     , registeredLimits = RDPP.empty
     , projectLimits = RDPP.empty
+    , projectUsages = RDPP.empty
     , computeQuota = RDPP.empty
     , volumeQuota = RDPP.empty
     , networkQuota = RDPP.empty

@@ -217,6 +217,7 @@ routeToViewStateModelCmd sharedModel route =
                                         , OSQuotas.requestNetworkQuota project
                                         , OSUnifiedLimits.requestRegisteredLimits project
                                         , OSUnifiedLimits.requestLimits project
+                                        , OSUnifiedLimits.requestUsages project
                                         , Ports.instantiateClipboardJs ()
                                         ]
                                     )

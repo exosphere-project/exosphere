@@ -49,6 +49,7 @@ module OpenStack.Types exposing
     , PortUuid
     , ProjectDescription
     , ProjectLimit
+    , ProjectUsage
     , ProjectUuid
     , PublicKey
     , QuotaItem
@@ -185,6 +186,12 @@ type alias ProjectLimit =
     , resourceName : String
     , resourceLimit : Int
     , description : Maybe String
+    }
+
+
+type alias ProjectUsage =
+    { resourceName : String
+    , resourceUsage : Int
     }
 
 

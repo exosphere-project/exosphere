@@ -3582,6 +3582,33 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
+        ReceiveProjectUsages errorContext result ->
+            case result of
+                Ok usages ->
+                    let
+                        newProject =
+                            { project
+                                | projectUsages =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave usages sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newProject =
+                            { project | projectUsages = RDPP.setNotLoading (Just ( httpError, sharedModel.clientCurrentTime )) project.projectUsages }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    processProjectSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
         ReceiveVolumeQuota errorContext result ->
             case result of
                 Ok quota ->
@@ -4771,6 +4798,7 @@ createProject_ outerModel description authToken region endpoints =
             , securityGroupActions = Dict.empty
             , registeredLimits = RDPP.empty
             , projectLimits = RDPP.empty
+            , projectUsages = RDPP.empty
             , computeQuota = RDPP.empty
             , volumeQuota = RDPP.empty
             , networkQuota = RDPP.empty

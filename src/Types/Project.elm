@@ -51,6 +51,7 @@ type alias Project =
     , securityGroupActions : Dict.Dict ComparableSecurityGroupActionId SecurityGroupAction
     , registeredLimits : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.RegisteredLimit)
     , projectLimits : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ProjectLimit)
+    , projectUsages : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ProjectUsage)
     , computeQuota : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ComputeQuota
     , volumeQuota : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.VolumeQuota
     , networkQuota : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.NetworkQuota
