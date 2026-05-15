@@ -3,7 +3,7 @@ module OpenStack.UnifiedLimits exposing (requestLimits, requestRegisteredLimits,
 import Helpers.GetterSetters as GetterSetters
 import Http
 import Json.Decode as Decode
-import OpenStack.Types as OSTypes
+import OpenStack.Types as OSTypes exposing (UsageResourceName(..))
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..))
@@ -61,7 +61,7 @@ registeredLimitDecoder =
     Decode.map5 OSTypes.RegisteredLimit
         (Decode.field "id" Decode.string)
         (Decode.field "region_id" (Decode.nullable Decode.string))
-        (Decode.field "resource_name" Decode.string)
+        (Decode.field "resource_name" (Decode.map OSTypes.LimitResourceName Decode.string))
         (Decode.field "default_limit" Decode.int)
         (Decode.field "description" (Decode.nullable Decode.string))
 
@@ -116,7 +116,7 @@ limitDecoder =
         (Decode.field "id" Decode.string)
         (Decode.field "project_id" Decode.string)
         (Decode.field "region_id" (Decode.nullable Decode.string))
-        (Decode.field "resource_name" Decode.string)
+        (Decode.field "resource_name" (Decode.map OSTypes.LimitResourceName Decode.string))
         (Decode.field "resource_limit" Decode.int)
         (Decode.field "description" (Decode.nullable Decode.string))
 
@@ -169,4 +169,4 @@ usagesDecoder =
 
 usageTupleToProjectUsage : ( String, Int ) -> OSTypes.ProjectUsage
 usageTupleToProjectUsage ( resourceName, resourceUsage ) =
-    OSTypes.ProjectUsage resourceName resourceUsage
+    OSTypes.ProjectUsage (UsageResourceName resourceName) resourceUsage

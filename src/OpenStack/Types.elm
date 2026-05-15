@@ -37,6 +37,7 @@ module OpenStack.Types exposing
     , KeypairIdentifier
     , KeypairName
     , KeystoneUrl
+    , LimitResourceName(..)
     , MetadataItem
     , MetadataKey
     , MetadataValue
@@ -92,6 +93,7 @@ module OpenStack.Types exposing
     , ShareVisibility
     , SynchronousAPIError
     , UnscopedAuthToken
+    , UsageResourceName(..)
     , UserUuid
     , Volume
     , VolumeAttachment
@@ -170,10 +172,14 @@ type QuotaItemLimit
     | Unlimited
 
 
+type LimitResourceName
+    = LimitResourceName String
+
+
 type alias RegisteredLimit =
     { id : String
     , regionId : Maybe RegionId
-    , resourceName : String
+    , resourceName : LimitResourceName
     , defaultLimit : Int
     , description : Maybe String
     }
@@ -183,14 +189,18 @@ type alias ProjectLimit =
     { id : String
     , projectId : ProjectUuid
     , regionId : Maybe RegionId
-    , resourceName : String
+    , resourceName : LimitResourceName
     , resourceLimit : Int
     , description : Maybe String
     }
 
 
+type UsageResourceName
+    = UsageResourceName String
+
+
 type alias ProjectUsage =
-    { resourceName : String
+    { resourceName : UsageResourceName
     , resourceUsage : Int
     }
 
