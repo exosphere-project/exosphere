@@ -99,7 +99,7 @@ We have a **weekly community video call** Wednesdays at 15:30 UTC (**note the ne
 
 ## Contributors
 
-:memo: :abcd: _(ordered by GitLab handle)_
+:memo: :abcd: _(ordered by stated family name)_
 
 Rodolfo Aramayo (@raramayo1): Conceptualization (💡), Investigation (🔍)
 Jenn Armstrong (@jlrobiso): Conceptualization (💡), Investigation (🔍)
