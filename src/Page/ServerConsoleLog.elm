@@ -15,7 +15,6 @@ import OpenStack.Types as OSTypes
 import Route
 import Style.Helpers as SH
 import Style.Widgets.Button as Button
-import Style.Widgets.Code as Code
 import Style.Widgets.CopyableText exposing (copyableTextAccessory)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
@@ -139,7 +138,10 @@ view context project _ model =
                 |> Maybe.map (.osProps >> .name)
                 |> Maybe.withDefault model.serverUuid
     in
-    Element.column VH.formContainer
+    Element.column
+        [ Element.width Element.fill
+        , Element.spacing spacer.px24
+        ]
         [ Text.heading context.palette
             []
             Element.none
@@ -208,7 +210,43 @@ renderConsoleLog context model consoleLog =
         ansiConsoleBlock context consoleLog
 
     else
-        Code.codeBlock context.palette consoleLog
+        plainConsoleBlock context consoleLog
+
+
+plainConsoleBlock : View.Types.Context -> String -> Element.Element Msg
+plainConsoleBlock context consoleLog =
+    let
+        copyable =
+            copyableTextAccessory context.palette consoleLog
+    in
+    Element.el
+        [ Element.width Element.fill
+        , Element.height <| Element.maximum 640 Element.fill
+        , Element.scrollbars
+        , Element.padding spacer.px16
+        , Border.rounded spacer.px4
+        , Border.width 1
+        , Border.color (SH.toElementColor context.palette.neutral.border)
+        , Background.color (SH.toElementColor context.palette.neutral.background.frontLayer)
+        , copyable.id
+        , Element.inFront <|
+            Element.el
+                [ Element.alignRight
+                , Element.moveLeft <| toFloat spacer.px8
+                , Element.moveDown <| toFloat spacer.px8
+                ]
+                copyable.accessory
+        ]
+    <|
+        Element.html <|
+            Html.pre
+                [ Html.Attributes.style "margin" "0"
+                , Html.Attributes.style "white-space" "pre-wrap"
+                , Html.Attributes.style "overflow-wrap" "anywhere"
+                , Html.Attributes.style "word-break" "break-word"
+                , Html.Attributes.style "font-family" "monospace"
+                ]
+                [ Html.text consoleLog ]
 
 
 ansiConsoleBlock : View.Types.Context -> String -> Element.Element Msg
