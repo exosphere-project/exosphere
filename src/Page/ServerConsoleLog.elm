@@ -22,7 +22,7 @@ import Time
 import Types.Error exposing (HttpErrorWithBody)
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
-import View.Helpers as VH
+import View.Helpers as VH exposing (edges)
 import View.Types
 
 
@@ -175,7 +175,7 @@ controls context model =
         [ Input.radioRow [ Element.spacing spacer.px16 ]
             { onChange = GotLineLimit
             , selected = Just model.lineLimit
-            , label = Input.labelLeft [] (Element.text "Lines")
+            , label = Input.labelLeft [ Element.paddingEach { edges | right = spacer.px8 } ] (Element.text "Lines")
             , options =
                 [ Input.option (LastLines 50) (Element.text "50")
                 , Input.option (LastLines 200) (Element.text "200")
