@@ -49,6 +49,7 @@ import Page.SecurityGroupForm
 import Page.SecurityGroupList
 import Page.SelectProjectRegions
 import Page.SelectProjects
+import Page.ServerConsoleLog
 import Page.ServerCreate
 import Page.ServerCreateImage
 import Page.ServerDetail
@@ -490,6 +491,21 @@ updateUnderlying outerMsg outerModel =
                                         ServerCreateImage newSharedModel
                               }
                             , Cmd.map ServerCreateImageMsg cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( ServerConsoleLogMsg pageMsg, ServerConsoleLog pageModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.ServerConsoleLog.update pageMsg project pageModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId <|
+                                        ServerConsoleLog newSharedModel
+                              }
+                            , Cmd.map ServerConsoleLogMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -1980,6 +1996,37 @@ processProjectSpecificMsg outerModel project msg =
                     processProjectSynchronousApiError sharedModel errorContext httpErrorWithBody
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
+
+        ReceiveUserRequestedConsoleLog serverId errorContext result ->
+            let
+                newViewState =
+                    case outerModel.viewState of
+                        ProjectView projectId (ServerConsoleLog pageModel) ->
+                            if pageModel.serverUuid == serverId then
+                                ProjectView projectId <|
+                                    ServerConsoleLog <|
+                                        Page.ServerConsoleLog.receiveConsoleLog
+                                            result
+                                            sharedModel.clientCurrentTime
+                                            pageModel
+
+                            else
+                                outerModel.viewState
+
+                        _ ->
+                            outerModel.viewState
+
+                newOuterModel =
+                    { outerModel | viewState = newViewState }
+            in
+            case result of
+                Ok _ ->
+                    ( newOuterModel, Cmd.none )
+
+                Err httpErrorWithBody ->
+                    processProjectSynchronousApiError sharedModel errorContext httpErrorWithBody
+                        |> mapToOuterMsg
+                        |> mapToOuterModel newOuterModel
 
         ReceiveServerSecurityGroups serverId errorContext result ->
             case result of

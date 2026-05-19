@@ -18,6 +18,7 @@ import Page.SecurityGroupDetail
 import Page.SecurityGroupList
 import Page.SelectProjectRegions
 import Page.SelectProjects
+import Page.ServerConsoleLog
 import Page.ServerCreate
 import Page.ServerCreateImage
 import Page.ServerDetail
@@ -64,6 +65,7 @@ type OuterMsg
     | SecurityGroupListMsg Page.SecurityGroupList.Msg
     | ServerCreateMsg Page.ServerCreate.Msg
     | ServerCreateImageMsg Page.ServerCreateImage.Msg
+    | ServerConsoleLogMsg Page.ServerConsoleLog.Msg
     | ServerDetailMsg Page.ServerDetail.Msg
     | ServerListMsg Page.ServerList.Msg
     | ServerResizeMsg Page.ServerResize.Msg
