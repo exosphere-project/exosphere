@@ -60,6 +60,7 @@ type ProjectRouteConstructor
     | SecurityGroupList
     | ServerCreate OSTypes.ImageUuid String (Maybe (List OSTypes.FlavorId)) (Maybe Bool)
     | ServerCreateImage OSTypes.ServerUuid (Maybe String)
+    | ServerConsoleLog OSTypes.ServerUuid
     | ServerDetail OSTypes.ServerUuid
     | ServerList
     | ServerResize OSTypes.ServerUuid
@@ -286,6 +287,14 @@ toUrl maybePathPrefix route =
 
                                 Nothing ->
                                     []
+                            )
+
+                        ServerConsoleLog serverUuid ->
+                            ( [ "servers"
+                              , serverUuid
+                              , "console-log"
+                              ]
+                            , []
                             )
 
                         ServerDetail serverUuid ->
@@ -634,6 +643,9 @@ projectRouteParsers =
     , map
         SecurityGroupList
         (s "securitygroups")
+    , map
+        ServerConsoleLog
+        (s "servers" </> string </> s "console-log")
     , map
         ServerDetail
         (s "servers" </> string)

@@ -653,7 +653,19 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 )
             , serverNameView context project currentTime model server
             , Element.row [ Element.alignRight, Text.fontSize Text.Body, Font.regular, Element.spacing spacer.px16 ]
-                [ serverStatus context project server
+                [ Element.link []
+                    { url =
+                        Route.toUrl context.urlPathPrefix <|
+                            Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                Route.ServerConsoleLog server.osProps.uuid
+                    , label =
+                        Button.default
+                            context.palette
+                            { text = "Console log"
+                            , onPress = Just NoOp
+                            }
+                    }
+                , serverStatus context project server
                 , serverActionsDropdown context project model server
                 ]
             ]
