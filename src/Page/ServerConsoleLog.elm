@@ -12,6 +12,7 @@ import Html
 import Html.Attributes
 import OpenStack.ConsoleLog
 import OpenStack.Types as OSTypes
+import Regex
 import Route
 import Style.Helpers as SH
 import Style.Widgets.Button as Button
@@ -256,7 +257,7 @@ ansiConsoleBlock context consoleLog =
             copyableTextAccessory context.palette consoleLog
 
         ansiLog =
-            Ansi.Log.update consoleLog (Ansi.Log.init Ansi.Log.Cooked)
+            Ansi.Log.update (normalizeAnsiConsoleLog consoleLog) (Ansi.Log.init Ansi.Log.Cooked)
     in
     Element.el
         [ Element.width Element.fill
@@ -291,3 +292,38 @@ ansiConsoleBlock context consoleLog =
                     [ Html.Attributes.class "console-log" ]
                     [ Ansi.Log.view ansiLog ]
             ]
+
+
+normalizeAnsiConsoleLog : String -> String
+normalizeAnsiConsoleLog consoleLog =
+    consoleLog
+        |> Regex.replace replacementPrefixedAnsiSgrRegex
+            (\match ->
+                case match.submatches of
+                    [ Just sgr ] ->
+                        "\u{001B}" ++ sgr
+
+                    _ ->
+                        match.match
+            )
+        |> Regex.replace ansiSgrWithoutEscapeRegex
+            (\match ->
+                case match.submatches of
+                    [ Just prefix, Just sgr ] ->
+                        prefix ++ "\u{001B}" ++ sgr
+
+                    _ ->
+                        match.match
+            )
+
+
+replacementPrefixedAnsiSgrRegex : Regex.Regex
+replacementPrefixedAnsiSgrRegex =
+    Maybe.withDefault Regex.never <|
+        Regex.fromString "�+(\\[(?:[0-9]|;)*m)"
+
+
+ansiSgrWithoutEscapeRegex : Regex.Regex
+ansiSgrWithoutEscapeRegex =
+    Maybe.withDefault Regex.never <|
+        Regex.fromString "(^|[^\u{001B}])(\\[(?:[0-9]|;)*m)"
