@@ -175,13 +175,13 @@ controls context model =
         [ Input.radioRow [ Element.spacing spacer.px16 ]
             { onChange = GotLineLimit
             , selected = Just model.lineLimit
-            , label = Input.labelLeft [ Element.paddingEach { edges | right = spacer.px8 } ] (Element.text "Lines")
+            , label = Input.labelLeft [ Element.paddingEach { edges | right = spacer.px8 } ] (Element.text "Show last")
             , options =
                 [ Input.option (LastLines 50) (Element.text "50")
                 , Input.option (LastLines 200) (Element.text "200")
                 , Input.option (LastLines 500) (Element.text "500")
                 , Input.option (LastLines 1000) (Element.text "1000")
-                , Input.option AllLines (Element.text "All")
+                , Input.option AllLines (Element.text "All lines")
                 ]
             }
         , Input.checkbox []
