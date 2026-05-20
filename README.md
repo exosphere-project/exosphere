@@ -100,109 +100,110 @@ We have a **weekly community video call** Wednesdays at 15:30 UTC (**note the ne
 ## Contributors
 
 :memo: :abcd: _(ordered by stated family name)_
+:key: _a legend for contribution emojis appears in [./contributing.md](./contributing.md#recognizing-contributions)
 
-Rodolfo Aramayo (@raramayo1): Conceptualization (💡), Investigation (🔍)
-Jenn Armstrong (@jlrobiso): Conceptualization (💡), Investigation (🔍)
-aszen (@aszenz): Investigation (🔍), Software (💻), Validation (✅)
-Ryan Bartelme (@rbartelme): Investigation (🔍)
-austin baum (@abaumer): Investigation (🔍), Software (💻)
-Devin Bayly (@debyly): Investigation (🔍)
-Brian Beck (@beckbw): Investigation (🔍)
-Blair Bethwaite (@blair-bethwaite): Investigation (🔍)
-Alex Bigelow (@alex-r-bigelow): Investigation (🔍), Software (💻)
-Patrick Bills (@billspat): Investigation (🔍)
-Stephen Bird (@stebird): Conceptualization (💡), Investigation (🔍), Software (💻)
-Darren Boss (@netscruff): Investigation (🔍)
-GitLab Support Bot (@support-bot): Conceptualization (💡), Investigation (🔍)
-emre brookes (@ehb54): Conceptualization (💡), Investigation (🔍)
-James Carlson (@jxxcarlson): Conceptualization (💡), Investigation (🔍), Software (💻), Validation (✅)
-carrieganote (@carrieganote): Conceptualization (💡), Investigation (🔍)
-cartoloupe (@cartoloupe): Conceptualization (💡), Investigation (🔍), Software (💻)
-Tom Crowe (@thcrowe): Conceptualization (💡), Investigation (🔍)
-Coury Ditch (@cmditch): Investigation (🔍)
-Andrey Fedorov (@andreyfedorov): Investigation (🔍)
-Justin Fernandez (@justinfernz): Investigation (🔍)
-Jean-Christophe Fillion-Robin (@jcfr): Investigation (🔍)
-Jeremy Fischer (@jlf599): Conceptualization (💡), Investigation (🔍), Validation (✅)
-John Fonner (@johnfonner): Investigation (🔍)
-Félix-Antoine Fortin (@CmdNtrf): Investigation (🔍)
-Brian Ginsburg (@bgins): Investigation (🔍), Software (💻)
-Ariella Gladstein (@agladstein): Conceptualization (💡), Investigation (🔍)
-Andrew Gould (@garyguitar): Investigation (🔍)
-Zach Graber (@zacharygraber): Conceptualization (💡), Investigation (🔍), Software (💻)
-Mike Griffith (@mgriffith): Investigation (🔍)
-Francois Halbach (@fwhalbach): Investigation (🔍)
-David Hancock (@dyhancoc): Investigation (🔍)
-Danny Havert (@djhavert): Conceptualization (💡), Investigation (🔍)
-Mike Helmuth (@kilgoretrout1001): Investigation (🔍), Software (💻)
-Caleb Hughes (@hughescd): Conceptualization (💡), Investigation (🔍)
-Blake J (@bjoyce3): Conceptualization (💡), Investigation (🔍)
-JiazhengHuang (@JiazhengHuang): Conceptualization (💡), Investigation (🔍)
-JonathanHWood (@JonathanHWood): Conceptualization (💡), Investigation (🔍)
-jrcolby (@jrcolby): Conceptualization (💡), Investigation (🔍)
-Romina Karim (@rokarim): Conceptualization (💡), Investigation (🔍), Software (💻), Validation (✅)
-Ketchup (@pascal.lazaridis): Conceptualization (💡), Investigation (🔍)
-Marnee Dearman (KG7SIO) (@MarneeDear): Conceptualization (💡), Investigation (🔍)
-Jesse L (@jyssy): Investigation (🔍)
-Nathan Lavender (@nblavend): Investigation (🔍)
-David LeBauer (@dlebauer): Conceptualization (💡), Investigation (🔍), Software (💻)
-Steven Lee (@shl1cornell): Conceptualization (💡), Investigation (🔍)
-Andrew J Lenards (@lenards): Conceptualization (💡), Investigation (🔍), Software (💻), Validation (✅)
-Lane Robert Lewis (@lanerobertlewis): Investigation (🔍), Software (💻)
-Paul Lewis (@paul0lewis): Conceptualization (💡), Investigation (🔍)
-Burkhard Linke (@blinke76): Conceptualization (💡), Investigation (🔍)
-Mike Lowe (@j.michael.lowe): Conceptualization (💡), Investigation (🔍)
-John Lowe (@jomlowe): Conceptualization (💡), Investigation (🔍)
-Rafael Madrid (@rmadrid24): Investigation (🔍)
-Abdul Mahdi (@b-m-0): Conceptualization (💡), Investigation (🔍), Software (💻)
-Tom Marcais (@tmarcais): Investigation (🔍)
-Suresh Marru (@smarru): Investigation (🔍)
-Chris Martin (@cmart): Conceptualization (💡), Investigation (🔍), Software (💻), Validation (✅)
-Chris Martin (@cmart-testing): Software (💻)
-Kyle Mohr (@kylefmohr): Software (💻)
-muratmaga (@muratmaga): Conceptualization (💡), Investigation (🔍)
-Alastair Neil (@ajneil): Conceptualization (💡), Investigation (🔍)
-Connor Osborn (@cdosborn): Software (💻)
-Sebastian P. (@proksch): Conceptualization (💡), Investigation (🔍)
-Alex Papaioannou (@apapaioannou92): Conceptualization (💡), Investigation (🔍)
-Julian Parsert (@julianp): Investigation (🔍)
-Steve Pieper (@pieper): Conceptualization (💡), Investigation (🔍)
-Robert Ping (@robping): Conceptualization (💡), Investigation (🔍)
-J Pistorius (@jpistorius): Software (💻)
-Julian Pistorius (@julianpistorius): Conceptualization (💡), Investigation (🔍), Software (💻), Validation (✅)
-SlicerMorph Project (@SlicerMorph): Conceptualization (💡), Investigation (🔍), Software (💻)
-Ben Reynwar (@benreynwar): Investigation (🔍), Software (💻)
-Kristina Riemer (@kriemer): Investigation (🔍), Software (💻)
-heath ritchie (@heathritchie): Investigation (🔍), Software (💻)
-John-Paul Robinson (@jprorama): Investigation (🔍)
-Hari Roshan (@hariroshan): Investigation (🔍), Software (💻)
-rspfau (@rspfau): Conceptualization (💡), Investigation (🔍)
-Mats Rynge (@rynge): Conceptualization (💡), Investigation (🔍)
-Wasswa Samuel (@latimerscope): Investigation (🔍), Software (💻)
-David Schanzenbach (@davidls1): Investigation (🔍)
-Alec Scott (@alecbcs): Investigation (🔍), Software (💻)
-Lena Duplechin Seymour (@LenaEDS): Conceptualization (💡), Investigation (🔍)
-Jaladh Singhal (@jaladh-singhal): Conceptualization (💡), Investigation (🔍), Software (💻), Validation (✅)
-Nicholas Skaggs (@nskaggs): Investigation (🔍)
-Jared M. Smith (@absynce): Investigation (🔍)
-Dennis Snell (@dmsnell): Conceptualization (💡), Investigation (🔍), Software (💻), Validation (✅)
-Matt Standish (@matt1232939): Investigation (🔍)
-Sanjana Sudarshan (@ssudarsh): Conceptualization (💡), Investigation (🔍)
-Tyson L. Swetnam (@tyson-swetnam): Conceptualization (💡), Investigation (🔍), Provisions/Food (🫎🍖)
-Frank Tackitt (@kageurufu): Conceptualization (💡), Investigation (🔍), Software (💻), Validation (✅)
-Kyle Tee (@LordParsley): Conceptualization (💡), Investigation (🔍), Software (💻), Validation (✅)
-Ghost User (@ghost1): Investigation (🔍), Software (💻)
-vsoch (@vsoch): Investigation (🔍), Software (💻)
-Mariah Wall (@mgwall17): Investigation (🔍)
-Le Mai  Weakley (@lemaiw): Investigation (🔍)
-Ben Weber (@aussieben): Investigation (🔍), Software (💻)
-Aaron Wells (@wellsaar): Conceptualization (💡), Investigation (🔍)
-Michael White (@mpmwhite): Conceptualization (💡), Investigation (🔍), Software (💻), Validation (✅)
-Sarah Williams (@saewill): Software (💻)
-Hai Wu (@haiwu.us): Conceptualization (💡), Investigation (🔍)
-Derek Young (@youngdjn): Investigation (🔍)
+- Rodolfo Aramayo (@raramayo1): 💡🔍
+- Jenn Armstrong (@jlrobiso): 💡🔍
+- aszen (@aszenz): 🔍💻✅
+- Ryan Bartelme (@rbartelme): 🔍
+- austin baum (@abaumer): 🔍💻
+- Devin Bayly (@debyly): 🔍
+- Brian Beck (@beckbw): 🔍
+- Blair Bethwaite (@blair-bethwaite): 🔍
+- Alex Bigelow (@alex-r-bigelow): 🔍💻
+- Patrick Bills (@billspat): 🔍
+- Stephen Bird (@stebird): 💡🔍💻
+- Darren Boss (@netscruff): 🔍
+- GitLab Support Bot (@support-bot): 💡🔍
+- emre brookes (@ehb54): 💡🔍
+- James Carlson (@jxxcarlson): 💡🔍💻✅
+- carrieganote (@carrieganote): 💡🔍
+- cartoloupe (@cartoloupe): 💡🔍💻
+- Tom Crowe (@thcrowe): 💡🔍
+- Coury Ditch (@cmditch): 🔍
+- Andrey Fedorov (@andreyfedorov): 🔍
+- Justin Fernandez (@justinfernz): 🔍
+- Jean-Christophe Fillion-Robin (@jcfr): 🔍
+- Jeremy Fischer (@jlf599): 💡🔍✅
+- John Fonner (@johnfonner): 🔍
+- Félix-Antoine Fortin (@CmdNtrf): 🔍
+- Brian Ginsburg (@bgins): 🔍💻
+- Ariella Gladstein (@agladstein): 💡🔍
+- Andrew Gould (@garyguitar): 🔍
+- Zach Graber (@zacharygraber): 💡🔍💻
+- Mike Griffith (@mgriffith): 🔍
+- Francois Halbach (@fwhalbach): 🔍
+- David Hancock (@dyhancoc): 🔍
+- Danny Havert (@djhavert): 💡🔍
+- Mike Helmuth (@kilgoretrout1001): 🔍💻
+- Caleb Hughes (@hughescd): 💡🔍
+- Blake J (@bjoyce3): 💡🔍
+- JiazhengHuang (@JiazhengHuang): 💡🔍
+- JonathanHWood (@JonathanHWood): 💡🔍
+- jrcolby (@jrcolby): 💡🔍
+- Romina Karim (@rokarim): 💡🔍💻✅
+- Ketchup (@pascal.lazaridis): 💡🔍
+- Marnee Dearman (KG7SIO) (@MarneeDear): 💡🔍
+- Jesse L (@jyssy): 🔍
+- Nathan Lavender (@nblavend): 🔍
+- David LeBauer (@dlebauer): 💡🔍💻
+- Steven Lee (@shl1cornell): 💡🔍
+- Andrew J Lenards (@lenards): 💡🔍💻✅
+- Lane Robert Lewis (@lanerobertlewis): 🔍💻
+- Paul Lewis (@paul0lewis): 💡🔍
+- Burkhard Linke (@blinke76): 💡🔍
+- Mike Lowe (@j.michael.lowe): 💡🔍
+- John Lowe (@jomlowe): 💡🔍
+- Rafael Madrid (@rmadrid24): 🔍
+- Abdul Mahdi (@b-m-0): 💡🔍💻
+- Tom Marcais (@tmarcais): 🔍
+- Suresh Marru (@smarru): 🔍
+- Chris Martin (@cmart): 💡🔍💻✅
+- Chris Martin (@cmart-testing): 💻
+- Kyle Mohr (@kylefmohr): 💻
+- muratmaga (@muratmaga): 💡🔍
+- Alastair Neil (@ajneil): 💡🔍
+- Connor Osborn (@cdosborn): 💻
+- Sebastian P. (@proksch): 💡🔍
+- Alex Papaioannou (@apapaioannou92): 💡🔍
+- Julian Parsert (@julianp): 🔍
+- Steve Pieper (@pieper): 💡🔍
+- Robert Ping (@robping): 💡🔍
+- J Pistorius (@jpistorius): 💻
+- Julian Pistorius (@julianpistorius): 💡🔍💻✅
+- SlicerMorph Project (@SlicerMorph): 💡🔍💻
+- Ben Reynwar (@benreynwar): 🔍💻
+- Kristina Riemer (@kriemer): 🔍💻
+- heath ritchie (@heathritchie): 🔍💻
+- John-Paul Robinson (@jprorama): 🔍
+- Hari Roshan (@hariroshan): 🔍💻
+- rspfau (@rspfau): 💡🔍
+- Mats Rynge (@rynge): 💡🔍
+- Wasswa Samuel (@latimerscope): 🔍💻
+- David Schanzenbach (@davidls1): 🔍
+- Alec Scott (@alecbcs): 🔍💻
+- Lena Duplechin Seymour (@LenaEDS): 💡🔍
+- Jaladh Singhal (@jaladh-singhal): 💡🔍💻✅
+- Nicholas Skaggs (@nskaggs): 🔍
+- Jared M. Smith (@absynce): 🔍
+- Dennis Snell (@dmsnell): 💡🔍💻✅
+- Matt Standish (@matt1232939): 🔍
+- Sanjana Sudarshan (@ssudarsh): 💡🔍
+- Tyson L. Swetnam (@tyson-swetnam): 💡🔍🫎🍖
+- Frank Tackitt (@kageurufu): 💡🔍💻✅
+- Kyle Tee (@LordParsley): 💡🔍💻✅
+- Ghost User (@ghost1): 🔍💻
+- vsoch (@vsoch): 🔍💻
+- Mariah Wall (@mgwall17): 🔍
+- Le Mai  Weakley (@lemaiw): 🔍
+- Ben Weber (@aussieben): 🔍💻
+- Aaron Wells (@wellsaar): 💡🔍
+- Michael White (@mpmwhite): 💡🔍💻✅
+- Sarah Williams (@saewill): 💻
+- Hai Wu (@haiwu.us): 💡🔍
+- Derek Young (@youngdjn): 🔍
 
-NOTE: see contribution missing or what to acknowledge, please submit an issue to let us know. More information on acknowledging contributions [here](./contributing.md#notice-a-missing-contribution).
+NOTE: See a contribution missing or want to acknowledge one? Please submit an issue to let us know. More information on acknowledging contributions [here](./contributing.md#notice-a-missing-contribution).
 
 ## Exosphere's Impact
 

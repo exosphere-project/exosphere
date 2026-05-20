@@ -129,7 +129,7 @@ Our architecture decisions are documented in: [docs/adr/README.md](docs/adr/READ
 
 ## Recognizing Contributions 
 
-We recognize contributions using a lightweight CRediT-inspired taxonomy that maps the work people do in our issue and merge request workflow to recognizable contribution roles. Each role is represented with an emoji for quick visual scanning, similar to the style used by All Contributors, and is assigned based on the primary activity demonstrated in GitLab issues, merge requests, documentation contributions, and review work.
+We recognize contributions using a lightweight [CRediT-inspired taxonomy](https://crosstalk.cell.com/hubfs/Files/CRediT-Taxonomy.pdf) that maps the work people do in our issue and merge request workflow to recognizable contribution roles. Each role is represented with an emoji for quick visual scanning, similar to the style used by [All Contributors](https://allcontributors.org/en/emoji-key/), and is assigned based on the primary activity demonstrated in GitLab issues, merge requests, documentation contributions, and review work.
 
 The table below shows how we map our contribution model:
 
@@ -143,8 +143,6 @@ Writing - Review & Editing | 📝 | Doc Contributor | Critical review, commentar
 Data Curation | 🗄️ | Issue Labeler | Management activities to annotate (metadata) and scrub research or software data.
 Visualization | 🎨 | UI/UX Contributor | Preparation and creation of data presentations or visual components of the software.
 
-This recognition scheme is based on the official CRediT taxonomy: https://crosstalk.cell.com/hubfs/Files/CRediT-Taxonomy.pdf. We use the emoji conventions as a nod to the All Contributors emoji key, to make contribution recognition more human-readable and easier to scan across the project’s activity.
-
 ### Notice a missing contribution? 
 
-Please submit an issues with your the contribution model and we will add it to the `Contributors` section in the README.md file.
+Please submit an issue noting the oversight and we will add it to the `Contributors` section in the README.md file.
