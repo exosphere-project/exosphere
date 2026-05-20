@@ -653,19 +653,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 )
             , serverNameView context project currentTime model server
             , Element.row [ Element.alignRight, Text.fontSize Text.Body, Font.regular, Element.spacing spacer.px16 ]
-                [ Element.link []
-                    { url =
-                        Route.toUrl context.urlPathPrefix <|
-                            Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                                Route.ServerConsoleLog server.osProps.uuid
-                    , label =
-                        Button.default
-                            context.palette
-                            { text = "Console log"
-                            , onPress = Just NoOp
-                            }
-                    }
-                , serverStatus context project server
+                [ serverStatus context project server
                 , serverActionsDropdown context project model server
                 ]
             ]
@@ -1179,6 +1167,7 @@ interactions context project server currentTime tlsReverseProxyHostname =
     , ITypes.GuacDesktop
     , ITypes.NativeSSH
     , ITypes.Console
+    , ITypes.ConsoleLog
     , ITypes.CustomWorkflow
     ]
         |> List.map renderInteraction

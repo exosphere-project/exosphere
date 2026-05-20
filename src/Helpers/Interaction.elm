@@ -10,6 +10,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
+import Route
 import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Icon as Icon
@@ -132,6 +133,12 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                         ( _, RDPP.NotLoading (Just ( err, _ )) ) ->
                             ITypes.Error ("Exosphere requested a console URL and got the following error: " ++ Helpers.httpErrorToString err.error)
 
+                ITypes.ConsoleLog ->
+                    ITypes.Ready <|
+                        Route.toUrl context.urlPathPrefix <|
+                            Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                Route.ServerConsoleLog server.osProps.uuid
+
                 ITypes.CustomWorkflow ->
                     if context.experimentalFeaturesEnabled then
                         case server.exoProps.serverOrigin of
@@ -247,6 +254,18 @@ interactionDetails interaction context =
                     ]
                 )
                 Icon.console
+                ITypes.UrlInteraction
+
+        ITypes.ConsoleLog ->
+            ITypes.InteractionDetails
+                "Console Log"
+                (String.join " "
+                    [ "View console log for your"
+                    , context.localization.virtualComputer
+                    , "(useful for troubleshooting to see boot messages or if the Web " ++ Helpers.String.toTitleCase context.localization.commandDrivenTextInterface ++ " isn't working)"
+                    ]
+                )
+                (\size -> Icon.sizedFeatherIcon (toFloat size) Icons.fileText)
                 ITypes.UrlInteraction
 
         ITypes.CustomWorkflow ->
