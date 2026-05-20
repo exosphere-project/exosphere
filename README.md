@@ -100,7 +100,8 @@ We have a **weekly community video call** Wednesdays at 15:30 UTC (**note the ne
 ## Contributors
 
 :memo: :abcd: _(ordered by stated family name)_
-:key: _a legend for contribution emojis appears in [./contributing.md](./contributing.md#recognizing-contributions)
+
+:key: _a legend for contribution emojis appears in [./contributing.md](./contributing.md#recognizing-contributions)_
 
 - Rodolfo Aramayo (@raramayo1): 💡🔍
 - Jenn Armstrong (@jlrobiso): 💡🔍
