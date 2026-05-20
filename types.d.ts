@@ -113,6 +113,11 @@ declare namespace Exosphere {
     disallowedActions: Array<ServerActions | string>;
   };
 
+  type CloudCustomResource = {
+    resource: string;
+    friendlyName: string;
+  };
+
   type CloudSecurityGroup = {
     name: string;
     description: null | string;
@@ -137,6 +142,7 @@ declare namespace Exosphere {
     featuredImageNamePrefix: null | string;
     instanceTypes: Array<CloudInstanceType>;
     flavorGroups: Array<CloudFlavorGroup>;
+    customResources?: Array<CloudCustomResource>;
     securityGroups?: null | { [region in string]: CloudSecurityGroup };
     desktopMessage: null | string;
   };

@@ -210,6 +210,7 @@ Add a JSON object to the `clouds` array for your OpenStack cloud, in which you d
       featuredImageNamePrefix: null,
       instanceTypes: [],
       flavorGroups: [],
+      customResources: [],
       desktopMessage: null,
     },
 ```
