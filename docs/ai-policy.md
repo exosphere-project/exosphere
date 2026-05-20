@@ -38,7 +38,7 @@ Do not request automated reviews (e.g. GitLab Duo or similar) on merge requests 
 
 ### Attribution
 
-Use your best judgement in your approach to AI attribution. Git trailers such as `Co-Authored-By` might be appropriate.
+Use the git trailer `Co-Authored-By` for commits containing substantial AI contributions. (Additional disclosures are welcome if you judge them to be appropriate.)
 
 ### Licensing
 
