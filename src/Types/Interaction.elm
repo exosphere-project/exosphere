@@ -14,6 +14,7 @@ type Interaction
     | GuacDesktop
     | NativeSSH
     | Console
+    | ConsoleLog
     | CustomWorkflow
 
 
