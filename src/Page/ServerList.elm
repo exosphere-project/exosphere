@@ -223,7 +223,7 @@ view context project currentTime model =
 
           else
             Element.none
-        , Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Compute project.computeQuota)
+        , Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Compute project)
         , serverListContents
         ]
 
