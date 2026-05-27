@@ -126,3 +126,23 @@ The CI pipeline's end-to-end browser tests have special behavior for `master` an
 We use lightweight architecture decision records. See: <https://adr.github.io/>
 
 Our architecture decisions are documented in: [docs/adr/README.md](docs/adr/README.md)
+
+## Recognizing Contributions 
+
+We recognize contributions using a lightweight [CRediT-inspired taxonomy](https://crosstalk.cell.com/hubfs/Files/CRediT-Taxonomy.pdf) that maps the work people do in our issue and merge request workflow to recognizable contribution roles. Each role is represented with an emoji for quick visual scanning, similar to the style used by [All Contributors](https://allcontributors.org/en/emoji-key/), and is assigned based on the primary activity demonstrated in GitLab issues, merge requests, documentation contributions, and review work.
+
+The table below shows how we map our contribution model:
+
+Role (CRediT Term) | All Contributors Emoji | GitLab Activity Mapping | Definition / Application
+--- | --- | --- | ---
+Conceptualization | 💡 | Issue Author | Formulating ideas or overarching goals for a “Community Request”.
+Software | 💻 | MR Author | Programming, software development, and implementation of computer code/algorithms.
+Investigation | 🔍 | Issue / MR Reporter | Performing data/evidence collection or conducting research to reproduce a reported bug.
+Validation | ✅ | MR Reviewer / Tester | Verification and testing of code components and replication of results.
+Writing - Review & Editing | 📝 | Doc Contributor | Critical review, commentary, or revision of documentation within an MR.
+Data Curation | 🗄️ | Issue Labeler | Management activities to annotate (metadata) and scrub research or software data.
+Visualization | 🎨 | UI/UX Contributor | Preparation and creation of data presentations or visual components of the software.
+
+### Notice a missing contribution? 
+
+Please submit an issue noting the oversight and we will add it to the `Contributors` section in the README.md file.

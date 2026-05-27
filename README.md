@@ -97,6 +97,115 @@ We use GitLab to track issues and contributions. To request a new feature or rep
 
 We have a **weekly community video call** Wednesdays at 15:30 UTC (**note the new day and time**). Join by clicking on the Jitsi widget in our [Element chat](https://matrix.to/#/#exosphere:matrix.org). ([agenda](https://c-mart.sandcats.io/shared/1k-xDVhqs6AgGK7rTKenjG7saPcXpml_SxaOgyLImW5), and [previous meeting notes](https://gitlab.com/exosphere/exosphere/-/wikis/Meetings/2025/Weekly-Community-Meetings-(2025)))
 
+## Contributors
+
+:memo: :abcd: _(ordered by stated family name)_
+
+:key: _a legend for contribution emojis appears in [./contributing.md](./contributing.md#recognizing-contributions)_
+
+- Rodolfo Aramayo (@raramayo1): 💡🔍
+- Jenn Armstrong (@jlrobiso): 💡🔍
+- aszen (@aszenz): 🔍💻✅
+- Ryan Bartelme (@rbartelme): 🔍
+- austin baum (@abaumer): 🔍💻
+- Devin Bayly (@debyly): 🔍
+- Brian Beck (@beckbw): 🔍
+- Blair Bethwaite (@blair-bethwaite): 🔍
+- Alex Bigelow (@alex-r-bigelow): 🔍💻
+- Patrick Bills (@billspat): 🔍
+- Stephen Bird (@stebird): 💡🔍💻
+- Darren Boss (@netscruff): 🔍
+- GitLab Support Bot (@support-bot): 💡🔍
+- emre brookes (@ehb54): 💡🔍
+- James Carlson (@jxxcarlson): 💡🔍💻✅
+- carrieganote (@carrieganote): 💡🔍
+- cartoloupe (@cartoloupe): 💡🔍💻
+- Tom Crowe (@thcrowe): 💡🔍
+- Coury Ditch (@cmditch): 🔍
+- Andrey Fedorov (@andreyfedorov): 🔍
+- Justin Fernandez (@justinfernz): 🔍
+- Jean-Christophe Fillion-Robin (@jcfr): 🔍
+- Jeremy Fischer (@jlf599): 💡🔍✅
+- John Fonner (@johnfonner): 🔍
+- Félix-Antoine Fortin (@CmdNtrf): 🔍
+- Brian Ginsburg (@bgins): 🔍💻
+- Ariella Gladstein (@agladstein): 💡🔍
+- Andrew Gould (@garyguitar): 🔍
+- Zach Graber (@zacharygraber): 💡🔍💻
+- Mike Griffith (@mgriffith): 🔍
+- Francois Halbach (@fwhalbach): 🔍
+- David Hancock (@dyhancoc): 🔍
+- Danny Havert (@djhavert): 💡🔍
+- Mike Helmuth (@kilgoretrout1001): 🔍💻
+- Caleb Hughes (@hughescd): 💡🔍
+- Blake J (@bjoyce3): 💡🔍
+- JiazhengHuang (@JiazhengHuang): 💡🔍
+- JonathanHWood (@JonathanHWood): 💡🔍
+- jrcolby (@jrcolby): 💡🔍
+- Romina Karim (@rokarim): 💡🔍💻✅
+- Ketchup (@pascal.lazaridis): 💡🔍
+- Marnee Dearman (KG7SIO) (@MarneeDear): 💡🔍
+- Jesse L (@jyssy): 🔍
+- Nathan Lavender (@nblavend): 🔍
+- David LeBauer (@dlebauer): 💡🔍💻
+- Steven Lee (@shl1cornell): 💡🔍
+- Andrew J Lenards (@lenards): 💡🔍💻✅
+- Lane Robert Lewis (@lanerobertlewis): 🔍💻
+- Paul Lewis (@paul0lewis): 💡🔍
+- Burkhard Linke (@blinke76): 💡🔍
+- Mike Lowe (@j.michael.lowe): 💡🔍
+- John Lowe (@jomlowe): 💡🔍
+- Rafael Madrid (@rmadrid24): 🔍
+- Abdul Mahdi (@b-m-0): 💡🔍💻
+- Tom Marcais (@tmarcais): 🔍
+- Suresh Marru (@smarru): 🔍
+- Chris Martin (@cmart): 💡🔍💻✅
+- Chris Martin (@cmart-testing): 💻
+- Kyle Mohr (@kylefmohr): 💻
+- muratmaga (@muratmaga): 💡🔍
+- Alastair Neil (@ajneil): 💡🔍
+- Connor Osborn (@cdosborn): 💻
+- Sebastian P. (@proksch): 💡🔍
+- Alex Papaioannou (@apapaioannou92): 💡🔍
+- Julian Parsert (@julianp): 🔍
+- Steve Pieper (@pieper): 💡🔍
+- Robert Ping (@robping): 💡🔍
+- J Pistorius (@jpistorius): 💻
+- Julian Pistorius (@julianpistorius): 💡🔍💻✅
+- SlicerMorph Project (@SlicerMorph): 💡🔍💻
+- Ben Reynwar (@benreynwar): 🔍💻
+- Kristina Riemer (@kriemer): 🔍💻
+- heath ritchie (@heathritchie): 🔍💻
+- John-Paul Robinson (@jprorama): 🔍
+- Hari Roshan (@hariroshan): 🔍💻
+- rspfau (@rspfau): 💡🔍
+- Mats Rynge (@rynge): 💡🔍
+- Wasswa Samuel (@latimerscope): 🔍💻
+- David Schanzenbach (@davidls1): 🔍
+- Alec Scott (@alecbcs): 🔍💻
+- Lena Duplechin Seymour (@LenaEDS): 💡🔍
+- Jaladh Singhal (@jaladh-singhal): 💡🔍💻✅
+- Nicholas Skaggs (@nskaggs): 🔍
+- Jared M. Smith (@absynce): 🔍
+- Dennis Snell (@dmsnell): 💡🔍💻✅
+- Matt Standish (@matt1232939): 🔍
+- Sanjana Sudarshan (@ssudarsh): 💡🔍
+- Tyson L. Swetnam (@tyson-swetnam): 💡🔍🫎🍖
+- Frank Tackitt (@kageurufu): 💡🔍💻✅
+- Kyle Tee (@LordParsley): 💡🔍💻✅
+- Ghost User (@ghost1): 🔍💻
+- vsoch (@vsoch): 🔍💻
+- Mariah Wall (@mgwall17): 🔍
+- Le Mai  Weakley (@lemaiw): 🔍
+- Ben Weber (@aussieben): 🔍💻
+- Aaron Wells (@wellsaar): 💡🔍
+- Michael White (@mpmwhite): 💡🔍💻✅
+- Sarah Williams (@saewill): 💻
+- Hai Wu (@haiwu.us): 💡🔍
+- Derek Young (@youngdjn): 🔍
+
+NOTE: See a contribution missing or want to acknowledge one? Please submit an issue to let us know. More information on acknowledging contributions [here](./contributing.md#notice-a-missing-contribution).
+
 ## Exosphere's Impact
 
 - [Jetstream2](https://jetstream-cloud.org), a science and engineering research cloud, offers Exosphere as its primary user interface. Jetstream2 is available to any US-based researcher.
