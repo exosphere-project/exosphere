@@ -1,8 +1,41 @@
 import os
+import re
 
 from behave import then, when, step
 from behaving.personas.persona import persona_vars
 from behaving.web.steps import i_press_xpath
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.support.ui import WebDriverWait
+
+
+DEFAULT_LOCALIZATION = {
+    "openstackWithOwnKeystone": "cloud",
+    "openstackSharingKeystoneWithAnother": "region",
+    "unitOfTenancy": "project",
+    "maxResourcesPerProject": "resource limit",
+    "pkiPublicKeyForSsh": "SSH public key",
+    "virtualComputer": "instance",
+    "virtualComputerHardwareConfig": "size",
+    "cloudInitData": "boot script",
+    "commandDrivenTextInterface": "terminal",
+    "staticRepresentationOfBlockDeviceContents": "image",
+    "blockDevice": "volume",
+    "share": "share",
+    "accessRule": "access rule",
+    "exportLocation": "export location",
+    "nonFloatingIpAddress": "internal IP address",
+    "floatingIpAddress": "floating IP address",
+    "publiclyRoutableIpAddress": "public IP address",
+    "securityGroup": "firewall ruleset",
+    "graphicalDesktopEnvironment": "graphical desktop",
+    "hostname": "hostname",
+    "credential": "credential",
+}
+
+DEFAULT_CONFIG = {
+    "appTitle": "Exosphere",
+    "localization": DEFAULT_LOCALIZATION,
+}
 
 
 @step('I pause for a breakpoint')
@@ -78,6 +111,71 @@ def find_radio_with_label(context, label, wait_time=None):
         wait_time=wait_time)
 
 
+def runtime_config(context):
+    return context.browser.driver.execute_script(
+        """
+        var runtimeConfig = window.config || {};
+        return {
+          ...arguments[0],
+          ...runtimeConfig,
+          appTitle: runtimeConfig.appTitle ?? arguments[0].appTitle,
+          defaultLoginView:
+            runtimeConfig.defaultLoginView ?? arguments[0].defaultLoginView,
+          localization: {
+            ...arguments[0].localization,
+            ...(runtimeConfig.localization || {})
+          }
+        };
+        """,
+        DEFAULT_CONFIG,
+    )
+
+
+def runtime_template_values(context):
+    config = runtime_config(context)
+    values = {
+        key: value for key, value in config.items() if isinstance(value, str)
+    }
+    values.update(config["localization"])
+    return values
+
+
+def render_runtime_template(context, template, regex_escape_values=False):
+    values = runtime_template_values(context)
+
+    def replace_placeholder(match):
+        key = match.group(1)
+        assert key in values, (
+            f'Unknown runtime template key "{key}" in template "{template}"'
+        )
+        value = values[key]
+        return re.escape(value) if regex_escape_values else value
+
+    return re.sub(r"{([A-Za-z0-9_]+)}", replace_placeholder, template)
+
+
+def find_elements_by_xpath_matching_regex(context, xpath, pattern, timeout):
+    compiled_pattern = re.compile(pattern, re.IGNORECASE)
+
+    def matching_elements():
+        return [
+            element for element in context.browser.find_by_xpath(xpath)
+            if compiled_pattern.search(element.text)
+        ]
+
+    if timeout <= 0:
+        return matching_elements()
+
+    try:
+        return WebDriverWait(
+            context.browser.driver,
+            timeout,
+            poll_frequency=0.2,
+        ).until(lambda _driver: matching_elements() or False)
+    except TimeoutException:
+        return []
+
+
 @step(u'I click the "{label}" button')
 @persona_vars
 def i_press_label_button(context, label):
@@ -108,6 +206,12 @@ def i_press_last_label_button(context, label):
     element.click()
 
 
+@step(u'I click the button with runtime text "{template}"')
+@persona_vars
+def i_click_button_with_runtime_text(context, template):
+    i_press_label_button(context, render_runtime_template(context, template))
+
+
 @step(u'I press the last element with xpath "{xpath}"')
 @persona_vars
 def i_press_last_xpath(context, xpath):
@@ -136,6 +240,44 @@ def i_click_card_with_label(context, label):
     context.execute_steps(f"""
     When I press the last element with xpath "//div[contains(string(),'{label}')]"
     """)
+
+
+@step(u'I should see the runtime string "{template}" within {timeout:d} seconds')
+@persona_vars
+def i_should_see_runtime_string(context, template, timeout):
+    expected = render_runtime_template(context, template)
+    found = context.browser.is_text_present(expected, wait_time=timeout)
+    assert found, f'Did not see runtime string "{expected}"'
+
+
+@step(u'I click the card with runtime text "{template}"')
+@persona_vars
+def i_click_card_with_runtime_text(context, template):
+    i_click_card_with_label(context, render_runtime_template(context, template))
+
+
+@step(u'I should see an element whose xpath "{xpath}" matches the runtime regex "{template}" within {timeout:d} seconds')
+@persona_vars
+def i_should_see_xpath_matching_runtime_regex(context, xpath, template, timeout):
+    pattern = render_runtime_template(context, template, regex_escape_values=True)
+    matching_elements = find_elements_by_xpath_matching_regex(
+        context, xpath, pattern, timeout
+    )
+    assert matching_elements, (
+        f'Did not see an element matching xpath "{xpath}" '
+        f'and runtime regex "{pattern}"'
+    )
+
+
+@step(u'I press the last element whose xpath "{xpath}" matches the runtime regex "{template}"')
+@persona_vars
+def i_press_last_xpath_matching_runtime_regex(context, xpath, template):
+    pattern = render_runtime_template(context, template, regex_escape_values=True)
+    matching_elements = find_elements_by_xpath_matching_regex(context, xpath, pattern, 0)
+    assert matching_elements, (
+        f'Element not found for xpath "{xpath}" and runtime regex "{pattern}"'
+    )
+    matching_elements[-1].click()
 
 
 @step("I enter OpenStack credentials")
