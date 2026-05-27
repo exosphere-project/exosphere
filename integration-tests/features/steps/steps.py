@@ -34,6 +34,7 @@ DEFAULT_LOCALIZATION = {
 
 DEFAULT_CONFIG = {
     "appTitle": "Exosphere",
+    "defaultLoginView": None,
     "localization": DEFAULT_LOCALIZATION,
 }
 
@@ -152,6 +153,10 @@ def render_runtime_template(context, template, regex_escape_values=False):
         return re.escape(value) if regex_escape_values else value
 
     return re.sub(r"{([A-Za-z0-9_]+)}", replace_placeholder, template)
+
+
+def default_login_view(context):
+    return runtime_config(context).get("defaultLoginView")
 
 
 def find_elements_by_xpath_matching_regex(context, xpath, pattern, timeout):
@@ -280,6 +285,22 @@ def i_press_last_xpath_matching_runtime_regex(context, xpath, template):
     matching_elements[-1].click()
 
 
+@step("I navigate to the OpenStack login form")
+@persona_vars
+def i_navigate_to_openstack_login_form(context):
+    if default_login_view(context) == "oidc":
+        context.execute_steps("""
+        Then I should see "Other Login Methods" within 15 seconds
+        When I click the "Other Login Methods" button
+        """)
+
+    context.execute_steps("""
+    Then I should see "Add OpenStack Account" within 60 seconds
+    When I click the "Add OpenStack Account" button
+    Then I should see "Add an OpenStack Account" within 15 seconds
+    """)
+
+
 @step("I enter OpenStack credentials")
 @persona_vars
 def i_login_to_exosphere(context):
@@ -298,8 +319,7 @@ def i_login_to_exosphere(context):
 @persona_vars
 def i_add_openstack_project(context, project):
     context.execute_steps(f"""
-    When I click the "Add OpenStack Account" button
-    Then I should see "Add an OpenStack Account" within 15 seconds
+    When I navigate to the OpenStack login form
     When I enter OpenStack credentials
     And I click the "Log In" button
     Then I should see "{project}" within 15 seconds

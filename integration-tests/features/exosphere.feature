@@ -16,9 +16,7 @@ Feature: Text presence
         When I go to Exosphere
         Then I should see the runtime string "Add {unitOfTenancy}" within 60 seconds
         When I click the card with runtime text "Add {unitOfTenancy}"
-        Then I should see "Add OpenStack Account" within 60 seconds
-        When I click the "Add OpenStack Account" button
-        Then I should see "Add an OpenStack Account" within 15 seconds
+        When I navigate to the OpenStack login form
         When I enter OpenStack credentials
         And I click the "Log In" button
         Then I should see "INI210003" within 15 seconds
@@ -36,7 +34,6 @@ Feature: Text presence
         When I go to Exosphere
         Then I should see the runtime string "Add {unitOfTenancy}" within 60 seconds
         When I click the card with runtime text "Add {unitOfTenancy}"
-        Then I should see "Choose a Login Method" within 60 seconds
         When I add an OpenStack project "INI210003"
         Then I should see "INI210003" within 5 seconds
         When I click the "INI210003" card
@@ -76,7 +73,6 @@ Feature: Text presence
         When I go to Exosphere
         Then I should see the runtime string "Add {unitOfTenancy}" within 60 seconds
         When I click the card with runtime text "Add {unitOfTenancy}"
-        Then I should see "Choose a Login Method" within 60 seconds
         When I add an OpenStack project "INI210003"
         Then I should see "INI210003" within 5 seconds
         When I click the "INI210003" card
