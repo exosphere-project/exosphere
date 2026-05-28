@@ -84,9 +84,30 @@ def i_fill_input_labeled(context, label, value):
     element.fill(value)
 
 
+# Handle `Bob's "GPU" instance`
+def xpath_literal(value):
+    if "'" not in value:
+        return f"'{value}'"
+
+    if '"' not in value:
+        return f'"{value}"'
+
+    parts = value.split("'")
+    return "concat(" + ", \"'\", ".join(f"'{part}'" for part in parts) + ")"
+
+
 def find_element_with_role_and_label(context, role, label, wait_time=None):
+    upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    lower = upper.lower()
+    normalized_label = xpath_literal(label.lower())
     return context.browser.find_by_xpath(
-        xpath=f"//div[@role='{role}']//div[contains(string(), '{label}')]",
+        xpath=(
+            f"//div[@role='{role}']"
+            f"//div[contains("
+            f"translate(string(), '{upper}', '{lower}'), "
+            f"{normalized_label}"
+            f")]"
+        ),
         wait_time=wait_time
     )
 
