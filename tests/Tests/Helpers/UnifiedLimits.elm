@@ -83,7 +83,7 @@ unifiedLimitsSuite =
                 \_ ->
                     quotas
                         |> List.map .resourceName
-                        |> Expect.equal [ "VCPU", "CUSTOM_A100X_10C", "CUSTOM_A100X_20C", "servers" ]
+                        |> Expect.equal [ "CUSTOM_A100X_10C", "CUSTOM_A100X_20C", "VCPU", "servers" ]
             , test "prefers project limits over registered defaults" <|
                 \_ ->
                     quotas
@@ -126,5 +126,31 @@ unifiedLimitsSuite =
                                     }
                                 }
                             )
+            , test "prefers a region-scoped registered limit over a global fallback for the same resource" <|
+                \_ ->
+                    UnifiedLimits.quotasFromUnifiedLimits
+                        [ { id = "global-vcpu"
+                          , regionId = Nothing
+                          , resourceName = OSTypes.LimitResourceName "class:VCPU"
+                          , defaultLimit = 4
+                          , description = Nothing
+                          }
+                        , { id = "regional-vcpu"
+                          , regionId = Just "RegionOne"
+                          , resourceName = OSTypes.LimitResourceName "class:VCPU"
+                          , defaultLimit = 8
+                          , description = Nothing
+                          }
+                        ]
+                        []
+                        []
+                        |> Expect.equal
+                            [ { resourceName = "VCPU"
+                              , quota =
+                                    { inUse = 0
+                                    , limit = OSTypes.Limit 8
+                                    }
+                              }
+                            ]
             ]
         ]

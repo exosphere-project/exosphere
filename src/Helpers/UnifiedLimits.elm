@@ -8,6 +8,28 @@ import String.Extra
 quotasFromUnifiedLimits : List OSTypes.RegisteredLimit -> List OSTypes.ProjectLimit -> List OSTypes.ProjectUsage -> List { resourceName : String, quota : OSTypes.QuotaItem }
 quotasFromUnifiedLimits registeredLimits projectLimits projectUsages =
     let
+        -- Edge case: If there are multiple registered limits for the same resource, prefer the regional one.
+        registeredLimitsDict =
+            List.foldl
+                (\registeredLimit acc ->
+                    let
+                        resourceName =
+                            comparableStringForLimitResourceName registeredLimit.resourceName
+                    in
+                    case Dict.get resourceName acc of
+                        Just existing ->
+                            if existing.regionId == Nothing && registeredLimit.regionId /= Nothing then
+                                Dict.insert resourceName registeredLimit acc
+
+                            else
+                                acc
+
+                        Nothing ->
+                            Dict.insert resourceName registeredLimit acc
+                )
+                Dict.empty
+                registeredLimits
+
         projectLimitsDict =
             Dict.fromList <|
                 List.map
@@ -32,13 +54,11 @@ quotasFromUnifiedLimits registeredLimits projectLimits projectUsages =
                     )
                     projectUsages
     in
-    registeredLimits
+    registeredLimitsDict
+        |> Dict.toList
         |> List.map
-            (\registeredLimit ->
+            (\( resourceName, registeredLimit ) ->
                 let
-                    resourceName =
-                        comparableStringForLimitResourceName registeredLimit.resourceName
-
                     matchingProjectLimit =
                         Dict.get resourceName projectLimitsDict
 
