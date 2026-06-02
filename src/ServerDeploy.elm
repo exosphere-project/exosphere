@@ -86,7 +86,7 @@ ssh_pwauth: true
 package_update: true
 package_upgrade: {install-os-updates}
 packages:
-  - git
+  - git{openstack-credential-write-files}
 """
 
 

@@ -1,8 +1,8 @@
-module Helpers.Credentials exposing (getCloudsYaml, getOpenRcPs1, getOpenRcSh, getOpenRcVariables, projectCloudName)
+module Helpers.Credentials exposing (getCloudsYaml, getOpenRcPs1, getOpenRcSh, getOpenRcVariables, getOpenStackCredentialWriteFilesYaml, projectCloudName)
 
 import Helpers.String exposing (formatStringTemplate)
 import Regex
-import Types.Project exposing (Project)
+import Types.Project exposing (Project, ProjectSecret(..))
 import Yaml.Encode as YE
 
 
@@ -137,3 +137,38 @@ getCloudsYaml projects =
           )
         ]
         |> YE.toString 2
+
+
+getOpenStackCredentialWriteFilesYaml : Project -> String
+getOpenStackCredentialWriteFilesYaml project =
+    case project.secret of
+        ApplicationCredential _ ->
+            let
+                indentContent : String -> String
+                indentContent content =
+                    content
+                        |> String.trimRight
+                        |> String.lines
+                        |> List.map (\line -> "    " ++ line)
+                        |> String.join "\n"
+
+                writeFileYaml : String -> String -> String
+                writeFileYaml path content =
+                    String.concat
+                        [ "\n- path: "
+                        , path
+                        , "\n  content: |\n"
+                        , indentContent content
+                        , "\n  owner: exouser:exouser"
+                        , "\n  permissions: '0400'"
+                        , "\n  defer: true"
+                        ]
+            in
+            String.concat
+                [ "\nwrite_files:"
+                , writeFileYaml "/home/exouser/openrc.sh" (getOpenRcSh project)
+                , writeFileYaml "/home/exouser/.config/openstack/clouds.yaml" (getCloudsYaml [ project ])
+                ]
+
+        NoProjectSecret ->
+            ""
