@@ -1529,6 +1529,7 @@ processProjectSpecificMsg outerModel project msg =
                             pageModel.installOperatingSystemUpdates
                             sharedModel.instanceConfigMgtRepoUrl
                             sharedModel.instanceConfigMgtRepoCheckout
+                            pageModel.injectOpenStackCredentials
                     , metadata =
                         Helpers.newServerMetadata
                             currentExoServerVersion

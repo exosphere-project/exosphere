@@ -54,7 +54,7 @@ import Types.HelperTypes as HelperTypes
         , FloatingIpReuseOption(..)
         , SelectedFlavor(..)
         )
-import Types.Project exposing (Project)
+import Types.Project exposing (Project, ProjectSecret(..))
 import Types.Server exposing (NewServerNetworkOptions(..), Server)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
@@ -93,6 +93,7 @@ type Msg
     | GotWorkflowReference String
     | GotWorkflowPath String
     | GotWorkflowInputLoseFocus
+    | GotInjectOpenStackCredentials Bool
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
@@ -129,6 +130,7 @@ init context project imageUuid imageName restrictFlavorIds deployGuacamole =
     , workflowInputReference = ""
     , workflowInputPath = ""
     , workflowInputIsValid = Nothing
+    , injectOpenStackCredentials = False
     , showFormInvalidToggleTip = False
     , createServerAttempted = False
     , randomServerName = ""
@@ -318,6 +320,9 @@ update msg { viewContext } project model =
 
         GotFloatingIpCreationOption floatingIpOption ->
             ( { model | floatingIpCreationOption = floatingIpOption }, Cmd.none, SharedMsg.NoOp )
+
+        GotInjectOpenStackCredentials injectOpenStackCredentials ->
+            ( { model | injectOpenStackCredentials = injectOpenStackCredentials }, Cmd.none, SharedMsg.NoOp )
 
         GotIncludeWorkflow includeWorkflow ->
             ( { model
@@ -827,6 +832,7 @@ view context project currentTime model =
                             , guacamolePicker context model
                             , networkPicker context project model
                             , floatingIpPicker context project model
+                            , openStackCredentialInjectionInput context project model
                             , if hasAnyKeypairs then
                                 -- Show this further up, outside of the advanced options
                                 Element.none
@@ -1401,6 +1407,74 @@ customWorkflowInputExperimental context project model =
                     [ Element.none ]
                )
         )
+
+
+openStackCredentialInjectionInput : View.Types.Context -> Project -> Model -> Element.Element Msg
+openStackCredentialInjectionInput context project model =
+    if context.experimentalFeaturesEnabled then
+        case project.secret of
+            ApplicationCredential _ ->
+                openStackCredentialInjectionInputExperimental context model
+
+            NoProjectSecret ->
+                Element.none
+
+    else
+        Element.none
+
+
+openStackCredentialInjectionInputExperimental : View.Types.Context -> Model -> Element.Element Msg
+openStackCredentialInjectionInputExperimental context model =
+    let
+        experimentalTag =
+            Tag.tag context.palette "Experimental"
+    in
+    Element.column
+        [ Element.width Element.fill
+        , Element.spacing spacer.px12
+        ]
+        [ Input.radioRow [ Element.spacing spacer.px32 ]
+            { label =
+                Input.labelAbove VH.radioLabelAttributes
+                    (Element.wrappedRow [ Element.spacing spacer.px8 ]
+                        [ Text.text Text.Emphasized [] ("Write OpenStack " ++ Helpers.String.pluralize context.localization.credential ++ " to this " ++ context.localization.virtualComputer)
+                        , experimentalTag
+                        ]
+                    )
+            , onChange = GotInjectOpenStackCredentials
+            , options =
+                [ Input.option False (Element.text "No")
+                , Input.option True (Element.text "Yes")
+
+                {- -}
+                ]
+            , selected = Just model.injectOpenStackCredentials
+            }
+        , if model.injectOpenStackCredentials then
+            Alert.alert []
+                context.palette
+                { state = Alert.Warning
+                , showIcon = True
+                , showContainer = True
+                , content =
+                    Element.paragraph []
+                        [ Element.text "This writes an OpenStack application "
+                        , Element.text context.localization.credential
+                        , Element.text " to "
+                        , Element.text "/home/exouser/openrc.sh"
+                        , Element.text " and "
+                        , Element.text "/home/exouser/.config/openstack/clouds.yaml"
+                        , Element.text ". Anyone who can read "
+                        , Element.text context.localization.virtualComputer
+                        , Element.text " user data, cloud-init state, backups, snapshots, or files as root can use it to access this "
+                        , Element.text context.localization.unitOfTenancy
+                        , Element.text "."
+                        ]
+                }
+
+          else
+            Element.none
+        ]
 
 
 desktopEnvironmentPicker : View.Types.Context -> Project -> Model -> Element.Element Msg

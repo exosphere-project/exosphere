@@ -32,6 +32,7 @@ module Helpers.Helpers exposing
 -- Getter/setter functions that remain here are too "smart" (too much business logic) for GetterSetters.elm.
 
 import Dict
+import Helpers.Credentials as Credentials
 import Helpers.ExoSetupStatus
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -351,8 +352,9 @@ renderUserDataTemplate :
     -> Bool
     -> String
     -> String
+    -> Bool
     -> String
-renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole deployDesktopEnvironment maybeCustomWorkflowSource installOperatingSystemUpdates instanceConfigMgtRepoUrl instanceConfigMgtRepoCheckout =
+renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole deployDesktopEnvironment maybeCustomWorkflowSource installOperatingSystemUpdates instanceConfigMgtRepoUrl instanceConfigMgtRepoCheckout injectOpenStackCredentials =
     -- Configure cloud-init user data based on user's choice for SSH keypair and Guacamole
     let
         getPublicKeyFromKeypairName : String -> Maybe String
@@ -419,6 +421,13 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
     , ( "{install-os-updates}", installOperatingSystemUpatesYaml )
     , ( "{instance-config-mgt-repo-url}", instanceConfigMgtRepoUrl )
     , ( "{instance-config-mgt-repo-checkout}", instanceConfigMgtRepoCheckout )
+    , ( "{openstack-credential-write-files}"
+      , if injectOpenStackCredentials then
+            Credentials.getOpenStackCredentialWriteFilesYaml project
+
+        else
+            ""
+      )
     ]
         |> formatStringTemplate userDataTemplate
 
