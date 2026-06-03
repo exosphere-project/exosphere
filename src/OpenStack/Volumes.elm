@@ -5,6 +5,7 @@ module OpenStack.Volumes exposing
     , requestUpdateVolumeName
     , requestVolumeSnapshots
     , requestVolumes
+    , volumeDecoder
     )
 
 import Helpers.GetterSetters as GetterSetters
@@ -222,7 +223,7 @@ volumeDecoder =
         |> Pipeline.required "size" Decode.int
         |> Pipeline.required "description" (Decode.nullable Decode.string)
         |> Pipeline.required "attachments" (Decode.list cinderVolumeAttachmentDecoder)
-        |> Pipeline.optional "volume_image_metadata" (imageMetadataDecoder |> Decode.map Maybe.Just) Nothing
+        |> Pipeline.optional "volume_image_metadata" volumeImageMetadataDecoder Nothing
         |> Pipeline.required "created_at" (Decode.string |> Decode.andThen makeIso8601StringToPosixDecoder)
         |> Pipeline.required "user_id" Decode.string
 
@@ -302,6 +303,15 @@ cinderVolumeAttachmentDecoder =
         (Decode.field "attachment_id" Decode.string)
         -- Device can be null when attachment is made to a shelved instance.
         (Decode.field "device" <| Decode.nullable Decode.string)
+
+
+volumeImageMetadataDecoder : Decode.Decoder (Maybe OSTypes.NameAndUuid)
+volumeImageMetadataDecoder =
+    Decode.oneOf
+        [ imageMetadataDecoder |> Decode.map Just
+        , Decode.null Nothing
+        , Decode.dict Decode.value |> Decode.map (\_ -> Nothing)
+        ]
 
 
 imageMetadataDecoder : Decode.Decoder OSTypes.NameAndUuid
