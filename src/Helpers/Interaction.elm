@@ -266,7 +266,7 @@ interactionDetails interaction context =
                     ]
                 )
                 (\size -> Icon.sizedFeatherIcon (toFloat size) Icons.fileText)
-                ITypes.UrlInteraction
+                ITypes.NavigateInteraction
 
         ITypes.CustomWorkflow ->
             ITypes.InteractionDetails
