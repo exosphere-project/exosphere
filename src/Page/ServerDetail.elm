@@ -1110,6 +1110,36 @@ interactions context project server currentTime tlsReverseProxyHostname =
                                                 Nothing
                                     }
 
+                            ITypes.NavigateInteraction ->
+                                Element.link []
+                                    { url =
+                                        case interactionStatus of
+                                            ITypes.Ready url ->
+                                                url
+
+                                            ITypes.Warn url _ ->
+                                                url
+
+                                            _ ->
+                                                ""
+                                    , label =
+                                        Widget.button
+                                            (SH.materialStyle context.palette).button
+                                            { text = interactionDetails.name
+                                            , icon =
+                                                Element.el
+                                                    [ Element.paddingEach
+                                                        { top = 0
+                                                        , right = spacer.px4
+                                                        , left = 0
+                                                        , bottom = 0
+                                                        }
+                                                    ]
+                                                    (interactionDetails.icon 18)
+                                            , onPress = Just NoOp
+                                            }
+                                    }
+
                             ITypes.TextInteraction ->
                                 let
                                     ( iconColor, fontColor ) =

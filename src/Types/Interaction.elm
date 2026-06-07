@@ -34,6 +34,7 @@ type alias InteractionStatusReason =
 type InteractionType
     = TextInteraction
     | UrlInteraction
+    | NavigateInteraction
 
 
 type alias InteractionDetails msg =

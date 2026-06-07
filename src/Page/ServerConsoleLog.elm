@@ -3,6 +3,7 @@ module Page.ServerConsoleLog exposing (LineLimit(..), Model, Msg, init, lineLimi
 import Ansi.Log
 import Element
 import Element.Background as Background
+import FeatherIcons
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
@@ -143,28 +144,31 @@ view context project _ model =
         [ Element.width Element.fill
         , Element.spacing spacer.px24
         ]
-        [ Text.heading context.palette
-            []
-            Element.none
-            "Console Log"
-        , Element.paragraph []
-            [ Element.text <|
-                String.join " "
-                    [ "Console output for"
-                    , context.localization.virtualComputer
+        [ Element.wrappedRow (Text.headingStyleAttrs context.palette)
+            [ FeatherIcons.fileText |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+            , Text.text Text.ExtraLarge
+                []
+                (String.join " "
+                    [ "Console Log"
+                    , "for"
                     , serverName
                     ]
+                )
+            , Element.row [ Element.alignRight, Text.fontSize Text.Body, Font.regular, Element.spacing spacer.px16 ]
+                [ Element.link []
+                    { url =
+                        Route.toUrl context.urlPathPrefix <|
+                            Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                Route.ServerDetail model.serverUuid
+                    , label =
+                        Button.default
+                            context.palette
+                            { text = "Return to " ++ serverName
+                            , onPress = Just (SharedMsg SharedMsg.NoOp)
+                            }
+                    }
+                ]
             ]
-        , Element.link []
-            { url =
-                Route.toUrl context.urlPathPrefix <|
-                    Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                        Route.ServerDetail model.serverUuid
-            , label =
-                Text.text Text.Body
-                    [ Font.color (SH.toElementColor context.palette.primary) ]
-                    ("Back to " ++ context.localization.virtualComputer)
-            }
         , controls context model
         , VH.renderRDPP context model.consoleLog "console log" (renderConsoleLog context model)
         ]
