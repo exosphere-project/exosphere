@@ -3,10 +3,10 @@ module Page.ServerConsoleLog exposing (LineLimit(..), Model, Msg, init, lineLimi
 import Ansi.Log
 import Element
 import Element.Background as Background
-import FeatherIcons
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Html
