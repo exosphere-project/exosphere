@@ -1111,18 +1111,8 @@ interactions context project server currentTime tlsReverseProxyHostname =
                                     }
 
                             ITypes.NavigateInteraction ->
-                                Element.link []
-                                    { url =
-                                        case interactionStatus of
-                                            ITypes.Ready url ->
-                                                url
-
-                                            ITypes.Warn url _ ->
-                                                url
-
-                                            _ ->
-                                                ""
-                                    , label =
+                                let
+                                    buttonLabel =
                                         Widget.button
                                             (SH.materialStyle context.palette).button
                                             { text = interactionDetails.name
@@ -1138,7 +1128,30 @@ interactions context project server currentTime tlsReverseProxyHostname =
                                                     (interactionDetails.icon 18)
                                             , onPress = Just NoOp
                                             }
-                                    }
+                                in
+                                case interactionStatus of
+                                    ITypes.Ready url ->
+                                        Element.link [] { url = url, label = buttonLabel }
+
+                                    ITypes.Warn url _ ->
+                                        Element.link [] { url = url, label = buttonLabel }
+
+                                    _ ->
+                                        Widget.button
+                                            (SH.materialStyle context.palette).button
+                                            { text = interactionDetails.name
+                                            , icon =
+                                                Element.el
+                                                    [ Element.paddingEach
+                                                        { top = 0
+                                                        , right = spacer.px4
+                                                        , left = 0
+                                                        , bottom = 0
+                                                        }
+                                                    ]
+                                                    (interactionDetails.icon 18)
+                                            , onPress = Nothing
+                                            }
 
                             ITypes.TextInteraction ->
                                 let
