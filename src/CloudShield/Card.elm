@@ -458,28 +458,37 @@ rendererStyle =
     Html.node "style"
         []
         [ Html.text """
-.jr-root { font-family: inherit; }
-.jr-card { display: flex; flex-direction: column; gap: 8px; padding: 8px 0; }
-.jr-card__title { font-size: 1.05em; margin: 0 0 4px 0; }
-.jr-stack { display: flex; gap: 8px; }
+/* Dark theme matching Exosphere (accent #2680c2 / #53b7e2). Scoped to .jr-* names. */
+.jr-root { font-family: inherit; color: inherit; }
+.jr-card { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }
+.jr-card__title { font-size: 1.05em; margin: 0 0 4px 0; font-weight: 600; }
+.jr-stack { display: flex; gap: 10px; }
 .jr-stack--row { flex-direction: row; align-items: center; }
-.jr-stack--col { flex-direction: column; }
+.jr-stack--col { flex-direction: column; align-items: stretch; }
 .jr-text { }
-.jr-button { padding: 4px 10px; border: 1px solid #888; border-radius: 4px; background: #f4f4f4; cursor: pointer; }
-.jr-button:hover { background: #e8e8e8; }
-.jr-checkbox { display: inline-flex; align-items: center; gap: 4px; }
-.jr-badge { padding: 1px 8px; border-radius: 999px; font-size: 0.85em; border: 1px solid transparent; }
-.jr-badge--neutral { background: #ececec; color: #333; }
-.jr-badge--info { background: #d7e9fb; color: #0b4a82; }
-.jr-badge--success { background: #d6f3df; color: #14622f; }
-.jr-badge--danger { background: #fbdcdc; color: #8a1f1f; }
-.jr-findings--empty { color: #777; font-size: 0.9em; }
-.jr-confirm { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.jr-confirm__box { background: #fff; padding: 16px; border-radius: 6px; max-width: 360px; box-shadow: 0 4px 24px rgba(0,0,0,0.25); }
-.jr-confirm__actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
-.jr-confirm__cancel, .jr-confirm__confirm { padding: 4px 12px; border-radius: 4px; border: 1px solid #888; cursor: pointer; }
-.jr-confirm__confirm { background: #1769aa; color: #fff; border-color: #1769aa; }
-.jr-error-stub { border: 1px solid #c00; padding: 8px; border-radius: 4px; color: #8a1f1f; }
+.jr-button { padding: 4px 12px; border: 1px solid rgba(255,255,255,0.25); border-radius: 4px; background: rgba(255,255,255,0.06); color: inherit; cursor: pointer; font-size: 0.9em; }
+.jr-button:hover { background: rgba(83,183,226,0.18); border-color: #53b7e2; }
+.jr-checkbox { display: inline-flex; align-items: center; gap: 6px; }
+.jr-checkbox input { accent-color: #53b7e2; }
+.jr-badge { padding: 1px 9px; border-radius: 999px; font-size: 0.8em; border: 1px solid transparent; }
+.jr-badge--neutral { background: rgba(255,255,255,0.10); color: #c9cdd4; }
+.jr-badge--info { background: rgba(83,183,226,0.18); color: #9fd6ef; border-color: rgba(83,183,226,0.35); }
+.jr-badge--success { background: rgba(80,200,120,0.18); color: #7fdc9b; border-color: rgba(80,200,120,0.30); }
+.jr-badge--danger { background: rgba(226,80,80,0.18); color: #f0a0a0; border-color: rgba(226,80,80,0.35); }
+.jr-findings--empty { color: #8b9099; font-size: 0.9em; }
+.jr-findings__group { display: flex; gap: 6px; align-items: center; }
+.jr-findings__count { color: #b9bdc4; }
+.jr-confirm { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.jr-confirm__box { background: #1d2027; color: #e6e8eb; padding: 20px 22px; border-radius: 8px; max-width: 380px; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 8px 40px rgba(0,0,0,0.5); }
+.jr-confirm__title { margin: 0 0 8px 0; font-size: 1.1em; font-weight: 600; }
+.jr-confirm__message { margin: 0; color: #b9bdc4; line-height: 1.45; }
+.jr-confirm__actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+.jr-confirm__cancel, .jr-confirm__confirm { padding: 6px 16px; border-radius: 4px; cursor: pointer; font-size: 0.9em; }
+.jr-confirm__cancel { background: transparent; color: #e6e8eb; border: 1px solid rgba(255,255,255,0.25); }
+.jr-confirm__cancel:hover { background: rgba(255,255,255,0.08); }
+.jr-confirm__confirm { background: #2680c2; color: #fff; border: 1px solid #2680c2; }
+.jr-confirm__confirm:hover { background: #3690d2; border-color: #3690d2; }
+.jr-error, .jr-error-stub { border: 1px solid #b3504f; padding: 8px 10px; border-radius: 4px; color: #f0a0a0; background: rgba(226,80,80,0.08); }
 """ ]
 
 
