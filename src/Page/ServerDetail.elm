@@ -1,5 +1,8 @@
 module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, init, update, view)
 
+import CloudShield.Card
+import CloudShield.Discovery
+import CloudShield.Transport
 import DateFormat.Relative
 import Dict
 import Element
@@ -21,6 +24,7 @@ import OpenStack.ServerVolumes exposing (serverCanHaveVolumeAttached)
 import OpenStack.Types as OSTypes
 import Page.ServerResourceUsageAlerts
 import Page.ServerResourceUsageCharts
+import Rest.Nova
 import Route
 import State.Error as Error
 import Style.Helpers as SH
@@ -61,6 +65,7 @@ type alias Model =
     , serverNamePendingConfirmation : Maybe String
     , retainFloatingIpsWhenDeleting : Bool
     , deleteFloatingIpsWhenShelving : Bool
+    , cloudShield : CloudShield.Card.Model
     }
 
 
@@ -81,6 +86,7 @@ type Msg
     | GotRetainFloatingIpsWhenDeleting Bool
     | GotDeleteFloatingIpsWhenShelving Bool
     | GotSetServerName String
+    | CloudShieldMsg CloudShield.Card.Msg
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
@@ -94,6 +100,7 @@ init serverUuid =
     , serverNamePendingConfirmation = Nothing
     , retainFloatingIpsWhenDeleting = False
     , deleteFloatingIpsWhenShelving = True
+    , cloudShield = CloudShield.Card.init
     }
 
 
@@ -131,11 +138,153 @@ update msg project model =
                     SharedMsg.RequestSetServerName validName
             )
 
+        CloudShieldMsg cloudMsg ->
+            let
+                instances =
+                    cloudShieldInstances project model
+
+                ( cloudModel, outMsg ) =
+                    CloudShield.Card.update instances cloudMsg model.cloudShield
+
+                cmd =
+                    case outMsg of
+                        Just (CloudShield.Card.ScanRequested req) ->
+                            writeScanRequestCmd project model instances req
+
+                        Nothing ->
+                            Cmd.none
+            in
+            ( { model | cloudShield = cloudModel }
+            , cmd
+            , SharedMsg.NoOp
+            )
+
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
 
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
+
+
+{-| The §2.4 `$instances` projection: the project's real servers, eligibility-filtered
+(ACTIVE-only, excluding the publishing instance itself). Computed identically in `update` and
+`view` so the renderer's row indices stay stable. The VM never supplies this list — it comes
+from Exosphere's own server data, so it cannot inject fake or out-of-project rows.
+-}
+cloudShieldInstances : Project -> Model -> List CloudShield.Card.Instance
+cloudShieldInstances project model =
+    project.servers
+        |> RDPP.withDefault []
+        |> List.map
+            (\s ->
+                { id = s.osProps.uuid
+                , name = s.osProps.name
+                , status = s.osProps.details.openstackStatus
+                }
+            )
+        |> CloudShield.Discovery.eligibleInstances model.serverUuid
+
+
+{-| Resolve the manifest + provenance + live status for the card view. The body comes from
+the POC metadata transport when the discovery sentinel is present and `store=metadata`;
+otherwise it falls back to the embedded frozen `card.json` (a dev convenience so the card is
+demoable locally without a publishing VM). The fail-closed renderer validates whichever body
+is used. The live `statusOverride` is read from the §7.1 status slot on this instance's
+metadata and correlated to the in-flight request by `seq`.
+-}
+cloudShieldViewConfig : Model -> Server -> CloudShield.Card.ViewConfig
+cloudShieldViewConfig model server =
+    let
+        metadata =
+            server.osProps.details.metadata
+
+        maybeSentinel =
+            CloudShield.Discovery.readSentinel metadata
+
+        maybeTransportBody =
+            CloudShield.Discovery.manifestBodyFromMetadata metadata
+
+        ( manifestJson, discoveryNote ) =
+            case ( maybeSentinel, maybeTransportBody ) of
+                ( Just _, Just body ) ->
+                    ( body, "Discovery: sentinel present; manifest from server metadata (POC transport)." )
+
+                ( Just _, Nothing ) ->
+                    ( CloudShield.Card.cardJson, "Discovery: sentinel present; no metadata body yet — showing embedded card." )
+
+                ( Nothing, _ ) ->
+                    ( CloudShield.Card.cardJson, "Discovery: no exoext.v1 sentinel here — showing embedded card (dev fallback)." )
+
+        statusOverride =
+            case ( CloudShield.Transport.runStatusFromMetadata metadata, model.cloudShield.pending ) of
+                ( Just status, Just pending ) ->
+                    if status.seq == pending.seq then
+                        Just { targetId = pending.targetId, state = status.state }
+
+                    else
+                        Nothing
+
+                _ ->
+                    Nothing
+    in
+    { sourceName = server.osProps.name
+    , manifestJson = manifestJson
+    , discoveryNote = Just discoveryNote
+    , statusOverride = statusOverride
+    }
+
+
+{-| Write the §7.1 metadata request-slot for a confirmed scan. Per §7.1 single-in-flight, the
+POC writes the request for the **first** target only (a batch/select-all drains sequentially
+behind it); the optimistic `queued` badges for the rest are already set in the card model. The
+request slot is written on the **CloudShield VM's own** metadata (the viewed instance).
+
+POC limitations (dropped at `store=swift`, Phase 1b): `requestId` is seq-derived rather than a
+UUID, and `createdAt` is a placeholder — a real timestamp/UUID needs the time + uuid generator
+that live in `State.elm`, threaded in a follow-up. The §4.1 JSON shape and §7.1 framing are
+exact and unit-tested (`Tests.CloudShield.Card`).
+
+-}
+writeScanRequestCmd : Project -> Model -> List CloudShield.Card.Instance -> { seq : Int, targetIds : List String } -> Cmd Msg
+writeScanRequestCmd project model instances req =
+    case req.targetIds of
+        [] ->
+            Cmd.none
+
+        firstId :: _ ->
+            let
+                -- §5.4: re-resolve the target id against Exosphere's own instance list.
+                targetName =
+                    instances
+                        |> List.Extra.find (\i -> i.id == firstId)
+                        |> Maybe.map .name
+                        |> Maybe.withDefault firstId
+
+                scanRequest =
+                    { requestId = "exo-cs-req-" ++ String.fromInt req.seq
+                    , batchId =
+                        if List.length req.targetIds > 1 then
+                            Just ("exo-cs-batch-" ++ String.fromInt req.seq)
+
+                        else
+                            Nothing
+                    , createdAt = "1970-01-01T00:00:00Z"
+                    , projectId = project.auth.project.uuid
+                    , target = { instanceId = firstId, instanceName = targetName }
+                    , profile = "quick"
+                    }
+
+                items =
+                    CloudShield.Transport.reqSlotMetadata req.seq
+                        (CloudShield.Transport.scanRequestJson scanRequest)
+            in
+            items
+                |> List.map
+                    (\item ->
+                        Rest.Nova.requestSetServerMetadata project model.serverUuid item
+                            |> Cmd.map SharedMsg
+                    )
+                |> Cmd.batch
 
 
 popoverMsgMapper : PopoverId -> Msg
@@ -696,8 +845,33 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
 
           else
             Element.none
+        , cloudShieldCard context project server model
         , Element.wrappedRow [ Element.spacing spacer.px24 ] serverDetailTiles
         ]
+
+
+cloudShieldCard : View.Types.Context -> Project -> Server -> Model -> Element.Element Msg
+cloudShieldCard context project server model =
+    -- Gated behind the experimental-features flag so normal operation is unaffected (the
+    -- card is off until the user enables experimental features AND opts the extension in).
+    -- M1: hand-fed manifest + fixture instances. M2 adds the metadata-sentinel discovery
+    -- gate (only show when `exoext.v1.kind` is present on this instance's metadata).
+    if context.experimentalFeaturesEnabled then
+        VH.tile
+            context
+            [ Icon.featherIcon [] Icons.shield
+            , Element.text "CloudShield (extension)"
+            ]
+            [ CloudShield.Card.view
+                context.palette
+                (cloudShieldViewConfig model server)
+                (cloudShieldInstances project model)
+                model.cloudShield
+                |> Element.map CloudShieldMsg
+            ]
+
+    else
+        Element.none
 
 
 serverNameEditView : View.Types.Context -> Project -> Time.Posix -> Model -> Server -> Element.Element Msg
