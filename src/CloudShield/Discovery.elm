@@ -29,6 +29,7 @@ the publishing instance itself.
 
 -}
 
+import CloudShield.Transport as Transport
 import Dict exposing (Dict)
 import OpenStack.Types as OSTypes
 
@@ -106,35 +107,13 @@ readSentinel metadata =
 -- MANIFEST BODY (store=metadata)
 
 
-{-| Reassemble the manifest body from ordered metadata chunks `exoext.v1.body.0..N`
-(§7.1 chunk framing). Returns `Nothing` when no `exoext.v1.body.0` chunk is present.
-Chunks are concatenated in strict index order; a gap in the sequence stops assembly.
+{-| Reassemble the manifest body from metadata chunks `exoext.v1.body.*` (§7.1 chunk
+framing), honoring an explicit `exoext.v1.body.n` count when present and falling back to
+gapless concatenation otherwise. `Nothing` when no body is present.
 -}
 manifestBodyFromMetadata : List OSTypes.MetadataItem -> Maybe String
 manifestBodyFromMetadata metadata =
-    chunkedBody "exoext.v1.body." (toDict metadata)
-
-
-{-| Concatenate `<prefix>0`, `<prefix>1`, … from the dict, stopping at the first missing
-index. `Nothing` if index 0 is absent.
--}
-chunkedBody : String -> Dict String String -> Maybe String
-chunkedBody prefix dict =
-    let
-        collect index acc =
-            case Dict.get (prefix ++ String.fromInt index) dict of
-                Just chunk ->
-                    collect (index + 1) (acc ++ chunk)
-
-                Nothing ->
-                    acc
-    in
-    case Dict.get (prefix ++ "0") dict of
-        Just _ ->
-            Just (collect 0 "")
-
-        Nothing ->
-            Nothing
+    Transport.readChunkedBody "exoext.v1.body." metadata
 
 
 

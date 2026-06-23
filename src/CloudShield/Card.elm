@@ -149,7 +149,14 @@ applyEffect instances effect model =
 ask the parent to write the §7.1 req-slot. No targets ⇒ no-op.
 -}
 requestScan : List String -> Model -> ( Model, Maybe OutMsg )
-requestScan targets model =
+requestScan requested model =
+    let
+        -- Dedup at the source (§4.4 one-active-run / §7.1 single-in-flight): drop targets
+        -- that already have an active run, so a re-click does not re-emit a request, bump the
+        -- seq, or overwrite `pending` for an in-flight target.
+        targets =
+            List.filter (\id -> not (isActive (localScanState model id))) requested
+    in
     case targets of
         [] ->
             ( model, Nothing )
@@ -239,7 +246,7 @@ applyStateChange instances change model =
                     in
                     { model
                         | selection = selection
-                        , selectAll = Set.size selection == List.length instances
+                        , selectAll = allSelected instances selection
                     }
 
                 Nothing ->
@@ -252,6 +259,15 @@ applyStateChange instances change model =
 instanceIdAt : List Instance -> Int -> Maybe String
 instanceIdAt instances index =
     instances |> List.drop index |> List.head |> Maybe.map .id
+
+
+{-| Whether every (eligible) instance is currently selected. Membership-based, not a size
+comparison, so a stale id in `selection` (left after a poll shrinks/reorders the list) cannot
+spuriously report "all selected". Empty list ⇒ not all-selected.
+-}
+allSelected : List Instance -> Set String -> Bool
+allSelected instances selection =
+    not (List.isEmpty instances) && List.all (\i -> Set.member i.id selection) instances
 
 
 

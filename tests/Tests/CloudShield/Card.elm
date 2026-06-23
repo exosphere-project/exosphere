@@ -207,7 +207,7 @@ transportSuite =
                 Expect.equal
                     ( Ok "1.0", Ok "i-1", Ok "snapshot-clone" )
                     ( field [ "schemaVersion" ], field [ "target", "instanceId" ], field [ "scan", "method" ] )
-        , test "reqSlotMetadata emits seq + chunked body" <|
+        , test "reqSlotMetadata emits seq + chunk-count + chunked body" <|
             \_ ->
                 let
                     items =
@@ -216,7 +216,7 @@ transportSuite =
                     keys =
                         List.map .key items
                 in
-                Expect.equal [ "exoext.v1.req.seq", "exoext.v1.req.body.0" ] keys
+                Expect.equal [ "exoext.v1.req.seq", "exoext.v1.req.body.n", "exoext.v1.req.body.0" ] keys
         , test "chunkString splits at the size boundary" <|
             \_ ->
                 Expect.equal [ "abc", "de" ] (Transport.chunkString 3 "abcde")
@@ -232,7 +232,20 @@ transportSuite =
                     keys =
                         Transport.reqSlotMetadata 1 big |> List.map .key
                 in
-                Expect.equal [ "exoext.v1.req.seq", "exoext.v1.req.body.0", "exoext.v1.req.body.1" ] keys
+                Expect.equal [ "exoext.v1.req.seq", "exoext.v1.req.body.n", "exoext.v1.req.body.0", "exoext.v1.req.body.1" ] keys
+        , test "readChunkedBody honors the count and ignores a stale orphan chunk" <|
+            \_ ->
+                -- a later, shorter write left body.2 behind; the count (n=2) must win.
+                Expect.equal (Just "abcdEFGH")
+                    (Transport.readChunkedBody "exoext.v1.body."
+                        (meta
+                            [ ( "exoext.v1.body.n", "2" )
+                            , ( "exoext.v1.body.0", "abcd" )
+                            , ( "exoext.v1.body.1", "EFGH" )
+                            , ( "exoext.v1.body.2", "STALE" )
+                            ]
+                        )
+                    )
         , test "runStatusFromMetadata reads seq + state" <|
             \_ ->
                 Expect.equal (Just { seq = 4, state = "running" })

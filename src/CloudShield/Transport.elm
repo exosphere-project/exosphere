@@ -2,6 +2,7 @@ module CloudShield.Transport exposing
     ( RunStatus
     , ScanRequest
     , chunkString
+    , readChunkedBody
     , reqSlotMetadata
     , resultBodyFromMetadata
     , runStatusFromMetadata
@@ -89,19 +90,30 @@ scanRequestJson req =
             ]
 
 
-{-| Build the §7.1 request-slot metadata key/value items for a request: the monotonic `seq`
-plus the request JSON chunked across `exoext.v1.req.body.0..N` (≤255 chars/value). Each item
-is written with one `requestSetServerMetadata` call on the CloudShield VM.
+{-| Build the §7.1 request-slot metadata key/value items for a request: the monotonic `seq`,
+a **chunk count** `exoext.v1.req.body.n`, and the request JSON chunked across
+`exoext.v1.req.body.0..N-1` (≤255 chars/value). Each item is written with one
+`requestSetServerMetadata` call on the CloudShield VM.
+
+The explicit count is what makes a re-write safe: Nova metadata POST **merges** keys and never
+deletes, so a later, shorter request would otherwise leave a stale trailing `body.N` chunk that
+a gapless reader would concatenate into corrupt JSON. The reader (`readChunkedBody`) honors the
+count and reads exactly `n` chunks, ignoring any orphan.
+
 -}
 reqSlotMetadata : Int -> String -> List OSTypes.MetadataItem
 reqSlotMetadata seq requestJson =
+    let
+        chunks =
+            chunkString 255 requestJson
+    in
     { key = "exoext.v1.req.seq", value = String.fromInt seq }
-        :: (chunkString 255 requestJson
-                |> List.indexedMap
-                    (\i chunk ->
-                        { key = "exoext.v1.req.body." ++ String.fromInt i, value = chunk }
-                    )
-           )
+        :: { key = "exoext.v1.req.body.n", value = String.fromInt (List.length chunks) }
+        :: List.indexedMap
+            (\i chunk ->
+                { key = "exoext.v1.req.body." ++ String.fromInt i, value = chunk }
+            )
+            chunks
 
 
 
@@ -131,29 +143,46 @@ runStatusFromMetadata metadata =
         (Dict.get "exoext.v1.run.state" dict)
 
 
-{-| Reassemble the small result summary (§4.2) from `exoext.v1.res.body.0..N` chunks.
-`Nothing` when no `exoext.v1.res.body.0` is present.
+{-| Reassemble the small result summary (§4.2) from `exoext.v1.res.body.*` chunks.
 -}
 resultBodyFromMetadata : List OSTypes.MetadataItem -> Maybe String
 resultBodyFromMetadata metadata =
+    readChunkedBody "exoext.v1.res.body." metadata
+
+
+{-| Reassemble a chunked body written under `<prefix>0..N-1`. Prefers an explicit
+`<prefix>n` count (so a stale orphan chunk from an earlier, longer write is ignored — Nova
+metadata never deletes keys); falls back to gapless concatenation stopping at the first
+missing index for bodies written without a count. `Nothing` when no body is present.
+-}
+readChunkedBody : String -> List OSTypes.MetadataItem -> Maybe String
+readChunkedBody prefix metadata =
     let
         dict =
             toDict metadata
 
-        collect index acc =
-            case Dict.get ("exoext.v1.res.body." ++ String.fromInt index) dict of
+        gaplessFrom index acc =
+            case Dict.get (prefix ++ String.fromInt index) dict of
                 Just chunk ->
-                    collect (index + 1) (acc ++ chunk)
+                    gaplessFrom (index + 1) (acc ++ chunk)
 
                 Nothing ->
                     acc
     in
-    case Dict.get "exoext.v1.res.body.0" dict of
-        Just _ ->
-            Just (collect 0 "")
+    case Dict.get (prefix ++ "n") dict |> Maybe.andThen String.toInt of
+        Just count ->
+            List.range 0 (count - 1)
+                |> List.filterMap (\i -> Dict.get (prefix ++ String.fromInt i) dict)
+                |> String.concat
+                |> Just
 
         Nothing ->
-            Nothing
+            case Dict.get (prefix ++ "0") dict of
+                Just _ ->
+                    Just (gaplessFrom 0 "")
+
+                Nothing ->
+                    Nothing
 
 
 
