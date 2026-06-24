@@ -385,12 +385,18 @@ requestComputeQuota : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd Sha
 requestComputeQuota projectUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
-            ( { project
-                | computeQuota = RDPP.setLoading project.computeQuota
-              }
-                |> GetterSetters.modelUpdateProject model
-            , OpenStack.Quotas.requestComputeQuota project
-            )
+            -- If a request is in flight, wait for it to finish.
+            -- (Otherwise deleting 10x servers would trigger 10x requests.)
+            if project.computeQuota |> RDPP.isLoading then
+                ( model, Cmd.none )
+
+            else
+                ( { project
+                    | computeQuota = RDPP.setLoading project.computeQuota
+                  }
+                    |> GetterSetters.modelUpdateProject model
+                , OpenStack.Quotas.requestComputeQuota project
+                )
 
         Nothing ->
             ( model, Cmd.none )
@@ -462,12 +468,18 @@ requestProjectUsages projectUuid model =
         Just project ->
             case project.endpoints.placement of
                 Just _ ->
-                    ( { project
-                        | projectUsages = RDPP.setLoading project.projectUsages
-                      }
-                        |> GetterSetters.modelUpdateProject model
-                    , OpenStack.UnifiedLimits.requestUsages project
-                    )
+                    -- If a request is in flight, wait for it to finish.
+                    -- (Otherwise deleting 10x servers would trigger 10x requests.)
+                    if project.projectUsages |> RDPP.isLoading then
+                        ( model, Cmd.none )
+
+                    else
+                        ( { project
+                            | projectUsages = RDPP.setLoading project.projectUsages
+                          }
+                            |> GetterSetters.modelUpdateProject model
+                        , OpenStack.UnifiedLimits.requestUsages project
+                        )
 
                 Nothing ->
                     ( model, Cmd.none )

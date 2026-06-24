@@ -1954,13 +1954,39 @@ processProjectSpecificMsg outerModel project msg =
                                                     ++ " -- 404 means server may have been deleted"
                                         }
 
-                                    newProject =
-                                        GetterSetters.projectDeleteServer project serverUuid
+                                    -- Get the deletion flag before we remove the server.
+                                    deletionAttempted =
+                                        GetterSetters.serverLookup project serverUuid
+                                            |> Maybe.map (\s -> s.exoProps.deletionAttempted)
+                                            |> Maybe.withDefault False
 
-                                    newModel =
-                                        GetterSetters.modelUpdateProject sharedModel newProject
+                                    ( newSharedModel, quotaCmd ) =
+                                        -- Deletion seemingly succeeded, so refresh quotas.
+                                        if deletionAttempted then
+                                            ( sharedModel, Cmd.none )
+                                                |> Helpers.pipelineCmd (ApiModelHelpers.requestComputeQuota (GetterSetters.projectIdentifier project))
+                                                |> Helpers.pipelineCmd
+                                                    (ApiModelHelpers.requestProjectUsages (GetterSetters.projectIdentifier project))
+
+                                        else
+                                            ( sharedModel, Cmd.none )
+
+                                    newProject =
+                                        let
+                                            updatedProject =
+                                                -- The new shared model has loading states on the project.
+                                                GetterSetters.projectLookup newSharedModel (GetterSetters.projectIdentifier project)
+                                                    |> Maybe.withDefault project
+                                        in
+                                        GetterSetters.projectDeleteServer updatedProject serverUuid
+
+                                    newerSharedModel =
+                                        GetterSetters.modelUpdateProject newSharedModel newProject
+
+                                    ( newestSharedModel, errCmd ) =
+                                        processProjectSynchronousApiError newerSharedModel newErrorContext httpErrorWithBody
                                 in
-                                processProjectSynchronousApiError newModel newErrorContext httpErrorWithBody
+                                ( newestSharedModel, Cmd.batch [ errCmd, quotaCmd ] )
                                     |> mapToOuterMsg
                                     |> mapToOuterModel outerModel
 
