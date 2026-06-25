@@ -17,6 +17,9 @@ import Helpers.RemoteDataPlusPlus as RDPP exposing (Haveness(..), RefreshStatus(
 import Helpers.String exposing (removeEmptiness)
 import Helpers.Time
 import Helpers.Validation as Validation
+import ISO8601
+import Json.Decode as Decode
+import Json.Encode as Encode
 import List.Extra
 import OpenStack.DnsRecordSet
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
@@ -44,6 +47,7 @@ import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Style.Widgets.Uuid exposing (copyableUuid)
 import Style.Widgets.Validation exposing (warningMessage)
+import Task
 import Time
 import Types.Guacamole exposing (ServerGuacamoleStatus(..))
 import Types.HelperTypes exposing (FloatingIpOption(..), ProjectIdentifier, ServerResourceQtys, UserAppProxyHostname)
@@ -87,6 +91,7 @@ type Msg
     | GotDeleteFloatingIpsWhenShelving Bool
     | GotSetServerName String
     | CloudShieldMsg CloudShield.Card.Msg
+    | CloudShieldWriteRequest { seq : Int, targetIds : List String } Time.Posix
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
@@ -149,13 +154,22 @@ update msg project model =
                 cmd =
                     case outMsg of
                         Just (CloudShield.Card.ScanRequested req) ->
-                            writeScanRequestCmd project model instances req
+                            -- Fetch the real wall-clock time so the §4.1 `createdAt` is genuine
+                            -- (the agent's §4.4 expiry guard compares it to REQUEST_TTL; a
+                            -- placeholder epoch would be treated as expired and never run).
+                            Task.perform (CloudShieldWriteRequest req) Time.now
 
                         Nothing ->
                             Cmd.none
             in
             ( { model | cloudShield = cloudModel }
             , cmd
+            , SharedMsg.NoOp
+            )
+
+        CloudShieldWriteRequest req now ->
+            ( model
+            , writeScanRequestCmd project model (cloudShieldInstances project model) req now
             , SharedMsg.NoOp
             )
 
@@ -207,7 +221,9 @@ cloudShieldViewConfig model server =
         ( manifestJson, discoveryNote ) =
             case ( maybeSentinel, maybeTransportBody ) of
                 ( Just _, Just body ) ->
-                    ( body, "Discovery: sentinel present; manifest from server metadata (POC transport)." )
+                    ( unwrapManifestUi model.serverUuid body
+                    , "Discovery: sentinel present; manifest from server metadata (POC transport)."
+                    )
 
                 ( Just _, Nothing ) ->
                     ( CloudShield.Card.cardJson, "Discovery: sentinel present; no metadata body yet — showing embedded card." )
@@ -226,12 +242,77 @@ cloudShieldViewConfig model server =
 
                 _ ->
                     Nothing
+
+        -- When the in-flight run is `done`, parse the §4.2 result body off the §7.1 res-slot
+        -- and bind its `findings[]` array into the FindingsTable (`/results`). Gated on the
+        -- correlated `done` state so a stale result body from a prior run can't show.
+        results =
+            case statusOverride of
+                Just override ->
+                    if override.state == "done" then
+                        CloudShield.Transport.resultBodyFromMetadata metadata
+                            |> Maybe.andThen
+                                (\body ->
+                                    Decode.decodeString (Decode.field "findings" Decode.value) body
+                                        |> Result.toMaybe
+                                )
+
+                    else
+                        Nothing
+
+                Nothing ->
+                    Nothing
     in
     { sourceName = server.osProps.name
     , manifestJson = manifestJson
     , discoveryNote = Just discoveryNote
     , statusOverride = statusOverride
+    , results = results
+
+    -- DEMO-ONLY (program-officer visit): embed the real CloudShield web UI running on the
+    -- demo machine. iframe is excluded from the sandboxed json-render catalog (§2.1 / D3), so
+    -- this is host chrome behind the experimental flag, clearly marked not-production. Point
+    -- at wherever CloudShield is reachable from the browser (localhost on the demo Mac).
+    , demoIframeUrl = Just "http://localhost:3000"
     }
+
+
+{-| Extract the json-render `ui` body from a §1 manifest envelope for the renderer.
+
+The CloudShield agent publishes the full manifest envelope (`{schemaVersion, catalog,
+publisher, ui: {root, elements, state}}`, §1); the renderer wants the bare json-render spec.
+We unwrap `.ui`. Two host trust checks happen here, fail-closed to the safe embedded card:
+
+  - **§5.1 self-instance placement.** If the envelope's `publisher.instanceId` is present and
+    does not equal the instance whose page this is, the manifest is dropped (a VM may only
+    place UI on its own page).
+  - A body that is already a bare spec (no `ui` field — e.g. the dev seed) is used as-is.
+
+-}
+unwrapManifestUi : OSTypes.ServerUuid -> String -> String
+unwrapManifestUi pageInstanceId body =
+    let
+        publisherId =
+            Decode.decodeString (Decode.at [ "publisher", "instanceId" ] Decode.string) body
+                |> Result.toMaybe
+    in
+    case publisherId of
+        Just pid ->
+            if pid == pageInstanceId then
+                case Decode.decodeString (Decode.field "ui" Decode.value) body of
+                    Ok ui ->
+                        Encode.encode 0 ui
+
+                    Err _ ->
+                        body
+
+            else
+                -- §5.1 violation: published-by claims another instance → fail closed.
+                CloudShield.Card.cardJson
+
+        Nothing ->
+            -- No envelope (bare spec, e.g. dev seed) → render directly.
+            body
 
 
 {-| Write the §7.1 metadata request-slot for a confirmed scan. Per §7.1 single-in-flight, the
@@ -240,13 +321,13 @@ behind it); the optimistic `queued` badges for the rest are already set in the c
 request slot is written on the **CloudShield VM's own** metadata (the viewed instance).
 
 POC limitations (dropped at `store=swift`, Phase 1b): `requestId` is seq-derived rather than a
-UUID, and `createdAt` is a placeholder — a real timestamp/UUID needs the time + uuid generator
-that live in `State.elm`, threaded in a follow-up. The §4.1 JSON shape and §7.1 framing are
-exact and unit-tested (`Tests.CloudShield.Card`).
+UUID. `createdAt` is now a real wall-clock timestamp (`Time.now` via `CloudShieldWriteRequest`),
+so the agent's §4.4 expiry guard works. The §4.1 JSON shape and §7.1 framing are exact and
+unit-tested (`Tests.CloudShield.Card`).
 
 -}
-writeScanRequestCmd : Project -> Model -> List CloudShield.Card.Instance -> { seq : Int, targetIds : List String } -> Cmd Msg
-writeScanRequestCmd project model instances req =
+writeScanRequestCmd : Project -> Model -> List CloudShield.Card.Instance -> { seq : Int, targetIds : List String } -> Time.Posix -> Cmd Msg
+writeScanRequestCmd project model instances req now =
     case req.targetIds of
         [] ->
             Cmd.none
@@ -268,7 +349,7 @@ writeScanRequestCmd project model instances req =
 
                         else
                             Nothing
-                    , createdAt = "1970-01-01T00:00:00Z"
+                    , createdAt = ISO8601.toString (ISO8601.fromPosix now)
                     , projectId = project.auth.project.uuid
                     , target = { instanceId = firstId, instanceName = targetName }
                     , profile = "quick"
@@ -852,11 +933,16 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
 
 cloudShieldCard : View.Types.Context -> Project -> Server -> Model -> Element.Element Msg
 cloudShieldCard context project server model =
-    -- Gated behind the experimental-features flag so normal operation is unaffected (the
-    -- card is off until the user enables experimental features AND opts the extension in).
-    -- M1: hand-fed manifest + fixture instances. M2 adds the metadata-sentinel discovery
-    -- gate (only show when `exoext.v1.kind` is present on this instance's metadata).
-    if context.experimentalFeaturesEnabled then
+    -- Gated behind the experimental-features flag AND the §5.1 self-instance-placement
+    -- discovery gate: the card appears only on an instance that actually published an
+    -- extension, i.e. the `exoext.v1.kind` sentinel is present in *this* instance's own Nova
+    -- metadata. No sentinel => no card. (Removes the prior dev fallback that rendered the
+    -- embedded card on every instance.)
+    let
+        sentinelPresent =
+            CloudShield.Discovery.readSentinel server.osProps.details.metadata /= Nothing
+    in
+    if context.experimentalFeaturesEnabled && sentinelPresent then
         VH.tile
             context
             [ Icon.featherIcon [] Icons.shield
