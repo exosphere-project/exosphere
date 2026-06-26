@@ -71,12 +71,18 @@ type alias Model =
     -- the in-flight request (§7.1 single-in-flight): which seq maps to which target, so the
     -- host can project the polled run.state onto the right row.
     , pending : Maybe { seq : Int, targetId : String }
+
+    -- DEMO-ONLY: whether the embedded CloudShield live-UI iframe is expanded. This is host
+    -- chrome, NOT a json-render component (iframe is deliberately excluded from the catalog —
+    -- §2.1 / D3). Off by default; toggled by a link, only when ViewConfig.demoIframeUrl is set.
+    , showDemoIframe : Bool
     }
 
 
 type Msg
     = GotEnable
     | GotDisable
+    | GotToggleDemoIframe
     | RendererMsg Render.Msg
 
 
@@ -101,6 +107,7 @@ init =
     , scanState = Dict.empty
     , seq = 0
     , pending = Nothing
+    , showDemoIframe = False
     }
 
 
@@ -116,6 +123,9 @@ update instances msg model =
 
         GotDisable ->
             ( { model | optedIn = False }, Nothing )
+
+        GotToggleDemoIframe ->
+            ( { model | showDemoIframe = not model.showDemoIframe }, Nothing )
 
         RendererMsg rmsg ->
             let
@@ -274,11 +284,11 @@ allSelected instances selection =
 -- THE RENDERER-FACING PROJECTION (host-renderer-interface.md §1.2)
 
 
-projection : Maybe { targetId : String, state : String } -> List Instance -> Model -> Encode.Value
-projection statusOverride instances model =
+projection : Maybe Encode.Value -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Encode.Value
+projection results statusOverride instances model =
     Encode.object
         [ ( "selectAll", Encode.bool model.selectAll )
-        , ( "results", Encode.null )
+        , ( "results", Maybe.withDefault Encode.null results )
         , ( "instances", Encode.list (instanceProjection statusOverride model) instances )
         ]
 
@@ -328,6 +338,17 @@ type alias ViewConfig =
     -- the authoritative live state of the in-flight run, read from the polled status object
     -- (§4.3) and projected onto its target row, overriding the optimistic local scanState.
     , statusOverride : Maybe { targetId : String, state : String }
+
+    -- the §4.2 result's `findings[]` array (host-parsed from the polled result object),
+    -- bound into the `FindingsTable` at `/results`. `Nothing` until a run is `done`.
+    , results : Maybe Encode.Value
+
+    -- DEMO-ONLY: when set, the card shows a collapsible panel embedding the *real* CloudShield
+    -- web UI from this URL in an iframe. This is a deliberate deviation from the architecture
+    -- (the json-render catalog EXCLUDES iframe — §2.1 / D3) for the program-officer demo only;
+    -- the production path surfaces findings in the host-controlled FindingsTable. `Nothing`
+    -- disables the panel entirely.
+    , demoIframeUrl : Maybe String
     }
 
 
@@ -341,7 +362,8 @@ view palette config instances model =
             [ Element.width Element.fill, Element.spacing spacer.px8 ]
             [ provenanceMarker palette config.sourceName
             , discoveryNoteView palette config.discoveryNote
-            , rendererView config.manifestJson config.statusOverride instances model
+            , rendererView config.manifestJson config.results config.statusOverride instances model
+            , demoIframePanel palette config.demoIframeUrl model.showDemoIframe
             , disableAffordance palette
             ]
 
@@ -363,8 +385,8 @@ discoveryNoteView palette note =
             Element.none
 
 
-rendererView : String -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Element.Element Msg
-rendererView manifestJson statusOverride instances model =
+rendererView : String -> Maybe Encode.Value -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Element.Element Msg
+rendererView manifestJson results statusOverride instances model =
     -- Decode per render is fine for the small card; the fail-closed decoder is the security
     -- gate (an off-catalog or oversized manifest yields the error stub, never a partial tree).
     case JsonRender.decodeString manifestJson of
@@ -372,7 +394,7 @@ rendererView manifestJson statusOverride instances model =
             Element.html
                 (Html.div []
                     [ rendererStyle
-                    , Html.map RendererMsg (Render.view spec (projection statusOverride instances model) model.renderer)
+                    , Html.map RendererMsg (Render.view spec (projection results statusOverride instances model) model.renderer)
                     ]
                 )
 
@@ -426,6 +448,59 @@ optInAffordance palette sourceName =
             ]
         , linkButton palette "Enable CloudShield extension" GotEnable
         ]
+
+
+{-| DEMO-ONLY panel embedding the real CloudShield web UI in an iframe.
+
+This is a deliberate, clearly-marked deviation from the architecture for the program-officer
+demo: **iframe is excluded from the json-render catalog** (§2.1 / D3), so this lives in host
+chrome, not the sandboxed manifest, and is gated behind `ViewConfig.demoIframeUrl` (set only on
+the experimental-flag path). The production way to surface scan output is the host-controlled
+`FindingsTable`, never an embedded VM page.
+-}
+demoIframePanel : ExoPalette -> Maybe String -> Bool -> Element.Element Msg
+demoIframePanel palette maybeUrl expanded =
+    case maybeUrl of
+        Nothing ->
+            Element.none
+
+        Just url ->
+            Element.column
+                [ Element.width Element.fill, Element.spacing spacer.px8 ]
+                (linkButton palette
+                    ((if expanded then
+                        "▾ Hide"
+
+                      else
+                        "▸ Show"
+                     )
+                        ++ " CloudShield live UI (demo only — embedded iframe, not part of the sandboxed catalog)"
+                    )
+                    GotToggleDemoIframe
+                    :: (if expanded then
+                            [ Element.el
+                                [ Text.fontSize Text.Small
+                                , Font.color (SH.toElementColor palette.warning.textOnNeutralBG)
+                                ]
+                                (Text.body ("DEMO ONLY — not production. Embedding " ++ url ++ " directly; iframe is deliberately excluded from the json-render catalog (§2.1 / D3)."))
+                            , Element.html
+                                (Html.iframe
+                                    [ Html.Attributes.src url
+                                    , Html.Attributes.style "width" "100%"
+                                    , Html.Attributes.style "height" "520px"
+                                    , Html.Attributes.style "border" "1px solid rgba(255,255,255,0.2)"
+                                    , Html.Attributes.style "border-radius" "4px"
+                                    , Html.Attributes.attribute "sandbox" "allow-scripts allow-same-origin allow-forms"
+                                    , Html.Attributes.title "CloudShield live UI (demo)"
+                                    ]
+                                    []
+                                )
+                            ]
+
+                        else
+                            []
+                       )
+                )
 
 
 disableAffordance : ExoPalette -> Element.Element Msg

@@ -69,6 +69,7 @@ sampleModel selection =
     , scanState = Dict.fromList [ ( "i-2", "queued" ) ]
     , seq = 0
     , pending = Nothing
+    , showDemoIframe = False
     }
 
 
@@ -102,7 +103,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Nothing sampleInstances (sampleModel (Set.singleton "i-1"))
+                        Card.projection Nothing Nothing sampleInstances (sampleModel (Set.singleton "i-1"))
                 in
                 Expect.equal ( Ok True, Ok False )
                     ( rowSelected 0 value, rowSelected 1 value )
@@ -110,7 +111,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Nothing sampleInstances (sampleModel Set.empty)
+                        Card.projection Nothing Nothing sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal ( Ok "idle", Ok "queued" )
                     ( rowScanState 0 value, rowScanState 1 value )
@@ -121,7 +122,7 @@ projectionSuite =
                         Just { targetId = "i-1", state = "running" }
 
                     value =
-                        Card.projection override sampleInstances (sampleModel Set.empty)
+                        Card.projection Nothing override sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal ( Ok "running", Ok "queued" )
                     ( rowScanState 0 value, rowScanState 1 value )
@@ -152,21 +153,27 @@ discoverySuite =
 
                     Nothing ->
                         Expect.fail "sentinel should be present"
-        , test "manifestBodyFromMetadata concatenates body chunks in order" <|
+        , test "manifestBodyFromMetadata concatenates man.body chunks in order" <|
             \_ ->
                 Expect.equal (Just "abcdEFGH")
                     (Discovery.manifestBodyFromMetadata
-                        (meta [ ( "exoext.v1.body.0", "abcd" ), ( "exoext.v1.body.1", "EFGH" ) ])
+                        (meta [ ( "exoext.v1.man.body.0", "abcd" ), ( "exoext.v1.man.body.1", "EFGH" ) ])
                     )
         , test "manifestBodyFromMetadata stops at the first gap" <|
             \_ ->
                 Expect.equal (Just "abcd")
                     (Discovery.manifestBodyFromMetadata
-                        (meta [ ( "exoext.v1.body.0", "abcd" ), ( "exoext.v1.body.2", "XX" ) ])
+                        (meta [ ( "exoext.v1.man.body.0", "abcd" ), ( "exoext.v1.man.body.2", "XX" ) ])
                     )
-        , test "manifestBodyFromMetadata is Nothing without body.0" <|
+        , test "manifestBodyFromMetadata honors the man.body.n count, ignoring orphans" <|
             \_ ->
-                Expect.equal Nothing (Discovery.manifestBodyFromMetadata (meta [ ( "exoext.v1.body.1", "x" ) ]))
+                Expect.equal (Just "abcd")
+                    (Discovery.manifestBodyFromMetadata
+                        (meta [ ( "exoext.v1.man.body.n", "1" ), ( "exoext.v1.man.body.0", "abcd" ), ( "exoext.v1.man.body.1", "STALE" ) ])
+                    )
+        , test "manifestBodyFromMetadata is Nothing without man.body.0" <|
+            \_ ->
+                Expect.equal Nothing (Discovery.manifestBodyFromMetadata (meta [ ( "exoext.v1.man.body.1", "x" ) ]))
         , test "eligibleInstances keeps ACTIVE and excludes self" <|
             \_ ->
                 let

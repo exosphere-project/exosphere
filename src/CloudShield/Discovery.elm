@@ -19,8 +19,10 @@ Exosphere already has on the model (no new fetch):
 
 2.  **Manifest-body resolution (POC, `store=metadata`)** — when the body lives in metadata
     (the no-Jetstream2 POC transport), it is chunked across ordered keys
-    `exoext.v1.body.0`, `exoext.v1.body.1`, … (the §7.1 chunk-framing pattern), concatenated
-    in index order. `store=swift` (object storage) and `store=console` are resolved
+    `exoext.v1.man.body.0`, `exoext.v1.man.body.1`, … (+ a `exoext.v1.man.body.n` count;
+    the §7.1 chunk-framing pattern), concatenated in index order. The `man.` namespace
+    matches the agent's publisher and the sibling `req.body`/`res.body` slots.
+    `store=swift` (object storage) and `store=console` are resolved
     elsewhere (Phase 1b / a console-log handler); this module covers the metadata path.
 
 Also exposes `eligibleInstances` — the §2.4 host-applied eligibility filter that turns the
@@ -107,13 +109,15 @@ readSentinel metadata =
 -- MANIFEST BODY (store=metadata)
 
 
-{-| Reassemble the manifest body from metadata chunks `exoext.v1.body.*` (§7.1 chunk
-framing), honoring an explicit `exoext.v1.body.n` count when present and falling back to
-gapless concatenation otherwise. `Nothing` when no body is present.
+{-| Reassemble the manifest body from metadata chunks `exoext.v1.man.body.*` (§7.1 chunk
+framing), honoring an explicit `exoext.v1.man.body.n` count when present and falling back to
+gapless concatenation otherwise. `Nothing` when no body is present. The `man.body.` key
+matches what the CloudShield agent publishes (`store/metadata.py` MAN_BODY) and the sibling
+`req.body`/`res.body` slots.
 -}
 manifestBodyFromMetadata : List OSTypes.MetadataItem -> Maybe String
 manifestBodyFromMetadata metadata =
-    Transport.readChunkedBody "exoext.v1.body." metadata
+    Transport.readChunkedBody "exoext.v1.man.body." metadata
 
 
 
