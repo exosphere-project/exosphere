@@ -1,0 +1,142 @@
+.console-log pre {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: monospace;
+}
+
+.console-log .ansi-black-fg {
+  color: #1f2937;
+}
+
+.console-log .ansi-red-fg {
+  color: #dc2626;
+}
+
+.console-log .ansi-green-fg {
+  color: #16a34a;
+}
+
+.console-log .ansi-yellow-fg {
+  color: #ca8a04;
+}
+
+.console-log .ansi-blue-fg {
+  color: #2563eb;
+}
+
+.console-log .ansi-magenta-fg {
+  color: #c026d3;
+}
+
+.console-log .ansi-cyan-fg {
+  color: #0891b2;
+}
+
+.console-log .ansi-white-fg {
+  color: #f8fafc;
+}
+
+.console-log .ansi-bright-black-fg {
+  color: #64748b;
+}
+
+.console-log .ansi-bright-red-fg {
+  color: #ef4444;
+}
+
+.console-log .ansi-bright-green-fg {
+  color: #22c55e;
+}
+
+.console-log .ansi-bright-yellow-fg {
+  color: #eab308;
+}
+
+.console-log .ansi-bright-blue-fg {
+  color: #3b82f6;
+}
+
+.console-log .ansi-bright-magenta-fg {
+  color: #d946ef;
+}
+
+.console-log .ansi-bright-cyan-fg {
+  color: #06b6d4;
+}
+
+.console-log .ansi-bright-white-fg {
+  color: #ffffff;
+}
+
+.console-log .ansi-black-bg {
+  background-color: #1f2937;
+}
+
+.console-log .ansi-red-bg {
+  background-color: #dc2626;
+}
+
+.console-log .ansi-green-bg {
+  background-color: #16a34a;
+}
+
+.console-log .ansi-yellow-bg {
+  background-color: #ca8a04;
+}
+
+.console-log .ansi-blue-bg {
+  background-color: #2563eb;
+}
+
+.console-log .ansi-magenta-bg {
+  background-color: #c026d3;
+}
+
+.console-log .ansi-cyan-bg {
+  background-color: #0891b2;
+}
+
+.console-log .ansi-white-bg {
+  background-color: #f8fafc;
+}
+
+.console-log .ansi-bright-black-bg {
+  background-color: #64748b;
+}
+
+.console-log .ansi-bright-red-bg {
+  background-color: #ef4444;
+}
+
+.console-log .ansi-bright-green-bg {
+  background-color: #22c55e;
+}
+
+.console-log .ansi-bright-yellow-bg {
+  background-color: #eab308;
+}
+
+.console-log .ansi-bright-blue-bg {
+  background-color: #3b82f6;
+}
+
+.console-log .ansi-bright-magenta-bg {
+  background-color: #d946ef;
+}
+
+.console-log .ansi-bright-cyan-bg {
+  background-color: #06b6d4;
+}
+
+.console-log .ansi-bright-white-bg {
+  background-color: #ffffff;
+}
+
+.console-log .ansi-faint {
+  opacity: 0.65;
+}
+
+.console-log .ansi-framed {
+  outline: 1px solid currentColor;
+}

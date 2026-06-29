@@ -39,7 +39,8 @@
             "rtfeldman/elm-css": "17.1.1",
             "ryan-haskell/date-format": "1.0.0",
             "terezka/line-charts": "2.0.2",
-            "truqu/elm-base64": "2.0.4"
+            "truqu/elm-base64": "2.0.4",
+            "vito/elm-ansi": "12.0.0"
         },
         "indirect": {
             "1602/elm-feather": "2.3.4",

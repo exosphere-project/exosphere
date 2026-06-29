@@ -6,6 +6,7 @@ module State.ViewState exposing
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
+import OpenStack.ConsoleLog
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
 import Page.Credentials
@@ -26,6 +27,7 @@ import Page.SecurityGroupDetail
 import Page.SecurityGroupList
 import Page.SelectProjectRegions
 import Page.SelectProjects
+import Page.ServerConsoleLog
 import Page.ServerCreate
 import Page.ServerCreateImage
 import Page.ServerDetail
@@ -381,6 +383,28 @@ routeToViewStateModelCmd sharedModel route =
                             , Cmd.none
                             )
 
+                        Route.ServerConsoleLog serverId ->
+                            let
+                                newSharedModel =
+                                    project
+                                        |> GetterSetters.modelUpdateProject sharedModel
+
+                                cmd =
+                                    Cmd.batch
+                                        [ Ports.instantiateClipboardJs ()
+                                        , OpenStack.ConsoleLog.requestUserConsoleLog project serverId (Just 200)
+                                        ]
+
+                                ( newNewSharedModel, newCmd ) =
+                                    ( newSharedModel, cmd )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) HighInteraction serverId)
+                            in
+                            ( projectViewProto <| ServerConsoleLog (Page.ServerConsoleLog.init serverId)
+                            , newNewSharedModel
+                            , newCmd
+                            )
+
                         Route.ServerDetail serverId ->
                             let
                                 newSharedModel =
@@ -621,6 +645,9 @@ viewStateToSupportableItem viewState =
                     ( HelperTypes.SupportableServer, Just pageModel.serverUuid )
 
                 ServerCreateImage pageModel ->
+                    ( HelperTypes.SupportableServer, Just pageModel.serverUuid )
+
+                ServerConsoleLog pageModel ->
                     ( HelperTypes.SupportableServer, Just pageModel.serverUuid )
 
                 ShareDetail pageModel ->

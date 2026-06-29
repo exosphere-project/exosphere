@@ -97,6 +97,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveServerImage (Maybe OSTypes.Image)
     | ReceiveServer InteractionLevel OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody OSTypes.Server)
     | ReceiveServerEvents OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerEvent))
+    | ReceiveUserRequestedConsoleLog OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody String)
     | ReceiveServerSecurityGroups OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerSecurityGroup))
     | ReceiveServerVolumeAttachments OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody (List OSTypes.VolumeAttachment))
     | ReceiveServers ErrorContext (Result HttpErrorWithBody (List OSTypes.Server))
