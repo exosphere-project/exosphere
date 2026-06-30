@@ -30,6 +30,7 @@ project secret =
         , manila = Nothing
         , nova = "https://openstack.example/nova"
         , neutron = "https://openstack.example/neutron"
+        , placement = Nothing
         , jetstream2Accounting = Nothing
         , designate = Nothing
         }
@@ -57,6 +58,9 @@ project secret =
     , ports = RDPP.empty
     , securityGroups = RDPP.empty
     , securityGroupActions = Dict.empty
+    , registeredLimits = RDPP.empty
+    , projectLimits = RDPP.empty
+    , projectUsages = RDPP.empty
     , computeQuota = RDPP.empty
     , volumeQuota = RDPP.empty
     , networkQuota = RDPP.empty
