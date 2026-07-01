@@ -1954,13 +1954,39 @@ processProjectSpecificMsg outerModel project msg =
                                                     ++ " -- 404 means server may have been deleted"
                                         }
 
-                                    newProject =
-                                        GetterSetters.projectDeleteServer project serverUuid
+                                    -- Get the deletion flag before we remove the server.
+                                    deletionAttempted =
+                                        GetterSetters.serverLookup project serverUuid
+                                            |> Maybe.map (\s -> s.exoProps.deletionAttempted)
+                                            |> Maybe.withDefault False
 
-                                    newModel =
-                                        GetterSetters.modelUpdateProject sharedModel newProject
+                                    ( newSharedModel, quotaCmd ) =
+                                        -- Deletion seemingly succeeded, so refresh quotas.
+                                        if deletionAttempted then
+                                            ( sharedModel, Cmd.none )
+                                                |> Helpers.pipelineCmd (ApiModelHelpers.requestComputeQuota (GetterSetters.projectIdentifier project))
+                                                |> Helpers.pipelineCmd
+                                                    (ApiModelHelpers.requestProjectUsages (GetterSetters.projectIdentifier project))
+
+                                        else
+                                            ( sharedModel, Cmd.none )
+
+                                    newProject =
+                                        let
+                                            updatedProject =
+                                                -- The new shared model has loading states on the project.
+                                                GetterSetters.projectLookup newSharedModel (GetterSetters.projectIdentifier project)
+                                                    |> Maybe.withDefault project
+                                        in
+                                        GetterSetters.projectDeleteServer updatedProject serverUuid
+
+                                    newerSharedModel =
+                                        GetterSetters.modelUpdateProject newSharedModel newProject
+
+                                    ( newestSharedModel, errCmd ) =
+                                        processProjectSynchronousApiError newerSharedModel newErrorContext httpErrorWithBody
                                 in
-                                processProjectSynchronousApiError newModel newErrorContext httpErrorWithBody
+                                ( newestSharedModel, Cmd.batch [ errCmd, quotaCmd ] )
                                     |> mapToOuterMsg
                                     |> mapToOuterModel outerModel
 
@@ -3528,6 +3554,87 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
+        ReceiveRegisteredLimits errorContext result ->
+            case result of
+                Ok registeredLimits ->
+                    let
+                        newProject =
+                            { project
+                                | registeredLimits =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave registeredLimits sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newProject =
+                            { project | registeredLimits = RDPP.setNotLoading (Just ( httpError, sharedModel.clientCurrentTime )) project.registeredLimits }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    processProjectSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveProjectLimits errorContext result ->
+            case result of
+                Ok projectLimits ->
+                    let
+                        newProject =
+                            { project
+                                | projectLimits =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave projectLimits sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newProject =
+                            { project | projectLimits = RDPP.setNotLoading (Just ( httpError, sharedModel.clientCurrentTime )) project.projectLimits }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    processProjectSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveProjectUsages errorContext result ->
+            case result of
+                Ok usages ->
+                    let
+                        newProject =
+                            { project
+                                | projectUsages =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave usages sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newProject =
+                            { project | projectUsages = RDPP.setNotLoading (Just ( httpError, sharedModel.clientCurrentTime )) project.projectUsages }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    processProjectSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
         ReceiveVolumeQuota errorContext result ->
             case result of
                 Ok quota ->
@@ -4715,6 +4822,9 @@ createProject_ outerModel description authToken region endpoints =
             , ports = RDPP.empty
             , securityGroups = RDPP.empty
             , securityGroupActions = Dict.empty
+            , registeredLimits = RDPP.empty
+            , projectLimits = RDPP.empty
+            , projectUsages = RDPP.empty
             , computeQuota = RDPP.empty
             , volumeQuota = RDPP.empty
             , networkQuota = RDPP.empty

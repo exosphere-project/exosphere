@@ -49,6 +49,9 @@ type alias Project =
     , ports : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Port)
     , securityGroups : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.SecurityGroup)
     , securityGroupActions : Dict.Dict ComparableSecurityGroupActionId SecurityGroupAction
+    , registeredLimits : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.RegisteredLimit)
+    , projectLimits : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ProjectLimit)
+    , projectUsages : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ProjectUsage)
     , computeQuota : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ComputeQuota
     , volumeQuota : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.VolumeQuota
     , networkQuota : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.NetworkQuota
@@ -73,6 +76,7 @@ type alias Endpoints =
     , manila : Maybe HelperTypes.Url
     , nova : HelperTypes.Url
     , neutron : HelperTypes.Url
+    , placement : Maybe HelperTypes.Url
     , jetstream2Accounting : Maybe HelperTypes.Url
     , designate : Maybe HelperTypes.Url
     }

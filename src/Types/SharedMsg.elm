@@ -141,6 +141,9 @@ type ProjectSpecificMsgConstructor
     | ReceiveDeleteVolumeSnapshot
     | ReceiveAttachVolume ErrorContext ( OSTypes.ServerUuid, OSTypes.VolumeUuid ) (Result HttpErrorWithBody OSTypes.VolumeAttachment)
     | ReceiveDetachVolume ErrorContext ( OSTypes.ServerUuid, OSTypes.VolumeUuid ) (Result HttpErrorWithBody ())
+    | ReceiveRegisteredLimits ErrorContext (Result HttpErrorWithBody (List OSTypes.RegisteredLimit))
+    | ReceiveProjectLimits ErrorContext (Result HttpErrorWithBody (List OSTypes.ProjectLimit))
+    | ReceiveProjectUsages ErrorContext (Result HttpErrorWithBody (List OSTypes.ProjectUsage))
     | ReceiveComputeQuota ErrorContext (Result HttpErrorWithBody OSTypes.ComputeQuota)
     | ReceiveVolumeQuota ErrorContext (Result HttpErrorWithBody OSTypes.VolumeQuota)
     | ReceiveNetworkQuota ErrorContext (Result HttpErrorWithBody OSTypes.NetworkQuota)

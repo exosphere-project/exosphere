@@ -7,6 +7,7 @@ module Helpers.GetterSetters exposing
     , floatingIpLookup
     , getBootVolume
     , getCatalogRegionIds
+    , getCustomResources
     , getDefaultZone
     , getExternalNetwork
     , getFloatingIpServer
@@ -669,6 +670,16 @@ getServerFlavorGroup project context server =
 
         _ ->
             Nothing
+
+
+getCustomResources : Project -> View.Types.Context -> List HelperTypes.CustomResource
+getCustomResources project context =
+    let
+        maybeCustomResources =
+            cloudSpecificConfigLookup context.cloudSpecificConfigs project
+                |> Maybe.map .customResources
+    in
+    Maybe.withDefault [] maybeCustomResources
 
 
 getVolsAttachedToServer : Project -> Server -> List OSTypes.Volume

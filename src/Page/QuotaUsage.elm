@@ -4,8 +4,10 @@ import Element
 import Element.Background as Background
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber, usageComparison, usageLabel)
+import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
+import Helpers.UnifiedLimits as UnifiedLimits
 import OpenStack.Types as OSTypes
 import OpenStack.VolumeSnapshots exposing (VolumeSnapshot)
 import Style.Helpers as SH
@@ -13,12 +15,14 @@ import Style.Widgets.Meter
 import Style.Widgets.MultiMeter exposing (multiMeter)
 import Style.Widgets.Spacer exposing (spacer)
 import Types.Error exposing (HttpErrorWithBody)
+import Types.HelperTypes as HelperTypes
+import Types.Project exposing (Project)
 import View.Helpers as VH
 import View.Types
 
 
 type ResourceType
-    = Compute (RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ComputeQuota)
+    = Compute Project
     | FloatingIp (RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.NetworkQuota)
     | Share (RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ShareQuota)
     | Volume ( RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.VolumeQuota, RDPP.RemoteDataPlusPlus HttpErrorWithBody (List VolumeSnapshot) )
@@ -30,11 +34,27 @@ type Display
     | Full
 
 
+type alias UnifiedLimitsData =
+    { customResources : List HelperTypes.CustomResource
+    , registeredLimits : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.RegisteredLimit)
+    , limits : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ProjectLimit)
+    , usages : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ProjectUsage)
+    }
+
+
 view : View.Types.Context -> Display -> ResourceType -> Element.Element msg
 view context display resourceType =
     case resourceType of
-        Compute quota ->
-            computeQuotaDetails context display quota
+        -- TODO: Add other RDPP data (usages, registered limits) to the compute quota details view so we can render unified limit items.
+        Compute project ->
+            computeQuotaDetails context
+                display
+                project.computeQuota
+                { customResources = GetterSetters.getCustomResources project context
+                , registeredLimits = project.registeredLimits
+                , limits = project.projectLimits
+                , usages = project.projectUsages
+                }
 
         FloatingIp quota ->
             floatingIpQuotaDetails context display quota
@@ -49,14 +69,14 @@ view context display resourceType =
             keypairQuotaDetails context display quota keypairsUsed
 
 
-infoItem : View.Types.Context -> { inUse : Int, limit : OSTypes.QuotaItemLimit } -> ( String, Unit ) -> Element.Element msg
-infoItem { locale, palette } detail ( label, units ) =
+infoItem : View.Types.Context -> OSTypes.QuotaItem -> ( String, Unit ) -> Element.Element msg
+infoItem { locale, palette } { inUse, limit } ( label, units ) =
     let
         ( usedCount, usedLabel ) =
-            humanNumber { locale | decimals = Exact 0 } units detail.inUse
+            humanNumber { locale | decimals = Exact 0 } units inUse
 
         ( limitCount, limitLabel ) =
-            case detail.limit of
+            case limit of
                 OSTypes.Limit l ->
                     humanNumber { locale | decimals = Exact 0 } units l
 
@@ -78,8 +98,8 @@ infoItem { locale, palette } detail ( label, units ) =
     Style.Widgets.Meter.meter palette
         label
         text
-        detail.inUse
-        (case detail.limit of
+        inUse
+        (case limit of
             OSTypes.Limit l ->
                 l
 
@@ -88,8 +108,13 @@ infoItem { locale, palette } detail ( label, units ) =
         )
 
 
-computeInfoItems : View.Types.Context -> Display -> OSTypes.ComputeQuota -> Element.Element msg
-computeInfoItems context display quota =
+computeInfoItems :
+    View.Types.Context
+    -> Display
+    -> UnifiedLimitsData
+    -> OSTypes.ComputeQuota
+    -> Element.Element msg
+computeInfoItems context display { customResources, registeredLimits, limits, usages } quota =
     let
         brief =
             infoItem context
@@ -108,11 +133,52 @@ computeInfoItems context display quota =
             brief
 
         Full ->
+            let
+                --- Unified limits:
+                --- 1. Only display configured custom resources. (At present, ignore "servers", "class:VCPU", etc.)
+                --- 2. An item must have a limit to be displayed. (Do not display unlimited custom resources.)
+                --- 3. Use a friendly name to display custom resources. (Not "CUSTOM_A100X_10C".)
+                unifiedLimitQuotas =
+                    let
+                        --- Wait for all data to load to avoid accidentally showing 0 usage or incomplete limits.
+                        isUnifiedLimitDataLoaded =
+                            RDPP.gotData registeredLimits && RDPP.gotData limits && RDPP.gotData usages
+                    in
+                    if isUnifiedLimitDataLoaded then
+                        UnifiedLimits.quotasFromUnifiedLimits
+                            (RDPP.withDefault [] registeredLimits)
+                            (RDPP.withDefault [] limits)
+                            (RDPP.withDefault [] usages)
+
+                    else
+                        []
+
+                customLimitItems =
+                    customResources
+                        |> List.filterMap
+                            (\customResource ->
+                                unifiedLimitQuotas
+                                    |> List.filter (\q -> q.resourceName == customResource.resource)
+                                    |> List.filter
+                                        (\q ->
+                                            case q.quota.limit of
+                                                OSTypes.Limit l ->
+                                                    l >= 0
+
+                                                OSTypes.Unlimited ->
+                                                    False
+                                        )
+                                    |> List.head
+                                    |> Maybe.map (\q -> infoItem context q.quota ( customResource.friendlyName ++ " used", Count ))
+                            )
+            in
             fullQuotaRow
-                [ brief
-                , infoItem context quota.cores ( "Cores used", Count )
-                , infoItem context quota.ram ( "RAM used", MebiBytes )
-                ]
+                ([ brief
+                 , infoItem context quota.cores ( "Cores used", Count )
+                 , infoItem context quota.ram ( "RAM used", MebiBytes )
+                 ]
+                    ++ customLimitItems
+                )
 
 
 quotaDetail : View.Types.Context -> RDPP.RemoteDataPlusPlus HttpErrorWithBody q -> (q -> Element.Element msg) -> Element.Element msg
@@ -128,9 +194,28 @@ quotaDetail context quota infoItemsF =
     VH.renderRDPP context quota resourceWord infoItemsF
 
 
-computeQuotaDetails : View.Types.Context -> Display -> RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ComputeQuota -> Element.Element msg
-computeQuotaDetails context display quota =
-    quotaDetail context quota (computeInfoItems context display)
+computeQuotaDetails :
+    View.Types.Context
+    -> Display
+    -> RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ComputeQuota
+    -> UnifiedLimitsData
+    -> Element.Element msg
+computeQuotaDetails context display quota unifiedLimits =
+    let
+        resourceWord =
+            String.join " "
+                [ context.localization.maxResourcesPerProject
+                    |> Helpers.String.toTitleCase
+                , "data"
+                ]
+    in
+    VH.renderRDPP context
+        quota
+        resourceWord
+        (computeInfoItems context
+            display
+            unifiedLimits
+        )
 
 
 floatingIpInfoItems : View.Types.Context -> Display -> OSTypes.NetworkQuota -> Element.Element msg

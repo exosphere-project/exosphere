@@ -175,6 +175,28 @@ var cloud_configs = {
           disallowedActions: [],
         },
       ],
+      customResources: [
+        {
+          resource: "CUSTOM_A100X_10C",
+          friendlyName: "A100 vGPU (10 GB)",
+        },
+        {
+          resource: "CUSTOM_A100X_20C",
+          friendlyName: "A100 vGPU (20 GB)",
+        },
+        {
+          resource: "CUSTOM_PCI_10DE_20B0",
+          friendlyName: "A100",
+        },
+        {
+          resource: "CUSTOM_PCI_10DE_26B9",
+          friendlyName: "L40",
+        },
+        {
+          resource: "CUSTOM_PCI_10DE_2330",
+          friendlyName: "H100",
+        },
+      ],
       desktopMessage: "",
       securityGroups: {
         TACC: {

@@ -211,12 +211,13 @@ routeToViewStateModelCmd sharedModel route =
                                     ( sharedModel
                                     , Cmd.batch
                                         [ Rest.Nova.requestKeypairs project
-                                        , OSQuotas.requestComputeQuota project
                                         , OSQuotas.requestVolumeQuota project
                                         , OSQuotas.requestNetworkQuota project
                                         , Ports.instantiateClipboardJs ()
                                         ]
                                     )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestComputeQuota (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestShares (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
@@ -233,6 +234,12 @@ routeToViewStateModelCmd sharedModel route =
                                             (ApiModelHelpers.requestImages (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestFlavors (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestRegisteredLimits (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestProjectLimits (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestProjectUsages (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestJetstream2Allocation (GetterSetters.projectIdentifier project))
                             in
@@ -309,13 +316,20 @@ routeToViewStateModelCmd sharedModel route =
                             )
 
                         Route.KeypairList ->
+                            let
+                                ( newSharedModel, newCmd ) =
+                                    ( sharedModel
+                                    , Cmd.batch
+                                        [ Rest.Nova.requestKeypairs project
+                                        , Ports.instantiateClipboardJs ()
+                                        ]
+                                    )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestComputeQuota (GetterSetters.projectIdentifier project))
+                            in
                             ( projectViewProto <| KeypairList <| Page.KeypairList.init True
-                            , sharedModel
-                            , Cmd.batch
-                                [ Rest.Nova.requestKeypairs project
-                                , OSQuotas.requestComputeQuota project
-                                , Ports.instantiateClipboardJs ()
-                                ]
+                            , newSharedModel
+                            , newCmd
                             )
 
                         Route.SecurityGroupDetail securityGroupId ->
@@ -444,18 +458,23 @@ routeToViewStateModelCmd sharedModel route =
                                 ( newSharedModel, cmd ) =
                                     ( sharedModel, Cmd.none )
                                         |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestComputeQuota (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestFloatingIps (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestFlavors (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestRegisteredLimits (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestProjectLimits (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestProjectUsages (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| ServerList <| Page.ServerList.init newSharedModel.viewContext project True
                             , newSharedModel
-                            , Cmd.batch
-                                [ cmd
-                                , OSQuotas.requestComputeQuota project
-                                ]
+                            , cmd
                             )
 
                         Route.ServerResize serverId ->
@@ -463,14 +482,13 @@ routeToViewStateModelCmd sharedModel route =
                                 ( newSharedModel, cmd ) =
                                     ( sharedModel, Cmd.none )
                                         |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestComputeQuota (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestFlavors (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| ServerResize (Page.ServerResize.init serverId)
                             , newSharedModel
-                            , Cmd.batch
-                                [ cmd
-                                , OSQuotas.requestComputeQuota project
-                                ]
+                            , cmd
                             )
 
                         Route.ServerSecurityGroups serverId ->
@@ -547,9 +565,15 @@ routeToViewStateModelCmd sharedModel route =
                             )
 
                         Route.VolumeCreate ->
+                            let
+                                ( newSharedModel, newCmd ) =
+                                    ( sharedModel, Cmd.none )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestComputeQuota (GetterSetters.projectIdentifier project))
+                            in
                             ( projectViewProto <| VolumeCreate Page.VolumeCreate.init
-                            , sharedModel
-                            , OSQuotas.requestComputeQuota project
+                            , newSharedModel
+                            , newCmd
                             )
 
                         Route.VolumeDetail volumeUuid ->

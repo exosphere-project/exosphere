@@ -136,7 +136,7 @@ view context project currentTime _ =
                     )
                 )
                 Route.ServerList
-                (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Compute project.computeQuota))
+                (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Compute project))
                 (serverTileContents context project)
             , renderTile
                 (Icon.featherIcon [] Icons.hardDrive)
