@@ -39,7 +39,9 @@ module Helpers.GetterSetters exposing
     , isVolumeReservedForShelvedInstance
     , modelUpdateProject
     , modelUpdateUnscopedProvider
+    , objectStorageListingKey
     , projectAddSecurityGroupRule
+    , projectClearFinishedUploads
     , projectDefaultSecurityGroup
     , projectDeleteSecurityGroup
     , projectDeleteSecurityGroupActions
@@ -47,8 +49,10 @@ module Helpers.GetterSetters exposing
     , projectDeleteServer
     , projectDeleteServerExoAction
     , projectDeleteServerVolumeAction
+    , projectEnqueueUpload
     , projectIdentifier
     , projectLookup
+    , projectLookupObjectStorageListing
     , projectRemoveServerActionRequestJob
     , projectSetAutoAllocatedNetworkUuidLoading
     , projectSetDnsRecordSetsLoading
@@ -57,6 +61,8 @@ module Helpers.GetterSetters exposing
     , projectSetJetstream2AllocationLoading
     , projectSetNetworksLoading
     , projectSetObjectStorageContainersLoading
+    , projectSetObjectStorageListing
+    , projectSetObjectStorageListingLoading
     , projectSetPortsLoading
     , projectSetSecurityGroupsLoading
     , projectSetServerEventsLoading
@@ -1141,7 +1147,73 @@ projectSetObjectStorageContainersLoading project =
     { project | objectStorageContainers = RDPP.setLoading project.objectStorageContainers }
 
 
-{-| Set the status for exactly one queued object-storage upload by id, leaving all other uploads
+{-| The canonical `project.objectStorageListings` Dict key for a (container, prefix) level. The
+route normalizes `Just ""`/`Nothing` to `Nothing`, so the root prefix is keyed as `""` here — the
+one place that convention lives.
+-}
+objectStorageListingKey : ObjectStorage.ContainerName -> Maybe ObjectStorage.Prefix -> ( ObjectStorage.ContainerName, ObjectStorage.Prefix )
+objectStorageListingKey containerName maybePrefix =
+    ( containerName, Maybe.withDefault "" maybePrefix )
+
+
+{-| Look up the cached object listing for a (container, prefix) level, defaulting to an empty RDPP
+when nothing is cached yet (so `renderRDPP` shows the loading/empty states rather than erroring).
+-}
+projectLookupObjectStorageListing : ObjectStorage.ContainerName -> Maybe ObjectStorage.Prefix -> Project -> RemoteDataPlusPlus HttpErrorWithBody ObjectStorage.ObjectListing
+projectLookupObjectStorageListing containerName maybePrefix project =
+    Dict.get (objectStorageListingKey containerName maybePrefix) project.objectStorageListings
+        |> Maybe.withDefault RDPP.empty
+
+
+projectSetObjectStorageListingLoading : ObjectStorage.ContainerName -> Maybe ObjectStorage.Prefix -> Project -> Project
+projectSetObjectStorageListingLoading containerName maybePrefix project =
+    { project
+        | objectStorageListings =
+            Dict.update (objectStorageListingKey containerName maybePrefix)
+                (\entry ->
+                    case entry of
+                        Just listing ->
+                            Just (RDPP.setLoading listing)
+
+                        Nothing ->
+                            Just (RDPP.setLoading RDPP.empty)
+                )
+                project.objectStorageListings
+    }
+
+
+projectSetObjectStorageListing : ObjectStorage.ContainerName -> Maybe ObjectStorage.Prefix -> RemoteDataPlusPlus HttpErrorWithBody ObjectStorage.ObjectListing -> Project -> Project
+projectSetObjectStorageListing containerName maybePrefix listing project =
+    { project
+        | objectStorageListings =
+            Dict.insert (objectStorageListingKey containerName maybePrefix) listing project.objectStorageListings
+    }
+
+
+{-| Two uploads are the "same" queue entry when their (container, prefix, objectName) match — the
+object's full identity at its level. Used to de-dupe on re-enqueue and to target a status update.
+-}
+sameUploadTarget : ObjectStorage.ContainerName -> Maybe ObjectStorage.Prefix -> ObjectStorage.ObjectName -> ObjectStorage.Upload -> Bool
+sameUploadTarget containerName maybePrefix objectName upload =
+    upload.containerName == containerName && upload.prefix == maybePrefix && upload.objectName == objectName
+
+
+{-| Add an upload to the transient queue, REPLACING any prior entry for the same
+(container, prefix, objectName) — re-picking a file that is already queued refreshes it rather than
+duplicating the row.
+-}
+projectEnqueueUpload : ObjectStorage.Upload -> Project -> Project
+projectEnqueueUpload upload project =
+    { project
+        | objectStorageUploads =
+            upload
+                :: List.filter
+                    (not << sameUploadTarget upload.containerName upload.prefix upload.objectName)
+                    project.objectStorageUploads
+    }
+
+
+{-| Update the status of the queued upload whose unique `id` matches, leaving every other entry
 untouched. A no-op if no such entry exists — which is exactly the stale-result guard: a completion
 for a superseded (re-enqueued) upload carries the OLD id and is correctly ignored (see
 `OpenStack.ObjectStorage.setUploadStatusById`).
@@ -1151,6 +1223,16 @@ projectSetUploadStatusById id status project =
     { project
         | objectStorageUploads =
             ObjectStorage.setUploadStatusById id status project.objectStorageUploads
+    }
+
+
+{-| Drop every finished (`Succeeded`/`Failed`/`Rejected`) entry from the transient upload queue,
+keeping the in-flight ones. Backs the "Clear finished" affordance.
+-}
+projectClearFinishedUploads : Project -> Project
+projectClearFinishedUploads project =
+    { project
+        | objectStorageUploads = ObjectStorage.clearFinishedUploads project.objectStorageUploads
     }
 
 

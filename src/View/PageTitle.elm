@@ -271,6 +271,12 @@ pageTitle outerModel =
                         , projectName
                         ]
 
+                ObjectStorageContainerDetail pageModel ->
+                    String.join " "
+                        [ localization.objectStoreContainer |> Helpers.String.toTitleCase
+                        , pageModel.containerName
+                        ]
+
                 VolumeAttach _ ->
                     String.join " "
                         [ "Attach"

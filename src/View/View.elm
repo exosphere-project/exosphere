@@ -26,6 +26,7 @@ import Page.LoginOpenIdConnect
 import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
+import Page.ObjectStorageContainerDetail
 import Page.ObjectStorageList
 import Page.ProjectOverview
 import Page.SecurityGroupDetail
@@ -399,6 +400,10 @@ projectContentView model context p viewConstructor =
         ObjectStorageList pageModel ->
             Page.ObjectStorageList.view context p pageModel
                 |> Element.map ObjectStorageListMsg
+
+        ObjectStorageContainerDetail pageModel ->
+            Page.ObjectStorageContainerDetail.view context p ( model.clientCurrentTime, model.timeZone ) pageModel
+                |> Element.map ObjectStorageContainerDetailMsg
 
         VolumeAttach pageModel ->
             Page.VolumeAttach.view context p pageModel

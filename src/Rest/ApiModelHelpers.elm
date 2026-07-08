@@ -10,6 +10,7 @@ module Rest.ApiModelHelpers exposing
     , requestNetworkQuota
     , requestNetworks
     , requestObjectStorageContainers
+    , requestObjectStorageObjects
     , requestPorts
     , requestProjectLimits
     , requestProjectUsages
@@ -34,6 +35,7 @@ module Rest.ApiModelHelpers exposing
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
+import OpenStack.ObjectStorage
 import OpenStack.Quotas
 import OpenStack.ServerVolumes
 import OpenStack.Shares
@@ -268,6 +270,31 @@ requestObjectStorageContainers projectUuid model =
                         |> GetterSetters.projectSetObjectStorageContainersLoading
                         |> GetterSetters.modelUpdateProject model
                     , Rest.Swift.requestContainers project url model.clientCurrentTime
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+{-| Load the first page of a container's object listing at a given pseudo-folder `prefix`, no-op when
+Swift is absent. Mirrors `requestObjectStorageContainers`: sets the (container, prefix) listing to
+loading centrally, then dispatches the first page (marker `Nothing`, which replaces the cache).
+User-driven "load more" continuations are dispatched via the `RequestObjectListingPage` handler in
+`State.State`, not here.
+-}
+requestObjectStorageObjects : ProjectIdentifier -> OpenStack.ObjectStorage.ContainerName -> Maybe OpenStack.ObjectStorage.Prefix -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestObjectStorageObjects projectUuid containerName maybePrefix model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            case project.endpoints.swift of
+                Just url ->
+                    ( project
+                        |> GetterSetters.projectSetObjectStorageListingLoading containerName maybePrefix
+                        |> GetterSetters.modelUpdateProject model
+                    , Rest.Swift.requestObjects project url model.clientCurrentTime containerName maybePrefix Nothing
                     )
 
                 Nothing ->

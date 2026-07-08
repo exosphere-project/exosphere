@@ -22,6 +22,7 @@ import Page.KeypairList
 import Page.LoginOpenIdConnect
 import Page.LoginOpenstack
 import Page.MessageLog
+import Page.ObjectStorageContainerDetail
 import Page.ObjectStorageList
 import Page.ProjectOverview
 import Page.SecurityGroupDetail
@@ -343,6 +344,22 @@ routeToViewStateModelCmd sharedModel route =
                                             (ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| ObjectStorageList (Page.ObjectStorageList.init True)
+                            , newSharedModel
+                            , newCmd
+                            )
+
+                        Route.ObjectStorageContainerDetail containerName maybePrefix ->
+                            let
+                                ( newSharedModel, newCmd ) =
+                                    ( GetterSetters.modelUpdateProject sharedModel project
+                                    , Ports.instantiateClipboardJs ()
+                                    )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestObjectStorageObjects (GetterSetters.projectIdentifier project) containerName maybePrefix)
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project))
+                            in
+                            ( projectViewProto <| ObjectStorageContainerDetail (Page.ObjectStorageContainerDetail.init containerName maybePrefix)
                             , newSharedModel
                             , newCmd
                             )

@@ -13,6 +13,7 @@ import Page.KeypairList
 import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
+import Page.ObjectStorageContainerDetail
 import Page.ObjectStorageList
 import Page.ProjectOverview
 import Page.SecurityGroupDetail
@@ -52,6 +53,7 @@ type OuterMsg
     | KeypairCreateMsg Page.KeypairCreate.Msg
     | KeypairListMsg Page.KeypairList.Msg
     | ObjectStorageListMsg Page.ObjectStorageList.Msg
+    | ObjectStorageContainerDetailMsg Page.ObjectStorageContainerDetail.Msg
     | LoginOpenstackMsg Page.LoginOpenstack.Msg
     | LoginPickerMsg Page.LoginPicker.Msg
     | MessageLogMsg Page.MessageLog.Msg

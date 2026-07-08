@@ -1,12 +1,19 @@
 module Rest.Swift exposing
     ( containerPageLimit
     , recursiveDeleteMaxCycles
+    , requestBulkDelete
     , requestContainerObjectNames
     , requestContainers
     , requestContainersPage
+    , requestCopyObject
     , requestCreateContainer
+    , requestCreateFolder
     , requestDeleteContainer
     , requestDeleteContainerObject
+    , requestDeleteObject
+    , requestDownloadObject
+    , requestObjects
+    , requestUploadObject
     )
 
 {-| HTTP wiring for OpenStack Object Storage (Swift).
@@ -246,6 +253,261 @@ requestDeleteContainerObject project url containerName budget remaining objectNa
         ( url, ObjectStorage.objectPath containerName objectName |> List.map Url.percentEncode, [] )
         Http.emptyBody
         (expectSwiftDeleteOrGone resultToMsg_)
+
+
+requestObjects : Project -> Url -> Time.Posix -> ObjectStorage.ContainerName -> Maybe ObjectStorage.Prefix -> Maybe String -> Cmd SharedMsg
+requestObjects project url currentTime containerName maybePrefix maybeMarker =
+    let
+        errorContext =
+            ErrorContext
+                ("get a list of objects in container " ++ containerName)
+                ErrorCrit
+                Nothing
+
+        queryParams =
+            [ Url.Builder.string "format" "json"
+            , Url.Builder.string "delimiter" "/"
+            , Url.Builder.int "limit" ObjectStorage.listingPageLimit
+            , Url.Builder.int "t" (Time.posixToMillis currentTime)
+            ]
+                ++ (case maybePrefix of
+                        Just prefix ->
+                            [ Url.Builder.string "prefix" prefix ]
+
+                        Nothing ->
+                            []
+                   )
+                ++ (case maybeMarker of
+                        Just marker ->
+                            [ Url.Builder.string "marker" marker ]
+
+                        Nothing ->
+                            []
+                   )
+
+        resultToMsg_ result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveObjectListing errorContext containerName maybePrefix maybeMarker result)
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Get
+        Nothing
+        []
+        ( url, containerPath containerName, queryParams )
+        Http.emptyBody
+        (expectSwiftJsonOrEmpty resultToMsg_ ObjectStorage.parseObjectListingResponse)
+
+
+requestDeleteObject : Project -> Url -> ObjectStorage.ContainerName -> Maybe ObjectStorage.Prefix -> ObjectStorage.ObjectName -> Cmd SharedMsg
+requestDeleteObject project url containerName maybePrefix objectName =
+    let
+        errorContext =
+            ErrorContext
+                ("delete object " ++ objectName ++ " in container " ++ containerName)
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveDeleteObject errorContext containerName maybePrefix result)
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Delete
+        Nothing
+        []
+        ( url, ObjectStorage.objectPath containerName objectName |> List.map Url.percentEncode, [] )
+        Http.emptyBody
+        (expectSwiftDeleteOrGone resultToMsg_)
+
+
+{-| Bulk-delete a set of objects in one request: `POST <storage-url>?bulk-delete`, `Content-Type:
+text/plain`, `Accept: application/json`, body = newline-separated leading-slash `/container/object`
+paths with each segment percent-encoded (see `OpenStack.ObjectStorage.bulkDeleteBody`).
+
+Swift returns **200 even on partial failure** — the `ReceiveBulkDeleteObjects` handler parses the
+body (`OpenStack.ObjectStorage.parseBulkDeleteResponse`) for per-object errors rather than trusting
+the status. `Accept: application/json` makes that body deterministic.
+
+PROVISIONAL: bulk-delete is validated on native devstack Swift 2.37 but unverified on RGW; if
+the endpoint is unsupported the POST surfaces a plain error (the sequential
+`requestDeleteContainerObject` machinery already exists as a fallback if the gate later demands it).
+The valueless `?bulk-delete` flag is sent as `bulk-delete=` (empty value) because `Url.Builder` emits
+`key=value`; Swift's bulk middleware treats the parameter as present.
+
+-}
+requestBulkDelete : Project -> Url -> ObjectStorage.ContainerName -> Maybe ObjectStorage.Prefix -> List ObjectStorage.ObjectName -> Cmd SharedMsg
+requestBulkDelete project url containerName maybePrefix objectNames =
+    let
+        errorContext =
+            ErrorContext
+                ("bulk-delete objects in container " ++ containerName)
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveBulkDeleteObjects errorContext containerName maybePrefix result)
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Post
+        Nothing
+        [ ( "Accept", "application/json" ) ]
+        ( url, [], [ Url.Builder.string "bulk-delete" "" ] )
+        (Http.stringBody "text/plain" (ObjectStorage.bulkDeleteBody containerName objectNames))
+        (expectSwiftJsonOrEmpty resultToMsg_ ObjectStorage.parseBulkDeleteResponse)
+
+
+{-| `objectName` is the full name (prefix already prepended), split on `/` into percent-encoded
+URL segments. Content-Type rides on the body and Content-Length is set by the browser -- setting
+either header manually breaks fetch/the proxy. The upload `id` rides back through
+`ReceiveUploadObject` so `State.State` can flip the matching queue entry, id-guarded against a
+superseded re-enqueue.
+-}
+requestUploadObject : Project -> Url -> ObjectStorage.ContainerName -> Maybe ObjectStorage.Prefix -> ObjectStorage.ObjectName -> Int -> String -> Bytes -> Cmd SharedMsg
+requestUploadObject project url containerName maybePrefix objectName uploadId contentType bytes =
+    let
+        errorContext =
+            ErrorContext
+                ("upload object " ++ objectName ++ " to container " ++ containerName)
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveUploadObject errorContext uploadId containerName maybePrefix result)
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Put
+        Nothing
+        []
+        ( url, ObjectStorage.objectPath containerName objectName |> List.map Url.percentEncode, [] )
+        (Http.bytesBody contentType bytes)
+        (expectVoidWithErrorBody resultToMsg_)
+
+
+{-| Fetched through the proxy because an anchor can't carry the token + proxy headers;
+`State.State` hands the bytes to `File.Download.bytes`.
+-}
+requestDownloadObject : Project -> Url -> Time.Posix -> ObjectStorage.ContainerName -> ObjectStorage.ObjectName -> Cmd SharedMsg
+requestDownloadObject project url currentTime containerName objectName =
+    let
+        errorContext =
+            ErrorContext
+                ("download object " ++ objectName ++ " in container " ++ containerName)
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveDownloadObject errorContext objectName result)
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Get
+        Nothing
+        []
+        ( url
+        , ObjectStorage.objectPath containerName objectName |> List.map Url.percentEncode
+        , [ Url.Builder.int "t" (Time.posixToMillis currentTime) ]
+        )
+        Http.emptyBody
+        (expectBytesWithErrorBody resultToMsg_)
+
+
+{-| Server-side **copy** an object: `PUT` to the DESTINATION object URL with an `X-Copy-From:
+/source-container/source-object` header (URL-encoded, leading slash — see
+`OpenStack.ObjectStorage.copyFromHeaderValue`) and an EMPTY body. Swift copies the object server-side
+(no bytes through the browser). Swift replies `201 Created`; `expectVoidWithErrorBody` treats any 2xx
+as success.
+
+This is the standard Swift copy form (PUT + `X-Copy-From`), deliberately NOT a bespoke `COPY` HTTP
+method, so no `HelperTypes.HttpRequestMethod` variant is added and the proxy needs no new verb — only
+the `X-Copy-From` request header must be allow-listed on a legacy CORS proxy.
+
+`isMove` rides back through `ReceiveCopyObject` so `State.State` can, on a 2xx copy, DELETE the source
+(a move = copy-then-delete, sequenced — never fire-and-forget both) and refresh the affected listings.
+
+NOTE (documented in the copy/move form footer): copying an SLO/DLO manifest copies ONLY the manifest,
+not its segments. We do not HEAD each object to detect that, so the UI warns statically.
+
+-}
+requestCopyObject : Project -> Url -> ObjectStorage.ContainerName -> Maybe ObjectStorage.Prefix -> ObjectStorage.ObjectName -> ObjectStorage.ContainerName -> ObjectStorage.ObjectName -> Bool -> Cmd SharedMsg
+requestCopyObject project url sourceContainer sourcePrefix sourceObject destContainer destObject isMove =
+    let
+        errorContext =
+            ErrorContext
+                ((if isMove then
+                    "move object "
+
+                  else
+                    "copy object "
+                 )
+                    ++ sourceObject
+                    ++ " to "
+                    ++ destContainer
+                    ++ "/"
+                    ++ destObject
+                )
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveCopyObject errorContext sourceContainer sourcePrefix sourceObject destContainer destObject isMove result)
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Put
+        Nothing
+        [ ( "X-Copy-From", ObjectStorage.copyFromHeaderValue sourceContainer sourceObject ) ]
+        ( url, ObjectStorage.objectPath destContainer destObject |> List.map Url.percentEncode, [] )
+        Http.emptyBody
+        (expectVoidWithErrorBody resultToMsg_)
+
+
+{-| Create a pseudo-folder: `PUT` a **zero-byte** object named `<prefix><name>/` (trailing slash) with
+`Content-Type: application/directory` (see `OpenStack.ObjectStorage.folderPlaceholderObjectName` /
+`directoryContentType`). With a `delimiter=/` listing that object comes back as a `subdir` row, so it
+renders as a folder even while empty — no special client handling needed. Swift replies `201 Created`;
+`expectVoidWithErrorBody` treats any 2xx as success. The container + prefix ride back through
+`ReceiveCreateFolder` so `State.State` re-lists that level.
+
+`Http.stringBody directoryContentType ""` sends the empty body AND the `application/directory`
+Content-Type in one shot (Content-Length is set by the browser/proxy).
+
+-}
+requestCreateFolder : Project -> Url -> ObjectStorage.ContainerName -> Maybe ObjectStorage.Prefix -> ObjectStorage.ObjectName -> Cmd SharedMsg
+requestCreateFolder project url containerName maybePrefix placeholderName =
+    let
+        errorContext =
+            ErrorContext
+                ("create folder " ++ placeholderName ++ " in container " ++ containerName)
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveCreateFolder errorContext containerName maybePrefix result)
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Put
+        Nothing
+        []
+        ( url, ObjectStorage.objectPath containerName placeholderName |> List.map Url.percentEncode, [] )
+        (Http.stringBody ObjectStorage.directoryContentType "")
+        (expectVoidWithErrorBody resultToMsg_)
 
 
 {-| Expect a Swift `DELETE`: any 2xx (`204`) **or** `404` is success (idempotent delete); every
