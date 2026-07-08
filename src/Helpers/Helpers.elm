@@ -174,6 +174,7 @@ serviceCatalogToEndpoints catalog maybeRegionId =
             , ( "neutron", getService "network" )
             , ( "jetstream2Accounting", getService "accounting" )
             , ( "designate", getService "dns" )
+            , ( "swift", getService "object-store" )
             ]
 
         missingServiceName service =
@@ -187,8 +188,8 @@ serviceCatalogToEndpoints catalog maybeRegionId =
     case
         List.map Tuple.second endpoints
     of
-        [ Just cinderUrl, Just glanceUrl, Just keystoneUrl, maybeManilaUrl, Just novaUrl, Just neutronUrl, maybeJetstream2AccountingUrl, maybeDesignateUrl ] ->
-            Ok <| Endpoints cinderUrl glanceUrl keystoneUrl maybeManilaUrl novaUrl neutronUrl maybeJetstream2AccountingUrl maybeDesignateUrl
+        [ Just cinderUrl, Just glanceUrl, Just keystoneUrl, maybeManilaUrl, Just novaUrl, Just neutronUrl, maybeJetstream2AccountingUrl, maybeDesignateUrl, maybeSwiftUrl ] ->
+            Ok <| Endpoints cinderUrl glanceUrl keystoneUrl maybeManilaUrl novaUrl neutronUrl maybeJetstream2AccountingUrl maybeDesignateUrl maybeSwiftUrl
 
         _ ->
             Err <|

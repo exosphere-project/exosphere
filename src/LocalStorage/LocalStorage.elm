@@ -1,5 +1,6 @@
 module LocalStorage.LocalStorage exposing
-    ( generateStoredState
+    ( endpointsDecoder
+    , generateStoredState
     , hydrateModelFromStoredState
     , storedStateDecoder
     )
@@ -131,6 +132,7 @@ hydrateProjectFromStoredProject storedProject =
     , shareAccessRules = Dict.empty
     , shareExportLocations = Dict.empty
     , shareTypes = RDPP.empty
+    , objectStorageUploads = []
     , autoAllocatedNetworkUuid = RDPP.empty
     , dnsRecordSets = RDPP.empty
     , floatingIps = RDPP.empty
@@ -301,6 +303,7 @@ encodeExoEndpoints endpoints =
                 |> Maybe.withDefault Encode.null
           )
         , ( "designate", endpoints.designate |> Maybe.map Encode.string |> Maybe.withDefault Encode.null )
+        , ( "swift", endpoints.swift |> Maybe.map Encode.string |> Maybe.withDefault Encode.null )
         ]
 
 
@@ -573,27 +576,35 @@ regionDecoder =
 
 endpointsDecoder : Decode.Decoder Types.Project.Endpoints
 endpointsDecoder =
-    Decode.map8 Types.Project.Endpoints
-        (Decode.field "cinder" Decode.string)
-        (Decode.field "glance" Decode.string)
-        (Decode.field "keystone" Decode.string)
-        (Decode.oneOf
-            -- This decodes projects which do not have Manila support.
-            [ Decode.field "manila" Decode.string |> Decode.nullable
-            , Decode.succeed Nothing
-            ]
+    Decode.map2 (<|)
+        (Decode.map8 Types.Project.Endpoints
+            (Decode.field "cinder" Decode.string)
+            (Decode.field "glance" Decode.string)
+            (Decode.field "keystone" Decode.string)
+            (Decode.oneOf
+                -- This decodes projects which do not have Manila support.
+                [ Decode.field "manila" Decode.string |> Decode.nullable
+                , Decode.succeed Nothing
+                ]
+            )
+            (Decode.field "nova" Decode.string)
+            (Decode.field "neutron" Decode.string)
+            (Decode.oneOf
+                -- This decodes earlier stored projects which do not have the jetstream2Accounting field in encoded endpoints
+                [ Decode.field "jetstream2Accounting" Decode.string |> Decode.nullable
+                , Decode.succeed Nothing
+                ]
+            )
+            (Decode.oneOf
+                -- This decodes earlier stored projects which do not have the designate field in encoded endpoints
+                [ Decode.field "designate" Decode.string |> Decode.nullable
+                , Decode.succeed Nothing
+                ]
+            )
         )
-        (Decode.field "nova" Decode.string)
-        (Decode.field "neutron" Decode.string)
         (Decode.oneOf
-            -- This decodes earlier stored projects which do not have the jetstream2Accounting field in encoded endpoints
-            [ Decode.field "jetstream2Accounting" Decode.string |> Decode.nullable
-            , Decode.succeed Nothing
-            ]
-        )
-        (Decode.oneOf
-            -- This decodes earlier stored projects which do not have the designate field in encoded endpoints
-            [ Decode.field "designate" Decode.string |> Decode.nullable
+            -- This decodes earlier stored projects which do not have the swift (object-store) field in encoded endpoints
+            [ Decode.field "swift" Decode.string |> Decode.nullable
             , Decode.succeed Nothing
             ]
         )
