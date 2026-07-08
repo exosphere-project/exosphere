@@ -97,6 +97,7 @@ type alias UrlParams =
 
 type HttpRequestMethod
     = Get
+    | Head
     | Patch
     | Post
     | Put
@@ -125,6 +126,7 @@ type alias Localization =
     , staticRepresentationOfBlockDeviceContents : String
     , blockDevice : String
     , share : String
+    , objectStoreContainer : String
     , accessRule : String
     , exportLocation : String
     , nonFloatingIpAddress : String
