@@ -4,6 +4,7 @@ import Browser
 import Browser.Events
 import Browser.Navigation
 import Dict
+import File.Download
 import Helpers.ExoSetupStatus
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
@@ -20,6 +21,7 @@ import LocalStorage.LocalStorage as LocalStorage
 import Maybe
 import OpenStack.DnsRecordSet
 import OpenStack.Error
+import OpenStack.ObjectStorage
 import OpenStack.SecurityGroupRule as SecurityGroupRule
 import OpenStack.ServerActions as ServerActions exposing (ServerAction(..))
 import OpenStack.ServerPassword as OSServerPassword
@@ -3294,6 +3296,43 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
+        ReceiveUploadObject errorContext uploadId _ _ result ->
+            case result of
+                Ok () ->
+                    -- Mark Succeeded; listing/container refresh is restored in the stacked object-browser MR.
+                    let
+                        newModel =
+                            GetterSetters.projectSetUploadStatusById uploadId OpenStack.ObjectStorage.Succeeded project
+                                |> GetterSetters.modelUpdateProject sharedModel
+                    in
+                    ( newModel, Cmd.none )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newModel =
+                            GetterSetters.projectSetUploadStatusById uploadId (OpenStack.ObjectStorage.Failed (Helpers.httpErrorWithBodyToString httpError)) project
+                                |> GetterSetters.modelUpdateProject sharedModel
+                    in
+                    processProjectSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveDownloadObject errorContext objectName result ->
+            case result of
+                Ok bytes ->
+                    let
+                        basename =
+                            objectName |> String.split "/" |> List.reverse |> List.head |> Maybe.withDefault objectName
+                    in
+                    ( outerModel, File.Download.bytes basename (OpenStack.ObjectStorage.contentTypeForFilename basename) bytes )
+
+                Err httpError ->
+                    processProjectSynchronousApiError sharedModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
         ReceiveDeleteShare shareUuid ->
             ( outerModel
             , case outerModel.viewState of
@@ -4815,6 +4854,7 @@ createProject_ outerModel description authToken region endpoints =
             , shareAccessRules = Dict.empty
             , shareExportLocations = Dict.empty
             , shareTypes = RDPP.empty
+            , objectStorageUploads = []
             , networks = RDPP.empty
             , autoAllocatedNetworkUuid = RDPP.empty
             , dnsRecordSets = RDPP.empty
