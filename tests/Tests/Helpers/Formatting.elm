@@ -16,6 +16,8 @@ unitsSuite =
     describe "Units"
         [ test "bytesToGiB" <|
             \_ -> Expect.equal (Helpers.Units.bytesToGiB 21474836480) 20
+        , test "humanBytes 0 (empty container) is 0 B, not a degenerate PB" <|
+            \_ -> Expect.equal (Helpers.Formatting.humanBytes locale 0) ( "0", "B" )
         , test "humanBytes 99 B" <|
             \_ -> Expect.equal (Helpers.Formatting.humanBytes locale (99 * (1024 ^ 0))) ( "99", "B" )
         , test "humanBytes 99 KB" <|

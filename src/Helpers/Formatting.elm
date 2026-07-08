@@ -27,9 +27,11 @@ humanBytes locale byteCount =
             toFloat byteCount
 
         scale =
+            -- Clamp below as well as above: `logBase 1024 0` is -Infinity, which otherwise
+            -- floors to a huge negative scale and renders 0 bytes as a degenerate "PB".
             logBase 1024 bytesFloat
                 |> floor
-                |> min (Array.length byteSuffixes - 1)
+                |> clamp 0 (Array.length byteSuffixes - 1)
 
         count =
             bytesFloat / (1024 ^ toFloat scale)
