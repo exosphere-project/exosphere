@@ -368,6 +368,15 @@ breadcrumb_ outerModel context =
                                       }
                                     ]
 
+                                ObjectStorageList _ ->
+                                    [ { route = Nothing
+                                      , label =
+                                            context.localization.objectStoreContainer
+                                                |> Helpers.String.pluralize
+                                                |> Helpers.String.toTitleCase
+                                      }
+                                    ]
+
                                 VolumeAttach _ ->
                                     [ { route = Just <| Route.ProjectRoute projectId <| Route.VolumeList
                                       , label =

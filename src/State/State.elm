@@ -45,6 +45,7 @@ import Page.KeypairList
 import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
+import Page.ObjectStorageList
 import Page.ProjectOverview
 import Page.SecurityGroupDetail
 import Page.SecurityGroupForm
@@ -75,6 +76,7 @@ import Rest.Glance
 import Rest.Keystone
 import Rest.Neutron
 import Rest.Nova
+import Rest.Swift
 import Route
 import Set
 import State.Auth
@@ -613,6 +615,21 @@ updateUnderlying outerMsg outerModel =
                                         ShareList newSharedModel
                               }
                             , Cmd.map ShareListMsg cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( ObjectStorageListMsg pageMsg, ObjectStorageList pageModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.ObjectStorageList.update pageMsg project pageModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId <|
+                                        ObjectStorageList newSharedModel
+                              }
+                            , Cmd.map ObjectStorageListMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -3296,6 +3313,169 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
+        ReceiveContainers errorContext requestedMarker result ->
+            -- Swift pages container listings (≤10k/page). `result` is the page just received and
+            -- `requestedMarker` is the marker it was requested with.
+            --   * First page of a (re)load (`requestedMarker == Nothing`) RESETS the accumulator,
+            --     so refreshing an already-loaded list replaces rather than duplicates it.
+            --   * A subsequent page (`Just _`) stitches onto the accumulated data.
+            -- A full page continues the marker loop (`DoHave accumulated` + `Loading`); a short or
+            -- final page settles to `NotLoading`. On error we stop the loop and settle to
+            -- `NotLoading (Just error)`, preserving whatever pages already arrived.
+            case result of
+                Ok page ->
+                    let
+                        accumulated =
+                            OpenStack.ObjectStorage.stitchPage
+                                requestedMarker
+                                (RDPP.withDefault [] project.objectStorageContainers)
+                                page
+
+                        ( refreshStatus, cmd ) =
+                            case ( OpenStack.ObjectStorage.markerForNextPage Rest.Swift.containerPageLimit page, project.endpoints.swift ) of
+                                ( Just marker, Just url ) ->
+                                    ( RDPP.Loading
+                                    , Rest.Swift.requestContainersPage project url sharedModel.clientCurrentTime (Just marker)
+                                    )
+
+                                _ ->
+                                    ( RDPP.NotLoading Nothing, Cmd.none )
+
+                        newProject =
+                            { project
+                                | objectStorageContainers =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave accumulated sharedModel.clientCurrentTime)
+                                        refreshStatus
+                            }
+
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    ( newSharedModel, cmd )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newProject =
+                            { project
+                                | objectStorageContainers =
+                                    RDPP.setNotLoading
+                                        (Just ( httpError, sharedModel.clientCurrentTime ))
+                                        project.objectStorageContainers
+                            }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    processProjectSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        RequestCreateContainer containerName ->
+            case project.endpoints.swift of
+                Just swiftUrl ->
+                    ( outerModel, Rest.Swift.requestCreateContainer project swiftUrl containerName )
+                        |> mapToOuterMsg
+
+                Nothing ->
+                    ( outerModel, Cmd.none )
+
+        RequestDeleteContainer containerName recursive ->
+            case project.endpoints.swift of
+                Just swiftUrl ->
+                    ( outerModel
+                    , if recursive then
+                        Rest.Swift.requestContainerObjectNames project swiftUrl sharedModel.clientCurrentTime containerName Rest.Swift.recursiveDeleteMaxCycles
+
+                      else
+                        Rest.Swift.requestDeleteContainer project swiftUrl containerName
+                    )
+                        |> mapToOuterMsg
+
+                Nothing ->
+                    ( outerModel, Cmd.none )
+
+        ReceiveCreateContainer errorContext result ->
+            case result of
+                Ok () ->
+                    ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project) sharedModel
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    processProjectSynchronousApiError sharedModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveDeleteContainer errorContext result ->
+            case result of
+                Ok () ->
+                    ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project) sharedModel
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    processProjectSynchronousApiError sharedModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveContainerObjectNamesForDeletion errorContext containerName budget result ->
+            case ( result, project.endpoints.swift ) of
+                ( Ok names, Just swiftUrl ) ->
+                    case names of
+                        [] ->
+                            ( outerModel, Rest.Swift.requestDeleteContainer project swiftUrl containerName )
+                                |> mapToOuterMsg
+
+                        first :: rest ->
+                            if budget <= 0 then
+                                -- Bound the re-list loop so recursive delete cannot spin forever.
+                                processProjectStringError sharedModel
+                                    errorContext
+                                    ("Gave up deleting objects in container " ++ containerName ++ " after too many attempts; some objects may remain.")
+                                    |> Helpers.pipelineCmd
+                                        (ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project))
+                                    |> mapToOuterMsg
+                                    |> mapToOuterModel outerModel
+
+                            else
+                                ( outerModel, Rest.Swift.requestDeleteContainerObject project swiftUrl containerName budget rest first )
+                                    |> mapToOuterMsg
+
+                ( Ok _, Nothing ) ->
+                    ( outerModel, Cmd.none )
+
+                ( Err httpError, _ ) ->
+                    processProjectSynchronousApiError sharedModel errorContext httpError
+                        |> Helpers.pipelineCmd
+                            (ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project))
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveDeleteContainerObject errorContext containerName budget remaining result ->
+            case ( result, project.endpoints.swift ) of
+                ( Ok (), Just swiftUrl ) ->
+                    case remaining of
+                        next :: rest ->
+                            ( outerModel, Rest.Swift.requestDeleteContainerObject project swiftUrl containerName budget rest next )
+                                |> mapToOuterMsg
+
+                        [] ->
+                            ( outerModel, Rest.Swift.requestContainerObjectNames project swiftUrl sharedModel.clientCurrentTime containerName (budget - 1) )
+                                |> mapToOuterMsg
+
+                ( Ok (), Nothing ) ->
+                    ( outerModel, Cmd.none )
+
+                ( Err httpError, _ ) ->
+                    processProjectSynchronousApiError sharedModel errorContext httpError
+                        |> Helpers.pipelineCmd
+                            (ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project))
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
         ReceiveUploadObject errorContext uploadId _ _ result ->
             case result of
                 Ok () ->
@@ -4854,6 +5034,9 @@ createProject_ outerModel description authToken region endpoints =
             , shareAccessRules = Dict.empty
             , shareExportLocations = Dict.empty
             , shareTypes = RDPP.empty
+            , objectStorageContainers = RDPP.empty
+            , objectStorageListings = Dict.empty
+            , objectStorageContainerMetadata = Dict.empty
             , objectStorageUploads = []
             , networks = RDPP.empty
             , autoAllocatedNetworkUuid = RDPP.empty

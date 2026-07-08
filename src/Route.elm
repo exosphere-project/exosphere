@@ -56,6 +56,7 @@ type ProjectRouteConstructor
     | FloatingIpCreate (Maybe OSTypes.ServerUuid)
     | KeypairCreate
     | KeypairList
+    | ObjectStorageList
     | SecurityGroupDetail OSTypes.SecurityGroupUuid
     | SecurityGroupList
     | ServerCreate OSTypes.ImageUuid String (Maybe (List OSTypes.FlavorId)) (Maybe Bool)
@@ -230,6 +231,11 @@ toUrl maybePathPrefix route =
 
                         KeypairList ->
                             ( [ "keypairs" ]
+                            , []
+                            )
+
+                        ObjectStorageList ->
+                            ( [ "objectstorage" ]
                             , []
                             )
 
@@ -701,6 +707,9 @@ projectRouteParsers =
     , map
         KeypairCreate
         (s "uploadkeypair")
+    , map
+        ObjectStorageList
+        (s "objectstorage")
     , map
         identity
         (let

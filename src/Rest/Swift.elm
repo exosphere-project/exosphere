@@ -1,6 +1,12 @@
 module Rest.Swift exposing
-    ( requestDownloadObject
-    , requestUploadObject
+    ( containerPageLimit
+    , recursiveDeleteMaxCycles
+    , requestContainerObjectNames
+    , requestContainers
+    , requestContainersPage
+    , requestCreateContainer
+    , requestDeleteContainer
+    , requestDeleteContainerObject
     )
 
 {-| HTTP wiring for OpenStack Object Storage (Swift).
@@ -19,83 +25,252 @@ often expose only `X-Subject-Token`) and lift its 1 MiB body cap for uploads/HEA
 import Bytes exposing (Bytes)
 import Helpers.GetterSetters as GetterSetters
 import Http
+import Json.Decode
 import OpenStack.ObjectStorage as ObjectStorage
 import Rest.Helpers
     exposing
         ( expectBytesWithErrorBody
+        , expectMetadataWithErrorBody
         , expectVoidWithErrorBody
+        , httpResponseStringToResult
         , openstackCredentialedRequest
         )
 import Time
-import Types.Error exposing (ErrorContext, ErrorLevel(..))
-import Types.HelperTypes exposing (HttpRequestMethod(..), Url)
+import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
+import Types.HelperTypes exposing (Headers, HttpRequestMethod(..), Url)
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Url
 import Url.Builder
 
 
-{-| Upload an object with a `PUT` to `<container>/<object path>`. `objectName` is the FULL name (the
-current pseudo-folder prefix already prepended by the caller), split on `/` into separate
-percent-encoded URL segments exactly like the delete path.
+containerPageLimit : Int
+containerPageLimit =
+    10000
 
-The body is `Http.bytesBody contentType bytes`: that Content-Type header is carried by the body, and
-Content-Length is set by the browser/proxy — so we deliberately set **neither** header manually
-(fetch forbids setting Content-Length, and a second Content-Type would conflict). Swift replies `201
-Created`; `expectVoidWithErrorBody` treats any 2xx as success. The unique upload `id` +
-container/prefix/objectName ride back through `ReceiveUploadObject` so `State.State` can flip the
-matching queue entry (id-guarded against a superseded re-enqueue) + refresh the listing.
 
--}
-requestUploadObject : Project -> Url -> ObjectStorage.ContainerName -> Maybe ObjectStorage.Prefix -> ObjectStorage.ObjectName -> Int -> String -> Bytes -> Cmd SharedMsg
-requestUploadObject project url containerName maybePrefix objectName uploadId contentType bytes =
+requestContainers : Project -> Url -> Time.Posix -> Cmd SharedMsg
+requestContainers project url currentTime =
+    requestContainersPage project url currentTime Nothing
+
+
+requestContainersPage : Project -> Url -> Time.Posix -> Maybe String -> Cmd SharedMsg
+requestContainersPage project url currentTime maybeMarker =
     let
         errorContext =
             ErrorContext
-                ("upload object " ++ objectName ++ " to container " ++ containerName)
+                "get a list of object storage containers"
                 ErrorCrit
                 Nothing
+
+        -- Swift sends Last-Modified without Cache-Control, so browser heuristic caching can stale
+        -- listing reads; match Rest.AppVersion's timestamp query-param precedent.
+        queryParams =
+            [ Url.Builder.string "format" "json"
+            , Url.Builder.int "limit" containerPageLimit
+            , Url.Builder.int "t" (Time.posixToMillis currentTime)
+            ]
+                ++ (case maybeMarker of
+                        Just marker ->
+                            [ Url.Builder.string "marker" marker ]
+
+                        Nothing ->
+                            []
+                   )
 
         resultToMsg_ result =
             ProjectMsg
                 (GetterSetters.projectIdentifier project)
-                (ReceiveUploadObject errorContext uploadId containerName maybePrefix result)
-    in
-    openstackCredentialedRequest
-        (GetterSetters.projectIdentifier project)
-        Put
-        Nothing
-        []
-        ( url, ObjectStorage.objectPath containerName objectName |> List.map Url.percentEncode, [] )
-        (Http.bytesBody contentType bytes)
-        (expectVoidWithErrorBody resultToMsg_)
-
-
-{-| Fetched through the proxy because an anchor can't carry the token + proxy headers;
-`State.State` hands the bytes to `File.Download.bytes`.
--}
-requestDownloadObject : Project -> Url -> Time.Posix -> ObjectStorage.ContainerName -> ObjectStorage.ObjectName -> Cmd SharedMsg
-requestDownloadObject project url currentTime containerName objectName =
-    let
-        errorContext =
-            ErrorContext
-                ("download object " ++ objectName ++ " in container " ++ containerName)
-                ErrorCrit
-                Nothing
-
-        resultToMsg_ result =
-            ProjectMsg
-                (GetterSetters.projectIdentifier project)
-                (ReceiveDownloadObject errorContext objectName result)
+                (ReceiveContainers errorContext maybeMarker result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
         Get
         Nothing
         []
-        ( url
-        , ObjectStorage.objectPath containerName objectName |> List.map Url.percentEncode
-        , [ Url.Builder.int "t" (Time.posixToMillis currentTime) ]
-        )
+        ( url, [], queryParams )
         Http.emptyBody
-        (expectBytesWithErrorBody resultToMsg_)
+        (expectSwiftJsonOrEmpty resultToMsg_ ObjectStorage.parseContainersResponse)
+
+
+expectSwiftJsonOrEmpty :
+    (Result HttpErrorWithBody a -> SharedMsg)
+    -> (String -> Result Json.Decode.Error a)
+    -> Http.Expect SharedMsg
+expectSwiftJsonOrEmpty toMsg parse =
+    Http.expectStringResponse toMsg <|
+        httpResponseStringToResult <|
+            \body ->
+                case parse body of
+                    Ok value ->
+                        Ok value
+
+                    Err err ->
+                        Err <| HttpErrorWithBody (Http.BadBody (Json.Decode.errorToString err)) body
+
+
+{-| The recursive "delete a non-empty container" flow deletes objects a page at a time and re-lists
+between pages. This bounds the number of re-list cycles so a persistent server race / error can
+never spin forever; each cycle can clear up to a full listing page (`containerPageLimit`) of
+objects. See the `ReceiveContainerObjectNamesForDeletion` / `ReceiveDeleteContainerObject` handlers
+in `State.State`.
+-}
+recursiveDeleteMaxCycles : Int
+recursiveDeleteMaxCycles =
+    100
+
+
+containerPath : ObjectStorage.ContainerName -> List String
+containerPath containerName =
+    [ Url.percentEncode containerName ]
+
+
+requestCreateContainer : Project -> Url -> ObjectStorage.ContainerName -> Cmd SharedMsg
+requestCreateContainer project url containerName =
+    let
+        errorContext =
+            ErrorContext
+                ("create object storage container " ++ containerName)
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveCreateContainer errorContext result)
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Put
+        Nothing
+        []
+        ( url, containerPath containerName, [] )
+        Http.emptyBody
+        (expectVoidWithErrorBody resultToMsg_)
+
+
+requestDeleteContainer : Project -> Url -> ObjectStorage.ContainerName -> Cmd SharedMsg
+requestDeleteContainer project url containerName =
+    let
+        errorContext =
+            ErrorContext
+                ("delete object storage container " ++ containerName)
+                ErrorCrit
+                (Just "If the container is not empty, delete its objects first, then try again.")
+
+        resultToMsg_ result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveDeleteContainer errorContext result)
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Delete
+        Nothing
+        []
+        ( url, containerPath containerName, [] )
+        Http.emptyBody
+        (expectSwiftDeleteOrGone resultToMsg_)
+
+
+{-| List the **object names** in a container for the recursive-delete flow: a plain
+`GET <container>?format=json` with **no** `delimiter`, so every ordinary object (at any depth) is
+returned as a flat name. `budget` is the remaining re-list cycle allowance, threaded back through
+the `ReceiveContainerObjectNamesForDeletion` message so `State.State` can stop a runaway loop.
+
+NOTE (Out Of Scope, per plan): this cannot tell SLO/DLO manifests apart from ordinary objects, so
+the recursive delete makes **no large-object guarantee** — segments of a large object may be
+orphaned. That is warned about in the UI; large-object cleanup is CLI/rclone territory.
+
+-}
+requestContainerObjectNames : Project -> Url -> Time.Posix -> ObjectStorage.ContainerName -> Int -> Cmd SharedMsg
+requestContainerObjectNames project url currentTime containerName budget =
+    let
+        errorContext =
+            ErrorContext
+                ("list objects in container " ++ containerName ++ " for deletion")
+                ErrorCrit
+                Nothing
+
+        queryParams =
+            [ Url.Builder.string "format" "json"
+            , Url.Builder.int "limit" containerPageLimit
+            , Url.Builder.int "t" (Time.posixToMillis currentTime)
+            ]
+
+        resultToMsg_ result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveContainerObjectNamesForDeletion errorContext containerName budget result)
+
+        parseNames body =
+            ObjectStorage.parseObjectListingResponse body
+                |> Result.map (\listing -> List.map .name listing.objects)
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Get
+        Nothing
+        []
+        ( url, containerPath containerName, queryParams )
+        Http.emptyBody
+        (expectSwiftJsonOrEmpty resultToMsg_ parseNames)
+
+
+{-| Delete a single ordinary object with a `DELETE` to `<container>/<object path>`.
+
+`204`/`404` are both success (idempotent). `budget` and `remaining` (the object names still queued
+for this cycle) are threaded back through `ReceiveDeleteContainerObject` so the handler can delete
+the next one without holding loop state in the model.
+
+-}
+requestDeleteContainerObject : Project -> Url -> ObjectStorage.ContainerName -> Int -> List ObjectStorage.ObjectName -> ObjectStorage.ObjectName -> Cmd SharedMsg
+requestDeleteContainerObject project url containerName budget remaining objectName =
+    let
+        errorContext =
+            ErrorContext
+                ("delete object " ++ objectName ++ " in container " ++ containerName)
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveDeleteContainerObject errorContext containerName budget remaining result)
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Delete
+        Nothing
+        []
+        ( url, ObjectStorage.objectPath containerName objectName |> List.map Url.percentEncode, [] )
+        Http.emptyBody
+        (expectSwiftDeleteOrGone resultToMsg_)
+
+
+{-| Expect a Swift `DELETE`: any 2xx (`204`) **or** `404` is success (idempotent delete); every
+other status is surfaced as an error carrying the response body (e.g. `409` = container not empty).
+-}
+expectSwiftDeleteOrGone : (Result HttpErrorWithBody () -> SharedMsg) -> Http.Expect SharedMsg
+expectSwiftDeleteOrGone toMsg =
+    Http.expectStringResponse toMsg <|
+        \response ->
+            case response of
+                Http.GoodStatus_ _ _ ->
+                    Ok ()
+
+                Http.BadStatus_ metadata body ->
+                    if metadata.statusCode == 404 then
+                        Ok ()
+
+                    else
+                        Err <| HttpErrorWithBody (Http.BadStatus metadata.statusCode) body
+
+                Http.BadUrl_ badUrl ->
+                    Err <| HttpErrorWithBody (Http.BadUrl badUrl) ""
+
+                Http.Timeout_ ->
+                    Err <| HttpErrorWithBody Http.Timeout ""
+
+                Http.NetworkError_ ->
+                    Err <| HttpErrorWithBody Http.NetworkError ""

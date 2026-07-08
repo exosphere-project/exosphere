@@ -26,6 +26,7 @@ import Page.LoginOpenIdConnect
 import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
+import Page.ObjectStorageList
 import Page.ProjectOverview
 import Page.SecurityGroupDetail
 import Page.SecurityGroupList
@@ -394,6 +395,10 @@ projectContentView model context p viewConstructor =
         ShareList pageModel ->
             Page.ShareList.view context p model.clientCurrentTime pageModel
                 |> Element.map ShareListMsg
+
+        ObjectStorageList pageModel ->
+            Page.ObjectStorageList.view context p pageModel
+                |> Element.map ObjectStorageListMsg
 
         VolumeAttach pageModel ->
             Page.VolumeAttach.view context p pageModel

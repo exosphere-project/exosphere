@@ -133,6 +133,16 @@ type ProjectSpecificMsgConstructor
     | ReceiveShareExportLocations ( OSTypes.ShareUuid, List OSTypes.ExportLocation )
     | ReceiveShares (List OSTypes.Share)
     | ReceiveShareTypes (List OSTypes.ShareType)
+    | ReceiveContainers ErrorContext (Maybe String) (Result HttpErrorWithBody (List OpenStack.ObjectStorage.Container))
+    | RequestCreateContainer OpenStack.ObjectStorage.ContainerName
+      -- The Bool is `recursive`: when True the container's ordinary objects are deleted first.
+    | RequestDeleteContainer OpenStack.ObjectStorage.ContainerName Bool
+    | ReceiveCreateContainer ErrorContext (Result HttpErrorWithBody ())
+    | ReceiveDeleteContainer ErrorContext (Result HttpErrorWithBody ())
+      -- Recursive non-empty-container delete (Int = remaining re-list cycle budget; the object-name
+      -- list is threaded through the messages so no loop state lives in the model).
+    | ReceiveContainerObjectNamesForDeletion ErrorContext OpenStack.ObjectStorage.ContainerName Int (Result HttpErrorWithBody (List OpenStack.ObjectStorage.ObjectName))
+    | ReceiveDeleteContainerObject ErrorContext OpenStack.ObjectStorage.ContainerName Int (List OpenStack.ObjectStorage.ObjectName) (Result HttpErrorWithBody ())
     | ReceiveUploadObject ErrorContext Int OpenStack.ObjectStorage.ContainerName (Maybe OpenStack.ObjectStorage.Prefix) (Result HttpErrorWithBody ())
     | ReceiveDownloadObject ErrorContext OpenStack.ObjectStorage.ObjectName (Result HttpErrorWithBody Bytes)
     | ReceiveDeleteShare OSTypes.ShareUuid

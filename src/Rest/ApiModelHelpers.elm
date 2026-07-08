@@ -9,6 +9,7 @@ module Rest.ApiModelHelpers exposing
     , requestJetstream2Allocation
     , requestNetworkQuota
     , requestNetworks
+    , requestObjectStorageContainers
     , requestPorts
     , requestProjectLimits
     , requestProjectUsages
@@ -47,6 +48,7 @@ import Rest.Glance
 import Rest.Jetstream2Accounting
 import Rest.Neutron
 import Rest.Nova
+import Rest.Swift
 import Types.Error
 import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.Interactivity exposing (InteractionLevel)
@@ -239,6 +241,33 @@ requestShares projectUuid model =
                         |> GetterSetters.projectSetSharesLoading
                         |> GetterSetters.modelUpdateProject model
                     , OpenStack.Shares.requestShares project url
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+{-| Load the project's object-storage (Swift) container list, no-op when Swift is absent.
+
+Mirrors `requestShares`: sets the loading state centrally and dispatches the first page; the
+marker loop for subsequent pages is driven by the `ReceiveContainers` handler in `State.State`.
+Pages/views should fire **this**, never `Rest.Swift.requestContainers` directly, so the
+loading-state + missing-endpoint guards stay in one place.
+
+-}
+requestObjectStorageContainers : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestObjectStorageContainers projectUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            case project.endpoints.swift of
+                Just url ->
+                    ( project
+                        |> GetterSetters.projectSetObjectStorageContainersLoading
+                        |> GetterSetters.modelUpdateProject model
+                    , Rest.Swift.requestContainers project url model.clientCurrentTime
                     )
 
                 Nothing ->

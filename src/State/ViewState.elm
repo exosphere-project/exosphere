@@ -22,6 +22,7 @@ import Page.KeypairList
 import Page.LoginOpenIdConnect
 import Page.LoginOpenstack
 import Page.MessageLog
+import Page.ObjectStorageList
 import Page.ProjectOverview
 import Page.SecurityGroupDetail
 import Page.SecurityGroupList
@@ -328,6 +329,20 @@ routeToViewStateModelCmd sharedModel route =
                                             (ApiModelHelpers.requestComputeQuota (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| KeypairList <| Page.KeypairList.init True
+                            , newSharedModel
+                            , newCmd
+                            )
+
+                        Route.ObjectStorageList ->
+                            let
+                                ( newSharedModel, newCmd ) =
+                                    ( GetterSetters.modelUpdateProject sharedModel project
+                                    , Ports.instantiateClipboardJs ()
+                                    )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project))
+                            in
+                            ( projectViewProto <| ObjectStorageList (Page.ObjectStorageList.init True)
                             , newSharedModel
                             , newCmd
                             )

@@ -40,6 +40,11 @@ type alias Project =
     , shareExportLocations : Dict OSTypes.ShareUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ExportLocation))
     , shareTypes : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ShareType)
 
+    -- Object storage (Swift). Cache lives on the Project, keyed where appropriate; never page-local.
+    , objectStorageContainers : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List ObjectStorage.Container)
+    , objectStorageListings : Dict ( ObjectStorage.ContainerName, ObjectStorage.Prefix ) (RDPP.RemoteDataPlusPlus HttpErrorWithBody ObjectStorage.ObjectListing)
+    , objectStorageContainerMetadata : Dict ObjectStorage.ContainerName (RDPP.RemoteDataPlusPlus HttpErrorWithBody ObjectStorage.ContainerMetadata)
+
     -- Transient (never persisted) browser-side upload queue with honest per-file queue-state status.
     -- Lives here (not page-local) because upload results arrive as SharedMsg in State.State; precedent
     -- for transient action state on Project: serverVolumeActions / serverActionRequestQueue above.

@@ -56,6 +56,7 @@ module Helpers.GetterSetters exposing
     , projectSetImagesLoading
     , projectSetJetstream2AllocationLoading
     , projectSetNetworksLoading
+    , projectSetObjectStorageContainersLoading
     , projectSetPortsLoading
     , projectSetSecurityGroupsLoading
     , projectSetServerEventsLoading
@@ -1135,12 +1136,12 @@ projectSetSharesLoading project =
     { project | shares = RDPP.setLoading project.shares }
 
 
-projectSetShareTypesLoading : Project -> Project
-projectSetShareTypesLoading project =
-    { project | shareTypes = RDPP.setLoading project.shareTypes }
+projectSetObjectStorageContainersLoading : Project -> Project
+projectSetObjectStorageContainersLoading project =
+    { project | objectStorageContainers = RDPP.setLoading project.objectStorageContainers }
 
 
-{-| Update the status of the queued upload whose unique `id` matches, leaving every other entry
+{-| Set the status for exactly one queued object-storage upload by id, leaving all other uploads
 untouched. A no-op if no such entry exists — which is exactly the stale-result guard: a completion
 for a superseded (re-enqueued) upload carries the OLD id and is correctly ignored (see
 `OpenStack.ObjectStorage.setUploadStatusById`).
@@ -1151,6 +1152,11 @@ projectSetUploadStatusById id status project =
         | objectStorageUploads =
             ObjectStorage.setUploadStatusById id status project.objectStorageUploads
     }
+
+
+projectSetShareTypesLoading : Project -> Project
+projectSetShareTypesLoading project =
+    { project | shareTypes = RDPP.setLoading project.shareTypes }
 
 
 projectSetShareAccessRulesLoading : OSTypes.ShareUuid -> Project -> Project

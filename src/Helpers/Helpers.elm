@@ -13,6 +13,7 @@ module Helpers.Helpers exposing
     , naiveUuidParser
     , newServerMetadata
     , newServerNetworkOptions
+    , objectStorageTileVisible
     , parseConsoleLogForWorkflowToken
     , pipelineCmd
     , renderUserDataTemplate
@@ -199,6 +200,13 @@ serviceCatalogToEndpoints catalog maybeRegionId =
                             |> List.filterMap missingServiceName
                             |> String.join ", "
                        )
+
+
+{-| Object Storage is visible only behind the feature flag and a Swift endpoint.
+-}
+objectStorageTileVisible : Bool -> Maybe HelperTypes.Url -> Bool
+objectStorageTileVisible experimentalFeaturesEnabled maybeSwiftUrl =
+    experimentalFeaturesEnabled && maybeSwiftUrl /= Nothing
 
 
 encodeFloatingIpOption : FloatingIpOption -> List ( String, Json.Encode.Value )

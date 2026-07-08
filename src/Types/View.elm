@@ -19,6 +19,7 @@ import Page.KeypairList
 import Page.LoginOpenIdConnect
 import Page.LoginOpenstack
 import Page.MessageLog
+import Page.ObjectStorageList
 import Page.ProjectOverview
 import Page.SecurityGroupDetail
 import Page.SecurityGroupList
@@ -79,6 +80,7 @@ type ProjectViewConstructor
     | FloatingIpCreate Page.FloatingIpCreate.Model
     | KeypairCreate Page.KeypairCreate.Model
     | KeypairList Page.KeypairList.Model
+    | ObjectStorageList Page.ObjectStorageList.Model
     | SecurityGroupDetail Page.SecurityGroupDetail.Model
     | SecurityGroupList Page.SecurityGroupList.Model
     | ServerCreate HelperTypes.CreateServerPageModel
