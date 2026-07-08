@@ -181,6 +181,13 @@ type ProjectSpecificMsgConstructor
       -- refreshed). On success ReceiveCreateFolder re-lists that level so the new subdir row shows.
     | RequestCreateFolder OpenStack.ObjectStorage.ContainerName (Maybe OpenStack.ObjectStorage.Prefix) OpenStack.ObjectStorage.ObjectName
     | ReceiveCreateFolder ErrorContext OpenStack.ObjectStorage.ContainerName (Maybe OpenStack.ObjectStorage.Prefix) (Result HttpErrorWithBody ())
+      -- Manage access (container detail). ReceiveContainerMetadata populates the dormant
+      -- objectStorageContainerMetadata cache from a HEAD read; RequestSetContainerAcl POSTs a
+      -- no-clobber read/write ACL change; ReceiveSetContainerMetadata re-HEADs on success (refresh,
+      -- mirroring ReceiveDeleteObject) rather than optimistically writing the cache.
+    | ReceiveContainerMetadata ErrorContext OpenStack.ObjectStorage.ContainerName (Result HttpErrorWithBody OpenStack.ObjectStorage.ContainerMetadata)
+    | RequestSetContainerAcl OpenStack.ObjectStorage.ContainerName OpenStack.ObjectStorage.ContainerAclUpdate
+    | ReceiveSetContainerMetadata ErrorContext OpenStack.ObjectStorage.ContainerName (Result HttpErrorWithBody ())
     | ReceiveDeleteShare OSTypes.ShareUuid
     | ReceiveShareQuota ErrorContext (Result HttpErrorWithBody OSTypes.ShareQuota)
     | ReceiveCreateVolume

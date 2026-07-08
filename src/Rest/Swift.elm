@@ -1,7 +1,9 @@
 module Rest.Swift exposing
     ( containerPageLimit
+    , postContainerMetadata
     , recursiveDeleteMaxCycles
     , requestBulkDelete
+    , requestContainerMetadata
     , requestContainerObjectNames
     , requestContainers
     , requestContainersPage
@@ -510,9 +512,103 @@ requestCreateFolder project url containerName maybePrefix placeholderName =
         (expectVoidWithErrorBody resultToMsg_)
 
 
-{-| Expect a Swift `DELETE`: any 2xx (`204`) **or** `404` is success (idempotent delete); every
-other status is surfaced as an error carrying the response body (e.g. `409` = container not empty).
+{-| Read a container's ACL + usage + creation-time + storage-policy with a `HEAD <container>` through the
+proxy. The payload is entirely in the response HEADERS (`X-Container-Read/Write`, `X-Container-Bytes-Used`,
+`X-Container-Object-Count`, `X-Timestamp`, `X-Storage-Policy`), so this uses the metadata-preserving
+`expectMetadataWithErrorBody` (the JSON/void helpers discard headers) and decodes them via
+`OpenStack.ObjectStorage.containerMetadataFromHeaders`. Result rides back through
+`ReceiveContainerMetadata` to populate `project.objectStorageContainerMetadata`.
+
+PROVISIONAL: a CORS proxy must EXPOSE these `X-Container-*` / `X-Timestamp` / `X-Storage-Policy`
+response headers for the browser to read them. Live-confirmed on Jetstream2 (2026-07): RGW returns
+the headers, but a proxy exposing only `X-Subject-Token` strips them and this metadata renders as
+absent. The fix is proxy config, not code.
+
 -}
+requestContainerMetadata : Project -> Url -> Time.Posix -> ObjectStorage.ContainerName -> Cmd SharedMsg
+requestContainerMetadata project url currentTime containerName =
+    let
+        errorContext =
+            ErrorContext
+                ("get access settings for object storage container " ++ containerName)
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveContainerMetadata errorContext
+                    containerName
+                    (Result.map (.headers >> ObjectStorage.containerMetadataFromHeaders) result)
+                )
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Head
+        Nothing
+        []
+        ( url, containerPath containerName, [ Url.Builder.int "t" (Time.posixToMillis currentTime) ] )
+        Http.emptyBody
+        (expectMetadataWithErrorBody resultToMsg_)
+
+
+{-| Set a container's read/write ACL with a `POST <container>` (empty body) carrying the ACL headers.
+Swift replies `204 No Content` with an empty body, so `expectVoidWithErrorBody` treats any 2xx as
+success. The header set is derived from the `ContainerAclUpdate`:
+
+  - `SetAcl v` → `X-Container-Read`/`-Write: v`.
+  - `RemoveAcl` → `X-Remove-Container-Read`/`-Write: true` (NEVER an empty-valued `X-Container-*`,
+    which an Exosphere-style CORS proxy strips).
+  - `LeaveAcl` → no header for that field (Swift only changes headers you send), so an unrelated ACL
+    is never clobbered.
+
+The container/ACL headers go through `openstackCredentialedRequest`'s `Headers` param, so the token +
+proxy are never hand-rolled. Result rides back through `ReceiveSetContainerMetadata`.
+
+-}
+postContainerMetadata : Project -> Url -> ObjectStorage.ContainerName -> ObjectStorage.ContainerAclUpdate -> Cmd SharedMsg
+postContainerMetadata project url containerName update =
+    let
+        errorContext =
+            ErrorContext
+                ("update access settings for object storage container " ++ containerName)
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveSetContainerMetadata errorContext containerName result)
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Post
+        Nothing
+        (aclUpdateHeaders update)
+        ( url, containerPath containerName, [] )
+        Http.emptyBody
+        (expectVoidWithErrorBody resultToMsg_)
+
+
+aclUpdateHeaders : ObjectStorage.ContainerAclUpdate -> Headers
+aclUpdateHeaders update =
+    aclChangeHeaders ( "X-Container-Read", "X-Remove-Container-Read" ) update.read
+        ++ aclChangeHeaders ( "X-Container-Write", "X-Remove-Container-Write" ) update.write
+
+
+aclChangeHeaders : ( String, String ) -> ObjectStorage.AclChange -> Headers
+aclChangeHeaders ( setName, removeName ) change =
+    case change of
+        ObjectStorage.SetAcl value ->
+            [ ( setName, value ) ]
+
+        ObjectStorage.RemoveAcl ->
+            [ ( removeName, "true" ) ]
+
+        ObjectStorage.LeaveAcl ->
+            []
+
+
 expectSwiftDeleteOrGone : (Result HttpErrorWithBody () -> SharedMsg) -> Http.Expect SharedMsg
 expectSwiftDeleteOrGone toMsg =
     Http.expectStringResponse toMsg <|

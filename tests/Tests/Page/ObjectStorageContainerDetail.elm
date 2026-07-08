@@ -1,6 +1,7 @@
-module Tests.Page.ObjectStorageContainerDetail exposing (crumbsSuite, uploadStatusLabelSuite, uploadsForLevelSuite)
+module Tests.Page.ObjectStorageContainerDetail exposing (aclFieldValueSuite, containerUsageLabelSuite, crumbsSuite, uploadStatusLabelSuite, uploadsForLevelSuite)
 
 import Expect
+import FormatNumber.Locales
 import OpenStack.ObjectStorage as ObjectStorage
 import Page.ObjectStorageContainerDetail as ObjectStorageContainerDetail
 import Test exposing (Test, describe, test)
@@ -78,6 +79,83 @@ uploadStatusLabelSuite =
                         "SENTINEL rejection reason"
                 in
                 Expect.equal reason (label (ObjectStorage.Rejected reason))
+        ]
+
+
+containerUsageLabelSuite : Test
+containerUsageLabelSuite =
+    let
+        locale =
+            FormatNumber.Locales.base
+
+        mk bytesUsed objectCount =
+            { readAcl = Nothing
+            , writeAcl = Nothing
+            , bytesUsed = bytesUsed
+            , objectCount = objectCount
+            , createdAt = Nothing
+            , storagePolicy = Nothing
+            }
+
+        label md =
+            ObjectStorageContainerDetail.containerUsageLabel locale md
+    in
+    describe "Page.ObjectStorageContainerDetail.containerUsageLabel formats the usage summary shared by both variants"
+        [ test "(1) no bytes and no count yields Nothing (no usage row rendered)" <|
+            \_ ->
+                Expect.equal Nothing (label (mk Nothing Nothing))
+        , test "(2) both present -> a Just surfacing the formatted bytes AND the count value" <|
+            \_ ->
+                Expect.equal (Just ( True, True ))
+                    (label (mk (Just 1536) (Just 3))
+                        |> Maybe.map (\s -> ( String.contains "1.5 KB" s, String.contains "3" s ))
+                    )
+        , test "(3) bytes only -> a Just surfacing the formatted bytes" <|
+            \_ ->
+                Expect.equal (Just True)
+                    (label (mk (Just 1536) Nothing)
+                        |> Maybe.map (String.contains "1.5 KB")
+                    )
+        , test "(4) count only -> a Just surfacing the count value" <|
+            \_ ->
+                Expect.equal (Just True)
+                    (label (mk Nothing (Just 1))
+                        |> Maybe.map (String.contains "1")
+                    )
+        , test "(5) Just 0 / Just 0 is real data (empty container) -> a Just showing 0 B, NOT Nothing" <|
+            \_ ->
+                Expect.equal (Just True)
+                    (label (mk (Just 0) (Just 0))
+                        |> Maybe.map (String.contains "0 B")
+                    )
+        ]
+
+
+{-| The advanced-ACL field's displayed value, extracted from `advancedAclControl`'s
+read/write duplication. `Nothing` (untouched)
+falls back to the container's current metadata ACL; `Just s` is the user's edit and always wins — even
+`Just ""` (edited-to-empty), which must show blank, NOT the metadata fallback, because an empty field
+is what drives the `X-Remove-Container-*` revoke path.
+-}
+aclFieldValueSuite : Test
+aclFieldValueSuite =
+    describe "Page.ObjectStorageContainerDetail.aclFieldValue picks the displayed raw-ACL string"
+        [ test "(1) untouched field falls back to the current metadata ACL" <|
+            \_ ->
+                Expect.equal ".r:*,project:user"
+                    (ObjectStorageContainerDetail.aclFieldValue Nothing (Just ".r:*,project:user"))
+        , test "(2) untouched field with no metadata ACL shows empty" <|
+            \_ ->
+                Expect.equal ""
+                    (ObjectStorageContainerDetail.aclFieldValue Nothing Nothing)
+        , test "(3) an edit wins over the metadata value" <|
+            \_ ->
+                Expect.equal "project:other"
+                    (ObjectStorageContainerDetail.aclFieldValue (Just "project:other") (Just ".r:*,project:user"))
+        , test "(4) edited-to-empty stays empty (drives the revoke path), NOT the metadata fallback" <|
+            \_ ->
+                Expect.equal ""
+                    (ObjectStorageContainerDetail.aclFieldValue (Just "") (Just ".r:*"))
         ]
 
 

@@ -52,6 +52,7 @@ module Helpers.GetterSetters exposing
     , projectEnqueueUpload
     , projectIdentifier
     , projectLookup
+    , projectLookupObjectStorageContainerMetadata
     , projectLookupObjectStorageListing
     , projectRemoveServerActionRequestJob
     , projectSetAutoAllocatedNetworkUuidLoading
@@ -60,6 +61,8 @@ module Helpers.GetterSetters exposing
     , projectSetImagesLoading
     , projectSetJetstream2AllocationLoading
     , projectSetNetworksLoading
+    , projectSetObjectStorageContainerMetadata
+    , projectSetObjectStorageContainerMetadataLoading
     , projectSetObjectStorageContainersLoading
     , projectSetObjectStorageListing
     , projectSetObjectStorageListingLoading
@@ -1233,6 +1236,39 @@ projectClearFinishedUploads : Project -> Project
 projectClearFinishedUploads project =
     { project
         | objectStorageUploads = ObjectStorage.clearFinishedUploads project.objectStorageUploads
+    }
+
+
+{-| Missing metadata entries behave like empty RDPP values.
+-}
+projectLookupObjectStorageContainerMetadata : ObjectStorage.ContainerName -> Project -> RemoteDataPlusPlus HttpErrorWithBody ObjectStorage.ContainerMetadata
+projectLookupObjectStorageContainerMetadata containerName project =
+    Dict.get containerName project.objectStorageContainerMetadata
+        |> Maybe.withDefault RDPP.empty
+
+
+projectSetObjectStorageContainerMetadataLoading : ObjectStorage.ContainerName -> Project -> Project
+projectSetObjectStorageContainerMetadataLoading containerName project =
+    { project
+        | objectStorageContainerMetadata =
+            Dict.update containerName
+                (\entry ->
+                    case entry of
+                        Just metadata ->
+                            Just (RDPP.setLoading metadata)
+
+                        Nothing ->
+                            Just (RDPP.setLoading RDPP.empty)
+                )
+                project.objectStorageContainerMetadata
+    }
+
+
+projectSetObjectStorageContainerMetadata : ObjectStorage.ContainerName -> RemoteDataPlusPlus HttpErrorWithBody ObjectStorage.ContainerMetadata -> Project -> Project
+projectSetObjectStorageContainerMetadata containerName metadata project =
+    { project
+        | objectStorageContainerMetadata =
+            Dict.insert containerName metadata project.objectStorageContainerMetadata
     }
 
 

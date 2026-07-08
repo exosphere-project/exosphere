@@ -9,6 +9,7 @@ module Rest.ApiModelHelpers exposing
     , requestJetstream2Allocation
     , requestNetworkQuota
     , requestNetworks
+    , requestObjectStorageContainerMetadata
     , requestObjectStorageContainers
     , requestObjectStorageObjects
     , requestPorts
@@ -295,6 +296,30 @@ requestObjectStorageObjects projectUuid containerName maybePrefix model =
                         |> GetterSetters.projectSetObjectStorageListingLoading containerName maybePrefix
                         |> GetterSetters.modelUpdateProject model
                     , Rest.Swift.requestObjects project url model.clientCurrentTime containerName maybePrefix Nothing
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+{-| Load a container's HEAD-container access settings (ACL + usage), no-op when Swift is absent.
+Mirrors `requestObjectStorageObjects`: sets the container's metadata RDPP to loading centrally, then
+dispatches the HEAD. Fired from the container-detail route load (and re-fired by `State.State` after a
+successful ACL POST to refresh, rather than optimistically writing the cache).
+-}
+requestObjectStorageContainerMetadata : ProjectIdentifier -> OpenStack.ObjectStorage.ContainerName -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestObjectStorageContainerMetadata projectUuid containerName model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            case project.endpoints.swift of
+                Just url ->
+                    ( project
+                        |> GetterSetters.projectSetObjectStorageContainerMetadataLoading containerName
+                        |> GetterSetters.modelUpdateProject model
+                    , Rest.Swift.requestContainerMetadata project url model.clientCurrentTime containerName
                     )
 
                 Nothing ->

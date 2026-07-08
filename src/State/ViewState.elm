@@ -357,6 +357,8 @@ routeToViewStateModelCmd sharedModel route =
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestObjectStorageObjects (GetterSetters.projectIdentifier project) containerName maybePrefix)
                                         |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestObjectStorageContainerMetadata (GetterSetters.projectIdentifier project) containerName)
+                                        |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| ObjectStorageContainerDetail (Page.ObjectStorageContainerDetail.init containerName maybePrefix)

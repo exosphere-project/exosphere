@@ -3845,6 +3845,63 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
+        ReceiveContainerMetadata errorContext containerName result ->
+            case result of
+                Ok metadata ->
+                    let
+                        newMetadata =
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave metadata sharedModel.clientCurrentTime)
+                                (RDPP.NotLoading Nothing)
+
+                        newProject =
+                            GetterSetters.projectSetObjectStorageContainerMetadata containerName newMetadata project
+
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    ( newSharedModel, Cmd.none )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newMetadata =
+                            RDPP.setNotLoading
+                                (Just ( httpError, sharedModel.clientCurrentTime ))
+                                (GetterSetters.projectLookupObjectStorageContainerMetadata containerName project)
+
+                        newProject =
+                            GetterSetters.projectSetObjectStorageContainerMetadata containerName newMetadata project
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    processProjectSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        RequestSetContainerAcl containerName aclUpdate ->
+            case project.endpoints.swift of
+                Just swiftUrl ->
+                    ( outerModel, Rest.Swift.postContainerMetadata project swiftUrl containerName aclUpdate )
+                        |> mapToOuterMsg
+
+                Nothing ->
+                    ( outerModel, Cmd.none )
+
+        ReceiveSetContainerMetadata errorContext containerName result ->
+            case result of
+                Ok () ->
+                    ApiModelHelpers.requestObjectStorageContainerMetadata (GetterSetters.projectIdentifier project) containerName sharedModel
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    processProjectSynchronousApiError sharedModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
         ReceiveDeleteShare shareUuid ->
             ( outerModel
             , case outerModel.viewState of
