@@ -134,6 +134,9 @@ type ProjectSpecificMsgConstructor
     | ReceiveShareExportLocations ( OSTypes.ShareUuid, List OSTypes.ExportLocation )
     | ReceiveShares (List OSTypes.Share)
     | ReceiveShareTypes (List OSTypes.ShareType)
+    | RequestCreateEc2Credential
+    | ReceiveEc2Credentials ErrorContext (Result HttpErrorWithBody (List OSTypes.Ec2Credential))
+    | ReceiveCreateEc2Credential ErrorContext (Result HttpErrorWithBody OSTypes.Ec2Credential)
     | ReceiveContainers ErrorContext (Maybe String) (Result HttpErrorWithBody (List OpenStack.ObjectStorage.Container))
     | RequestCreateContainer OpenStack.ObjectStorage.ContainerName
       -- The Bool is `recursive`: when True the container's ordinary objects are deleted first.

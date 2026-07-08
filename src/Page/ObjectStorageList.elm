@@ -35,6 +35,7 @@ type alias Model =
     { showHeading : Bool
     , dataListModel : DataList.Model
     , newContainerName : String
+    , s3SecretRevealed : Bool
     }
 
 
@@ -46,6 +47,8 @@ type Msg
     | GotCreateContainer ObjectStorage.ContainerName
       -- The Bool is `recursive` (True for a non-empty container: delete its objects first).
     | GotDeleteConfirm ObjectStorage.ContainerName Bool
+    | GotS3SecretRevealed Bool
+    | GotCreateEc2Credential
 
 
 init : Bool -> Model
@@ -53,6 +56,7 @@ init showHeading =
     { showHeading = showHeading
     , dataListModel = DataList.init <| DataList.getDefaultFilterOptions []
     , newContainerName = ""
+    , s3SecretRevealed = False
     }
 
 
@@ -83,6 +87,16 @@ update msg project model =
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 SharedMsg.RequestDeleteContainer name recursive
+            )
+
+        GotS3SecretRevealed revealed ->
+            ( { model | s3SecretRevealed = revealed }, Cmd.none, SharedMsg.NoOp )
+
+        GotCreateEc2Credential ->
+            ( model
+            , Cmd.none
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project)
+                SharedMsg.RequestCreateEc2Credential
             )
 
 
@@ -121,7 +135,195 @@ view context project model =
                     project.objectStorageContainers
                     (pluralize word)
                     (renderSuccessCase context project model)
+        , s3ConnectSection context project model
         ]
+
+
+s3ConnectSection : View.Types.Context -> Project -> Model -> Element.Element Msg
+s3ConnectSection context project model =
+    VH.tile
+        context
+        [ featherIcon [] Icons.hardDrive
+        , Element.text "Connect with an S3 client"
+        ]
+        [ Element.column
+            [ Element.spacing spacer.px16
+            , Element.width Element.fill
+            , Font.color (SH.toElementColor context.palette.neutral.text.default)
+            ]
+            (case project.endpoints.s3 of
+                Just url ->
+                    s3ConnectContents context project model url
+
+                Nothing ->
+                    let
+                        cloudWord =
+                            context.localization.openstackWithOwnKeystone
+                    in
+                    [ Text.p []
+                        [ Text.body <|
+                            String.join " "
+                                [ "S3 access is not enabled on this"
+                                , cloudWord ++ "."
+                                , "Ask your"
+                                , cloudWord
+                                , "administrator whether it offers an S3-compatible API (for example, s3api or Ceph RGW)."
+                                ]
+                        ]
+                    ]
+            )
+        ]
+
+
+s3ConnectContents : View.Types.Context -> Project -> Model -> String -> List (Element.Element Msg)
+s3ConnectContents context project model url =
+    let
+        containerWord =
+            context.localization.objectStoreContainer
+
+        tenancyWord =
+            context.localization.unitOfTenancy
+    in
+    [ Text.p []
+        [ Text.body "Use these values to connect an S3-compatible client, such as rclone or Cyberduck, to your object storage." ]
+    , VH.compactKVRow "Endpoint URL" (copyableText context.palette [] url)
+    , VH.compactKVRow {- @nonlocalized -} "Region" (regionValue context)
+    , VH.renderRDPP
+        context
+        project.ec2Credentials
+        (pluralize context.localization.credential)
+        (s3CredentialsView context project model url)
+    , Text.p []
+        [ Text.body <|
+            String.join " "
+                [ "Each"
+                , containerWord
+                , "in this"
+                , tenancyWord
+                , "is an S3 bucket with the same name."
+                ]
+        ]
+    , Text.p []
+        [ Text.body "Use path-style addressing (most clients, including rclone, handle this automatically)." ]
+    ]
+
+
+regionValue : View.Types.Context -> Element.Element Msg
+regionValue context =
+    Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
+        (Text.body {- @nonlocalized -} "us-east-1 (S3 clients require a region; this value works here).")
+
+
+s3CredentialsView : View.Types.Context -> Project -> Model -> String -> List OSTypes.Ec2Credential -> Element.Element Msg
+s3CredentialsView context _ model url creds =
+    case List.head creds of
+        Just cred ->
+            Element.column [ Element.spacing spacer.px16, Element.width Element.fill ]
+                [ VH.compactKVRow "Access key" (copyableText context.palette [] cred.access)
+                , VH.compactKVRow "Secret key" (s3SecretValue context model cred.secret)
+                , rcloneConfigBlock context url cred
+                ]
+
+        Nothing ->
+            let
+                credentialsWord =
+                    pluralize context.localization.credential
+            in
+            Element.column [ Element.spacing spacer.px16, Element.width Element.fill ]
+                [ Text.p []
+                    [ Text.body <|
+                        String.join " "
+                            [ "No S3"
+                            , credentialsWord
+                            , "yet. Create an access key and secret key pair to connect an S3 client."
+                            ]
+                    ]
+                , Button.primary context.palette
+                    { text = "Create " ++ credentialsWord
+                    , onPress = Just GotCreateEc2Credential
+                    }
+                ]
+
+
+rcloneConfigBlock : View.Types.Context -> String -> OSTypes.Ec2Credential -> Element.Element Msg
+rcloneConfigBlock context url cred =
+    let
+        realSnippet =
+            ObjectStorage.rcloneConfigSnippet
+                { endpoint = url, access = cred.access, secret = cred.secret }
+
+        maskedSnippet =
+            ObjectStorage.rcloneConfigSnippet
+                { endpoint = url, access = cred.access, secret = String.repeat 8 "•" }
+    in
+    Element.column [ Element.spacing spacer.px8, Element.width Element.fill ]
+        [ Text.strong "rclone config"
+        , maskedScriptBlock context { display = maskedSnippet, clipboard = realSnippet }
+        , Element.el
+            [ Font.color (SH.toElementColor context.palette.neutral.text.subdued)
+            , Text.fontSize Text.Small
+            ]
+            (Element.text "Copying includes your real secret key.")
+        ]
+
+
+maskedScriptBlock : View.Types.Context -> { display : String, clipboard : String } -> Element.Element Msg
+maskedScriptBlock context { display, clipboard } =
+    Element.el
+        [ Element.inFront <|
+            Element.el
+                [ Element.alignRight
+                , Element.moveLeft (toFloat spacer.px4)
+                , Element.moveDown (toFloat spacer.px4)
+                ]
+                (clipboardCopyButton context
+                    { icon = Icons.clipboard
+                    , accessibilityLabel = "Copy rclone config"
+                    , textToCopy = clipboard
+                    }
+                )
+        , Element.width Element.fill
+        , Border.solid
+        , Border.width 1
+        , Border.rounded 3
+        , Element.padding spacer.px8
+        , Background.color (SH.toElementColor context.palette.neutral.background.frontLayer)
+        , Border.color (SH.toElementColor context.palette.neutral.border)
+        ]
+        (Element.column
+            ([ Element.spacing spacer.px4, Text.fontFamily Text.Mono ]
+                ++ Text.typographyAttrs Text.Small
+            )
+            (display
+                |> String.split "\n"
+                |> List.map Element.text
+            )
+        )
+
+
+s3SecretValue : View.Types.Context -> Model -> String -> Element.Element Msg
+s3SecretValue context model secret =
+    if model.s3SecretRevealed then
+        Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
+            [ copyableText context.palette [] secret
+            , rowActionIcon context
+                { icon = Icons.eyeOff
+                , accessibilityLabel = "Hide secret key"
+                , onClick = Just (GotS3SecretRevealed False)
+                , hoverColor = context.palette.primary |> SH.toElementColor
+                }
+            ]
+
+    else
+        Element.row [ Element.spacing spacer.px8 ]
+            [ Element.text (String.repeat 12 "•")
+            , rowActionIcon context
+                { icon = Icons.eye
+                , accessibilityLabel = "Reveal secret key"
+                , onClick = Just (GotS3SecretRevealed True)
+                , hoverColor = context.palette.primary |> SH.toElementColor
+                }
+            ]
 
 
 renderSuccessCase : View.Types.Context -> Project -> Model -> List ObjectStorage.Container -> Element.Element Msg
@@ -319,9 +521,19 @@ containerView context project containerRecord =
         (listItemColumnAttribs context.palette)
         [ Element.row [ Element.spacing spacer.px12, Element.width Element.fill ]
             [ Element.row [ Element.width Element.fill, Element.spacing spacer.px4 ]
-                [ Element.el
-                    (Text.typographyAttrs Text.Emphasized)
-                    (Element.text container.name)
+                [ Element.link []
+                    { url =
+                        Route.toUrl context.urlPathPrefix
+                            (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                Route.ObjectStorageContainerDetail container.name Nothing
+                            )
+                    , label =
+                        Element.el
+                            (Text.typographyAttrs Text.Emphasized
+                                ++ [ Font.color (SH.toElementColor context.palette.primary) ]
+                            )
+                            (Element.text container.name)
+                    }
                 , clipboardCopyButton context
                     { icon = Icons.clipboard
                     , accessibilityLabel = "Copy name"
@@ -329,7 +541,17 @@ containerView context project containerRecord =
                     }
                 ]
             , Element.row [ Element.alignRight, Element.alignTop, Element.spacing spacer.px8 ]
-                [ deleteContainerPopconfirm context project container
+                [ rowActionIconLink context
+                    { icon = Icons.settings
+                    , accessibilityLabel = "Sharing & access"
+                    , url =
+                        Route.toUrl context.urlPathPrefix
+                            (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                Route.ObjectStorageContainerDetail container.name Nothing
+                            )
+                    , hoverColor = context.palette.primary |> SH.toElementColor
+                    }
+                , deleteContainerPopconfirm context project container
                 ]
             ]
         , Element.row [ Element.spacing spacer.px8 ]

@@ -342,6 +342,8 @@ routeToViewStateModelCmd sharedModel route =
                                     )
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestEc2Credentials (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| ObjectStorageList (Page.ObjectStorageList.init True)
                             , newSharedModel

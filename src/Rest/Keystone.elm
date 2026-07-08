@@ -1,7 +1,11 @@
 module Rest.Keystone exposing
     ( decodeScopedAuthToken
     , decodeUnscopedAuthToken
+    , ec2CredentialDecoder
+    , ec2CredentialsDecoder
     , requestAppCredential
+    , requestCreateEc2Credential
+    , requestEc2Credentials
     , requestScopedAuthToken
     , requestUnscopedAuthToken
     , requestUnscopedProjects
@@ -285,6 +289,76 @@ requestAppCredential clientUuid posixTime project =
         (expectJsonWithErrorBody resultToMsg_ appCredentialDecoder)
 
 
+{-| GET the user's EC2/S3 credentials (Keystone OS-EC2 extension). The response spans all of the
+user's projects; the `ReceiveEc2Credentials` handler filters to the current project's tenant before
+caching. Mirrors `requestAppCredential`'s URL shape, but a GET with an empty body.
+-}
+requestEc2Credentials : Project -> Cmd SharedMsg
+requestEc2Credentials project =
+    let
+        errorContext =
+            ErrorContext
+                ("get EC2 (S3) credentials for project named \"" ++ project.auth.project.name ++ "\"")
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ =
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
+                errorContext
+                (\creds ->
+                    ProjectMsg
+                        (GetterSetters.projectIdentifier project)
+                        (ReceiveEc2Credentials errorContext (Ok creds))
+                )
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Get
+        Nothing
+        []
+        ( keystoneUrlWithVersion project.endpoints.keystone, [ "users", project.auth.user.uuid, "credentials", "OS-EC2" ], [] )
+        Http.emptyBody
+        (expectJsonWithErrorBody resultToMsg_ ec2CredentialsDecoder)
+
+
+{-| POST a new EC2/S3 credential for the current project (Keystone OS-EC2 extension). The body is a
+TOP-LEVEL `{"tenant_id": <project uuid>}` (not wrapped in an outer key). On success the
+`ReceiveCreateEc2Credential` handler re-fires the list request to refresh the cache.
+-}
+requestCreateEc2Credential : Project -> Cmd SharedMsg
+requestCreateEc2Credential project =
+    let
+        requestBody =
+            Encode.object
+                [ ( "tenant_id", Encode.string project.auth.project.uuid ) ]
+
+        errorContext =
+            ErrorContext
+                ("create an EC2 (S3) credential for project named \"" ++ project.auth.project.name ++ "\"")
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ =
+            resultToProjectMsgErrorBody
+                (GetterSetters.projectIdentifier project)
+                errorContext
+                (\cred ->
+                    ProjectMsg
+                        (GetterSetters.projectIdentifier project)
+                        (ReceiveCreateEc2Credential errorContext (Ok cred))
+                )
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Post
+        Nothing
+        []
+        ( keystoneUrlWithVersion project.endpoints.keystone, [ "users", project.auth.user.uuid, "credentials", "OS-EC2" ], [] )
+        (Http.jsonBody requestBody)
+        (expectJsonWithErrorBody resultToMsg_ ec2CredentialDecoder)
+
+
 requestUnscopedProjects : UnscopedProvider -> Maybe HelperTypes.Url -> Cmd SharedMsg
 requestUnscopedProjects provider maybeProxyUrl =
     requestUnscoped_ provider maybeProxyUrl "auth/projects" "projects" unscopedProjectsDecoder ReceiveUnscopedProjects
@@ -484,6 +558,32 @@ appCredentialDecoder =
     Decode.map2 OSTypes.ApplicationCredential
         (Decode.at [ "application_credential", "id" ] Decode.string)
         (Decode.at [ "application_credential", "secret" ] Decode.string)
+
+
+{-| A single OS-EC2 credential item: `access`/`secret`/`tenant_id` are TOP-LEVEL fields (the OS-EC2
+extension shape, not the generic /v3/credentials `blob`). Extra fields (user\_id, trust\_id, links) are
+ignored.
+-}
+ec2CredentialItemDecoder : Decode.Decoder OSTypes.Ec2Credential
+ec2CredentialItemDecoder =
+    Decode.map3 OSTypes.Ec2Credential
+        (Decode.field "access" Decode.string)
+        (Decode.field "secret" Decode.string)
+        (Decode.field "tenant_id" Decode.string)
+
+
+{-| The GET list response: `{"credentials": [ ... ]}`.
+-}
+ec2CredentialsDecoder : Decode.Decoder (List OSTypes.Ec2Credential)
+ec2CredentialsDecoder =
+    Decode.field "credentials" (Decode.list ec2CredentialItemDecoder)
+
+
+{-| The POST create response: `{"credential": { ... }}`.
+-}
+ec2CredentialDecoder : Decode.Decoder OSTypes.Ec2Credential
+ec2CredentialDecoder =
+    Decode.field "credential" ec2CredentialItemDecoder
 
 
 unscopedProjectsDecoder : Decode.Decoder (List UnscopedProviderProject)

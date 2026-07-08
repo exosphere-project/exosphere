@@ -1,5 +1,6 @@
 module Tests.Helpers.ObjectStorage exposing
     ( objectStorageTileVisibleSuite
+    , serviceCatalogS3Suite
     , serviceCatalogSwiftSuite
     )
 
@@ -61,6 +62,33 @@ serviceCatalogSwiftSuite =
                 case Helpers.serviceCatalogToEndpoints baseCatalog Nothing of
                     Ok endpoints ->
                         Expect.equal Nothing endpoints.swift
+
+                    Err e ->
+                        Expect.fail ("expected Ok endpoints, got Err: " ++ e)
+        ]
+
+
+serviceCatalogS3Suite : Test
+serviceCatalogS3Suite =
+    describe "serviceCatalogToEndpoints maps the s3 service"
+        [ test "maps an s3 service to endpoints.s3 = Just url" <|
+            \_ ->
+                let
+                    catalog =
+                        baseCatalog
+                            ++ [ service "s3" "http://s3.example.com" ]
+                in
+                case Helpers.serviceCatalogToEndpoints catalog Nothing of
+                    Ok endpoints ->
+                        Expect.equal (Just "http://s3.example.com") endpoints.s3
+
+                    Err e ->
+                        Expect.fail ("expected Ok endpoints, got Err: " ++ e)
+        , test "maps a missing s3 service to endpoints.s3 = Nothing" <|
+            \_ ->
+                case Helpers.serviceCatalogToEndpoints baseCatalog Nothing of
+                    Ok endpoints ->
+                        Expect.equal Nothing endpoints.s3
 
                     Err e ->
                         Expect.fail ("expected Ok endpoints, got Err: " ++ e)

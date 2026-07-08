@@ -3330,15 +3330,74 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
+        RequestCreateEc2Credential ->
+            ( outerModel, Rest.Keystone.requestCreateEc2Credential project )
+                |> mapToOuterMsg
+
+        ReceiveEc2Credentials errorContext result ->
+            -- OS-EC2 lists all user projects; cache only this project's tenant keys.
+            case result of
+                Ok creds ->
+                    let
+                        scopedCreds =
+                            creds
+                                |> List.filter (\cred -> cred.tenantId == project.auth.project.uuid)
+
+                        newProject =
+                            { project
+                                | ec2Credentials =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave scopedCreds sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newProject =
+                            { project
+                                | ec2Credentials =
+                                    RDPP.setNotLoading
+                                        (Just ( httpError, sharedModel.clientCurrentTime ))
+                                        project.ec2Credentials
+                            }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    processProjectSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveCreateEc2Credential errorContext result ->
+            case result of
+                Ok _ ->
+                    ApiModelHelpers.requestEc2Credentials (GetterSetters.projectIdentifier project) sharedModel
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newProject =
+                            { project
+                                | ec2Credentials =
+                                    RDPP.setNotLoading
+                                        (Just ( httpError, sharedModel.clientCurrentTime ))
+                                        project.ec2Credentials
+                            }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    processProjectSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
         ReceiveContainers errorContext requestedMarker result ->
-            -- Swift pages container listings (≤10k/page). `result` is the page just received and
-            -- `requestedMarker` is the marker it was requested with.
-            --   * First page of a (re)load (`requestedMarker == Nothing`) RESETS the accumulator,
-            --     so refreshing an already-loaded list replaces rather than duplicates it.
-            --   * A subsequent page (`Just _`) stitches onto the accumulated data.
-            -- A full page continues the marker loop (`DoHave accumulated` + `Loading`); a short or
-            -- final page settles to `NotLoading`. On error we stop the loop and settle to
-            -- `NotLoading (Just error)`, preserving whatever pages already arrived.
+            -- First page replaces cached containers; marker pages append.
             case result of
                 Ok page ->
                     let
@@ -5426,6 +5485,7 @@ createProject_ outerModel description authToken region endpoints =
             , objectStorageContainers = RDPP.empty
             , objectStorageListings = Dict.empty
             , objectStorageContainerMetadata = Dict.empty
+            , ec2Credentials = RDPP.empty
             , objectStorageUploads = []
             , networks = RDPP.empty
             , autoAllocatedNetworkUuid = RDPP.empty

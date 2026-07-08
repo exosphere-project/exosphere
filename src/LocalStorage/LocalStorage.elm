@@ -136,6 +136,7 @@ hydrateProjectFromStoredProject storedProject =
     , objectStorageContainers = RDPP.empty
     , objectStorageListings = Dict.empty
     , objectStorageContainerMetadata = Dict.empty
+    , ec2Credentials = RDPP.empty
     , objectStorageUploads = []
     , autoAllocatedNetworkUuid = RDPP.empty
     , dnsRecordSets = RDPP.empty
@@ -316,6 +317,7 @@ encodeExoEndpoints endpoints =
           )
         , ( "designate", endpoints.designate |> Maybe.map Encode.string |> Maybe.withDefault Encode.null )
         , ( "swift", endpoints.swift |> Maybe.map Encode.string |> Maybe.withDefault Encode.null )
+        , ( "s3", endpoints.s3 |> Maybe.map Encode.string |> Maybe.withDefault Encode.null )
         ]
 
 
@@ -612,8 +614,13 @@ endpointsDecoder =
             Nothing
         |> Pipeline.custom
             (Decode.oneOf
-                -- This decodes earlier stored projects which do not have the swift (object-store) field in encoded endpoints
                 [ Decode.field "swift" Decode.string |> Decode.nullable
+                , Decode.succeed Nothing
+                ]
+            )
+        |> Pipeline.custom
+            (Decode.oneOf
+                [ Decode.field "s3" Decode.string |> Decode.nullable
                 , Decode.succeed Nothing
                 ]
             )

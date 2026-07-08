@@ -333,6 +333,15 @@ containerInfoToggleTip context project model maybeMetadata =
                                             ]
                                     )
                             , Just (aclSummary context metadata)
+
+                            -- When the cloud advertises an S3 endpoint this Swift container is also
+                            -- reachable as an S3 bucket of the same name (RGW/s3api share the namespace).
+                            , case project.endpoints.s3 of
+                                Just _ ->
+                                    Just (Element.text ("S3 bucket: " ++ model.containerName))
+
+                                Nothing ->
+                                    Nothing
                             ]
                         )
 

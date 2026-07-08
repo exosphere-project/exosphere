@@ -3,6 +3,7 @@ module Rest.ApiModelHelpers exposing
     , requestAppVersion
     , requestAutoAllocatedNetwork
     , requestComputeQuota
+    , requestEc2Credentials
     , requestFlavors
     , requestFloatingIps
     , requestImages
@@ -49,6 +50,7 @@ import Rest.AppVersion
 import Rest.Designate
 import Rest.Glance
 import Rest.Jetstream2Accounting
+import Rest.Keystone
 import Rest.Neutron
 import Rest.Nova
 import Rest.Swift
@@ -271,6 +273,32 @@ requestObjectStorageContainers projectUuid model =
                         |> GetterSetters.projectSetObjectStorageContainersLoading
                         |> GetterSetters.modelUpdateProject model
                     , Rest.Swift.requestContainers project url model.clientCurrentTime
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+{-| Load the project's EC2/S3 credentials (Keystone OS-EC2), no-op when the s3 endpoint is absent.
+
+Guarded on `project.endpoints.s3` (not keystone, which always exists) so s3-less clouds never issue
+the OS-EC2 GET; the ObjectStorageList route-load then fires this unconditionally, matching how the
+Swift wrappers self-guard.
+
+-}
+requestEc2Credentials : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestEc2Credentials projectUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            case project.endpoints.s3 of
+                Just _ ->
+                    ( project
+                        |> GetterSetters.projectSetEc2CredentialsLoading
+                        |> GetterSetters.modelUpdateProject model
+                    , Rest.Keystone.requestEc2Credentials project
                     )
 
                 Nothing ->

@@ -34,6 +34,7 @@ project secret =
         , jetstream2Accounting = Nothing
         , designate = Nothing
         , swift = Nothing
+        , s3 = Nothing
         }
     , description = Nothing
     , images = RDPP.empty
@@ -51,6 +52,7 @@ project secret =
     , objectStorageContainers = RDPP.empty
     , objectStorageListings = Dict.empty
     , objectStorageContainerMetadata = Dict.empty
+    , ec2Credentials = RDPP.empty
     , objectStorageUploads = []
     , flavors = RDPP.empty
     , keypairs = RDPP.empty
