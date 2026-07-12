@@ -60,8 +60,8 @@ stories renderer onPress =
                     )
                 )
                 [ ( True, "enabled" ), ( False, "disabled" ) ]
-            ++ [ ( "sized clickable icon: 18px"
-                 , \m ->
+            ++ (( "sized clickable icon: 18px"
+                , \m ->
                     let
                         palette =
                             palettize m
@@ -75,28 +75,28 @@ stories renderer onPress =
                             , hoverColor = palette.neutral.text.default |> SH.toElementColor
                             , size = 18
                             }
-                 , { note = notes }
-                 )
-               ]
-            ++ List.map
-                (\( placement, text ) ->
-                    ( "nav button: " ++ text
-                    , \m ->
-                        let
-                            palette =
-                                palettize m
-                        in
-                        renderer palette <|
-                            navIconButton palette
-                                [ Font.color (toElementColor palette.menu.textOrIcon)
-                                , Element.Background.color <| toElementColor palette.menu.background
-                                ]
-                                { icon = Icon.HelpCircle
-                                , iconPlacement = placement
-                                , label = text
-                                , onClick = Nothing
-                                }
-                    , { note = notes }
-                    )
+                , { note = notes }
                 )
-                [ ( Before, "icon before label" ), ( After, "icon after label" ) ]
+                    :: List.map
+                        (\( placement, text ) ->
+                            ( "nav button: " ++ text
+                            , \m ->
+                                let
+                                    palette =
+                                        palettize m
+                                in
+                                renderer palette <|
+                                    navIconButton palette
+                                        [ Font.color (toElementColor palette.menu.textOrIcon)
+                                        , Element.Background.color <| toElementColor palette.menu.background
+                                        ]
+                                        { icon = Icon.HelpCircle
+                                        , iconPlacement = placement
+                                        , label = text
+                                        , onClick = Nothing
+                                        }
+                            , { note = notes }
+                            )
+                        )
+                        [ ( Before, "icon before label" ), ( After, "icon after label" ) ]
+               )
