@@ -1,4 +1,15 @@
-module Page.ObjectStorageList exposing (Model, Msg(..), bulkDeletePopconfirmId, deletePopconfirmId, init, update, view)
+module Page.ObjectStorageList exposing
+    ( Model
+    , Msg(..)
+    , S3CredentialPanelDecision
+    , S3CredentialPanelState(..)
+    , bulkDeletePopconfirmId
+    , deletePopconfirmId
+    , init
+    , s3CredentialPanelDecision
+    , update
+    , view
+    )
 
 import Element
 import Element.Background as Background
@@ -8,9 +19,11 @@ import Element.Input as Input
 import FeatherIcons as Icons
 import Helpers.Formatting exposing (humanBytes, humanCount)
 import Helpers.GetterSetters as GetterSetters
+import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ResourceList exposing (listItemColumnAttribs)
 import Helpers.String exposing (pluralize, pluralizeCount, toTitleCase)
 import Html.Attributes
+import Http
 import OpenStack.ObjectStorage as ObjectStorage
 import OpenStack.Types as OSTypes
 import Route
@@ -25,6 +38,7 @@ import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.IconButton as IconButton
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
+import Types.Error exposing (HttpErrorWithBody)
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -49,6 +63,17 @@ type Msg
     | GotDeleteConfirm ObjectStorage.ContainerName Bool
     | GotS3SecretRevealed Bool
     | GotCreateEc2Credential
+
+
+type S3CredentialPanelState
+    = S3CredentialPanelNormal
+    | S3CredentialPanelApplicationCredentialForbidden
+
+
+type alias S3CredentialPanelDecision =
+    { state : S3CredentialPanelState
+    , showCreateButton : Bool
+    }
 
 
 init : Bool -> Model
@@ -183,16 +208,24 @@ s3ConnectContents context project model url =
 
         tenancyWord =
             context.localization.unitOfTenancy
+
+        credentialsDecision =
+            s3CredentialPanelDecision project.ec2Credentials
     in
     [ Text.p []
         [ Text.body "Use these values to connect an S3-compatible client, such as rclone or Cyberduck, to your object storage." ]
     , VH.compactKVRow "Endpoint URL" (copyableText context.palette [] url)
     , VH.compactKVRow {- @nonlocalized -} "Region" (regionValue context)
-    , VH.renderRDPP
-        context
-        project.ec2Credentials
-        (pluralize context.localization.credential)
-        (s3CredentialsView context project model url)
+    , case credentialsDecision.state of
+        S3CredentialPanelApplicationCredentialForbidden ->
+            s3ApplicationCredentialGuidance context
+
+        S3CredentialPanelNormal ->
+            VH.renderRDPP
+                context
+                project.ec2Credentials
+                (pluralize context.localization.credential)
+                (s3CredentialsView context project model url credentialsDecision)
     , Text.p []
         [ Text.body <|
             String.join " "
@@ -214,8 +247,76 @@ regionValue context =
         (Text.body {- @nonlocalized -} "us-east-1 (S3 clients require a region; this value works here).")
 
 
-s3CredentialsView : View.Types.Context -> Project -> Model -> String -> List OSTypes.Ec2Credential -> Element.Element Msg
-s3CredentialsView context _ model url creds =
+s3CredentialPanelDecision : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Ec2Credential) -> S3CredentialPanelDecision
+s3CredentialPanelDecision ec2Credentials =
+    let
+        isForbidden =
+            case ec2Credentials.refreshStatus of
+                RDPP.NotLoading (Just ( httpErrorWithBody, _ )) ->
+                    httpErrorWithBody.error == Http.BadStatus 403
+
+                _ ->
+                    False
+    in
+    if isForbidden then
+        { state = S3CredentialPanelApplicationCredentialForbidden
+        , showCreateButton = False
+        }
+
+    else
+        { state = S3CredentialPanelNormal
+        , showCreateButton =
+            case ec2Credentials.data of
+                RDPP.DoHave [] _ ->
+                    True
+
+                _ ->
+                    False
+        }
+
+
+s3ApplicationCredentialGuidance : View.Types.Context -> Element.Element Msg
+s3ApplicationCredentialGuidance context =
+    let
+        credentialWord =
+            context.localization.credential
+
+        credentialsWord =
+            pluralize credentialWord
+
+        command =
+            {- @nonlocalized -}
+            "openstack ec2 credentials create"
+    in
+    Element.column [ Element.spacing spacer.px12, Element.width Element.fill ]
+        [ Text.p []
+            [ Text.body <|
+                String.join " "
+                    [ "This session signed in with an application"
+                    , credentialWord ++ ","
+                    , "and OpenStack does not allow application"
+                    , credentialsWord
+                    , "to manage S3"
+                    , credentialsWord ++ "."
+                    ]
+            ]
+        , Text.p []
+            [ Text.body <|
+                String.join " "
+                    [ "To get S3"
+                    , credentialsWord
+                    , "anyway, use Horizon while signed in with a password or SSO, or use the OpenStack CLI:"
+                    ]
+            ]
+        , maskedScriptBlock context
+            { display = command
+            , clipboard = command
+            }
+        ]
+
+
+s3CredentialsView : View.Types.Context -> Project -> Model -> String -> S3CredentialPanelDecision -> List OSTypes.Ec2Credential -> Element.Element Msg
+s3CredentialsView context _ model url credentialsDecision creds =
     case List.head creds of
         Just cred ->
             Element.column [ Element.spacing spacer.px16, Element.width Element.fill ]
@@ -238,10 +339,14 @@ s3CredentialsView context _ model url creds =
                             , "yet. Create an access key and secret key pair to connect an S3 client."
                             ]
                     ]
-                , Button.primary context.palette
-                    { text = "Create " ++ credentialsWord
-                    , onPress = Just GotCreateEc2Credential
-                    }
+                , if credentialsDecision.showCreateButton then
+                    Button.primary context.palette
+                        { text = "Create " ++ credentialsWord
+                        , onPress = Just GotCreateEc2Credential
+                        }
+
+                  else
+                    Element.none
                 ]
 
 
