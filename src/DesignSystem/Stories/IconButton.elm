@@ -7,7 +7,7 @@ import Element.Font as Font
 import FeatherIcons exposing (edit2, logOut)
 import Style.Helpers as SH exposing (toElementColor)
 import Style.Widgets.Icon as Icon exposing (sizedFeatherIcon)
-import Style.Widgets.IconButton exposing (FlowOrder(..), clickableIcon, navIconButton, notes)
+import Style.Widgets.IconButton exposing (FlowOrder(..), clickableIcon, navIconButton, notes, sizedClickableIcon)
 import Style.Widgets.Spacer exposing (spacer)
 import UIExplorer exposing (storiesOf)
 import Widget
@@ -60,6 +60,24 @@ stories renderer onPress =
                     )
                 )
                 [ ( True, "enabled" ), ( False, "disabled" ) ]
+            ++ [ ( "sized clickable icon: 18px"
+                 , \m ->
+                    let
+                        palette =
+                            palettize m
+                    in
+                    renderer palette <|
+                        sizedClickableIcon []
+                            { icon = edit2
+                            , accessibilityLabel = "edit at 18px"
+                            , onClick = onPress
+                            , color = palette.neutral.icon |> SH.toElementColor
+                            , hoverColor = palette.neutral.text.default |> SH.toElementColor
+                            , size = 18
+                            }
+                 , { note = notes }
+                 )
+               ]
             ++ List.map
                 (\( placement, text ) ->
                     ( "nav button: " ++ text

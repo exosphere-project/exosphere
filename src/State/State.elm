@@ -3510,7 +3510,7 @@ processProjectSpecificMsg outerModel project msg =
                                 -- Bound the re-list loop so recursive delete cannot spin forever.
                                 processProjectStringError sharedModel
                                     errorContext
-                                    ("Gave up deleting objects in container " ++ containerName ++ " after too many attempts; some objects may remain.")
+                                    ("Gave up deleting objects in " ++ sharedModel.viewContext.localization.objectStoreContainer ++ " " ++ containerName ++ " after too many attempts; some objects may remain.")
                                     |> Helpers.pipelineCmd
                                         (ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project))
                                     |> mapToOuterMsg

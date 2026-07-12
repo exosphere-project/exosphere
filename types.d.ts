@@ -44,6 +44,7 @@ declare namespace Exosphere {
     staticRepresentationOfBlockDeviceContents: "image" | string;
     blockDevice: "volume" | string;
     share: "share" | string;
+    objectStoreContainer: "container" | string;
     accessRule: "access rule" | string;
     exportLocation: "export location" | string;
     nonFloatingIpAddress: "internal IP address" | string;
