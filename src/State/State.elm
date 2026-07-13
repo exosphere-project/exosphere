@@ -3602,11 +3602,21 @@ processProjectSpecificMsg outerModel project msg =
                     let
                         existing =
                             GetterSetters.projectLookupObjectStorageListing containerName maybePrefix project
-                                |> RDPP.withDefault { objects = [], subdirs = [] }
+                                |> RDPP.withDefault { objects = [], subdirs = [], nextMarker = Nothing }
 
-                        accumulated =
+                        accumulatedRows =
                             { objects = OpenStack.ObjectStorage.stitchPage requestedMarker existing.objects page.objects
                             , subdirs = OpenStack.ObjectStorage.stitchPage requestedMarker existing.subdirs page.subdirs
+                            , nextMarker = Nothing
+                            }
+
+                        accumulated =
+                            { accumulatedRows
+                                | nextMarker =
+                                    OpenStack.ObjectStorage.nextListingMarker
+                                        OpenStack.ObjectStorage.listingPageLimit
+                                        page
+                                        accumulatedRows
                             }
 
                         newListing =

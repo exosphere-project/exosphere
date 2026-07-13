@@ -163,6 +163,7 @@ type alias SwiftObject =
 type alias ObjectListing =
     { objects : List SwiftObject
     , subdirs : List Prefix
+    , nextMarker : Maybe String
     }
 
 
@@ -490,7 +491,7 @@ partitionRows rows =
                 RowSubdir prefix ->
                     { acc | subdirs = prefix :: acc.subdirs }
     in
-    List.foldr step { objects = [], subdirs = [] } rows
+    List.foldr step { objects = [], subdirs = [], nextMarker = Nothing } rows
 
 
 makeIso8601Decoder : String -> Decode.Decoder Time.Posix
@@ -515,7 +516,7 @@ parseContainersResponse body =
 parseObjectListingResponse : String -> Result Decode.Error ObjectListing
 parseObjectListingResponse body =
     if String.trim body == "" then
-        Ok { objects = [], subdirs = [] }
+        Ok { objects = [], subdirs = [], nextMarker = Nothing }
 
     else
         Decode.decodeString objectListingDecoder body
@@ -709,20 +710,21 @@ bulkDeleteStatusOk result =
 
 
 {-| With `delimiter=/`, the next marker is the later of the last object and last subdir prefix.
+Only expose a marker when the just-received page was full.
 -}
-nextListingMarker : Int -> ObjectListing -> Maybe String
-nextListingMarker limit listing =
+nextListingMarker : Int -> ObjectListing -> ObjectListing -> Maybe String
+nextListingMarker limit receivedPage accumulatedListing =
     let
-        total =
-            List.length listing.objects + List.length listing.subdirs
+        receivedTotal =
+            List.length receivedPage.objects + List.length receivedPage.subdirs
     in
-    if limit > 0 && total > 0 && modBy limit total == 0 then
+    if limit > 0 && receivedTotal >= limit then
         let
             lastObject =
-                listing.objects |> List.reverse |> List.head |> Maybe.map .name
+                accumulatedListing.objects |> List.reverse |> List.head |> Maybe.map .name
 
             lastSubdir =
-                listing.subdirs |> List.reverse |> List.head
+                accumulatedListing.subdirs |> List.reverse |> List.head
         in
         case ( lastObject, lastSubdir ) of
             ( Just o, Just s ) ->

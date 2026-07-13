@@ -172,7 +172,7 @@ emptyBodyToleranceSuite =
         , test "empty body -> empty object listing" <|
             \_ ->
                 Expect.equal
-                    (Ok { objects = [], subdirs = [] })
+                    (Ok { objects = [], subdirs = [], nextMarker = Nothing })
                     (ObjectStorage.parseObjectListingResponse "")
         ]
 
@@ -535,29 +535,42 @@ nextListingMarkerSuite =
     let
         mkObj n =
             { name = n, bytes = 0, lastModified = Time.millisToPosix 0, contentType = "", hash = "" }
+
+        mkListing objectNames subdirs =
+            { objects = List.map mkObj objectNames
+            , subdirs = subdirs
+            , nextMarker = Nothing
+            }
     in
     describe "nextListingMarker drives user-driven load-more, counting objects AND subdirs together"
         [ test "a full page (objects + subdirs == limit) returns the lexicographically-last row key" <|
             \_ ->
                 Expect.equal (Just "zebra.txt")
                     (ObjectStorage.nextListingMarker 3
-                        { objects = [ mkObj "zebra.txt" ], subdirs = [ "logs/", "photos/" ] }
+                        (mkListing [ "zebra.txt" ] [ "logs/", "photos/" ])
+                        (mkListing [ "zebra.txt" ] [ "logs/", "photos/" ])
                     )
         , test "when the last subdir sorts after the last object, the subdir is the marker" <|
             \_ ->
                 Expect.equal (Just "zzz/")
                     (ObjectStorage.nextListingMarker 3
-                        { objects = [ mkObj "apple.txt" ], subdirs = [ "logs/", "zzz/" ] }
+                        (mkListing [ "apple.txt" ] [ "logs/", "zzz/" ])
+                        (mkListing [ "apple.txt" ] [ "logs/", "zzz/" ])
                     )
-        , test "a short page returns Nothing (done)" <|
+        , test "a short received page returns Nothing even when accumulated rows are an exact multiple of the limit" <|
             \_ ->
                 Expect.equal Nothing
                     (ObjectStorage.nextListingMarker 3
-                        { objects = [ mkObj "a.txt" ], subdirs = [ "b/" ] }
+                        (mkListing [] [])
+                        (mkListing [ "a.txt", "b.txt", "c.txt" ] [])
                     )
-        , test "an empty listing returns Nothing" <|
+        , test "an empty received page returns Nothing" <|
             \_ ->
-                Expect.equal Nothing (ObjectStorage.nextListingMarker 3 { objects = [], subdirs = [] })
+                Expect.equal Nothing
+                    (ObjectStorage.nextListingMarker 3
+                        (mkListing [] [])
+                        (mkListing [] [])
+                    )
         ]
 
 

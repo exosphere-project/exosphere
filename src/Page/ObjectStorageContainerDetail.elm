@@ -690,11 +690,10 @@ subduedText context label =
         (Element.text label)
 
 
-{-| The "Manage access" section. Renders the container's HEAD-container ACL/usage via
-`VH.renderRDPP` (loading/error/empty), then
-a public/private toggle, a SEPARATE stronger-confirm `.rlistings` option, a raw advanced-ACL escape
-hatch, and — when public — copyable public share links. The metadata cache is a per-container
-resource on `Project` (populated by the route-load HEAD), not page-local.
+{-| The "Manage access" section. Renders the container's HEAD-container ACL and usage via
+`VH.renderRDPP` (loading/error/empty), then the stronger-confirm `.rlistings` option, a raw
+advanced-ACL escape hatch, and copyable public share links when public. Public/private changes live
+in the Actions dropdown.
 -}
 manageAccessSection : View.Types.Context -> Project -> Model -> Element.Element Msg
 manageAccessSection context project model =
@@ -1599,7 +1598,7 @@ renderSuccessCase context project currentTime model listing =
     else
         let
             loadMore =
-                case ObjectStorage.nextListingMarker ObjectStorage.listingPageLimit listing of
+                case listing.nextMarker of
                     Just marker ->
                         loadMoreAffordance context project model listing marker
 
