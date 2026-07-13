@@ -334,9 +334,10 @@ Swift returns **200 even on partial failure** — the `ReceiveBulkDeleteObjects`
 body (`OpenStack.ObjectStorage.parseBulkDeleteResponse`) for per-object errors rather than trusting
 the status. `Accept: application/json` makes that body deterministic.
 
-PROVISIONAL: bulk-delete is validated on native devstack Swift 2.37 but unverified on RGW; if
-the endpoint is unsupported the POST surfaces a plain error (the sequential
-`requestDeleteContainerObject` machinery already exists as a fallback if the gate later demands it).
+PROVISIONAL: bulk-delete is validated on native devstack Swift 2.37 and Jetstream2 Ceph RGW
+(2026-07-12). RGW silently caps bulk-delete at 1024 paths per request. If the endpoint is
+unsupported the POST surfaces a plain error (the sequential `requestDeleteContainerObject` machinery
+already exists as a fallback if the gate later demands it).
 The valueless `?bulk-delete` flag is sent as `bulk-delete=` (empty value) because `Url.Builder` emits
 `key=value`; Swift's bulk middleware treats the parameter as present.
 

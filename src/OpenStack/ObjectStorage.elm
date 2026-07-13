@@ -636,9 +636,12 @@ parentPrefix prefix =
         |> Maybe.map Tuple.second
 
 
+{-| Ceph RGW silently caps Swift bulk-delete at 1024 paths per request. Use 1000 to
+leave margin and match S3 multi-delete norms.
+-}
 bulkDeleteMaxPerRequest : Int
 bulkDeleteMaxPerRequest =
-    10000
+    1000
 
 
 listingPageLimit : Int

@@ -344,6 +344,9 @@ bulkDeleteBodySuite =
         , test "an empty selection yields an empty body" <|
             \_ ->
                 Expect.equal "" (ObjectStorage.bulkDeleteBody "c" [])
+        , test "chunkForBulkDelete caps requests below RGW's silent 1024-path limit" <|
+            \_ ->
+                Expect.equal 1000 ObjectStorage.bulkDeleteMaxPerRequest
         , test "chunkForBulkDelete at the cap boundary: exactly the cap is one chunk" <|
             \_ ->
                 Expect.equal 1 (List.length (ObjectStorage.chunkForBulkDelete (List.repeat ObjectStorage.bulkDeleteMaxPerRequest "x")))
