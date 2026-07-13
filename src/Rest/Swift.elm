@@ -3,6 +3,7 @@ module Rest.Swift exposing
     , postContainerMetadata
     , recursiveDeleteMaxCycles
     , requestBulkDelete
+    , requestBulkDeleteContainerObjects
     , requestContainerMetadata
     , requestContainerObjectNames
     , requestContainers
@@ -11,7 +12,6 @@ module Rest.Swift exposing
     , requestCreateContainer
     , requestCreateFolder
     , requestDeleteContainer
-    , requestDeleteContainerObject
     , requestDeleteObject
     , requestDownloadObject
     , requestObjects
@@ -121,7 +121,7 @@ expectSwiftJsonOrEmpty toMsg parse =
 {-| The recursive "delete a non-empty container" flow deletes objects a page at a time and re-lists
 between pages. This bounds the number of re-list cycles so a persistent server race / error can
 never spin forever; each cycle can clear up to a full listing page (`containerPageLimit`) of
-objects. See the `ReceiveContainerObjectNamesForDeletion` / `ReceiveDeleteContainerObject` handlers
+objects. See the `ReceiveContainerObjectNamesForDeletion` / `ReceiveBulkDeleteContainerObjects` handlers
 in `State.State`.
 -}
 recursiveDeleteMaxCycles : Int
@@ -226,35 +226,18 @@ requestContainerObjectNames project url currentTime containerName budget =
         (expectSwiftJsonOrEmpty resultToMsg_ parseNames)
 
 
-{-| Delete a single ordinary object with a `DELETE` to `<container>/<object path>`.
-
-`204`/`404` are both success (idempotent). `budget` and `remaining` (the object names still queued
-for this cycle) are threaded back through `ReceiveDeleteContainerObject` so the handler can delete
-the next one without holding loop state in the model.
-
+{-| Bulk-delete one recursive-delete chunk. `budget` and `remainingChunks` are threaded back through
+`ReceiveBulkDeleteContainerObjects` so the handler can finish the current listing page, then re-list.
 -}
-requestDeleteContainerObject : Project -> Url -> ObjectStorage.ContainerName -> Int -> List ObjectStorage.ObjectName -> ObjectStorage.ObjectName -> Cmd SharedMsg
-requestDeleteContainerObject project url containerName budget remaining objectName =
-    let
-        errorContext =
-            ErrorContext
-                ("delete object " ++ objectName ++ " in container " ++ containerName)
-                ErrorCrit
-                Nothing
-
-        resultToMsg_ result =
-            ProjectMsg
-                (GetterSetters.projectIdentifier project)
-                (ReceiveDeleteContainerObject errorContext containerName budget remaining result)
-    in
-    openstackCredentialedRequest
-        (GetterSetters.projectIdentifier project)
-        Delete
-        Nothing
-        []
-        ( url, ObjectStorage.objectPath containerName objectName |> List.map Url.percentEncode, [] )
-        Http.emptyBody
-        (expectSwiftDeleteOrGone resultToMsg_)
+requestBulkDeleteContainerObjects : Project -> Url -> ObjectStorage.ContainerName -> Int -> List (List ObjectStorage.ObjectName) -> List ObjectStorage.ObjectName -> Cmd SharedMsg
+requestBulkDeleteContainerObjects project url containerName budget remainingChunks objectNames =
+    requestBulkDeleteWith project
+        url
+        containerName
+        objectNames
+        (\errorContext result ->
+            ReceiveBulkDeleteContainerObjects errorContext containerName budget remainingChunks result
+        )
 
 
 requestObjects : Project -> Url -> Time.Posix -> ObjectStorage.ContainerName -> Maybe ObjectStorage.Prefix -> Maybe String -> Cmd SharedMsg
@@ -336,14 +319,30 @@ the status. `Accept: application/json` makes that body deterministic.
 
 PROVISIONAL: bulk-delete is validated on native devstack Swift 2.37 and Jetstream2 Ceph RGW
 (2026-07-12). RGW silently caps bulk-delete at 1024 paths per request. If the endpoint is
-unsupported the POST surfaces a plain error (the sequential `requestDeleteContainerObject` machinery
-already exists as a fallback if the gate later demands it).
+unsupported the POST surfaces a plain error.
 The valueless `?bulk-delete` flag is sent as `bulk-delete=` (empty value) because `Url.Builder` emits
 `key=value`; Swift's bulk middleware treats the parameter as present.
 
 -}
 requestBulkDelete : Project -> Url -> ObjectStorage.ContainerName -> Maybe ObjectStorage.Prefix -> List ObjectStorage.ObjectName -> Cmd SharedMsg
 requestBulkDelete project url containerName maybePrefix objectNames =
+    requestBulkDeleteWith project
+        url
+        containerName
+        objectNames
+        (\errorContext result ->
+            ReceiveBulkDeleteObjects errorContext containerName maybePrefix result
+        )
+
+
+requestBulkDeleteWith :
+    Project
+    -> Url
+    -> ObjectStorage.ContainerName
+    -> List ObjectStorage.ObjectName
+    -> (ErrorContext -> Result HttpErrorWithBody ObjectStorage.BulkDeleteResult -> ProjectSpecificMsgConstructor)
+    -> Cmd SharedMsg
+requestBulkDeleteWith project url containerName objectNames toProjectMsg =
     let
         errorContext =
             ErrorContext
@@ -354,7 +353,7 @@ requestBulkDelete project url containerName maybePrefix objectNames =
         resultToMsg_ result =
             ProjectMsg
                 (GetterSetters.projectIdentifier project)
-                (ReceiveBulkDeleteObjects errorContext containerName maybePrefix result)
+                (toProjectMsg errorContext result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)

@@ -3505,7 +3505,7 @@ processProjectSpecificMsg outerModel project msg =
                             ( outerModel, Rest.Swift.requestDeleteContainer project swiftUrl containerName )
                                 |> mapToOuterMsg
 
-                        first :: rest ->
+                        _ :: _ ->
                             if budget <= 0 then
                                 -- Bound the re-list loop so recursive delete cannot spin forever.
                                 processProjectStringError sharedModel
@@ -3517,8 +3517,14 @@ processProjectSpecificMsg outerModel project msg =
                                     |> mapToOuterModel outerModel
 
                             else
-                                ( outerModel, Rest.Swift.requestDeleteContainerObject project swiftUrl containerName budget rest first )
-                                    |> mapToOuterMsg
+                                case OpenStack.ObjectStorage.chunkForBulkDelete names of
+                                    firstChunk :: remainingChunks ->
+                                        ( outerModel, Rest.Swift.requestBulkDeleteContainerObjects project swiftUrl containerName budget remainingChunks firstChunk )
+                                            |> mapToOuterMsg
+
+                                    [] ->
+                                        ( outerModel, Rest.Swift.requestDeleteContainer project swiftUrl containerName )
+                                            |> mapToOuterMsg
 
                 ( Ok _, Nothing ) ->
                     ( outerModel, Cmd.none )
@@ -3530,19 +3536,39 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-        ReceiveDeleteContainerObject errorContext containerName budget remaining result ->
+        ReceiveBulkDeleteContainerObjects errorContext containerName budget remainingChunks result ->
             case ( result, project.endpoints.swift ) of
-                ( Ok (), Just swiftUrl ) ->
-                    case remaining of
-                        next :: rest ->
-                            ( outerModel, Rest.Swift.requestDeleteContainerObject project swiftUrl containerName budget rest next )
-                                |> mapToOuterMsg
+                ( Ok bulkResult, Just swiftUrl ) ->
+                    if List.isEmpty bulkResult.errors && OpenStack.ObjectStorage.bulkDeleteStatusOk bulkResult then
+                        case remainingChunks of
+                            nextChunk :: restChunks ->
+                                ( outerModel, Rest.Swift.requestBulkDeleteContainerObjects project swiftUrl containerName budget restChunks nextChunk )
+                                    |> mapToOuterMsg
 
-                        [] ->
-                            ( outerModel, Rest.Swift.requestContainerObjectNames project swiftUrl sharedModel.clientCurrentTime containerName (budget - 1) )
-                                |> mapToOuterMsg
+                            [] ->
+                                ( outerModel, Rest.Swift.requestContainerObjectNames project swiftUrl sharedModel.clientCurrentTime containerName (budget - 1) )
+                                    |> mapToOuterMsg
 
-                ( Ok (), Nothing ) ->
+                    else
+                        let
+                            errorMessage =
+                                if List.isEmpty bulkResult.errors then
+                                    "Bulk delete reported " ++ bulkResult.responseStatus
+
+                                else
+                                    "Some objects could not be deleted: "
+                                        ++ (bulkResult.errors
+                                                |> List.map (\( path, status ) -> path ++ " (" ++ status ++ ")")
+                                                |> String.join ", "
+                                           )
+                        in
+                        processProjectStringError sharedModel errorContext errorMessage
+                            |> Helpers.pipelineCmd
+                                (ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project))
+                            |> mapToOuterMsg
+                            |> mapToOuterModel outerModel
+
+                ( Ok _, Nothing ) ->
                     ( outerModel, Cmd.none )
 
                 ( Err httpError, _ ) ->

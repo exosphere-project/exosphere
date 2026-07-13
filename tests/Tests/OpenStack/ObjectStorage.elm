@@ -357,6 +357,30 @@ bulkDeleteBodySuite =
                         ObjectStorage.chunkForBulkDelete (List.repeat (ObjectStorage.bulkDeleteMaxPerRequest + 1) "x")
                 in
                 Expect.equal [ ObjectStorage.bulkDeleteMaxPerRequest, 1 ] (List.map List.length chunks)
+        , test "chunkForBulkDelete splits a full recursive listing page into RGW-safe requests" <|
+            \_ ->
+                let
+                    objectNames =
+                        List.range 1 ObjectStorage.listingPageLimit
+                            |> List.map (\n -> "object-" ++ String.fromInt n)
+
+                    chunks =
+                        ObjectStorage.chunkForBulkDelete objectNames
+                in
+                Expect.all
+                    [ \chunks_ ->
+                        Expect.equal ObjectStorage.listingPageLimit
+                            (chunks_
+                                |> List.map List.length
+                                |> List.sum
+                            )
+                    , \chunks_ ->
+                        Expect.equal True
+                            (chunks_
+                                |> List.all (\chunk -> List.length chunk <= ObjectStorage.bulkDeleteMaxPerRequest)
+                            )
+                    ]
+                    chunks
         ]
 
 

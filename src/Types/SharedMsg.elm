@@ -143,10 +143,10 @@ type ProjectSpecificMsgConstructor
     | RequestDeleteContainer OpenStack.ObjectStorage.ContainerName Bool
     | ReceiveCreateContainer ErrorContext (Result HttpErrorWithBody ())
     | ReceiveDeleteContainer ErrorContext (Result HttpErrorWithBody ())
-      -- Recursive non-empty-container delete (Int = remaining re-list cycle budget; the object-name
-      -- list is threaded through the messages so no loop state lives in the model).
+      -- Recursive non-empty-container delete (Int = remaining re-list cycle budget; remaining
+      -- bulk-delete chunks are threaded through the messages so no loop state lives in the model).
     | ReceiveContainerObjectNamesForDeletion ErrorContext OpenStack.ObjectStorage.ContainerName Int (Result HttpErrorWithBody (List OpenStack.ObjectStorage.ObjectName))
-    | ReceiveDeleteContainerObject ErrorContext OpenStack.ObjectStorage.ContainerName Int (List OpenStack.ObjectStorage.ObjectName) (Result HttpErrorWithBody ())
+    | ReceiveBulkDeleteContainerObjects ErrorContext OpenStack.ObjectStorage.ContainerName Int (List (List OpenStack.ObjectStorage.ObjectName)) (Result HttpErrorWithBody OpenStack.ObjectStorage.BulkDeleteResult)
       -- Object listing (container detail). The Maybe Prefix is the pseudo-folder level; the Maybe
       -- String is the marker the page was requested with (Nothing = first page, replaces the cache;
       -- Just = a user-driven "load more" continuation that appends).
