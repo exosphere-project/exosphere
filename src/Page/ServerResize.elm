@@ -63,6 +63,7 @@ update msg { viewContext } project model =
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
 view context project model =
+    -- TODO: What data do we need to load for quotas?
     VH.renderRDPP
         context
         project.computeQuota
@@ -71,7 +72,7 @@ view context project model =
 
 
 view_ : View.Types.Context -> Project -> Model -> OSTypes.ComputeQuota -> Element.Element Msg
-view_ context project model computeQuota =
+view_ context project model _ =
     let
         restrictFlavorIds =
             GetterSetters.serverLookup project model.serverUuid
@@ -124,7 +125,10 @@ view_ context project model computeQuota =
                 project
                 restrictFlavorIds
                 (Just ("This flavor has a root disk smaller than your current " ++ context.localization.virtualComputer))
-                computeQuota
+                (\_ ->
+                    -- FIXME: Determine whether to show a quota warning message.
+                    Nothing
+                )
                 (\flavorGroupTipId -> SharedMsg <| SharedMsg.TogglePopover flavorGroupTipId)
                 (Helpers.String.hyphenate [ "serverResizeFlavorGroupTip", project.auth.project.uuid ])
                 currentFlavorId

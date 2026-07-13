@@ -787,7 +787,14 @@ view context project currentTime model =
                 project
                 model.restrictFlavorIds
                 Nothing
-                computeQuota
+                (\f ->
+                    -- FIXME: Determine whether to show a quota warning message.
+                    if f.vcpu < 10 then
+                        Nothing
+
+                    else
+                        Just "Limit exceeded."
+                )
                 (\flavorGroupTipId -> SharedMsg <| SharedMsg.TogglePopover flavorGroupTipId)
                 (Helpers.String.hyphenate [ "serverCreateFlavorGroupTip", project.auth.project.uuid ])
                 Nothing

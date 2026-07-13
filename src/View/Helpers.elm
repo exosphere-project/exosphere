@@ -95,6 +95,7 @@ import Helpers.String exposing (toTitleCase)
 import Helpers.Time exposing (humanReadableDateAndTime)
 import Helpers.Url as UrlHelpers
 import Html
+import Html.Attributes
 import Html.Styled
 import Html.Styled.Attributes
 import List.Extra
@@ -102,7 +103,6 @@ import Markdown.Block
 import Markdown.Html
 import Markdown.Parser
 import Markdown.Renderer
-import OpenStack.Quotas as OSQuotas
 import OpenStack.SecurityGroupRule exposing (Remote(..), SecurityGroupRule, SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), directionToString, etherTypeToString, protocolToString)
 import OpenStack.ServerActions as ServerActions exposing (ApplicableServerStatuses(..), ServerActionName)
 import OpenStack.Types as OSTypes exposing (ShareStatus(..), Volume, VolumeStatus(..))
@@ -126,6 +126,7 @@ import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Spinner as Spinner
 import Style.Widgets.StatusBadge as StatusBadge exposing (StatusBadgeSize)
+import Style.Widgets.Tag exposing (tagWarning)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip as ToggleTip
 import Time
@@ -1199,16 +1200,16 @@ flavorPicker :
     -> Project
     -> Maybe (List OSTypes.FlavorId)
     -> Maybe String
-    -> OSTypes.ComputeQuota
+    -> (OSTypes.Flavor -> Maybe String)
     -> (PopoverId -> msg)
     -> PopoverId
     -> Maybe OSTypes.FlavorId
     -> Maybe OSTypes.FlavorId
     -> (OSTypes.FlavorId -> msg)
     -> Element.Element msg
-flavorPicker context project restrictFlavorIds showDisabledFlavorsReason computeQuota flavorGroupToggleTipMsgMapper flavorGroupToggleTipId maybeCurrentFlavorId selectedFlavorId changeMsg =
+flavorPicker context project restrictFlavorIds showDisabledFlavorsReason quotaExceededWarning flavorGroupToggleTipMsgMapper flavorGroupToggleTipId maybeCurrentFlavorId selectedFlavorId changeMsg =
     let
-        { locale } =
+        { locale, palette } =
             context
 
         flavorGroups =
@@ -1256,36 +1257,43 @@ flavorPicker context project restrictFlavorIds showDisabledFlavorsReason compute
 
                         Nothing ->
                             False
-
-                radio_ =
-                    if isCurrentFlavor then
-                        Element.el [ paddingRight ] <|
-                            Element.text "Current"
-
-                    else if isFlavorAllowed flavor then
-                        Element.Input.radio
-                            [ Element.centerX ]
-                            { label = Element.Input.labelHidden flavor.name
-                            , onChange = changeMsg
-                            , options = [ Element.Input.option flavor.id (Element.text " ") ]
-                            , selected = selectedFlavorId
-                            }
-
-                    else
-                        disabledFlavorTooltip flavor showDisabledFlavorsReason
             in
-            -- Only allow selection if there is enough available quota
-            case OSQuotas.computeQuotaFlavorAvailServers computeQuota flavor of
-                Nothing ->
-                    radio_
+            if isCurrentFlavor then
+                Element.el [ paddingRight ] <|
+                    Element.text "Current"
 
-                Just availServers ->
-                    if availServers < 1 then
-                        disabledFlavorTooltip flavor
-                            (Just "This size would exceed your allocation's quota")
+            else if isFlavorAllowed flavor then
+                let
+                    isQuotaExceeded =
+                        case quotaExceededWarning flavor of
+                            Just _ ->
+                                True
 
-                    else
-                        radio_
+                            Nothing ->
+                                False
+                in
+                Element.Input.radio
+                    (Element.centerX
+                        :: (if isQuotaExceeded then
+                                -- Since elm-ui is quite opinionated about the use of disabled states,
+                                -- we apply some styling from the outside to lower user expectations.
+                                [ Element.alpha 0.5
+                                , Element.htmlAttribute <|
+                                    Html.Attributes.style "filter" "grayscale(1)  brightness(0.85)"
+                                ]
+
+                            else
+                                []
+                           )
+                    )
+                    { label = Element.Input.labelHidden flavor.name
+                    , onChange = changeMsg
+                    , options = [ Element.Input.option flavor.id (Element.text " ") ]
+                    , selected = selectedFlavorId
+                    }
+
+            else
+                disabledFlavorTooltip flavor showDisabledFlavorsReason
 
         paddingRight =
             Element.paddingEach { edges | right = spacer.px16 }
@@ -1363,6 +1371,31 @@ flavorPicker context project restrictFlavorIds showDisabledFlavorsReason compute
                                 Element.text (String.fromInt r.disk_ephemeral ++ " GB")
                             )
               }
+            , { header = Element.none
+              , width = Element.shrink
+              , view =
+                    \r ->
+                        case quotaExceededWarning r of
+                            Just warning ->
+                                Element.row []
+                                    [ tagWarning palette ("exceeds " ++ context.localization.maxResourcesPerProject)
+                                    , let
+                                        toggleTipId =
+                                            Helpers.String.hyphenate
+                                                [ r.id
+                                                , "usage-limit"
+                                                ]
+                                      in
+                                      ToggleTip.warningToggleTip context
+                                        flavorGroupToggleTipMsgMapper
+                                        toggleTipId
+                                        (Element.text warning)
+                                        ST.PositionBottomRight
+                                    ]
+
+                            Nothing ->
+                                Element.none
+              }
             ]
 
         zeroRootDiskExplainText =
@@ -1392,13 +1425,6 @@ flavorPicker context project restrictFlavorIds showDisabledFlavorsReason compute
             else
                 []
 
-        anyFlavorsTooLarge =
-            flavorsToShow
-                |> List.filterMap (OSQuotas.computeQuotaFlavorAvailServers computeQuota)
-                |> List.filter (\x -> x < 1)
-                |> List.isEmpty
-                |> not
-
         renderFlavorGroup : List OSTypes.Flavor -> Types.HelperTypes.FlavorGroup -> Element.Element msg
         renderFlavorGroup flavors flavorGroup =
             let
@@ -1415,7 +1441,7 @@ flavorPicker context project restrictFlavorIds showDisabledFlavorsReason compute
 
             else
                 Element.column
-                    [ Element.spacing spacer.px8 ]
+                    [ Element.spacing spacer.px8, Element.width Element.fill ]
                     [ Element.row []
                         [ Element.el
                             [ context.palette.neutral.text.subdued
@@ -1464,18 +1490,8 @@ flavorPicker context project restrictFlavorIds showDisabledFlavorsReason compute
                 Element.column
                     [ Element.spacing spacer.px12 ]
                     (flavorGroups |> List.map (renderFlavorGroup (GetterSetters.sortedFlavors flavorsToShow)))
-        , if anyFlavorsTooLarge then
-            Element.text <|
-                String.join " "
-                    [ context.localization.virtualComputerHardwareConfig
-                        |> Helpers.String.pluralize
-                        |> Helpers.String.toTitleCase
-                    , "marked 'X' are too large for your available"
-                    , context.localization.maxResourcesPerProject
-                    ]
 
-          else
-            Element.none
+        -- TODO: Show error feedback if a disabled flavour has been selected.
         , Element.paragraph [ Text.fontSize Text.Tiny ] [ Element.text zeroRootDiskExplainText ]
         ]
 
