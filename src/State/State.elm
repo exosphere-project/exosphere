@@ -3901,7 +3901,8 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         server.osProps.uuid
                         (\exoActions ->
                             { exoActions
-                                | targetOpenstackStatus = Just [ OSTypes.ServerResize ]
+                                | targetOpenstackStatus = Server.resizeTargetOpenstackStatus
+                                , quotaRefreshTargetOpenstackStatus = Server.resizeQuotaRefreshTargetOpenstackStatus
                                 , request = RDPP.setLoading exoActions.request
                             }
                         )

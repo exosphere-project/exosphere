@@ -16,6 +16,8 @@ module Types.Server exposing
     , exoSetupStatusToString
     , exoVersionSupportsFeature
     , initServerExoActions
+    , resizeQuotaRefreshTargetOpenstackStatus
+    , resizeTargetOpenstackStatus
     , serverActionQuotaRefreshTargetOpenstackStatus
     , serverActionTargetOpenstackStatus
     , shelveQuotaRefreshTargetOpenstackStatus
@@ -112,6 +114,18 @@ shelveQuotaRefreshTargetOpenstackStatus =
     Just [ OSTypes.ServerShelvedOffloaded ]
 
 
+resizeTargetOpenstackStatus : Maybe (List OSTypes.ServerStatus)
+resizeTargetOpenstackStatus =
+    Just [ OSTypes.ServerResize ]
+
+
+resizeQuotaRefreshTargetOpenstackStatus : Maybe (List OSTypes.ServerStatus)
+resizeQuotaRefreshTargetOpenstackStatus =
+    -- Nova holds Placement allocations on both source and destination during VERIFY_RESIZE until confirmed or reverted.
+    -- So we refresh the quota again after resizing settles.
+    Just [ OSTypes.ServerVerifyResize, OSTypes.ServerActive, OSTypes.ServerShutoff ]
+
+
 serverActionTargetOpenstackStatus : ServerActions.ServerAction -> Maybe (List OSTypes.ServerStatus)
 serverActionTargetOpenstackStatus action =
     case action of
@@ -119,10 +133,11 @@ serverActionTargetOpenstackStatus action =
             Just [ OSTypes.ServerActive ]
 
         ServerActions.ConfirmResize ->
-            Just [ OSTypes.ServerActive ]
+            -- Servers can be resized from shutoff, in which case they return to that status.
+            Just [ OSTypes.ServerActive, OSTypes.ServerShutoff ]
 
         ServerActions.RevertResize ->
-            Just [ OSTypes.ServerActive ]
+            Just [ OSTypes.ServerActive, OSTypes.ServerShutoff ]
 
         ServerActions.Start ->
             Just [ OSTypes.ServerActive ]
@@ -146,6 +161,12 @@ serverActionTargetOpenstackStatus action =
 serverActionQuotaRefreshTargetOpenstackStatus : ServerActions.ServerAction -> Maybe (List OSTypes.ServerStatus)
 serverActionQuotaRefreshTargetOpenstackStatus action =
     case action of
+        ServerActions.ConfirmResize ->
+            Just [ OSTypes.ServerActive, OSTypes.ServerShutoff ]
+
+        ServerActions.RevertResize ->
+            Just [ OSTypes.ServerActive, OSTypes.ServerShutoff ]
+
         ServerActions.Unshelve ->
             Just [ OSTypes.ServerActive ]
 
