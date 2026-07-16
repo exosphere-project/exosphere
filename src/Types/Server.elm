@@ -10,13 +10,21 @@ module Types.Server exposing
     , ServerFromExoProps
     , ServerOrigin(..)
     , ServerUiStatus(..)
+    , clearActionTargetIfTargetStatusReached
+    , clearQuotaRefreshIntentIfTargetStatusReached
     , currentExoServerVersion
     , exoSetupStatusToString
     , exoVersionSupportsFeature
     , initServerExoActions
+    , serverActionQuotaRefreshTargetOpenstackStatus
+    , serverActionTargetOpenstackStatus
+    , shelveQuotaRefreshTargetOpenstackStatus
+    , shelveTargetOpenstackStatus
+    , shouldRefreshQuotaOnTargetStatus
     )
 
 import Helpers.RemoteDataPlusPlus as RDPP
+import OpenStack.ServerActions as ServerActions
 import OpenStack.Types as OSTypes
 import Time
 import Types.Error exposing (HttpErrorWithBody)
@@ -45,6 +53,7 @@ type alias ExoServerProps =
 
 type alias ServerExoActions =
     { targetOpenstackStatus : Maybe (List OSTypes.ServerStatus) -- Maybe we have performed an instance action and are waiting for server to reflect that
+    , quotaRefreshTargetOpenstackStatus : Maybe (List OSTypes.ServerStatus)
     , request : RDPP.RemoteDataPlusPlus HttpErrorWithBody ()
     }
 
@@ -52,8 +61,96 @@ type alias ServerExoActions =
 initServerExoActions : ServerExoActions
 initServerExoActions =
     { targetOpenstackStatus = Nothing
+    , quotaRefreshTargetOpenstackStatus = Nothing
     , request = RDPP.empty
     }
+
+
+shouldRefreshQuotaOnTargetStatus : ServerExoActions -> OSTypes.ServerStatus -> Bool
+shouldRefreshQuotaOnTargetStatus exoActions currentStatus =
+    exoActions.quotaRefreshTargetOpenstackStatus
+        |> Maybe.map (List.member currentStatus)
+        |> Maybe.withDefault False
+
+
+clearQuotaRefreshIntentIfTargetStatusReached : ServerExoActions -> OSTypes.ServerStatus -> ServerExoActions
+clearQuotaRefreshIntentIfTargetStatusReached exoActions currentStatus =
+    if shouldRefreshQuotaOnTargetStatus exoActions currentStatus then
+        { exoActions
+            | quotaRefreshTargetOpenstackStatus = Nothing
+        }
+
+    else
+        exoActions
+
+
+clearActionTargetIfTargetStatusReached : ServerExoActions -> OSTypes.ServerStatus -> ServerExoActions
+clearActionTargetIfTargetStatusReached exoActions currentStatus =
+    let
+        targetReached =
+            exoActions.targetOpenstackStatus
+                |> Maybe.map (List.member currentStatus)
+                |> Maybe.withDefault False
+    in
+    if targetReached then
+        { exoActions
+            | targetOpenstackStatus = Nothing
+            , request = RDPP.empty
+        }
+
+    else
+        exoActions
+
+
+shelveTargetOpenstackStatus : Maybe (List OSTypes.ServerStatus)
+shelveTargetOpenstackStatus =
+    Just [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
+
+
+shelveQuotaRefreshTargetOpenstackStatus : Maybe (List OSTypes.ServerStatus)
+shelveQuotaRefreshTargetOpenstackStatus =
+    Just [ OSTypes.ServerShelvedOffloaded ]
+
+
+serverActionTargetOpenstackStatus : ServerActions.ServerAction -> Maybe (List OSTypes.ServerStatus)
+serverActionTargetOpenstackStatus action =
+    case action of
+        ServerActions.Unshelve ->
+            Just [ OSTypes.ServerActive ]
+
+        ServerActions.ConfirmResize ->
+            Just [ OSTypes.ServerActive ]
+
+        ServerActions.RevertResize ->
+            Just [ OSTypes.ServerActive ]
+
+        ServerActions.Start ->
+            Just [ OSTypes.ServerActive ]
+
+        ServerActions.Unpause ->
+            Just [ OSTypes.ServerActive ]
+
+        ServerActions.Resume ->
+            Just [ OSTypes.ServerActive ]
+
+        ServerActions.Suspend ->
+            Just [ OSTypes.ServerSuspended ]
+
+        ServerActions.Reboot ->
+            Just [ OSTypes.ServerActive ]
+
+        _ ->
+            Nothing
+
+
+serverActionQuotaRefreshTargetOpenstackStatus : ServerActions.ServerAction -> Maybe (List OSTypes.ServerStatus)
+serverActionQuotaRefreshTargetOpenstackStatus action =
+    case action of
+        ServerActions.Unshelve ->
+            Just [ OSTypes.ServerActive ]
+
+        _ ->
+            Nothing
 
 
 type ServerOrigin
