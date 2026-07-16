@@ -373,6 +373,7 @@ routeToViewStateModelCmd sharedModel route =
                                     ( sharedModel, cmd )
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestAutoAllocatedNetwork (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestComputeQuota (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestProjectUsages (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestFlavors (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestVolumeQuota (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestNetworkQuota (GetterSetters.projectIdentifier project))
@@ -483,6 +484,8 @@ routeToViewStateModelCmd sharedModel route =
                                     ( sharedModel, Cmd.none )
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestComputeQuota (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestProjectUsages (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestFlavors (GetterSetters.projectIdentifier project))
                             in
