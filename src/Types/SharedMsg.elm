@@ -29,6 +29,10 @@ import Url
 
 type SharedMsg
     = Tick TickInterval Time.Posix
+      -- A side-effect-free clock update: sets `clientCurrentTime` and nothing else (no
+      -- orchestration/API polling, unlike `Tick`). Used by the conditional 1s subscription
+      -- that smooths the CloudShield scan timer only while a scan is actively counting.
+    | ClockTick Time.Posix
     | ChangeSystemThemePreference ST.Theme
     | DoOrchestration Time.Posix
     | HandleApiErrorWithBody (Maybe HelperTypes.ProjectIdentifier) ErrorContext HttpErrorWithBody

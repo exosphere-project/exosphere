@@ -1,6 +1,8 @@
 module State.Subscriptions exposing (subscriptions)
 
 import Browser.Events
+import CloudShield.Transport
+import Helpers.GetterSetters as GetterSetters
 import Ports exposing (changeThemePreference, receiveWebLock, updateNetworkConnectivity)
 import Set
 import Style.Theme exposing (decodeThemePreference)
@@ -11,6 +13,7 @@ import Types.Error exposing (AppError)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.SharedMsg exposing (SharedMsg(..))
+import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
 
 
 subscriptions : Result AppError OuterModel -> Sub OuterMsg
@@ -38,6 +41,16 @@ subscriptionsValid outerModel =
          , updateNetworkConnectivity (\online -> SharedMsg (NetworkConnection online))
          , receiveWebLock (\result -> SharedMsg (ReceiveWebLock result))
          ]
+            -- A 1s clock tick ONLY while a CloudShield scan is actively counting on the open
+            -- ServerDetail page, to smooth its elapsed timer (the shared 5s tick is visibly
+            -- chunky). Gated tightly so it exists only during the ~scan window and drops away
+            -- the moment the run is terminal; it sends the pure `ClockTick` (no API polling).
+            ++ (if cloudShieldScanCounting outerModel then
+                    [ Time.every 1000 (\x -> SharedMsg <| ClockTick x) ]
+
+                else
+                    []
+               )
             -- Close popovers if clicked outside. Based on: https://dev.to/margaretkrutikova/elm-dom-node-decoder-to-detect-click-outside-3ioh
             ++ List.map
                 (\popoverId ->
@@ -48,6 +61,41 @@ subscriptionsValid outerModel =
                 )
                 (Set.toList outerModel.sharedModel.viewContext.showPopovers)
         )
+
+
+{-| True exactly when the open page is a ServerDetail whose CloudShield card has a tracked
+scan (`pending` set) in a non-terminal state — i.e. `scanTimerView` is in its counting phase.
+Mirrors the host-side gate in `ServerDetail.cloudShieldViewConfig`: an absent/uncorrelated
+status defaults to "queued" (counting); done/error/cancelled/expired stop the tick.
+-}
+cloudShieldScanCounting : OuterModel -> Bool
+cloudShieldScanCounting outerModel =
+    case outerModel.viewState of
+        ProjectView projectId (ServerDetail pageModel) ->
+            case pageModel.cloudShield.pending of
+                Just pending ->
+                    let
+                        runState =
+                            GetterSetters.projectLookup outerModel.sharedModel projectId
+                                |> Maybe.andThen (\project -> GetterSetters.serverLookup project pageModel.serverUuid)
+                                |> Maybe.andThen (\server -> CloudShield.Transport.runStatusFromMetadata server.osProps.details.metadata)
+                                |> Maybe.andThen
+                                    (\status ->
+                                        if status.seq == pending.seq then
+                                            Just status.state
+
+                                        else
+                                            Nothing
+                                    )
+                                |> Maybe.withDefault "queued"
+                    in
+                    not (List.member runState [ "done", "error", "cancelled", "expired" ])
+
+                Nothing ->
+                    False
+
+        _ ->
+            False
 
 
 sendThemeUpdate : Maybe ST.Theme -> OuterMsg

@@ -147,6 +147,10 @@ updateValid msg outerModel =
                 SharedMsg (Tick _ _) ->
                     Cmd.none
 
+                SharedMsg (ClockTick _) ->
+                    -- The pure scan-timer clock tick must not trigger orchestration/API polling.
+                    Cmd.none
+
                 _ ->
                     Task.perform (\posix -> SharedMsg <| DoOrchestration posix) Time.now
     in
@@ -884,6 +888,12 @@ processSharedMsg sharedMsg outerModel =
 
         Tick interval time ->
             processTick outerModel interval time
+                |> mapToOuterModel outerModel
+
+        ClockTick time ->
+            -- Pure clock update: advance `clientCurrentTime` with no orchestration. This is the
+            -- 1s CloudShield-scan-timer tick; it must not drive any API polling.
+            ( { sharedModel | clientCurrentTime = time }, Cmd.none )
                 |> mapToOuterModel outerModel
 
         DoOrchestration posixTime ->
