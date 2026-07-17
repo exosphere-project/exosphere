@@ -550,7 +550,7 @@ getDefaultZone project context =
         Just zoneName ->
             -- Find the dns zone matching the config name.
             dnsRecordsSets
-                |> List.Extra.find (\z -> String.toLower z.zone_name == String.toLower zoneName)
+                |> List.Extra.find (\z -> Helpers.String.equalsCaseInsensitive z.zone_name zoneName)
                 |> Maybe.map
                     (\record ->
                         { zone_id = record.zone_id

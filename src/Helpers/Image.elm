@@ -1,5 +1,6 @@
 module Helpers.Image exposing (ImageOperatingSystem, detectImageOperatingSystem, detectOperatingSystem, guessOsDefaultUsername)
 
+import Helpers.String exposing (equalsCaseInsensitive)
 import List.Extra
 import OpenStack.Types as OSTypes
 
@@ -133,9 +134,8 @@ guessOsDefaultUsername osDistro maybeOsVersion =
 detectOperatingSystem : String -> Maybe String -> Maybe String -> Maybe ImageOperatingSystem
 detectOperatingSystem imageName maybeOsDistro maybeOsVersion =
     let
-        stringSimilar : String -> String -> Bool
-        stringSimilar left right =
-            String.toLower left == String.toLower right
+        stringSimilar =
+            equalsCaseInsensitive
 
         stringContainsSimilar : String -> String -> Bool
         stringContainsSimilar needle haystack =
