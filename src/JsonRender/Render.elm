@@ -353,12 +353,26 @@ buildEmit ctx binding =
 
 resolveConfirm : Context -> Confirm -> ResolvedConfirm
 resolveConfirm ctx confirm =
-    { title = Expr.resolveDisplay ctx confirm.title
-    , message = Expr.resolveDisplay ctx confirm.message
+    { title = blankToDefault "Confirm action" (Expr.resolveDisplay ctx confirm.title)
+    , message = blankToDefault "Are you sure you want to continue?" (Expr.resolveDisplay ctx confirm.message)
     , confirmLabel = Maybe.withDefault "Confirm" confirm.confirmLabel
     , cancelLabel = Maybe.withDefault "Cancel" confirm.cancelLabel
     , variant = confirm.variant
     }
+
+
+{-| Fail-closed confirm text: a confirm expression that resolves to nothing (a missing
+`$item`/`$state`, so `resolveDisplay` yields an empty string) falls back to a sensible
+generic string rather than showing a blank dialog. Resolution never emits raw directive
+JSON, so this only guards the empty case.
+-}
+blankToDefault : String -> String -> String
+blankToDefault default resolved =
+    if String.trim resolved == "" then
+        default
+
+    else
+        resolved
 
 
 renderCheckbox : Context -> Spec.CheckboxProps -> Html Msg
