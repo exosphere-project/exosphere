@@ -481,6 +481,15 @@ renderIframe ctx props =
                     -- access to its OWN origin only, never the parent host origin.
                     , Attr.attribute "sandbox" "allow-scripts allow-same-origin allow-forms"
                     , Attr.attribute "referrerpolicy" "no-referrer"
+
+                    -- Force the embedded (cross-origin) app to render in light mode regardless
+                    -- of the viewer's OS `prefers-color-scheme`. Per the CSS Color Adjustment
+                    -- spec, Chromium derives the embedded page's used color-scheme from the
+                    -- embedding iframe element, so this pins CloudShield's own UI to light while
+                    -- Exosphere itself stays on the viewer's theme. (CloudShield's dark theme is
+                    -- broken: dark text on dark bg.) This is a presentation-only attribute and
+                    -- does not touch the origin-pin, sandbox, referrerpolicy, or keyed remount.
+                    , Attr.style "color-scheme" "light"
                     , Attr.style "width" "100%"
                     , Attr.style "height" "85vh"
                     , Attr.style "min-height" "600px"
