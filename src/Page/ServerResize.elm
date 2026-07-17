@@ -5,6 +5,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
+import Page.QuotaUsage
 import Route
 import Style.Widgets.Button as Button
 import Style.Widgets.Spacer exposing (spacer)
@@ -63,7 +64,6 @@ update msg { viewContext } project model =
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
 view context project model =
-    -- TODO: What data do we need to load for quotas?
     VH.renderRDPP
         context
         project.computeQuota
@@ -121,7 +121,8 @@ view_ context project model _ =
                 ]
             )
         , Element.column [ Element.spacing spacer.px16 ]
-            [ VH.flavorPicker context
+            [ Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Compute project)
+            , VH.flavorPicker context
                 project
                 restrictFlavorIds
                 (Just ("This flavor has a root disk smaller than your current " ++ context.localization.virtualComputer))

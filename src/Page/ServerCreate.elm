@@ -25,6 +25,7 @@ import Maybe
 import OpenStack.Quotas as OSQuotas
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes exposing (securityGroupExoTags, securityGroupTaggedAs)
+import Page.QuotaUsage
 import Page.SecurityGroupRulesTable as SecurityGroupRulesTable
 import Rest.Naming
 import Route
@@ -783,6 +784,7 @@ view context project currentTime model =
                     _ ->
                         Element.none
                 ]
+            , Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Compute project)
             , VH.flavorPicker context
                 project
                 model.restrictFlavorIds
