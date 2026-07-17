@@ -399,36 +399,57 @@ renderCheckbox ctx props =
 renderFindingsTable : Context -> Spec.FindingsTableProps -> Html Msg
 renderFindingsTable ctx props =
     let
-        value =
+        groups =
             Expr.resolve ctx props.bind
+                |> decodeFindings
+                |> groupFindings props.groupBy
+                |> orderBySeverity
     in
+    case groups of
+        [] ->
+            Html.div [ Attr.class "jr-findings jr-findings--empty" ]
+                [ Html.text "No findings yet" ]
+
+        _ ->
+            let
+                total =
+                    List.sum (List.map Tuple.second groups)
+            in
+            Html.div [ Attr.class "jr-findings" ]
+                (Html.span [ Attr.class "jr-findings__total" ]
+                    [ Html.text (String.fromInt total ++ pluralizeFindings total) ]
+                    :: List.map renderFindingPill groups
+                )
+
+
+decodeFindings : Value -> List (Dict.Dict String Value)
+decodeFindings value =
     if isNull value then
-        Html.div [ Attr.class "jr-findings jr-findings--empty" ]
-            [ Html.text "No findings yet" ]
+        []
 
     else
-        renderFindings props.groupBy value
+        Decode.decodeValue (Decode.list (Decode.dict Decode.value)) value
+            |> Result.withDefault []
 
 
-renderFindings : String -> Value -> Html Msg
-renderFindings groupBy value =
-    let
-        findings =
-            Decode.decodeValue (Decode.list (Decode.dict Decode.value)) value
-                |> Result.withDefault []
+pluralizeFindings : Int -> String
+pluralizeFindings n =
+    if n == 1 then
+        " finding"
 
-        groups =
-            groupFindings groupBy findings
-    in
-    Html.div [ Attr.class "jr-findings" ]
-        (List.map renderFindingGroup groups)
+    else
+        " findings"
 
 
-renderFindingGroup : ( String, Int ) -> Html Msg
-renderFindingGroup ( label, count ) =
-    Html.div [ Attr.class ("jr-findings__group jr-findings__group--" ++ label) ]
-        [ Html.span [ Attr.class "jr-findings__severity" ] [ Html.text label ]
+{-| One at-a-glance severity pill: a severity-colored dot, the count, then the label. The
+`jr-findings__pill--<label>` modifier drives the dot color from the host stylesheet.
+-}
+renderFindingPill : ( String, Int ) -> Html Msg
+renderFindingPill ( label, count ) =
+    Html.span [ Attr.class ("jr-findings__pill jr-findings__pill--" ++ String.toLower label) ]
+        [ Html.span [ Attr.class "jr-findings__dot" ] []
         , Html.span [ Attr.class "jr-findings__count" ] [ Html.text (String.fromInt count) ]
+        , Html.span [ Attr.class "jr-findings__label" ] [ Html.text label ]
         ]
 
 
@@ -447,6 +468,59 @@ groupFindings groupBy findings =
             )
             Dict.empty
         |> Dict.toList
+
+
+{-| Order the grouped counts by severity rank (critical, high, medium, low, info) rather than
+alphabetically, dropping any zero counts. Unrecognized labels sort after the known severities,
+by descending count then name, so a non-severity `groupBy` still renders sensibly.
+-}
+orderBySeverity : List ( String, Int ) -> List ( String, Int )
+orderBySeverity =
+    List.filter (\( _, count ) -> count > 0)
+        >> List.sortWith compareSeverityGroup
+
+
+compareSeverityGroup : ( String, Int ) -> ( String, Int ) -> Order
+compareSeverityGroup ( labelA, countA ) ( labelB, countB ) =
+    case ( severityRank labelA, severityRank labelB ) of
+        ( Just rankA, Just rankB ) ->
+            compare rankA rankB
+
+        ( Just _, Nothing ) ->
+            LT
+
+        ( Nothing, Just _ ) ->
+            GT
+
+        ( Nothing, Nothing ) ->
+            case compare countB countA of
+                EQ ->
+                    compare labelA labelB
+
+                order ->
+                    order
+
+
+severityRank : String -> Maybe Int
+severityRank label =
+    case String.toLower label of
+        "critical" ->
+            Just 0
+
+        "high" ->
+            Just 1
+
+        "medium" ->
+            Just 2
+
+        "low" ->
+            Just 3
+
+        "info" ->
+            Just 4
+
+        _ ->
+            Nothing
 
 
 
