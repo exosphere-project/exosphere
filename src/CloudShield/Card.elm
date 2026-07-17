@@ -72,9 +72,9 @@ type alias Model =
     -- host can project the polled run.state onto the right row.
     , pending : Maybe { seq : Int, targetId : String }
 
-    -- DEMO-ONLY: whether the embedded CloudShield live-UI iframe is expanded. This is host
-    -- chrome, NOT a json-render component (iframe is deliberately excluded from the catalog —
-    -- §2.1 / D3). Off by default; toggled by a link, only when ViewConfig.demoIframeUrl is set.
+    -- DEMO-ONLY: whether the embedded CloudShield live-UI iframe is expanded. This is a raw,
+    -- unpinned host-chrome embed, distinct from the catalog's origin-pinned Iframe element.
+    -- Off by default; toggled by a link, only when ViewConfig.demoIframeUrl is set.
     , showDemoIframe : Bool
     }
 
@@ -284,11 +284,12 @@ allSelected instances selection =
 -- THE RENDERER-FACING PROJECTION (host-renderer-interface.md §1.2)
 
 
-projection : Maybe Encode.Value -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Encode.Value
-projection results statusOverride instances model =
+projection : Maybe Encode.Value -> String -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Encode.Value
+projection results embedUrl statusOverride instances model =
     Encode.object
         [ ( "selectAll", Encode.bool model.selectAll )
         , ( "results", Maybe.withDefault Encode.null results )
+        , ( "embedUrl", Encode.string embedUrl )
         , ( "instances", Encode.list (instanceProjection statusOverride model) instances )
         ]
 
@@ -343,11 +344,20 @@ type alias ViewConfig =
     -- bound into the `FindingsTable` at `/results`. `Nothing` until a run is `done`.
     , results : Maybe Encode.Value
 
+    -- the iframe origin allowlist, derived host-side from the instance's own floating IPs.
+    -- The renderer emits an `<iframe>` only for a `src` whose origin is an exact member of
+    -- this list; it is the whole safety boundary for the catalog's origin-pinned Iframe.
+    , allowedIframeOrigins : List String
+
+    -- the bridge result body's `embedUrl`, projected into the render state at top-level
+    -- `/embedUrl` so the catalog `Iframe` can bind its `src` to it. `""` (self-hiding
+    -- placeholder) until a run is `done` and the result carries an embed URL.
+    , embedUrl : String
+
     -- DEMO-ONLY: when set, the card shows a collapsible panel embedding the *real* CloudShield
-    -- web UI from this URL in an iframe. This is a deliberate deviation from the architecture
-    -- (the json-render catalog EXCLUDES iframe — §2.1 / D3) for the program-officer demo only;
-    -- the production path surfaces findings in the host-controlled FindingsTable. `Nothing`
-    -- disables the panel entirely.
+    -- web UI from this URL in a raw, unpinned host-chrome iframe (no origin allowlist). This is
+    -- separate from the catalog's origin-pinned Iframe element and is for the program-officer
+    -- demo only. `Nothing` disables the panel entirely.
     , demoIframeUrl : Maybe String
     }
 
@@ -362,7 +372,7 @@ view palette config instances model =
             [ Element.width Element.fill, Element.spacing spacer.px8 ]
             [ provenanceMarker palette config.sourceName
             , discoveryNoteView palette config.discoveryNote
-            , rendererView config.manifestJson config.results config.statusOverride instances model
+            , rendererView config.allowedIframeOrigins config.manifestJson config.results config.embedUrl config.statusOverride instances model
             , demoIframePanel palette config.demoIframeUrl model.showDemoIframe
             , disableAffordance palette
             ]
@@ -385,21 +395,26 @@ discoveryNoteView palette note =
             Element.none
 
 
-rendererView : String -> Maybe Encode.Value -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Element.Element Msg
-rendererView manifestJson results statusOverride instances model =
+rendererView : List String -> String -> Maybe Encode.Value -> String -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Element.Element Msg
+rendererView allowedIframeOrigins manifestJson results embedUrl statusOverride instances model =
     -- Decode per render is fine for the small card; the fail-closed decoder is the security
     -- gate (an off-catalog or oversized manifest yields the error stub, never a partial tree).
     case JsonRender.decodeString manifestJson of
         Ok spec ->
-            Element.html
-                (Html.div []
-                    [ rendererStyle
-                    , Html.map RendererMsg (Render.view spec (projection results statusOverride instances model) model.renderer)
-                    ]
+            -- Fill the card width: `Element.html` shrinks to content by default, which squeezes the
+            -- rendered manifest (and the results iframe) into a narrow column. `width fill` on the
+            -- elm-ui wrapper plus `width: 100%` on the div lets it use the full available width.
+            Element.el [ Element.width Element.fill ]
+                (Element.html
+                    (Html.div [ Html.Attributes.style "width" "100%" ]
+                        [ rendererStyle
+                        , Html.map RendererMsg (Render.view allowedIframeOrigins spec (projection results embedUrl statusOverride instances model) model.renderer)
+                        ]
+                    )
                 )
 
         Err message ->
-            Element.html (JsonRender.errorStub message)
+            Element.el [ Element.width Element.fill ] (Element.html (JsonRender.errorStub message))
 
 
 {-| §5.2 provenance marker — host-drawn, naming the source instance and stating that the UI
@@ -450,13 +465,14 @@ optInAffordance palette sourceName =
         ]
 
 
-{-| DEMO-ONLY panel embedding the real CloudShield web UI in an iframe.
+{-| DEMO-ONLY panel embedding the real CloudShield web UI in a raw, unpinned iframe.
 
-This is a deliberate, clearly-marked deviation from the architecture for the program-officer
-demo: **iframe is excluded from the json-render catalog** (§2.1 / D3), so this lives in host
-chrome, not the sandboxed manifest, and is gated behind `ViewConfig.demoIframeUrl` (set only on
-the experimental-flag path). The production way to surface scan output is the host-controlled
-`FindingsTable`, never an embedded VM page.
+This is a clearly-marked demo embed for the program-officer visit: it embeds a host-provided
+URL directly with no origin allowlist, so it lives in host chrome rather than the sandboxed
+manifest, and is gated behind `ViewConfig.demoIframeUrl` (set only on the experimental-flag
+path). The catalog's own `Iframe` element is origin-pinned; this demo panel deliberately is
+not, which is why it stays out of the manifest.
+
 -}
 demoIframePanel : ExoPalette -> Maybe String -> Bool -> Element.Element Msg
 demoIframePanel palette maybeUrl expanded =
@@ -474,7 +490,7 @@ demoIframePanel palette maybeUrl expanded =
                       else
                         "▸ Show"
                      )
-                        ++ " CloudShield live UI (demo only — embedded iframe, not part of the sandboxed catalog)"
+                        ++ " CloudShield live UI (demo only, raw unpinned iframe outside the sandboxed manifest)"
                     )
                     GotToggleDemoIframe
                     :: (if expanded then
@@ -482,7 +498,7 @@ demoIframePanel palette maybeUrl expanded =
                                 [ Text.fontSize Text.Small
                                 , Font.color (SH.toElementColor palette.warning.textOnNeutralBG)
                                 ]
-                                (Text.body ("DEMO ONLY — not production. Embedding " ++ url ++ " directly; iframe is deliberately excluded from the json-render catalog (§2.1 / D3)."))
+                                (Text.body ("DEMO ONLY, not production. Embedding " ++ url ++ " directly in a raw, unpinned host-chrome iframe (no origin allowlist), separate from the catalog's origin-pinned Iframe element."))
                             , Element.html
                                 (Html.iframe
                                     [ Html.Attributes.src url

@@ -168,8 +168,25 @@ update msg project model =
             )
 
         CloudShieldWriteRequest req now ->
-            ( model
-            , writeScanRequestCmd project model (cloudShieldInstances project model) req now
+            let
+                -- Use wall-clock millis as the req-slot seq: the card's own counter resets to 0
+                -- on reload and would collide with a still-claimed seq persisted in the instance
+                -- metadata (the agent then treats the new request as already-handled and skips it).
+                -- A time-based seq is monotonic across reloads, so it never collides. Sync the
+                -- card's `pending.seq` to it so the run<->request correlation still matches.
+                timeSeq =
+                    Time.posixToMillis now
+
+                oldCloud =
+                    model.cloudShield
+
+                syncedCloud =
+                    { oldCloud
+                        | pending = Maybe.map (\p -> { p | seq = timeSeq }) oldCloud.pending
+                    }
+            in
+            ( { model | cloudShield = syncedCloud }
+            , writeScanRequestCmd project model (cloudShieldInstances project model) { req | seq = timeSeq } now
             , SharedMsg.NoOp
             )
 
@@ -206,8 +223,8 @@ demoable locally without a publishing VM). The fail-closed renderer validates wh
 is used. The live `statusOverride` is read from the §7.1 status slot on this instance's
 metadata and correlated to the in-flight request by `seq`.
 -}
-cloudShieldViewConfig : Model -> Server -> CloudShield.Card.ViewConfig
-cloudShieldViewConfig model server =
+cloudShieldViewConfig : Project -> Model -> Server -> CloudShield.Card.ViewConfig
+cloudShieldViewConfig project model server =
     let
         metadata =
             server.osProps.details.metadata
@@ -262,18 +279,48 @@ cloudShieldViewConfig model server =
 
                 Nothing ->
                     Nothing
+
+        -- The origin-pin for the catalog `Iframe`: the instance's own floating IPs, each mapped
+        -- to its `https://<ip>.sslip.io` origin (dotted quad, matching the Let's Encrypt cert and
+        -- the bridge's EMBED_PUBLIC_BASE). The renderer emits an `<iframe>` only for a `src` whose
+        -- origin is an exact member of this list; anything else self-hides.
+        allowedIframeOrigins =
+            GetterSetters.getServerFloatingIps project server.osProps.uuid
+                |> List.map (\ip -> "https://" ++ ip.address ++ ".sslip.io")
+
+        -- The bridge result body's `embedUrl` (tolerating a missing field), projected to the
+        -- render state at top-level `/embedUrl` for the `Iframe` to bind. Gated on the correlated
+        -- `done` state so a stale embed URL from a prior run cannot show; `""` self-hides.
+        embedUrl =
+            case statusOverride of
+                Just override ->
+                    if override.state == "done" then
+                        CloudShield.Transport.resultBodyFromMetadata metadata
+                            |> Maybe.andThen
+                                (\body ->
+                                    Decode.decodeString (Decode.field "embedUrl" Decode.string) body
+                                        |> Result.toMaybe
+                                )
+                            |> Maybe.withDefault ""
+
+                    else
+                        ""
+
+                Nothing ->
+                    ""
     in
     { sourceName = server.osProps.name
     , manifestJson = manifestJson
     , discoveryNote = Just discoveryNote
     , statusOverride = statusOverride
     , results = results
+    , allowedIframeOrigins = allowedIframeOrigins
+    , embedUrl = embedUrl
 
-    -- DEMO-ONLY (program-officer visit): embed the real CloudShield web UI running on the
-    -- demo machine. iframe is excluded from the sandboxed json-render catalog (§2.1 / D3), so
-    -- this is host chrome behind the experimental flag, clearly marked not-production. Point
-    -- at wherever CloudShield is reachable from the browser (localhost on the demo Mac).
-    , demoIframeUrl = Just "http://localhost:3000"
+    -- The results iframe is now the catalog's origin-pinned `Iframe` element (bound to the scan
+    -- result's embedUrl). The old raw/unpinned demo panel is disabled to avoid a second, confusing
+    -- iframe; `Nothing` hides the panel and its toggle entirely.
+    , demoIframeUrl = Nothing
     }
 
 
@@ -359,13 +406,11 @@ writeScanRequestCmd project model instances req now =
                     CloudShield.Transport.reqSlotMetadata req.seq
                         (CloudShield.Transport.scanRequestJson scanRequest)
             in
-            items
-                |> List.map
-                    (\item ->
-                        Rest.Nova.requestSetServerMetadata project model.serverUuid item
-                            |> Cmd.map SharedMsg
-                    )
-                |> Cmd.batch
+            -- One atomic POST for all request-slot keys. Firing one request per key
+            -- concurrently races on Nova's single metadata row and silently drops writes,
+            -- leaving a half-written (unparseable) request slot the agent never picks up.
+            Rest.Nova.requestSetServerMetadataItems project model.serverUuid items
+                |> Cmd.map SharedMsg
 
 
 popoverMsgMapper : PopoverId -> Msg
@@ -950,7 +995,7 @@ cloudShieldCard context project server model =
             ]
             [ CloudShield.Card.view
                 context.palette
-                (cloudShieldViewConfig model server)
+                (cloudShieldViewConfig project model server)
                 (cloudShieldInstances project model)
                 model.cloudShield
                 |> Element.map CloudShieldMsg

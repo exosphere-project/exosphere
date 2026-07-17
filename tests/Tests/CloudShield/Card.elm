@@ -45,11 +45,11 @@ manifestSuite =
             \_ ->
                 let
                     bad =
-                        """{ "root": "x", "elements": { "x": { "type": "Iframe", "props": {}, "children": [] } } }"""
+                        """{ "root": "x", "elements": { "x": { "type": "ScriptInjector", "props": {}, "children": [] } } }"""
                 in
                 case JsonRender.decodeString bad of
                     Ok _ ->
-                        Expect.fail "an Iframe component must be rejected"
+                        Expect.fail "a ScriptInjector component must be rejected"
 
                     Err _ ->
                         Expect.pass
@@ -103,7 +103,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Nothing Nothing sampleInstances (sampleModel (Set.singleton "i-1"))
+                        Card.projection Nothing "" Nothing sampleInstances (sampleModel (Set.singleton "i-1"))
                 in
                 Expect.equal ( Ok True, Ok False )
                     ( rowSelected 0 value, rowSelected 1 value )
@@ -111,7 +111,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Nothing Nothing sampleInstances (sampleModel Set.empty)
+                        Card.projection Nothing "" Nothing sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal ( Ok "idle", Ok "queued" )
                     ( rowScanState 0 value, rowScanState 1 value )
@@ -122,10 +122,20 @@ projectionSuite =
                         Just { targetId = "i-1", state = "running" }
 
                     value =
-                        Card.projection Nothing override sampleInstances (sampleModel Set.empty)
+                        Card.projection Nothing "" override sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal ( Ok "running", Ok "queued" )
                     ( rowScanState 0 value, rowScanState 1 value )
+        , test "embedUrl is projected to the top-level /embedUrl render-state key" <|
+            \_ ->
+                let
+                    value =
+                        Card.projection Nothing "https://1-2-3-4.sslip.io/app" Nothing sampleInstances (sampleModel Set.empty)
+                in
+                Expect.equal (Ok "https://1-2-3-4.sslip.io/app")
+                    (Decode.decodeValue (Decode.field "embedUrl" Decode.string) value
+                        |> Result.mapError Decode.errorToString
+                    )
         ]
 
 
