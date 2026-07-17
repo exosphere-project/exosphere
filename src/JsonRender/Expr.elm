@@ -191,6 +191,8 @@ stringField field value toExpr =
   - `index` — the current `repeat` index, if inside a repeat scope.
   - `basePath` — the repeat item's absolute JSON Pointer (`statePath ++ "/" ++ index`),
     used to compute `$bindItem` / top-level `$item` write-back paths.
+  - `allowedOrigins` — the host-provided iframe origin allowlist. The `Iframe` element only
+    renders when a resolved `src`'s origin is an exact member of this list (fail-closed).
 
 -}
 type alias Context =
@@ -198,14 +200,21 @@ type alias Context =
     , item : Maybe Value
     , index : Maybe Int
     , basePath : Maybe String
+    , allowedOrigins : List String
     }
 
 
-{-| The top-level scope: global state only, no repeat item.
+{-| The top-level scope: global state only, no repeat item. `allowedOrigins` is the
+host-provided iframe origin allowlist, threaded to every expression scope.
 -}
-rootContext : Value -> Context
-rootContext state =
-    { state = state, item = Nothing, index = Nothing, basePath = Nothing }
+rootContext : List String -> Value -> Context
+rootContext allowedOrigins state =
+    { state = state
+    , item = Nothing
+    , index = Nothing
+    , basePath = Nothing
+    , allowedOrigins = allowedOrigins
+    }
 
 
 {-| Derive a per-item scope for a `repeat` element. `statePath` is the pointer to the
@@ -218,6 +227,7 @@ childContext statePath index item parent =
     , item = Just item
     , index = Just index
     , basePath = Just (statePath ++ "/" ++ String.fromInt index)
+    , allowedOrigins = parent.allowedOrigins
     }
 
 

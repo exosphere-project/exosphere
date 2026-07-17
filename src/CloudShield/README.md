@@ -52,7 +52,7 @@ Then in the browser:
       targeted rows flip to a **`queued`** badge (info tone).
 - [ ] With dev-tools open, the confirmed scan issues `POST …/servers/<uuid>/metadata` writes
       for `exoext.v1.req.seq` + `exoext.v1.req.body.0…` (the §7.1 request slot) on the viewed VM.
-- [ ] An **off-catalog manifest** (e.g. an `Iframe` node) renders the **error stub**, never a
+- [ ] An **off-catalog manifest** (e.g. a `ScriptInjector` node) renders the **error stub**, never a
       partial tree (covered by `Tests.CloudShield.Card`; `JsonRender` decode is fail-closed).
 
 ## What works
