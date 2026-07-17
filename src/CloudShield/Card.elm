@@ -21,6 +21,7 @@ Everything here is gated by `context.experimentalFeaturesEnabled` at the call si
 
 -}
 
+import Color
 import Dict exposing (Dict)
 import Element
 import Element.Background as Background
@@ -383,7 +384,7 @@ view palette currentTime config instances model =
         Element.column
             [ Element.width Element.fill, Element.spacing spacer.px8 ]
             [ provenanceMarker palette config.sourceName
-            , rendererView config.allowedIframeOrigins config.manifestJson config.results config.embedUrl config.statusOverride instances model
+            , rendererView palette config.allowedIframeOrigins config.manifestJson config.results config.embedUrl config.statusOverride instances model
             , scanTimerView palette currentTime config.scanTimer
             , demoIframePanel palette config.demoIframeUrl model.showDemoIframe
             , disableAffordance palette
@@ -468,8 +469,8 @@ transportChip palette label =
         (Element.text label)
 
 
-rendererView : List String -> String -> Maybe Encode.Value -> String -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Element.Element Msg
-rendererView allowedIframeOrigins manifestJson results embedUrl statusOverride instances model =
+rendererView : ExoPalette -> List String -> String -> Maybe Encode.Value -> String -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Element.Element Msg
+rendererView palette allowedIframeOrigins manifestJson results embedUrl statusOverride instances model =
     -- Decode per render is fine for the small card; the fail-closed decoder is the security
     -- gate (an off-catalog or oversized manifest yields the error stub, never a partial tree).
     case JsonRender.decodeString manifestJson of
@@ -480,7 +481,7 @@ rendererView allowedIframeOrigins manifestJson results embedUrl statusOverride i
             Element.el [ Element.width Element.fill ]
                 (Element.html
                     (Html.div [ Html.Attributes.style "width" "100%" ]
-                        [ rendererStyle
+                        [ rendererStyle palette
                         , Html.map RendererMsg (Render.view allowedIframeOrigins spec (projection results embedUrl statusOverride instances model) model.renderer)
                         ]
                     )
@@ -613,63 +614,128 @@ linkButton palette label msg =
 
 
 
--- A self-contained minimal stylesheet for the renderer's jr-* classes, so the vendored
--- renderer is legible inside Exosphere without depending on app CSS. Scoped to .jr-* names.
+-- A self-contained stylesheet for the renderer's jr-* classes, generated from the active
+-- `ExoPalette` so the vendored renderer looks native inside Exosphere in BOTH light and dark
+-- themes (colors are pulled from the palette's neutral/state families, not hardcoded). Scoped
+-- to .jr-* names.
 
 
-rendererStyle : Html.Html Msg
-rendererStyle =
+rendererStyle : ExoPalette -> Html.Html Msg
+rendererStyle palette =
+    let
+        c =
+            Color.toCssString
+
+        text =
+            c palette.neutral.text.default
+
+        muted =
+            c palette.neutral.text.subdued
+
+        border =
+            c palette.neutral.border
+
+        frontBg =
+            c palette.neutral.background.frontLayer
+
+        primary =
+            c palette.primary
+
+        -- State families: the palette's own tinted `background`/`border`/`textOnColoredBG`
+        -- read correctly on both light and dark pages, so badges/pills stay legible either way.
+        infoBg =
+            c palette.info.background
+
+        infoText =
+            c palette.info.textOnColoredBG
+
+        infoBorder =
+            c palette.info.border
+
+        successBg =
+            c palette.success.background
+
+        successText =
+            c palette.success.textOnColoredBG
+
+        successBorder =
+            c palette.success.border
+
+        dangerBg =
+            c palette.danger.background
+
+        dangerText =
+            c palette.danger.textOnColoredBG
+
+        dangerBorder =
+            c palette.danger.border
+
+        -- Solid severity-dot colors for the findings pills.
+        dangerDot =
+            c palette.danger.default
+
+        warningDot =
+            c palette.warning.default
+
+        infoDot =
+            c palette.info.default
+
+        neutralDot =
+            c palette.muted.default
+    in
     Html.node "style"
         []
-        [ Html.text """
-/* Dark theme matching Exosphere (accent #2680c2 / #53b7e2). Scoped to .jr-* names. */
-.jr-root { font-family: inherit; color: inherit; }
-.jr-card { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }
-.jr-card__title { font-size: 1.05em; margin: 0 0 4px 0; font-weight: 600; }
-.jr-stack { display: flex; gap: 10px; }
-.jr-stack--row { flex-direction: row; align-items: center; }
-.jr-stack--col { flex-direction: column; align-items: stretch; }
-.jr-text { }
-.jr-button { padding: 4px 12px; border: 1px solid rgba(255,255,255,0.25); border-radius: 4px; background: rgba(255,255,255,0.06); color: inherit; cursor: pointer; font-size: 0.9em; }
-.jr-button:hover { background: rgba(83,183,226,0.18); border-color: #53b7e2; }
-.jr-checkbox { display: inline-flex; align-items: center; gap: 6px; }
-.jr-checkbox input { accent-color: #53b7e2; }
-.jr-badge { padding: 1px 9px; border-radius: 999px; font-size: 0.8em; border: 1px solid transparent; }
-/* In-progress badges (queued/running) get a small spinning ring before the label so an
-   active scan reads as moving. `currentColor` inherits the badge's per-tone text color. */
-.jr-badge[data-state="queued"]::before,
-.jr-badge[data-state="running"]::before {
-  content: "";
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  margin-right: 5px;
-  vertical-align: -1px;
-  border: 2px solid currentColor;
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: jr-badge-spin 0.7s linear infinite;
-}
-@keyframes jr-badge-spin { to { transform: rotate(360deg); } }
-.jr-badge--neutral { background: rgba(255,255,255,0.10); color: #c9cdd4; }
-.jr-badge--info { background: rgba(83,183,226,0.18); color: #9fd6ef; border-color: rgba(83,183,226,0.35); }
-.jr-badge--success { background: rgba(80,200,120,0.18); color: #7fdc9b; border-color: rgba(80,200,120,0.30); }
-.jr-badge--danger { background: rgba(226,80,80,0.18); color: #f0a0a0; border-color: rgba(226,80,80,0.35); }
-.jr-findings--empty { color: #8b9099; font-size: 0.9em; }
-.jr-findings__group { display: flex; gap: 6px; align-items: center; }
-.jr-findings__count { color: #b9bdc4; }
-.jr-confirm { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.jr-confirm__box { background: #1d2027; color: #e6e8eb; padding: 20px 22px; border-radius: 8px; max-width: 380px; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 8px 40px rgba(0,0,0,0.5); }
-.jr-confirm__title { margin: 0 0 8px 0; font-size: 1.1em; font-weight: 600; }
-.jr-confirm__message { margin: 0; color: #b9bdc4; line-height: 1.45; }
-.jr-confirm__actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
-.jr-confirm__cancel, .jr-confirm__confirm { padding: 6px 16px; border-radius: 4px; cursor: pointer; font-size: 0.9em; }
-.jr-confirm__cancel { background: transparent; color: #e6e8eb; border: 1px solid rgba(255,255,255,0.25); }
-.jr-confirm__cancel:hover { background: rgba(255,255,255,0.08); }
-.jr-confirm__confirm { background: #2680c2; color: #fff; border: 1px solid #2680c2; }
-.jr-confirm__confirm:hover { background: #3690d2; border-color: #3690d2; }
-.jr-error, .jr-error-stub { border: 1px solid #b3504f; padding: 8px 10px; border-radius: 4px; color: #f0a0a0; background: rgba(226,80,80,0.08); }
-""" ]
+        [ Html.text
+            (String.join "\n"
+                [ ".jr-root { font-family: inherit; color: " ++ text ++ "; }"
+                , ".jr-card { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }"
+                , ".jr-card__title { font-size: 1.05em; margin: 0 0 4px 0; font-weight: 600; }"
+                , ".jr-stack { display: flex; gap: 10px; }"
+                , ".jr-stack--row { flex-direction: row; align-items: center; }"
+                , ".jr-stack--col { flex-direction: column; align-items: stretch; }"
+                , ".jr-text { }"
+                , ".jr-button { padding: 4px 12px; border: 1px solid " ++ border ++ "; border-radius: 4px; background: " ++ frontBg ++ "; color: " ++ text ++ "; cursor: pointer; font-size: 0.9em; }"
+                , ".jr-button:hover { border-color: " ++ primary ++ "; color: " ++ primary ++ "; }"
+                , ".jr-checkbox { display: inline-flex; align-items: center; gap: 6px; }"
+                , ".jr-checkbox input { accent-color: " ++ primary ++ "; }"
+                , ".jr-badge { padding: 1px 9px; border-radius: 999px; font-size: 0.8em; border: 1px solid transparent; }"
+
+                -- In-progress badges (queued/running) get a small spinning ring before the label
+                -- so an active scan reads as moving. `currentColor` inherits the badge tone color.
+                , ".jr-badge[data-state=\"queued\"]::before, .jr-badge[data-state=\"running\"]::before { content: \"\"; display: inline-block; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: jr-badge-spin 0.7s linear infinite; }"
+                , "@keyframes jr-badge-spin { to { transform: rotate(360deg); } }"
+                , ".jr-badge--neutral { background: " ++ frontBg ++ "; color: " ++ muted ++ "; border-color: " ++ border ++ "; }"
+                , ".jr-badge--info { background: " ++ infoBg ++ "; color: " ++ infoText ++ "; border-color: " ++ infoBorder ++ "; }"
+                , ".jr-badge--success { background: " ++ successBg ++ "; color: " ++ successText ++ "; border-color: " ++ successBorder ++ "; }"
+                , ".jr-badge--danger { background: " ++ dangerBg ++ "; color: " ++ dangerText ++ "; border-color: " ++ dangerBorder ++ "; }"
+
+                -- Findings summary: a single clean row of severity pills (dot + count + label),
+                -- ordered by severity in the renderer; the iframe below is the rich view.
+                , ".jr-findings { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }"
+                , ".jr-findings--empty { color: " ++ muted ++ "; font-size: 0.9em; font-style: italic; }"
+                , ".jr-findings__total { color: " ++ muted ++ "; font-size: 0.85em; font-weight: 600; margin-right: 2px; }"
+                , ".jr-findings__pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; background: " ++ frontBg ++ "; border: 1px solid " ++ border ++ "; font-size: 0.85em; }"
+                , ".jr-findings__dot { width: 8px; height: 8px; border-radius: 50%; background: " ++ neutralDot ++ "; flex: none; }"
+                , ".jr-findings__count { font-weight: 700; color: " ++ text ++ "; }"
+                , ".jr-findings__label { color: " ++ muted ++ "; text-transform: capitalize; }"
+                , ".jr-findings__pill--critical .jr-findings__dot, .jr-findings__pill--high .jr-findings__dot { background: " ++ dangerDot ++ "; }"
+                , ".jr-findings__pill--medium .jr-findings__dot { background: " ++ warningDot ++ "; }"
+                , ".jr-findings__pill--low .jr-findings__dot { background: " ++ infoDot ++ "; }"
+                , ".jr-findings__pill--info .jr-findings__dot { background: " ++ neutralDot ++ "; }"
+                , ".jr-confirm { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 1000; }"
+                , ".jr-confirm__box { background: " ++ frontBg ++ "; color: " ++ text ++ "; padding: 20px 22px; border-radius: 8px; max-width: 380px; border: 1px solid " ++ border ++ "; box-shadow: 0 8px 40px rgba(0,0,0,0.5); }"
+                , ".jr-confirm__title { margin: 0 0 8px 0; font-size: 1.1em; font-weight: 600; }"
+                , ".jr-confirm__message { margin: 0; color: " ++ muted ++ "; line-height: 1.45; }"
+                , ".jr-confirm__actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }"
+                , ".jr-confirm__cancel, .jr-confirm__confirm { padding: 6px 16px; border-radius: 4px; cursor: pointer; font-size: 0.9em; }"
+                , ".jr-confirm__cancel { background: transparent; color: " ++ text ++ "; border: 1px solid " ++ border ++ "; }"
+                , ".jr-confirm__cancel:hover { background: " ++ frontBg ++ "; }"
+                , ".jr-confirm__confirm { background: " ++ primary ++ "; color: #fff; border: 1px solid " ++ primary ++ "; }"
+                , ".jr-confirm__confirm:hover { filter: brightness(1.08); }"
+                , ".jr-error, .jr-error-stub { border: 1px solid " ++ dangerBorder ++ "; padding: 8px 10px; border-radius: 4px; color: " ++ dangerText ++ "; background: " ++ dangerBg ++ "; }"
+                ]
+            )
+        ]
 
 
 
