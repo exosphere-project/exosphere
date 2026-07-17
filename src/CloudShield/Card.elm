@@ -1,4 +1,4 @@
-module CloudShield.Card exposing (Instance, Model, Msg, OutMsg(..), ViewConfig, cardJson, init, projection, update, view)
+module CloudShield.Card exposing (Instance, Model, Msg, OutMsg(..), ViewConfig, cardJson, init, projection, transportChip, update, view)
 
 {-| Host wiring for the CloudShield dynamic-UI card (Phase 1, browser side).
 
@@ -38,6 +38,7 @@ import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
+import Time
 
 
 
@@ -328,13 +329,24 @@ localScanState model id =
 
 {-| What the host hands the card view: the publishing instance's display name (for the
 provenance marker, §5.2), the resolved manifest JSON (from POC transport when discovered,
-else the embedded frozen `cardJson` fallback), and an optional discovery note describing how
-the manifest was resolved.
+else the embedded frozen `cardJson` fallback), a short transport label for the header chip,
+and the scan-timer descriptor for the active/completed elapsed line.
 -}
 type alias ViewConfig =
     { sourceName : String
     , manifestJson : String
-    , discoveryNote : Maybe String
+
+    -- a short, non-technical label for how the manifest was transported (e.g. "server
+    -- metadata"), rendered as a muted chip in the card *header* by the host, not in the body.
+    -- `Nothing` hides the chip.
+    , transportLabel : Maybe String
+
+    -- the tracked scan's elapsed-timer descriptor. `startMillis` is the run's wall-clock start
+    -- (the request seq, which the host sets to `Time.posixToMillis`); while the run is active
+    -- `doneDurationSec` is `Nothing` (the timer counts up from `startMillis` against the shared
+    -- clock); once the run is `done` it holds the authoritative scan duration (from the result
+    -- body's `summary.durationSec`) so the line freezes. `Nothing` hides the line entirely.
+    , scanTimer : Maybe { startMillis : Int, doneDurationSec : Maybe Int }
 
     -- the authoritative live state of the in-flight run, read from the polled status object
     -- (§4.3) and projected onto its target row, overriding the optimistic local scanState.
@@ -365,14 +377,14 @@ type alias ViewConfig =
 {-| Render the card with its host trust chrome. The whole thing is mounted inside
 Exosphere's elm-ui tree via `Element.html`.
 -}
-view : ExoPalette -> ViewConfig -> List Instance -> Model -> Element.Element Msg
-view palette config instances model =
+view : ExoPalette -> Time.Posix -> ViewConfig -> List Instance -> Model -> Element.Element Msg
+view palette currentTime config instances model =
     if model.optedIn then
         Element.column
             [ Element.width Element.fill, Element.spacing spacer.px8 ]
             [ provenanceMarker palette config.sourceName
-            , discoveryNoteView palette config.discoveryNote
             , rendererView config.allowedIframeOrigins config.manifestJson config.results config.embedUrl config.statusOverride instances model
+            , scanTimerView palette currentTime config.scanTimer
             , demoIframePanel palette config.demoIframeUrl model.showDemoIframe
             , disableAffordance palette
             ]
@@ -381,18 +393,79 @@ view palette config instances model =
         optInAffordance palette config.sourceName
 
 
-discoveryNoteView : ExoPalette -> Maybe String -> Element.Element Msg
-discoveryNoteView palette note =
-    case note of
-        Just text ->
+{-| A muted, host-drawn line under the rendered manifest that gives the scan visible progress:
+`Scanning… m:ss` while a run is active (counting up from the run's start against the shared
+clock), frozen to `Scan completed in m:ss` once the run is `done`. `Nothing` hides it.
+-}
+scanTimerView : ExoPalette -> Time.Posix -> Maybe { startMillis : Int, doneDurationSec : Maybe Int } -> Element.Element Msg
+scanTimerView palette currentTime timer =
+    case timer of
+        Just { startMillis, doneDurationSec } ->
+            let
+                label =
+                    case doneDurationSec of
+                        Just secs ->
+                            "Scan completed in " ++ formatElapsed secs
+
+                        Nothing ->
+                            let
+                                diffMs =
+                                    Time.posixToMillis currentTime - startMillis
+
+                                -- `startMillis` is the request seq, which the host stamps with
+                                -- wall-clock millis. For the ~1 frame before that stamp lands it
+                                -- is still the small optimistic counter, which would read as an
+                                -- absurd elapsed; treat any non-epoch start (or a negative diff)
+                                -- as 0:00 until the real timestamp arrives.
+                                elapsedSec =
+                                    if startMillis < 1000000000000 || diffMs < 0 then
+                                        0
+
+                                    else
+                                        diffMs // 1000
+                            in
+                            "Scanning… " ++ formatElapsed elapsedSec
+            in
             Element.el
                 [ Text.fontSize Text.Small
                 , Font.color (SH.toElementColor palette.neutral.text.subdued)
                 ]
-                (Text.body text)
+                (Text.body label)
 
         Nothing ->
             Element.none
+
+
+{-| Format a whole-second count as `m:ss` (e.g. 125 -> "2:05").
+-}
+formatElapsed : Int -> String
+formatElapsed totalSeconds =
+    let
+        minutes =
+            totalSeconds // 60
+
+        seconds =
+            modBy 60 totalSeconds
+    in
+    String.fromInt minutes ++ ":" ++ String.padLeft 2 '0' (String.fromInt seconds)
+
+
+{-| A small, muted "transport" chip for the card header (host chrome, drawn outside the
+sandboxed manifest). Polymorphic in the message type because it carries no events.
+-}
+transportChip : ExoPalette -> String -> Element.Element msg
+transportChip palette label =
+    Element.el
+        [ Element.centerY
+        , Element.paddingXY spacer.px8 spacer.px4
+        , Background.color (SH.toElementColor palette.neutral.background.frontLayer)
+        , Border.width 1
+        , Border.color (SH.toElementColor palette.neutral.border)
+        , Border.rounded 4
+        , Text.fontSize Text.Tiny
+        , Font.color (SH.toElementColor palette.neutral.text.subdued)
+        ]
+        (Element.text label)
 
 
 rendererView : List String -> String -> Maybe Encode.Value -> String -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Element.Element Msg
@@ -442,7 +515,7 @@ provenanceMarker palette sourceName =
             ]
             (Element.text "?")
         , Element.paragraph [ Text.fontSize Text.Small ]
-            [ Text.body ("Published by the VM “" ++ sourceName ++ "”, not by Exosphere.")
+            [ Text.body ("Published by the \"" ++ sourceName ++ "\" VM.")
             ]
         ]
 
@@ -562,6 +635,22 @@ rendererStyle =
 .jr-checkbox { display: inline-flex; align-items: center; gap: 6px; }
 .jr-checkbox input { accent-color: #53b7e2; }
 .jr-badge { padding: 1px 9px; border-radius: 999px; font-size: 0.8em; border: 1px solid transparent; }
+/* In-progress badges (queued/running) get a small spinning ring before the label so an
+   active scan reads as moving. `currentColor` inherits the badge's per-tone text color. */
+.jr-badge[data-state="queued"]::before,
+.jr-badge[data-state="running"]::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 5px;
+  vertical-align: -1px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: jr-badge-spin 0.7s linear infinite;
+}
+@keyframes jr-badge-spin { to { transform: rotate(360deg); } }
 .jr-badge--neutral { background: rgba(255,255,255,0.10); color: #c9cdd4; }
 .jr-badge--info { background: rgba(83,183,226,0.18); color: #9fd6ef; border-color: rgba(83,183,226,0.35); }
 .jr-badge--success { background: rgba(80,200,120,0.18); color: #7fdc9b; border-color: rgba(80,200,120,0.30); }

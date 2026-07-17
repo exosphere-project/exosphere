@@ -235,18 +235,21 @@ cloudShieldViewConfig project model server =
         maybeTransportBody =
             CloudShield.Discovery.manifestBodyFromMetadata metadata
 
-        ( manifestJson, discoveryNote ) =
+        -- The header transport chip: a short, non-technical label naming how the manifest
+        -- actually arrived. Only when a real transport body was resolved (metadata store);
+        -- the embedded-card fallbacks transport nothing, so they show no chip.
+        ( manifestJson, transportLabel ) =
             case ( maybeSentinel, maybeTransportBody ) of
                 ( Just _, Just body ) ->
                     ( unwrapManifestUi model.serverUuid body
-                    , "Discovery: sentinel present; manifest from server metadata (POC transport)."
+                    , Just "server metadata"
                     )
 
                 ( Just _, Nothing ) ->
-                    ( CloudShield.Card.cardJson, "Discovery: sentinel present; no metadata body yet — showing embedded card." )
+                    ( CloudShield.Card.cardJson, Nothing )
 
                 ( Nothing, _ ) ->
-                    ( CloudShield.Card.cardJson, "Discovery: no exoext.v1 sentinel here — showing embedded card (dev fallback)." )
+                    ( CloudShield.Card.cardJson, Nothing )
 
         statusOverride =
             case ( CloudShield.Transport.runStatusFromMetadata metadata, model.cloudShield.pending ) of
@@ -308,10 +311,52 @@ cloudShieldViewConfig project model server =
 
                 Nothing ->
                     ""
+
+        -- The scan-timer descriptor for the card's elapsed line. It exists only while a run is
+        -- tracked this session (`pending` set). `startMillis` is the request seq (wall-clock
+        -- millis; see `CloudShieldWriteRequest`). The correlated live state decides the shape:
+        -- an active run counts up (`doneDurationSec = Nothing`); a `done` run freezes to the
+        -- authoritative duration from the result body's `summary.durationSec`; a terminal
+        -- non-`done` state (error/cancelled/expired) drops the line.
+        scanTimer =
+            case model.cloudShield.pending of
+                Just pending ->
+                    let
+                        state =
+                            statusOverride |> Maybe.map .state |> Maybe.withDefault "queued"
+                    in
+                    case state of
+                        "done" ->
+                            Just
+                                { startMillis = pending.seq
+                                , doneDurationSec =
+                                    CloudShield.Transport.resultBodyFromMetadata metadata
+                                        |> Maybe.andThen
+                                            (\body ->
+                                                Decode.decodeString (Decode.at [ "summary", "durationSec" ] Decode.int) body
+                                                    |> Result.toMaybe
+                                            )
+                                }
+
+                        "error" ->
+                            Nothing
+
+                        "cancelled" ->
+                            Nothing
+
+                        "expired" ->
+                            Nothing
+
+                        _ ->
+                            Just { startMillis = pending.seq, doneDurationSec = Nothing }
+
+                Nothing ->
+                    Nothing
     in
     { sourceName = server.osProps.name
     , manifestJson = manifestJson
-    , discoveryNote = Just discoveryNote
+    , transportLabel = transportLabel
+    , scanTimer = scanTimer
     , statusOverride = statusOverride
     , results = results
     , allowedIframeOrigins = allowedIframeOrigins
@@ -971,13 +1016,13 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
 
           else
             Element.none
-        , cloudShieldCard context project server model
+        , cloudShieldCard context project currentTime server model
         , Element.wrappedRow [ Element.spacing spacer.px24 ] serverDetailTiles
         ]
 
 
-cloudShieldCard : View.Types.Context -> Project -> Server -> Model -> Element.Element Msg
-cloudShieldCard context project server model =
+cloudShieldCard : View.Types.Context -> Project -> Time.Posix -> Server -> Model -> Element.Element Msg
+cloudShieldCard context project currentTime server model =
     -- Gated behind the experimental-features flag AND the §5.1 self-instance-placement
     -- discovery gate: the card appears only on an instance that actually published an
     -- extension, i.e. the `exoext.v1.kind` sentinel is present in *this* instance's own Nova
@@ -988,14 +1033,30 @@ cloudShieldCard context project server model =
             CloudShield.Discovery.readSentinel server.osProps.details.metadata /= Nothing
     in
     if context.experimentalFeaturesEnabled && sentinelPresent then
+        let
+            config =
+                cloudShieldViewConfig project model server
+
+            -- The transport label rides in the header (top-right), not the card body.
+            headerChip =
+                case config.transportLabel of
+                    Just label ->
+                        [ Element.el [ Element.alignRight ] (CloudShield.Card.transportChip context.palette label) ]
+
+                    Nothing ->
+                        []
+        in
         VH.tile
             context
-            [ Icon.featherIcon [] Icons.shield
-            , Element.text "CloudShield (extension)"
-            ]
+            ([ Icon.featherIcon [] Icons.shield
+             , Element.text "CloudShield (extension)"
+             ]
+                ++ headerChip
+            )
             [ CloudShield.Card.view
                 context.palette
-                (cloudShieldViewConfig project model server)
+                currentTime
+                config
                 (cloudShieldInstances project model)
                 model.cloudShield
                 |> Element.map CloudShieldMsg
