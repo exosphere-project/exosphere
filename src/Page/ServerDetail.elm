@@ -316,8 +316,15 @@ cloudShieldViewConfig project model server =
         -- tracked this session (`pending` set). `startMillis` is the request seq (wall-clock
         -- millis; see `CloudShieldWriteRequest`). The correlated live state decides the shape:
         -- an active run counts up (`doneDurationSec = Nothing`); a `done` run freezes to the
-        -- authoritative duration from the result body's `summary.durationSec`; a terminal
-        -- non-`done` state (error/cancelled/expired) drops the line.
+        -- wall-clock pipeline duration; a terminal non-`done` state (error/cancelled/expired)
+        -- drops the line.
+        --
+        -- The freeze must match the counting phase: the count is wall-clock (snapshot -> boot
+        -- clone -> scan, ~minutes), so we freeze to wall-clock too, computed from the result
+        -- body's top-level `completedAt` (ISO 8601, emitted by the bridge) minus the request
+        -- start. The result body's `summary.durationSec` is scanner-only (~seconds) and would
+        -- read as a bug against the counted-up time, so it is only a fallback when `completedAt`
+        -- is missing/unparseable; absent both, the line is hidden (Nothing).
         scanTimer =
             case model.cloudShield.pending of
                 Just pending ->
@@ -327,15 +334,35 @@ cloudShieldViewConfig project model server =
                     in
                     case state of
                         "done" ->
+                            let
+                                resultBody =
+                                    CloudShield.Transport.resultBodyFromMetadata metadata
+
+                                wallClockSec =
+                                    resultBody
+                                        |> Maybe.andThen
+                                            (\body ->
+                                                Decode.decodeString (Decode.field "completedAt" Decode.string) body
+                                                    |> Result.toMaybe
+                                            )
+                                        |> Maybe.andThen (Helpers.Time.iso8601StringToPosix >> Result.toMaybe)
+                                        |> Maybe.map (\completedAt -> max 0 ((Time.posixToMillis completedAt - pending.seq) // 1000))
+                            in
                             Just
                                 { startMillis = pending.seq
                                 , doneDurationSec =
-                                    CloudShield.Transport.resultBodyFromMetadata metadata
-                                        |> Maybe.andThen
-                                            (\body ->
-                                                Decode.decodeString (Decode.at [ "summary", "durationSec" ] Decode.int) body
-                                                    |> Result.toMaybe
-                                            )
+                                    case wallClockSec of
+                                        Just _ ->
+                                            wallClockSec
+
+                                        Nothing ->
+                                            -- Fallback: scanner-only duration when `completedAt` is absent.
+                                            resultBody
+                                                |> Maybe.andThen
+                                                    (\body ->
+                                                        Decode.decodeString (Decode.at [ "summary", "durationSec" ] Decode.int) body
+                                                            |> Result.toMaybe
+                                                    )
                                 }
 
                         "error" ->
