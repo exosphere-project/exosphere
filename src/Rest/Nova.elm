@@ -22,6 +22,7 @@ module Rest.Nova exposing
     , requestServers
     , requestSetServerHostName
     , requestSetServerMetadata
+    , requestSetServerMetadataItems
     , requestSetServerName
     , requestShelveServer
     , requestUpdateServerSecurityGroup
@@ -755,6 +756,56 @@ requestSetServerMetadata project serverUuid metadataItem =
             resultToMsg
             (Decode.field "metadata" metadataDecoder)
         )
+
+
+{-| Set several metadata items in ONE POST. Nova's `POST /servers/{id}/metadata` merges the
+whole `metadata` object atomically, so this avoids the lost-update race of firing one request
+per key concurrently (concurrent per-key POSTs update the same row and drop all but one).
+-}
+requestSetServerMetadataItems : Project -> OSTypes.ServerUuid -> List OSTypes.MetadataItem -> Cmd SharedMsg
+requestSetServerMetadataItems project serverUuid metadataItems =
+    case metadataItems of
+        [] ->
+            Cmd.none
+
+        firstItem :: _ ->
+            let
+                body =
+                    Encode.object
+                        [ ( "metadata"
+                          , Encode.object
+                                (List.map (\i -> ( i.key, Encode.string i.value )) metadataItems)
+                          )
+                        ]
+
+                errorContext =
+                    ErrorContext
+                        (String.concat
+                            [ "set "
+                            , String.fromInt (List.length metadataItems)
+                            , " metadata items for server with UUID "
+                            , serverUuid
+                            ]
+                        )
+                        ErrorCrit
+                        Nothing
+
+                resultToMsg result =
+                    ProjectMsg (GetterSetters.projectIdentifier project) <|
+                        ServerMsg serverUuid <|
+                            ReceiveSetServerMetadata firstItem errorContext result
+            in
+            openstackCredentialedRequest
+                (GetterSetters.projectIdentifier project)
+                Post
+                Nothing
+                []
+                ( project.endpoints.nova, [ "servers", serverUuid, "metadata" ], [] )
+                (Http.jsonBody body)
+                (expectJsonWithErrorBody
+                    resultToMsg
+                    (Decode.field "metadata" metadataDecoder)
+                )
 
 
 requestDeleteServerMetadata : Project -> OSTypes.ServerUuid -> OSTypes.MetadataKey -> Cmd SharedMsg
