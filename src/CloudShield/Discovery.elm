@@ -3,6 +3,7 @@ module CloudShield.Discovery exposing
     , Store(..)
     , eligibleInstances
     , manifestBodyFromMetadata
+    , manifestObjectLocation
     , readSentinel
     , storeFromString
     )
@@ -51,6 +52,11 @@ type Store
 
 {-| The host-trusted envelope read from server metadata. Display/gating only — never
 rendered as card content.
+
+`container` / `prefix` / `manifest` are only meaningful when `store == StoreSwift` (§3.1): the
+object-store container, the per-instance key prefix, and the manifest object key relative to
+that prefix.
+
 -}
 type alias Sentinel =
     { kind : String
@@ -58,6 +64,9 @@ type alias Sentinel =
     , store : Store
     , flags : List String
     , published : Maybe String
+    , container : Maybe String
+    , prefix : Maybe String
+    , manifest : Maybe String
     }
 
 
@@ -101,6 +110,9 @@ readSentinel metadata =
                         |> Maybe.map (String.split "," >> List.map String.trim >> List.filter (not << String.isEmpty))
                         |> Maybe.withDefault []
                 , published = Dict.get "exoext.v1.published" dict
+                , container = Dict.get "exoext.v1.container" dict
+                , prefix = Dict.get "exoext.v1.prefix" dict
+                , manifest = Dict.get "exoext.v1.manifest" dict
                 }
             )
 
@@ -118,6 +130,29 @@ matches what the CloudShield agent publishes (`store/metadata.py` MAN_BODY) and 
 manifestBodyFromMetadata : List OSTypes.MetadataItem -> Maybe String
 manifestBodyFromMetadata metadata =
     Transport.readChunkedBody "exoext.v1.man.body." metadata
+
+
+
+-- MANIFEST LOCATION (store=swift)
+
+
+{-| Resolve the manifest's `(container, objectName)` object-storage location from the sentinel
+(§3.1 / §3.3: `store=swift` → fetch `<container>/<prefix><manifest>`). `Nothing` unless
+`store == StoreSwift` and both `container` and `manifest` are present in the envelope; `prefix`
+defaults to `""` (no prefix) when absent. The caller (`Rest.Swift.requestGetObjectCapped`)
+fetches this object and hands the body to `CloudShield.Transport.capBody` before parsing.
+-}
+manifestObjectLocation : Sentinel -> Maybe { container : String, objectName : String }
+manifestObjectLocation sentinel =
+    case ( sentinel.store, sentinel.container, sentinel.manifest ) of
+        ( StoreSwift, Just container, Just manifest ) ->
+            Just
+                { container = container
+                , objectName = Maybe.withDefault "" sentinel.prefix ++ manifest
+                }
+
+        _ ->
+            Nothing
 
 
 

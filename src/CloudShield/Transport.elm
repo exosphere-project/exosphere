@@ -1,10 +1,17 @@
 module CloudShield.Transport exposing
-    ( RunStatus
+    ( ResolvedResult(..)
+    , RunStatus
     , ScanRequest
+    , capBody
     , chunkString
+    , manifestCapBytes
     , readChunkedBody
     , reqSlotMetadata
+    , resolveResultBody
+    , resultBody
     , resultBodyFromMetadata
+    , resultRefObjectName
+    , resultCapBytes
     , runStatusFromMetadata
     , scanRequestJson
     )
@@ -30,6 +37,7 @@ Wire layout (on the publishing CloudShield VM's own metadata):
 -}
 
 import Dict exposing (Dict)
+import Json.Decode as Decode
 import Json.Encode as Encode
 import OpenStack.Types as OSTypes
 
@@ -148,6 +156,97 @@ runStatusFromMetadata metadata =
 resultBodyFromMetadata : List OSTypes.MetadataItem -> Maybe String
 resultBodyFromMetadata metadata =
     readChunkedBody "exoext.v1.res.body." metadata
+
+
+
+-- OBJECT-STORAGE BODY CAPS + RESULT-POINTER RESOLUTION (store=swift, §5.5)
+
+
+{-| The manifest body hard cap: **16 KB** (`phase-0-spec.md` §5.5). An object-storage manifest
+fetch has no natural size bound (unlike the metadata path, which is bounded by the chunk-key
+budget), so this is enforced fail-closed by `capBody` after the fetch.
+-}
+manifestCapBytes : Int
+manifestCapBytes =
+    16 * 1024
+
+
+{-| The result object hard cap: **1 MB** (`phase-0-spec.md` §5.5, "result object ≤ 1 MB (host
+refuses to bind a larger body)").
+-}
+resultCapBytes : Int
+resultCapBytes =
+    1024 * 1024
+
+
+{-| Fail-closed size check on a fetched body, measured in UTF-8 bytes via `String.length` on the
+already-decoded String (the wire-level `Bytes.width` check happens earlier, in
+`Rest.Helpers.expectCappedStringWithErrorBody`; this is the second, pure gate the host applies
+before binding the body into the card — e.g. after following a result `ref` pointer, whose
+target was not covered by the original fetch's cap). `Err` names the cap that was exceeded so the
+host can draw the "?" provenance truncation warning (§5.5) instead of silently truncating.
+-}
+capBody : Int -> String -> Result String String
+capBody capBytes body =
+    if String.length body > capBytes then
+        Err ("body exceeds the " ++ String.fromInt capBytes ++ "-byte cap")
+
+    else
+        Ok body
+
+
+{-| A result body is either the result JSON itself, or a small `{"ref": "<objectName>"}`
+pointer to where the real result object lives (§3.2: a result can be written write-once under
+`results/<requestId>.json` and referenced from the polled slot rather than duplicated inline).
+-}
+type ResolvedResult
+    = InlineResult String
+    | ResultRef String
+
+
+{-| Resolve a fetched result body: a top-level `{"ref": "..."}` string field means the real
+result lives at that object name (relative to the same container/prefix) and must be fetched
+separately (fail-closed under `resultCapBytes` again); anything else is treated as the result
+body itself. Not valid JSON at all still resolves to `InlineResult` — the renderer's own
+fail-closed manifest/result validation is what rejects it, not this resolver.
+-}
+resolveResultBody : String -> ResolvedResult
+resolveResultBody body =
+    case Decode.decodeString (Decode.field "ref" Decode.string) body of
+        Ok ref ->
+            ResultRef ref
+
+        Err _ ->
+            InlineResult body
+
+
+{-| The object name to fetch next, when a result body was a `{"ref": ...}` pointer rather than
+the result itself (§3.2). `Nothing` when the body was already the result (`InlineResult`) — no
+second fetch needed.
+-}
+resultRefObjectName : ResolvedResult -> Maybe String
+resultRefObjectName resolved =
+    case resolved of
+        InlineResult _ ->
+            Nothing
+
+        ResultRef objectName ->
+            Just objectName
+
+
+{-| The caller-facing extraction of a `ResolvedResult`: the result body ready to hand to the
+card, either taken directly (`InlineResult`) or fetched separately from the object name named
+by `resultRefObjectName` and passed in here once available (`fetchedRefBody`, `Nothing` while
+that fetch is in-flight).
+-}
+resultBody : ResolvedResult -> Maybe String -> Maybe String
+resultBody resolved fetchedRefBody =
+    case resolved of
+        InlineResult body ->
+            Just body
+
+        ResultRef _ ->
+            fetchedRefBody
 
 
 {-| Reassemble a chunked body written under `<prefix>0..N-1`. Prefers an explicit
