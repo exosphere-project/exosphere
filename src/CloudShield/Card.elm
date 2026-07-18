@@ -670,6 +670,15 @@ rendererStyle palette =
         dangerBorder =
             c palette.danger.border
 
+        warningBg =
+            c palette.warning.background
+
+        warningText =
+            c palette.warning.textOnColoredBG
+
+        warningBorder =
+            c palette.warning.border
+
         -- Solid severity-dot colors for the findings pills.
         dangerDot =
             c palette.danger.default
@@ -722,6 +731,28 @@ rendererStyle palette =
                 , ".jr-findings__pill--medium .jr-findings__dot { background: " ++ warningDot ++ "; }"
                 , ".jr-findings__pill--low .jr-findings__dot { background: " ++ infoDot ++ "; }"
                 , ".jr-findings__pill--info .jr-findings__dot { background: " ++ neutralDot ++ "; }"
+
+                -- Table: a plain data grid. Header rule is heavier than row rules; all lines use
+                -- the neutral border so it reads as quiet structure, not a colored callout.
+                , ".jr-table { width: 100%; border-collapse: collapse; font-size: 0.85em; }"
+                , ".jr-table__header { text-align: left; font-weight: 600; color: " ++ muted ++ "; padding: 6px 10px; border-bottom: 2px solid " ++ border ++ "; }"
+                , ".jr-table__cell { padding: 6px 10px; color: " ++ text ++ "; border-bottom: 1px solid " ++ border ++ "; }"
+
+                -- Alert: a tinted callout box, one tone per severity. Same bg/text/border palette
+                -- families as the badges so tones stay consistent across the card in both themes.
+                , ".jr-alert { padding: 10px 12px; border-radius: 6px; border: 1px solid transparent; font-size: 0.9em; }"
+                , ".jr-alert__title { display: block; font-weight: 600; margin-bottom: 3px; }"
+                , ".jr-alert__message { display: block; line-height: 1.45; }"
+                , ".jr-alert--info { background: " ++ infoBg ++ "; color: " ++ infoText ++ "; border-color: " ++ infoBorder ++ "; }"
+                , ".jr-alert--warning { background: " ++ warningBg ++ "; color: " ++ warningText ++ "; border-color: " ++ warningBorder ++ "; }"
+                , ".jr-alert--danger { background: " ++ dangerBg ++ "; color: " ++ dangerText ++ "; border-color: " ++ dangerBorder ++ "; }"
+
+                -- Iframe chrome: the provenance bar reads as quiet host chrome (subdued text on
+                -- the front layer), and the frame carries a distinct-but-neutral border so the
+                -- embed is visibly framed as third-party without alarming. Works in both themes.
+                , ".jr-iframe { display: flex; flex-direction: column; }"
+                , ".jr-iframe__provenance { padding: 5px 10px; font-size: 0.78em; color: " ++ muted ++ "; background: " ++ frontBg ++ "; border: 1px solid " ++ border ++ "; border-bottom: 0; border-radius: 6px 6px 0 0; }"
+                , ".jr-iframe__frame { border: 1px solid " ++ border ++ "; border-radius: 0 0 6px 6px; overflow: hidden; }"
                 , ".jr-confirm { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 1000; }"
                 , ".jr-confirm__box { background: " ++ frontBg ++ "; color: " ++ text ++ "; padding: 20px 22px; border-radius: 8px; max-width: 380px; border: 1px solid " ++ border ++ "; box-shadow: 0 8px 40px rgba(0,0,0,0.5); }"
                 , ".jr-confirm__title { margin: 0 0 8px 0; font-size: 1.1em; font-weight: 600; }"
