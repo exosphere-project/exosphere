@@ -9,7 +9,6 @@ module Helpers.String exposing
     , pluralizeCount
     , removeEmptiness
     , toTitleCase
-    , utf8ByteLength
     )
 
 import List.Extra
@@ -139,43 +138,6 @@ normalizeLineEndings : String -> String
 normalizeLineEndings =
     String.replace "\u{000D}\n" "\n"
         >> String.replace "\u{000D}" "\n"
-
-
-{-| The number of bytes a string occupies when encoded as UTF-8.
-
-Swift limits names by encoded **bytes**, not characters, so `String.length` (which counts UTF-16
-code units) is the wrong measure. This sums per-code-point UTF-8 widths from each `Char`'s code
-point: `< 0x80` → 1 byte, `< 0x800` → 2, `< 0x10000` → 3, else → 4.
-
-Elm strings are UTF-16. If an astral (4-byte) code point surfaces as two surrogate-half `Char`s
-(each in `0xD800..0xDFFF`, i.e. `< 0x10000`), it is counted as 3 + 3 = 6 bytes rather than the true
-
-1.  That is a deliberate **conservative overcount** — it can only reject a name that is actually
-    just within the limit, never admit one that is over — which is the safe direction for a UI check.
-
--}
-utf8ByteLength : String -> Int
-utf8ByteLength string =
-    let
-        byteWidth : Char -> Int
-        byteWidth char =
-            let
-                code =
-                    Char.toCode char
-            in
-            if code < 0x80 then
-                1
-
-            else if code < 0x0800 then
-                2
-
-            else if code < 0x00010000 then
-                3
-
-            else
-                4
-    in
-    String.foldl (\char acc -> acc + byteWidth char) 0 string
 
 
 {-| Remove extraneous whitespace & prefer `Nothing` to `Just ""`.
