@@ -1,5 +1,7 @@
 module Tests.CloudShield.Card exposing
     ( discoverySuite
+    , embedSuite
+    , historySuite
     , manifestSuite
     , projectionSuite
     , transportSuite
@@ -103,7 +105,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Nothing "" Nothing sampleInstances (sampleModel (Set.singleton "i-1"))
+                        Card.projection [] Nothing "" Nothing sampleInstances (sampleModel (Set.singleton "i-1"))
                 in
                 Expect.equal ( Ok True, Ok False )
                     ( rowSelected 0 value, rowSelected 1 value )
@@ -111,7 +113,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Nothing "" Nothing sampleInstances (sampleModel Set.empty)
+                        Card.projection [] Nothing "" Nothing sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal ( Ok "idle", Ok "queued" )
                     ( rowScanState 0 value, rowScanState 1 value )
@@ -122,7 +124,7 @@ projectionSuite =
                         Just { targetId = "i-1", state = "running" }
 
                     value =
-                        Card.projection Nothing "" override sampleInstances (sampleModel Set.empty)
+                        Card.projection [] Nothing "" override sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal ( Ok "running", Ok "queued" )
                     ( rowScanState 0 value, rowScanState 1 value )
@@ -130,7 +132,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Nothing "https://1-2-3-4.sslip.io/app" Nothing sampleInstances (sampleModel Set.empty)
+                        Card.projection [] Nothing "https://1-2-3-4.sslip.io/app" Nothing sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal (Ok "https://1-2-3-4.sslip.io/app")
                     (Decode.decodeValue (Decode.field "embedUrl" Decode.string) value
@@ -275,4 +277,92 @@ transportSuite =
             \_ ->
                 Expect.equal (Just "RESULT")
                     (Transport.resultBodyFromMetadata (meta [ ( "exoext.v1.res.body.0", "RES" ), ( "exoext.v1.res.body.1", "ULT" ) ]))
+        ]
+
+
+
+-- EMBED (getEmbed action guard, Phase B)
+
+
+idleModel : Card.Model
+idleModel =
+    let
+        base =
+            sampleModel Set.empty
+    in
+    { base | scanState = Dict.empty }
+
+
+embedSuite : Test
+embedSuite =
+    describe "cloudshield.getEmbed guard"
+        [ test "getEmbed emits EmbedRequested when no scan run is active" <|
+            \_ ->
+                Expect.equal ( Nothing, Just (Card.EmbedRequested { batchId = "b-1" }) )
+                    (Card.requestEmbed (Just "b-1") idleModel |> Tuple.mapFirst (always Nothing))
+        , test "getEmbed is ignored while a scan run is active (the req slot is single)" <|
+            \_ ->
+                -- sampleModel carries an active "queued" scan for i-2.
+                Expect.equal Nothing
+                    (Card.requestEmbed (Just "b-1") (sampleModel Set.empty) |> Tuple.second)
+        , test "a getEmbed with no batchId is a no-op" <|
+            \_ ->
+                Expect.equal Nothing
+                    (Card.requestEmbed Nothing idleModel |> Tuple.second)
+        ]
+
+
+
+-- HISTORY (the /history projection, newest first)
+
+
+historyEntry : String -> Transport.IndexEntry
+historyEntry batchId =
+    { batchId = batchId
+    , targetId = "i-1"
+    , targetName = "alpha"
+    , completedAt = "2026-07-01T00:00:00Z"
+    , status = "done"
+    , counts = { critical = 0, high = 2, medium = 0, low = 0, info = 0 }
+    }
+
+
+historyBatchIds : Decode.Value -> Result String (List String)
+historyBatchIds value =
+    Decode.decodeValue
+        (Decode.field "history" (Decode.list (Decode.field "batchId" Decode.string)))
+        value
+        |> Result.mapError Decode.errorToString
+
+
+historySuite : Test
+historySuite =
+    describe "the /history projection"
+        [ test "rows are newest first (the append-only index is reversed)" <|
+            \_ ->
+                let
+                    -- index file order is oldest first
+                    value =
+                        Card.projection
+                            [ historyEntry "b-1", historyEntry "b-2", historyEntry "b-3" ]
+                            Nothing
+                            ""
+                            Nothing
+                            sampleInstances
+                            idleModel
+                in
+                Expect.equal (Ok [ "b-3", "b-2", "b-1" ]) (historyBatchIds value)
+        , test "each row carries a human countsLabel" <|
+            \_ ->
+                let
+                    value =
+                        Card.projection [ historyEntry "b-1" ] Nothing "" Nothing sampleInstances idleModel
+
+                    label =
+                        Decode.decodeValue
+                            (Decode.field "history" (Decode.index 0 (Decode.field "countsLabel" Decode.string)))
+                            value
+                            |> Result.mapError Decode.errorToString
+                in
+                Expect.equal (Ok "2 high") label
         ]

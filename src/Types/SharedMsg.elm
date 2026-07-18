@@ -179,6 +179,7 @@ type ServerSpecificMsgConstructor
     | ReceiveDeleteServerMetadata OSTypes.MetadataKey ErrorContext (Result HttpErrorWithBody String)
     | ReceiveCloudShieldManifestObject String (Result HttpErrorWithBody String)
     | ReceiveCloudShieldResultObject String String (Result HttpErrorWithBody String)
+    | ReceiveCloudShieldIndexObject String (Result HttpErrorWithBody String)
     | ReceiveGuacamoleAuthToken (Result Http.Error GuacTypes.GuacamoleAuthToken)
     | RequestServerAction ServerActions.ServerAction
     | ReceiveConsoleLog ErrorContext (Result HttpErrorWithBody String)

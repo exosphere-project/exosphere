@@ -76,6 +76,8 @@ type alias Model =
     , cloudShieldManifestRequestEtag : Maybe String
     , cloudShieldResultRef : RDPP.RemoteDataPlusPlus String { etag : String, objectName : String, body : String }
     , cloudShieldResultRefRequest : Maybe { etag : String, objectName : String }
+    , cloudShieldHistory : List CloudShield.Transport.IndexEntry
+    , cloudShieldHistoryRequestEtag : Maybe String
     }
 
 
@@ -99,8 +101,10 @@ type Msg
     | GotCloudShieldSync
     | GotCloudShieldManifestObject Time.Posix String (Result HttpErrorWithBody String)
     | GotCloudShieldResultObject Time.Posix String String (Result HttpErrorWithBody String)
+    | GotCloudShieldIndexObject String (Result HttpErrorWithBody String)
     | CloudShieldMsg CloudShield.Card.Msg
     | CloudShieldWriteRequest { seq : Int, targetIds : List String } Time.Posix
+    | CloudShieldWriteEmbedRequest { batchId : String } Time.Posix
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
@@ -119,6 +123,8 @@ init serverUuid =
     , cloudShieldManifestRequestEtag = Nothing
     , cloudShieldResultRef = RDPP.empty
     , cloudShieldResultRefRequest = Nothing
+    , cloudShieldHistory = []
+    , cloudShieldHistoryRequestEtag = Nothing
     }
 
 
@@ -169,6 +175,9 @@ update msg project model =
         GotCloudShieldResultObject receivedTime etag objectName result ->
             ( receiveCloudShieldResultRef project receivedTime etag objectName result model, Cmd.none, SharedMsg.NoOp )
 
+        GotCloudShieldIndexObject etag result ->
+            ( receiveCloudShieldIndex project etag result model, Cmd.none, SharedMsg.NoOp )
+
         CloudShieldMsg cloudMsg ->
             let
                 instances =
@@ -184,6 +193,11 @@ update msg project model =
                             -- (the agent's §4.4 expiry guard compares it to REQUEST_TTL; a
                             -- placeholder epoch would be treated as expired and never run).
                             Task.perform (CloudShieldWriteRequest req) Time.now
+
+                        Just (CloudShield.Card.EmbedRequested req) ->
+                            -- Same wall-clock stamp as a scan request: the getEmbed seq and
+                            -- `createdAt` must be genuine so the bridge's expiry guard works.
+                            Task.perform (CloudShieldWriteEmbedRequest req) Time.now
 
                         Nothing ->
                             Cmd.none
@@ -213,6 +227,15 @@ update msg project model =
             in
             ( { model | cloudShield = syncedCloud }
             , writeScanRequestCmd project model (cloudShieldInstances project model) { req | seq = timeSeq } now
+            , SharedMsg.NoOp
+            )
+
+        CloudShieldWriteEmbedRequest req now ->
+            -- getEmbed does not touch the card's scan state or `pending`; it just writes the
+            -- §7.1 req slot. The embed result is correlated later by `kind == "embed"`, not by
+            -- `run.state`, so there is no run correlation to record here.
+            ( model
+            , writeEmbedRequestCmd project model req now
             , SharedMsg.NoOp
             )
 
@@ -257,8 +280,9 @@ syncCloudShieldReads project model =
                             etag =
                                 cloudShieldEtag metadata
                         in
-                        syncCloudShieldResultRef project sentinel etag metadata <|
-                            syncCloudShieldManifest project sentinel etag model
+                        syncCloudShieldIndex project sentinel etag <|
+                            syncCloudShieldResultRef project sentinel etag metadata <|
+                                syncCloudShieldManifest project sentinel etag model
 
                     else
                         ( model, Cmd.none )
@@ -310,10 +334,33 @@ syncCloudShieldManifest project sentinel etag model =
                 ( model, Cmd.none )
 
 
+{-| The object to fetch for the current res-slot body, if any: a `{"ref": ...}` scan-result
+pointer names its object directly; an embed result (`kind == "embed"`, `status == "ok"`) names
+the archived scan body `<prefix>results/<batchId>.json` — the same capped ref-fetch path serves
+both. An inline scan result or a non-ok embed result names nothing.
+-}
+cloudShieldResultObjectName : CloudShield.Discovery.Sentinel -> List OSTypes.MetadataItem -> Maybe String
+cloudShieldResultObjectName sentinel metadata =
+    CloudShield.Transport.resultBodyFromMetadata metadata
+        |> Maybe.andThen
+            (\body ->
+                case CloudShield.Transport.embedResultFromBody body of
+                    Just embed ->
+                        if embed.status == "ok" then
+                            Just (Maybe.withDefault "" sentinel.prefix ++ "results/" ++ embed.batchId ++ ".json")
+
+                        else
+                            Nothing
+
+                    Nothing ->
+                        CloudShield.Transport.resultRefObjectName (CloudShield.Transport.resolveResultBody body)
+            )
+
+
 syncCloudShieldResultRef : Project -> CloudShield.Discovery.Sentinel -> String -> List OSTypes.MetadataItem -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
 syncCloudShieldResultRef project sentinel etag metadata ( model, manifestCmd ) =
-    case CloudShield.Transport.resultBodyFromMetadata metadata |> Maybe.map CloudShield.Transport.resolveResultBody of
-        Just (CloudShield.Transport.ResultRef objectName) ->
+    case cloudShieldResultObjectName sentinel metadata of
+        Just objectName ->
             case ( project.endpoints.swift, sentinel.container ) of
                 ( Nothing, _ ) ->
                     ( cloudShieldResultRefError (Time.millisToPosix 0)
@@ -357,6 +404,66 @@ syncCloudShieldResultRef project sentinel etag metadata ( model, manifestCmd ) =
 
         _ ->
             ( model, manifestCmd )
+
+
+{-| Fetch the archived-scan history index (`<prefix>results/index.json`) in the live loop. Keyed
+on the current CloudShield etag, so it refetches whenever a scan completes and bumps the etag
+(and on initial load); a fetch already in flight for the same etag is suppressed. Any failure
+resolves to no history (fail-closed), never an error card. `store=metadata` has no archive, so
+this only runs for `store=swift`.
+-}
+syncCloudShieldIndex : Project -> CloudShield.Discovery.Sentinel -> String -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+syncCloudShieldIndex project sentinel etag ( model, priorCmd ) =
+    case ( project.endpoints.swift, sentinel.container ) of
+        ( Just swiftUrl, Just container ) ->
+            if cloudShieldIndexNeedsFetch etag model then
+                ( { model | cloudShieldHistoryRequestEtag = Just etag }
+                , Cmd.batch
+                    [ priorCmd
+                    , Rest.Swift.requestGetObjectCapped
+                        project
+                        swiftUrl
+                        container
+                        (CloudShield.Transport.indexObjectName (Maybe.withDefault "" sentinel.prefix))
+                        CloudShield.Transport.indexCapBytes
+                        (\result ->
+                            SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                                SharedMsg.ServerMsg model.serverUuid <|
+                                    SharedMsg.ReceiveCloudShieldIndexObject etag result
+                        )
+                        |> Cmd.map SharedMsg
+                    ]
+                )
+
+            else
+                ( model, priorCmd )
+
+        _ ->
+            ( model, priorCmd )
+
+
+cloudShieldIndexNeedsFetch : String -> Model -> Bool
+cloudShieldIndexNeedsFetch etag model =
+    model.cloudShieldHistoryRequestEtag /= Just etag
+
+
+{-| Store the decoded history index, fail-closed. An HTTP error or an over-cap/malformed body
+both resolve to no history (`[]`) rather than an error state. Stamped by the etag it was fetched
+for, and dropped if the current etag has since moved on.
+-}
+receiveCloudShieldIndex : Project -> String -> Result HttpErrorWithBody String -> Model -> Model
+receiveCloudShieldIndex project etag result model =
+    if currentCloudShieldEtag project model == Just etag then
+        { model
+            | cloudShieldHistory =
+                result
+                    |> Result.map CloudShield.Transport.decodeIndex
+                    |> Result.withDefault []
+            , cloudShieldHistoryRequestEtag = Just etag
+        }
+
+    else
+        model
 
 
 receiveCloudShieldManifest : Project -> Time.Posix -> String -> Result HttpErrorWithBody String -> Model -> Model
@@ -563,21 +670,20 @@ cloudShieldViewConfig project model server =
             CloudShield.Transport.resultBodyFromMetadata metadata
                 |> Maybe.andThen (\body -> effectiveCloudShieldResultBody (cloudShieldEtag metadata) body model)
 
-        -- When the in-flight run is `done`, parse the §4.2 result body off the §7.1 res-slot
-        -- and bind its `findings[]` array into the FindingsTable (`/results`). Gated on the
-        -- correlated `done` state so a stale result body from a prior run can't show.
-        results =
-            case statusOverride of
-                Just override ->
-                    if override.state == "done" then
-                        resultBody
-                            |> Maybe.andThen (Decode.decodeString (Decode.field "findings" Decode.value) >> Result.toMaybe)
+        -- An embed result (`kind == "embed"`, `status == "ok"`) in the res slot means the user
+        -- picked a history row: switch BOTH the findings table and the iframe to that archived
+        -- scan. Correlated purely by `kind == "embed"`, never by `run.state`.
+        maybeEmbedResult =
+            CloudShield.Transport.resultBodyFromMetadata metadata
+                |> Maybe.andThen CloudShield.Transport.embedResultFromBody
+                |> Maybe.andThen
+                    (\embed ->
+                        if embed.status == "ok" then
+                            Just embed
 
-                    else
-                        Nothing
-
-                Nothing ->
-                    Nothing
+                        else
+                            Nothing
+                    )
 
         -- The origin-pin for the catalog `Iframe`: the instance's own floating IPs, each mapped
         -- to its `https://<ip>.sslip.io` origin (dotted quad, matching the Let's Encrypt cert and
@@ -587,22 +693,53 @@ cloudShieldViewConfig project model server =
             GetterSetters.getServerFloatingIps project server.osProps.uuid
                 |> List.map (\ip -> "https://" ++ ip.address ++ ".sslip.io")
 
-        -- The bridge result body's `embedUrl` (tolerating a missing field), projected to the
-        -- render state at top-level `/embedUrl` for the `Iframe` to bind. Gated on the correlated
-        -- `done` state so a stale embed URL from a prior run cannot show; `""` self-hides.
-        embedUrl =
-            case statusOverride of
-                Just override ->
-                    if override.state == "done" then
-                        resultBody
-                            |> Maybe.andThen (Decode.decodeString (Decode.field "embedUrl" Decode.string) >> Result.toMaybe)
-                            |> Maybe.withDefault ""
+        -- The embed result (history pick) wins over the live scan result for both the findings
+        -- table and the iframe; otherwise the scan-result path is used exactly as before. Both
+        -- sides are computed inside the branch that uses them (avoids premature work either way).
+        ( results, embedUrl ) =
+            case maybeEmbedResult of
+                Just embed ->
+                    -- Findings for the selected history scan, parsed from the archived body fetched
+                    -- into `cloudShieldResultRef`. The last-fetched body is kept (etag-matched,
+                    -- objectName-agnostic) so `/results` is not clobbered while the newly selected
+                    -- batch's body is still in flight.
+                    let
+                        archivedFindings =
+                            case model.cloudShieldResultRef.data of
+                                RDPP.DoHave fetched _ ->
+                                    if fetched.etag == cloudShieldEtag metadata then
+                                        Decode.decodeString (Decode.field "findings" Decode.value) fetched.body
+                                            |> Result.toMaybe
 
-                    else
-                        ""
+                                    else
+                                        Nothing
+
+                                RDPP.DontHave ->
+                                    Nothing
+                    in
+                    ( archivedFindings, embed.embedUrl )
 
                 Nothing ->
-                    ""
+                    -- The scan-result path: when the in-flight run is `done`, bind the §4.2 result
+                    -- body's `findings[]` into `/results` and its `embedUrl` into `/embedUrl`. Gated
+                    -- on the correlated `done` state so a stale prior-run result can't show.
+                    let
+                        atDone decoder =
+                            case statusOverride of
+                                Just override ->
+                                    if override.state == "done" then
+                                        resultBody |> Maybe.andThen decoder
+
+                                    else
+                                        Nothing
+
+                                Nothing ->
+                                    Nothing
+                    in
+                    ( atDone (Decode.decodeString (Decode.field "findings" Decode.value) >> Result.toMaybe)
+                    , atDone (Decode.decodeString (Decode.field "embedUrl" Decode.string) >> Result.toMaybe)
+                        |> Maybe.withDefault ""
+                    )
 
         -- The scan-timer descriptor for the card's elapsed line. It exists only while a run is
         -- tracked this session (`pending` set). `startMillis` is the request seq (wall-clock
@@ -618,8 +755,12 @@ cloudShieldViewConfig project model server =
         -- read as a bug against the counted-up time, so it is only a fallback when `completedAt`
         -- is missing/unparseable; absent both, the line is hidden (Nothing).
         scanTimer =
-            case model.cloudShield.pending of
-                Just pending ->
+            case ( maybeEmbedResult, model.cloudShield.pending ) of
+                -- While viewing a history pick, the live-scan timer is out of context: hide it.
+                ( Just _, _ ) ->
+                    Nothing
+
+                ( Nothing, Just pending ) ->
                     let
                         state =
                             statusOverride |> Maybe.map .state |> Maybe.withDefault "queued"
@@ -666,7 +807,7 @@ cloudShieldViewConfig project model server =
                         _ ->
                             Just { startMillis = pending.seq, doneDurationSec = Nothing }
 
-                Nothing ->
+                ( Nothing, Nothing ) ->
                     Nothing
     in
     { sourceName = server.osProps.name
@@ -676,6 +817,7 @@ cloudShieldViewConfig project model server =
     , scanTimer = scanTimer
     , statusOverride = statusOverride
     , results = results
+    , history = model.cloudShieldHistory
     , allowedIframeOrigins = allowedIframeOrigins
     , embedUrl = embedUrl
 
@@ -848,6 +990,31 @@ writeScanRequestCmd project model instances req now =
             -- leaving a half-written (unparseable) request slot the agent never picks up.
             Rest.Nova.requestSetServerMetadataItems project model.serverUuid items
                 |> Cmd.map SharedMsg
+
+
+{-| Write the §7.1 metadata request-slot for a `getEmbed`. Same atomic single-POST req-slot
+write as a scan request (via `reqSlotMetadata`), with a wall-clock-millis seq so it never
+collides with a reload-reset counter. The bridge claims the slot and writes a small embed
+result inline into the res slot; it does not update `run.state`.
+-}
+writeEmbedRequestCmd : Project -> Model -> { batchId : String } -> Time.Posix -> Cmd Msg
+writeEmbedRequestCmd project model req now =
+    let
+        timeSeq =
+            Time.posixToMillis now
+
+        embedRequest =
+            { requestId = "exo-cs-req-" ++ String.fromInt timeSeq
+            , batchId = req.batchId
+            , createdAt = ISO8601.toString (ISO8601.fromPosix now)
+            }
+
+        items =
+            CloudShield.Transport.reqSlotMetadata timeSeq
+                (CloudShield.Transport.embedRequestJson embedRequest)
+    in
+    Rest.Nova.requestSetServerMetadataItems project model.serverUuid items
+        |> Cmd.map SharedMsg
 
 
 popoverMsgMapper : PopoverId -> Msg

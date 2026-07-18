@@ -4303,6 +4303,13 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 )
                 outerModel
 
+        ReceiveCloudShieldIndexObject etag result ->
+            updateUnderlying
+                (ServerDetailMsg <|
+                    Page.ServerDetail.GotCloudShieldIndexObject etag result
+                )
+                outerModel
+
         ReceiveGuacamoleAuthToken result ->
             let
                 errorContext =

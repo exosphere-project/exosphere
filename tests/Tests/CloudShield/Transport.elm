@@ -1,7 +1,16 @@
-module Tests.CloudShield.Transport exposing (capBodySuite, resolveResultBodySuite, resultBodySuite)
+module Tests.CloudShield.Transport exposing
+    ( capBodySuite
+    , countsLabelSuite
+    , embedRequestSuite
+    , embedResultSuite
+    , indexSuite
+    , resolveResultBodySuite
+    , resultBodySuite
+    )
 
 import CloudShield.Transport as Transport
 import Expect
+import Json.Decode as Decode
 import Test exposing (Test, describe, test)
 
 
@@ -62,4 +71,134 @@ resultBodySuite =
         , test "resultBody returns the fetched body once a ref's follow-up fetch completes" <|
             \_ ->
                 Expect.equal (Just "{\"findings\":[]}") (Transport.resultBody (Transport.ResultRef "results/abc-123.json") (Just "{\"findings\":[]}"))
+        ]
+
+
+goodIndex : String
+goodIndex =
+    """
+    [ { "batchId": "b-1", "targetId": "i-1", "targetName": "alpha", "completedAt": "2026-07-01T00:00:00Z", "status": "done", "counts": { "critical": 0, "high": 7, "medium": 14, "low": 3, "info": 0 } }
+    , { "batchId": "b-2", "targetId": "i-2", "targetName": "beta", "completedAt": "2026-07-02T00:00:00Z", "status": "done", "counts": { "critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0 } }
+    ]
+    """
+
+
+indexSuite : Test
+indexSuite =
+    describe "decodeIndex reads the append-only history index, fail-closed"
+        [ test "a good index yields its rows in file order (oldest first)" <|
+            \_ ->
+                Expect.equal [ "b-1", "b-2" ]
+                    (Transport.decodeIndex goodIndex |> List.map .batchId)
+        , test "a row's counts are decoded" <|
+            \_ ->
+                case Transport.decodeIndex goodIndex of
+                    first :: _ ->
+                        Expect.equal ( 7, 14, 3 )
+                            ( first.counts.high, first.counts.medium, first.counts.low )
+
+                    [] ->
+                        Expect.fail "expected at least one row"
+        , test "unknown fields are tolerated and missing counts default to zero" <|
+            \_ ->
+                let
+                    rows =
+                        Transport.decodeIndex """[ { "batchId": "b-9", "targetName": "gamma", "extra": "ignored" } ]"""
+                in
+                case rows of
+                    row :: _ ->
+                        Expect.equal ( "b-9", "gamma", 0 )
+                            ( row.batchId, row.targetName, row.counts.high )
+
+                    [] ->
+                        Expect.fail "expected a tolerant row"
+        , test "malformed JSON reads as no history" <|
+            \_ ->
+                Expect.equal [] (Transport.decodeIndex "not json at all")
+        , test "a non-array top level reads as no history" <|
+            \_ ->
+                Expect.equal [] (Transport.decodeIndex """{"batchId":"b-1"}""")
+        , test "an over-cap body reads as no history (fail-closed at indexCapBytes)" <|
+            \_ ->
+                let
+                    -- A valid JSON array padded past the 64 KiB cap.
+                    oversize =
+                        "[" ++ String.repeat (Transport.indexCapBytes + 16) " " ++ "]"
+                in
+                Expect.equal [] (Transport.decodeIndex oversize)
+        , test "indexCapBytes is 64 KiB" <|
+            \_ ->
+                Expect.equal (64 * 1024) Transport.indexCapBytes
+        , test "indexObjectName appends results/index.json to the prefix without a separator" <|
+            \_ ->
+                Expect.equal "instance-abc/results/index.json"
+                    (Transport.indexObjectName "instance-abc/")
+        ]
+
+
+countsLabelSuite : Test
+countsLabelSuite =
+    describe "countsLabel renders a human severity summary, omitting zeros"
+        [ test "non-zero severities are joined in descending order" <|
+            \_ ->
+                Expect.equal "7 high · 14 medium · 3 low"
+                    (Transport.countsLabel { critical = 0, high = 7, medium = 14, low = 3, info = 0 })
+        , test "all-zero counts read as no findings" <|
+            \_ ->
+                Expect.equal "no findings"
+                    (Transport.countsLabel { critical = 0, high = 0, medium = 0, low = 0, info = 0 })
+        , test "critical and info are included when present" <|
+            \_ ->
+                Expect.equal "2 critical · 5 info"
+                    (Transport.countsLabel { critical = 2, high = 0, medium = 0, low = 0, info = 5 })
+        ]
+
+
+embedRequestSuite : Test
+embedRequestSuite =
+    describe "embedRequestJson encodes the getEmbed request shape"
+        [ test "it carries schemaVersion, action=getEmbed, batchId and createdAt" <|
+            \_ ->
+                let
+                    json =
+                        Transport.embedRequestJson
+                            { requestId = "exo-cs-req-1700000000000"
+                            , batchId = "b-1"
+                            , createdAt = "2026-07-17T00:00:00Z"
+                            }
+
+                    field key =
+                        Decode.decodeString (Decode.field key Decode.string) json
+                in
+                Expect.equal
+                    ( Ok "1.0", Ok "getEmbed", Ok "b-1" )
+                    ( field "schemaVersion", field "action", field "batchId" )
+        ]
+
+
+embedResultSuite : Test
+embedResultSuite =
+    describe "embedResultFromBody recognizes only kind:embed bodies"
+        [ test "a kind:embed body is recognized with its fields" <|
+            \_ ->
+                let
+                    body =
+                        """{"schemaVersion":"1.0","requestId":"r-1","batchId":"b-1","completedAt":"2026-07-17T00:00:00Z","kind":"embed","status":"ok","embedUrl":"https://1-2-3-4.sslip.io/embed","embedExpiresAt":"2026-07-17T00:15:00Z","error":null}"""
+                in
+                case Transport.embedResultFromBody body of
+                    Just embed ->
+                        Expect.equal ( "b-1", "ok", "https://1-2-3-4.sslip.io/embed" )
+                            ( embed.batchId, embed.status, embed.embedUrl )
+
+                    Nothing ->
+                        Expect.fail "expected an embed result"
+        , test "a scan-result body (no kind field) is not an embed result" <|
+            \_ ->
+                Expect.equal Nothing
+                    (Transport.embedResultFromBody """{"schemaVersion":"1.0","findings":[],"embedUrl":"https://x"}""")
+        , test "an error embed result carries its status" <|
+            \_ ->
+                Transport.embedResultFromBody """{"kind":"embed","batchId":"b-1","status":"error","error":{"code":"expired"}}"""
+                    |> Maybe.map .status
+                    |> Expect.equal (Just "error")
         ]

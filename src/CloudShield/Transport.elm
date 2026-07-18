@@ -1,17 +1,27 @@
 module CloudShield.Transport exposing
-    ( ResolvedResult(..)
+    ( Counts
+    , EmbedRequest
+    , EmbedResult
+    , IndexEntry
+    , ResolvedResult(..)
     , RunStatus
     , ScanRequest
     , capBody
     , chunkString
+    , countsLabel
+    , decodeIndex
+    , embedRequestJson
+    , embedResultFromBody
+    , indexCapBytes
+    , indexObjectName
     , manifestCapBytes
     , readChunkedBody
     , reqSlotMetadata
     , resolveResultBody
     , resultBody
     , resultBodyFromMetadata
-    , resultRefObjectName
     , resultCapBytes
+    , resultRefObjectName
     , runStatusFromMetadata
     , scanRequestJson
     )
@@ -282,6 +292,201 @@ readChunkedBody prefix metadata =
 
                 Nothing ->
                     Nothing
+
+
+
+-- SCAN HISTORY (the append-only results/index.json the bridge archives, Phase B)
+
+
+{-| One archived-scan row from `<prefix>results/index.json` (the append-only history index the
+bridge writes in `store=swift` mode). Only the fields the reader renders are decoded; unknown
+fields are tolerated (the bridge may add more over time).
+-}
+type alias IndexEntry =
+    { batchId : String
+    , targetId : String
+    , targetName : String
+    , completedAt : String
+    , status : String
+    , counts : Counts
+    }
+
+
+{-| Per-severity finding counts carried on an index row.
+-}
+type alias Counts =
+    { critical : Int
+    , high : Int
+    , medium : Int
+    , low : Int
+    , info : Int
+    }
+
+
+{-| The history index object name for a per-instance prefix (§3.1 `exoext.v1.prefix`, which
+already carries its trailing slash). Built the same way the manifest is fetched (`prefix ++
+manifest`, no separator inserted): `prefix ++ "results/index.json"`.
+-}
+indexObjectName : String -> String
+indexObjectName prefix =
+    prefix ++ "results/index.json"
+
+
+{-| The history index hard cap: **64 KiB**. Enforced fail-closed alongside the §5.5 caps: an
+oversize index reads as no history rather than an error, so a runaway index can never wedge
+the card.
+-}
+indexCapBytes : Int
+indexCapBytes =
+    64 * 1024
+
+
+{-| Decode the history index body into rows, fail-closed. Malformed JSON, a non-array top
+level, or a body over `indexCapBytes` all resolve to `[]` (no history) — never an error state.
+Individual rows tolerate missing/unknown fields (string fields default to `""`, counts to 0).
+-}
+decodeIndex : String -> List IndexEntry
+decodeIndex body =
+    if String.length body > indexCapBytes then
+        []
+
+    else
+        Decode.decodeString (Decode.list indexEntryDecoder) body
+            |> Result.withDefault []
+
+
+indexEntryDecoder : Decode.Decoder IndexEntry
+indexEntryDecoder =
+    Decode.map6 IndexEntry
+        (optionalString "batchId")
+        (optionalString "targetId")
+        (optionalString "targetName")
+        (optionalString "completedAt")
+        (optionalString "status")
+        (Decode.oneOf [ Decode.field "counts" countsDecoder, Decode.succeed emptyCounts ])
+
+
+countsDecoder : Decode.Decoder Counts
+countsDecoder =
+    Decode.map5 Counts
+        (optionalInt "critical")
+        (optionalInt "high")
+        (optionalInt "medium")
+        (optionalInt "low")
+        (optionalInt "info")
+
+
+emptyCounts : Counts
+emptyCounts =
+    { critical = 0, high = 0, medium = 0, low = 0, info = 0 }
+
+
+optionalString : String -> Decode.Decoder String
+optionalString key =
+    Decode.oneOf [ Decode.field key Decode.string, Decode.succeed "" ]
+
+
+optionalInt : String -> Decode.Decoder Int
+optionalInt key =
+    Decode.oneOf [ Decode.field key Decode.int, Decode.succeed 0 ]
+
+
+{-| A human-readable severity summary from a row's counts, omitting zero severities in
+descending order, e.g. `"7 high · 14 medium · 3 low"`. All-zero ⇒ `"no findings"`.
+-}
+countsLabel : Counts -> String
+countsLabel counts =
+    let
+        parts =
+            [ ( "critical", counts.critical )
+            , ( "high", counts.high )
+            , ( "medium", counts.medium )
+            , ( "low", counts.low )
+            , ( "info", counts.info )
+            ]
+                |> List.filter (\( _, n ) -> n > 0)
+                |> List.map (\( label, n ) -> String.fromInt n ++ " " ++ label)
+    in
+    if List.isEmpty parts then
+        "no findings"
+
+    else
+        String.join " · " parts
+
+
+
+-- EMBED (getEmbed request + embed result, Phase B)
+
+
+{-| A `getEmbed` request: ask the bridge to mint a fresh, short-lived embed token/URL for an
+already-archived scan. Written through the same §7.1 req slot as a scan request (via
+`reqSlotMetadata`); the bridge claims the slot and writes a small embed result inline into the
+res slot without touching `run.state`.
+-}
+type alias EmbedRequest =
+    { requestId : String
+    , batchId : String
+    , createdAt : String
+    }
+
+
+{-| Encode a `getEmbed` request to a compact JSON string (the body that gets chunked into the
+req slot). Shape: `{schemaVersion, requestId, action:"getEmbed", batchId, createdAt}`.
+-}
+embedRequestJson : EmbedRequest -> String
+embedRequestJson req =
+    Encode.encode 0 <|
+        Encode.object
+            [ ( "schemaVersion", Encode.string "1.0" )
+            , ( "requestId", Encode.string req.requestId )
+            , ( "action", Encode.string "getEmbed" )
+            , ( "batchId", Encode.string req.batchId )
+            , ( "createdAt", Encode.string req.createdAt )
+            ]
+
+
+{-| The bridge's embed result, written inline into the res slot in response to a `getEmbed`.
+Distinguished from a scan result by `"kind":"embed"` (scan-result bodies carry no `kind`).
+-}
+type alias EmbedResult =
+    { requestId : String
+    , batchId : String
+    , status : String
+    , embedUrl : String
+    , embedExpiresAt : String
+    , error : Maybe String
+    }
+
+
+{-| Recognize a res-slot body as an embed result: `Just` only when the body decodes with
+`"kind":"embed"`. A body without a `kind` field (a scan result) is `Nothing`, so scan-result
+handling is untouched by this path.
+-}
+embedResultFromBody : String -> Maybe EmbedResult
+embedResultFromBody body =
+    case Decode.decodeString (Decode.field "kind" Decode.string) body of
+        Ok "embed" ->
+            Decode.decodeString embedResultDecoder body
+                |> Result.toMaybe
+
+        _ ->
+            Nothing
+
+
+embedResultDecoder : Decode.Decoder EmbedResult
+embedResultDecoder =
+    Decode.map6 EmbedResult
+        (optionalString "requestId")
+        (optionalString "batchId")
+        (optionalString "status")
+        (optionalString "embedUrl")
+        (optionalString "embedExpiresAt")
+        (Decode.oneOf
+            [ Decode.field "error" (Decode.nullable Decode.value)
+                |> Decode.map (Maybe.map (Encode.encode 0))
+            , Decode.succeed Nothing
+            ]
+        )
 
 
 

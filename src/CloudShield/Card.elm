@@ -1,4 +1,4 @@
-module CloudShield.Card exposing (Instance, Model, Msg, OutMsg(..), ViewConfig, cardJson, init, projection, transportChip, update, view)
+module CloudShield.Card exposing (Instance, Model, Msg, OutMsg(..), ViewConfig, cardJson, init, projection, requestEmbed, transportChip, update, view)
 
 {-| Host wiring for the CloudShield dynamic-UI card (Phase 1, browser side).
 
@@ -21,6 +21,7 @@ Everything here is gated by `context.experimentalFeaturesEnabled` at the call si
 
 -}
 
+import CloudShield.Transport as Transport
 import Color
 import Dict exposing (Dict)
 import Element
@@ -95,9 +96,13 @@ OpenStack Cmds; the parent owns the Nova metadata write (it has `Rest.Nova` + th
     re-resolves the targets (§5.4), encodes the §4.1 request, and writes the §7.1 req-slot
     on the CloudShield VM's metadata.
 
+  - `EmbedRequested { batchId }` — a `cloudshield.getEmbed` on a history row. The parent
+    stamps a wall-clock seq, encodes the `getEmbed` request, and writes the same §7.1 req-slot.
+
 -}
 type OutMsg
     = ScanRequested { seq : Int, targetIds : List String }
+    | EmbedRequested { batchId : String }
 
 
 init : Model
@@ -149,6 +154,9 @@ applyEffect instances effect model =
             if action.verb == "cloudshield.startScan" then
                 requestScan (targetsOf model action.params) model
 
+            else if action.verb == "cloudshield.getEmbed" then
+                requestEmbed (batchIdOf action.params) model
+
             else
                 ( model, Nothing )
 
@@ -185,6 +193,34 @@ requestScan requested model =
               }
             , Just (ScanRequested { seq = seq, targetIds = targets })
             )
+
+
+{-| A `cloudshield.getEmbed` on a history row: ask the parent to mint a fresh embed URL for the
+named archived scan. Guarded while any scan run is active (the card's dedup state) — the §7.1
+req slot is single, so a seq bump here would cancel a still-pending scan request. No guard is
+needed against a previous getEmbed (it never sets that active state). A missing `batchId` ⇒ no-op.
+-}
+requestEmbed : Maybe String -> Model -> ( Model, Maybe OutMsg )
+requestEmbed maybeBatchId model =
+    case maybeBatchId of
+        Just batchId ->
+            if List.any isActive (Dict.values model.scanState) then
+                ( model, Nothing )
+
+            else
+                ( model, Just (EmbedRequested { batchId = batchId }) )
+
+        Nothing ->
+            ( model, Nothing )
+
+
+{-| Resolve a `cloudshield.getEmbed` `batchId` param from the renderer's already-resolved
+params (the `$item.batchId` of the pressed history row).
+-}
+batchIdOf : Encode.Value -> Maybe String
+batchIdOf params =
+    Decode.decodeValue (Decode.field "batchId" Decode.string) params
+        |> Result.toMaybe
 
 
 {-| Resolve a `cloudshield.startScan` `targetInstanceIds` param: an empty array means "use
@@ -286,13 +322,29 @@ allSelected instances selection =
 -- THE RENDERER-FACING PROJECTION (host-renderer-interface.md §1.2)
 
 
-projection : Maybe Encode.Value -> String -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Encode.Value
-projection results embedUrl statusOverride instances model =
+projection : List Transport.IndexEntry -> Maybe Encode.Value -> String -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Encode.Value
+projection history results embedUrl statusOverride instances model =
     Encode.object
         [ ( "selectAll", Encode.bool model.selectAll )
         , ( "results", Maybe.withDefault Encode.null results )
         , ( "embedUrl", Encode.string embedUrl )
         , ( "instances", Encode.list (instanceProjection statusOverride model) instances )
+        , ( "history", Encode.list historyRow (List.reverse history) )
+        ]
+
+
+{-| Project one history row for the `/history` render state. The index is append-only
+(oldest first), so the render state reverses it to newest-first. `countsLabel` is the
+human-readable severity summary derived from the row's counts.
+-}
+historyRow : Transport.IndexEntry -> Encode.Value
+historyRow entry =
+    Encode.object
+        [ ( "batchId", Encode.string entry.batchId )
+        , ( "targetName", Encode.string entry.targetName )
+        , ( "completedAt", Encode.string entry.completedAt )
+        , ( "status", Encode.string entry.status )
+        , ( "countsLabel", Encode.string (Transport.countsLabel entry.counts) )
         ]
 
 
@@ -360,6 +412,11 @@ type alias ViewConfig =
     -- bound into the `FindingsTable` at `/results`. `Nothing` until a run is `done`.
     , results : Maybe Encode.Value
 
+    -- the archived-scan history rows (the bridge's `results/index.json`), projected to the
+    -- render state at `/history` (newest first). Empty when there is no history (metadata
+    -- store, or nothing archived yet).
+    , history : List Transport.IndexEntry
+
     -- the iframe origin allowlist, derived host-side from the instance's own floating IPs.
     -- The renderer emits an `<iframe>` only for a `src` whose origin is an exact member of
     -- this list; it is the whole safety boundary for the catalog's origin-pinned Iframe.
@@ -387,7 +444,7 @@ view palette currentTime config instances model =
         Element.column
             [ Element.width Element.fill, Element.spacing spacer.px8 ]
             [ provenanceMarker palette config.sourceName
-            , rendererView palette config.allowedIframeOrigins config.manifestJson config.results config.embedUrl config.statusOverride instances model
+            , rendererView palette config.allowedIframeOrigins config.manifestJson config.history config.results config.embedUrl config.statusOverride instances model
             , transportWarningView palette config.transportWarning
             , scanTimerView palette currentTime config.scanTimer
             , demoIframePanel palette config.demoIframeUrl model.showDemoIframe
@@ -487,8 +544,8 @@ transportChip palette label =
         (Element.text label)
 
 
-rendererView : ExoPalette -> List String -> String -> Maybe Encode.Value -> String -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Element.Element Msg
-rendererView palette allowedIframeOrigins manifestJson results embedUrl statusOverride instances model =
+rendererView : ExoPalette -> List String -> String -> List Transport.IndexEntry -> Maybe Encode.Value -> String -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Element.Element Msg
+rendererView palette allowedIframeOrigins manifestJson history results embedUrl statusOverride instances model =
     -- Decode per render is fine for the small card; the fail-closed decoder is the security
     -- gate (an off-catalog or oversized manifest yields the error stub, never a partial tree).
     case JsonRender.decodeString manifestJson of
@@ -500,7 +557,7 @@ rendererView palette allowedIframeOrigins manifestJson results embedUrl statusOv
                 (Element.html
                     (Html.div [ Html.Attributes.style "width" "100%" ]
                         [ rendererStyle palette
-                        , Html.map RendererMsg (Render.view allowedIframeOrigins spec (projection results embedUrl statusOverride instances model) model.renderer)
+                        , Html.map RendererMsg (Render.view allowedIframeOrigins spec (projection history results embedUrl statusOverride instances model) model.renderer)
                         ]
                     )
                 )
