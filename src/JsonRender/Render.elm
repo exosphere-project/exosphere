@@ -247,6 +247,12 @@ renderComponent ctx element childrenHtml =
         IframeP props ->
             renderIframe ctx props
 
+        TableP props ->
+            renderTable ctx props
+
+        AlertP props ->
+            renderAlert ctx props
+
 
 renderCard : Context -> Spec.CardProps -> List (Html Msg) -> Html Msg
 renderCard ctx props childrenHtml =
@@ -538,6 +544,98 @@ severityRank label =
 
 
 
+-- TABLE
+
+
+{-| Render a `Table`: a `<thead>` of column labels and one `<tr>` per bound row. Each cell
+reads `row[column.key]` (a missing key renders empty). The `jr-table` / `jr-table__header`
+/ `jr-table__row` / `jr-table__cell` classes drive host styling.
+-}
+renderTable : Context -> Spec.TableProps -> Html Msg
+renderTable ctx props =
+    let
+        rows =
+            Expr.resolve ctx props.bind |> decodeFindings
+    in
+    Html.table [ Attr.class "jr-table" ]
+        [ Html.thead []
+            [ Html.tr [ Attr.class "jr-table__row" ]
+                (List.map headerCell props.columns)
+            ]
+        , Html.tbody []
+            (List.map (bodyRow ctx props.columns) rows)
+        ]
+
+
+headerCell : Spec.Column -> Html Msg
+headerCell column =
+    Html.th [ Attr.class "jr-table__header" ] [ Html.text column.label ]
+
+
+bodyRow : Context -> List Spec.Column -> Dict.Dict String Value -> Html Msg
+bodyRow ctx columns row =
+    Html.tr [ Attr.class "jr-table__row" ]
+        (List.map (bodyCell ctx row) columns)
+
+
+bodyCell : Context -> Dict.Dict String Value -> Spec.Column -> Html Msg
+bodyCell ctx row column =
+    Html.td [ Attr.class "jr-table__cell" ]
+        [ Html.text (cellText ctx (Dict.get column.key row)) ]
+
+
+{-| A cell's display string, reusing the shared literal-display semantics (so numbers /
+booleans / null render exactly as they do for `Text`). A missing column key = "".
+-}
+cellText : Context -> Maybe Value -> String
+cellText ctx maybeValue =
+    maybeValue
+        |> Maybe.map (Expr.ELiteral >> Expr.resolveDisplay ctx)
+        |> Maybe.withDefault ""
+
+
+
+-- ALERT
+
+
+{-| Render an `Alert`: `div.jr-alert.jr-alert--<tone>` with an optional title span followed
+by the message span. The `jr-alert--<tone>` modifier drives host styling.
+-}
+renderAlert : Context -> Spec.AlertProps -> Html Msg
+renderAlert ctx props =
+    let
+        titleHtml =
+            case props.title of
+                Just expr ->
+                    [ Html.span [ Attr.class "jr-alert__title" ]
+                        [ Html.text (Expr.resolveDisplay ctx expr) ]
+                    ]
+
+                Nothing ->
+                    []
+    in
+    Html.div [ Attr.class ("jr-alert jr-alert--" ++ toneClass props.tone) ]
+        (titleHtml
+            ++ [ Html.span [ Attr.class "jr-alert__message" ]
+                    [ Html.text (Expr.resolveDisplay ctx props.message) ]
+               ]
+        )
+
+
+toneClass : Spec.Tone -> String
+toneClass tone =
+    case tone of
+        Spec.Info ->
+            "info"
+
+        Spec.Warning ->
+            "warning"
+
+        Spec.Danger ->
+            "danger"
+
+
+
 -- IFRAME (origin-pinned, fail-closed)
 
 
@@ -546,6 +644,13 @@ when it is a well-formed https URL whose origin (scheme + host + port) is an exa
 the host-provided `ctx.allowedOrigins`. Anything else (empty/unresolved src, non-https
 scheme, unparseable URL, or an off-allowlist origin) renders a benign placeholder instead.
 The empty-src case is why the element needs no `visible`: an unresolved binding self-hides.
+
+When it does render, the frame is always preceded by a `jr-iframe__provenance` bar naming
+the embedded origin. The bar is emitted unconditionally by the renderer, with no prop to
+suppress it, so a manifest cannot hide that the content is unverified third-party. The
+`<iframe>` sits inside a `jr-iframe__frame` wrapper that carries a distinct border in the
+host stylesheet.
+
 -}
 renderIframe : Context -> Spec.IframeProps -> Html Msg
 renderIframe ctx props =
@@ -554,42 +659,77 @@ renderIframe ctx props =
             Expr.resolveDisplay ctx props.src
     in
     if isAllowedIframeSrc ctx.allowedOrigins url then
-        -- Key the iframe by its full src so a changed URL REMOUNTS it. The embed token lives in
-        -- the URL fragment (#token=...); browsers do not reload an iframe when only the fragment
-        -- changes, so without a keyed remount a fresh token would keep showing the stale page.
+        -- The provenance bar is keyed by a constant so it never remounts. The frame wrapper is
+        -- keyed by the iframe's full src so a changed URL REMOUNTS it: the embed token lives in
+        -- the URL fragment (#token=...), and browsers do not reload an iframe when only the
+        -- fragment changes, so without a keyed remount a fresh token would keep showing the
+        -- stale page.
         Keyed.node "div"
-            [ Attr.style "width" "100%" ]
-            [ ( url
-              , Html.iframe
-                    [ Attr.src url
-                    , Attr.title (Expr.resolveDisplay ctx props.title)
-
-                    -- `allow-same-origin` is safe here BECAUSE the origin-pin guarantees the src is
-                    -- cross-origin to the host (Exosphere): the sandbox token grants the embedded app
-                    -- access to its OWN origin only, never the parent host origin.
-                    , Attr.attribute "sandbox" "allow-scripts allow-same-origin allow-forms"
-                    , Attr.attribute "referrerpolicy" "no-referrer"
-
-                    -- Force the embedded (cross-origin) app to render in light mode regardless
-                    -- of the viewer's OS `prefers-color-scheme`. Per the CSS Color Adjustment
-                    -- spec, Chromium derives the embedded page's used color-scheme from the
-                    -- embedding iframe element, so this pins CloudShield's own UI to light while
-                    -- Exosphere itself stays on the viewer's theme. (CloudShield's dark theme is
-                    -- broken: dark text on dark bg.) This is a presentation-only attribute and
-                    -- does not touch the origin-pin, sandbox, referrerpolicy, or keyed remount.
-                    , Attr.style "color-scheme" "light"
-                    , Attr.style "width" "100%"
-                    , Attr.style "height" "85vh"
-                    , Attr.style "min-height" "600px"
-                    , Attr.style "border" "0"
-                    ]
-                    []
+            [ Attr.class "jr-iframe", Attr.style "width" "100%" ]
+            [ ( "provenance", provenanceBar url )
+            , ( url
+              , Html.div [ Attr.class "jr-iframe__frame" ]
+                    [ iframeElement ctx props url ]
               )
             ]
 
     else
         Html.div [ Attr.class "jr-iframe--blocked" ]
             [ Html.text "Embedded content is unavailable." ]
+
+
+{-| The always-on provenance chrome: a slim bar naming the embedded origin, rendered above
+the frame. Not suppressible from a manifest. Host stylesheets may restyle `jr-iframe__provenance`
+but the bar is structurally present whenever an iframe renders.
+-}
+provenanceBar : String -> Html Msg
+provenanceBar url =
+    Html.div [ Attr.class "jr-iframe__provenance" ]
+        [ Html.text
+            ("Third-party content from "
+                ++ iframeOrigin url
+                ++ " — not verified by Exosphere"
+            )
+        ]
+
+
+iframeElement : Context -> Spec.IframeProps -> String -> Html Msg
+iframeElement ctx props url =
+    Html.iframe
+        [ Attr.src url
+        , Attr.title (Expr.resolveDisplay ctx props.title)
+
+        -- `allow-same-origin` is safe here BECAUSE the origin-pin guarantees the src is
+        -- cross-origin to the host (Exosphere): the sandbox token grants the embedded app
+        -- access to its OWN origin only, never the parent host origin.
+        , Attr.attribute "sandbox" "allow-scripts allow-same-origin allow-forms"
+        , Attr.attribute "referrerpolicy" "no-referrer"
+
+        -- Force the embedded (cross-origin) app to render in light mode regardless
+        -- of the viewer's OS `prefers-color-scheme`. Per the CSS Color Adjustment
+        -- spec, Chromium derives the embedded page's used color-scheme from the
+        -- embedding iframe element, so this pins CloudShield's own UI to light while
+        -- Exosphere itself stays on the viewer's theme. (CloudShield's dark theme is
+        -- broken: dark text on dark bg.) This is a presentation-only attribute and
+        -- does not touch the origin-pin, sandbox, referrerpolicy, or keyed remount.
+        , Attr.style "color-scheme" "light"
+        , Attr.style "width" "100%"
+        , Attr.style "height" "85vh"
+        , Attr.style "min-height" "600px"
+        , Attr.style "border" "0"
+        ]
+        []
+
+
+{-| The origin (scheme + host + port) of a resolved iframe `src`, for the provenance bar.
+Falls back to the full url if unparseable (cannot happen in the allowed branch, where the
+origin-pin has already validated it).
+-}
+iframeOrigin : String -> String
+iframeOrigin url =
+    Url.fromString url
+        |> Maybe.map originOf
+        |> Maybe.withDefault url
 
 
 {-| Fail-closed origin pin: `True` only when `src` is a non-empty, well-formed https URL

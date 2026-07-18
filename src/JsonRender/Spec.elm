@@ -14,6 +14,10 @@ module JsonRender.Spec exposing
     , CheckboxProps
     , FindingsTableProps
     , IframeProps
+    , TableProps
+    , Column
+    , AlertProps
+    , Tone(..)
     , ActionBinding
     , Confirm
     , Repeat
@@ -61,6 +65,10 @@ A rejected manifest never produces a partial tree — the host shows an error st
 @docs CheckboxProps
 @docs FindingsTableProps
 @docs IframeProps
+@docs TableProps
+@docs Column
+@docs AlertProps
+@docs Tone
 
 
 # Actions & iteration
@@ -112,6 +120,8 @@ type ComponentType
     | Checkbox
     | FindingsTable
     | Iframe
+    | Table
+    | Alert
 
 
 {-| Strictly-decoded props, one variant per component type. The variant always agrees
@@ -127,6 +137,8 @@ type Props
     | CheckboxP CheckboxProps
     | FindingsTableP FindingsTableProps
     | IframeP IframeProps
+    | TableP TableProps
+    | AlertP AlertProps
 
 
 {-| `Stack` layout direction.
@@ -134,6 +146,15 @@ type Props
 type Direction
     = Row
     | Col
+
+
+{-| `Alert` severity tone, driving the `jr-alert--<tone>` modifier class. Any other
+string fails the decode (fail-closed).
+-}
+type Tone
+    = Info
+    | Warning
+    | Danger
 
 
 {-| `Card` props. `title` is optional and may be any expression.
@@ -196,6 +217,34 @@ type alias IframeProps =
     }
 
 
+{-| `Table` props: the `columns` to show (each a `key`/`label` pair) and a `bind`
+expression resolving to an array of row objects. Each cell reads `row[column.key]`; a
+missing key renders an empty cell.
+-}
+type alias TableProps =
+    { columns : List Column
+    , bind : Expr
+    }
+
+
+{-| One `Table` column: the row-object `key` to read and the header `label` to show.
+-}
+type alias Column =
+    { key : String
+    , label : String
+    }
+
+
+{-| `Alert` props: a `tone`, an optional `title` expression, and the required `message`
+expression (which may itself be a `$template` or other binding).
+-}
+type alias AlertProps =
+    { tone : Tone
+    , title : Maybe Expr
+    , message : Expr
+    }
+
+
 {-| An event binding: a named verb, its (unresolved) params, and an optional confirm
 dialog. The key is `action`/`params` per the pinned format — never a URL.
 -}
@@ -255,6 +304,12 @@ componentType ct =
 
         Iframe ->
             "Iframe"
+
+        Table ->
+            "Table"
+
+        Alert ->
+            "Alert"
 
 
 
@@ -414,6 +469,12 @@ parseComponentType name =
         "Iframe" ->
             Just Iframe
 
+        "Table" ->
+            Just Table
+
+        "Alert" ->
+            Just Alert
+
         _ ->
             Nothing
 
@@ -468,6 +529,12 @@ allowedPropKeys ct =
         Iframe ->
             [ "src", "title" ]
 
+        Table ->
+            [ "columns", "bind" ]
+
+        Alert ->
+            [ "tone", "title", "message" ]
+
 
 decodeFromValue : Decoder a -> Value -> Decoder a
 decodeFromValue dec value =
@@ -517,6 +584,47 @@ propsBodyDecoder ct =
             Decode.map2 (\s t -> IframeP (IframeProps s t))
                 (Decode.field "src" Expr.decoder)
                 (Decode.field "title" Expr.decoder)
+
+        Table ->
+            Decode.map2 (\c b -> TableP (TableProps c b))
+                (Decode.field "columns" (Decode.list columnDecoder))
+                (Decode.field "bind" Expr.decoder)
+
+        Alert ->
+            Decode.map3 (\to ti m -> AlertP (AlertProps to ti m))
+                (Decode.field "tone" toneDecoder)
+                (Decode.maybe (Decode.field "title" Expr.decoder))
+                (Decode.field "message" Expr.decoder)
+
+
+columnDecoder : Decoder Column
+columnDecoder =
+    rejectUnknownKeys "Table column"
+        [ "key", "label" ]
+        (Decode.map2 Column
+            (Decode.field "key" Decode.string)
+            (Decode.field "label" Decode.string)
+        )
+
+
+toneDecoder : Decoder Tone
+toneDecoder =
+    Decode.string
+        |> Decode.andThen
+            (\s ->
+                case s of
+                    "info" ->
+                        Decode.succeed Info
+
+                    "warning" ->
+                        Decode.succeed Warning
+
+                    "danger" ->
+                        Decode.succeed Danger
+
+                    other ->
+                        Decode.fail ("Unknown Alert tone: `" ++ other ++ "`")
+            )
 
 
 directionDecoder : Decoder Direction
