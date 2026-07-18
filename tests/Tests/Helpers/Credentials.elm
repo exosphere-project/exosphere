@@ -47,6 +47,7 @@ project secret =
     , shareAccessRules = Dict.empty
     , shareExportLocations = Dict.empty
     , shareTypes = RDPP.empty
+    , objectStorageUploads = []
     , flavors = RDPP.empty
     , keypairs = RDPP.empty
     , volumes = RDPP.empty

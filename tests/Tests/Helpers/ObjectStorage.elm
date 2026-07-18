@@ -2,8 +2,11 @@ module Tests.Helpers.ObjectStorage exposing (serviceCatalogSwiftSuite)
 
 import Expect
 import Helpers.Helpers as Helpers
+import OpenStack.ObjectStorage as ObjectStorage
 import OpenStack.Types as OSTypes
 import Test exposing (Test, describe, test)
+import Types.Error exposing (ErrorLevel(..))
+import Types.SharedMsg as SharedMsg
 
 
 {-| Build a Public endpoint with a placeholder region.
@@ -57,7 +60,48 @@ serviceCatalogSwiftSuite =
             \_ ->
                 case Helpers.serviceCatalogToEndpoints baseCatalog Nothing of
                     Ok endpoints ->
-                        Expect.equal Nothing endpoints.swift
+                        let
+                            uploadStatusReasons =
+                                [ ObjectStorage.Failed "transport failed"
+                                , ObjectStorage.Rejected "file too large"
+                                ]
+                                    |> List.map
+                                        (\status ->
+                                            case status of
+                                                ObjectStorage.Failed reason ->
+                                                    reason
+
+                                                ObjectStorage.Rejected reason ->
+                                                    reason
+
+                                                _ ->
+                                                    ""
+                                        )
+
+                            uploadCallbackPayload =
+                                case
+                                    SharedMsg.ReceiveUploadObject
+                                        { actionContext = "upload object"
+                                        , level = ErrorWarn
+                                        , recoveryHint = Nothing
+                                        }
+                                        7
+                                        "container"
+                                        (Just "prefix/")
+                                        (Ok ())
+                                of
+                                    SharedMsg.ReceiveUploadObject _ _ containerName maybePrefix _ ->
+                                        ( containerName, maybePrefix )
+
+                                    _ ->
+                                        ( "", Nothing )
+                        in
+                        Expect.all
+                            [ \_ -> Expect.equal Nothing endpoints.swift
+                            , \_ -> Expect.equal [ "transport failed", "file too large" ] uploadStatusReasons
+                            , \_ -> Expect.equal ( "container", Just "prefix/" ) uploadCallbackPayload
+                            ]
+                            ()
 
                     Err e ->
                         Expect.fail ("expected Ok endpoints, got Err: " ++ e)

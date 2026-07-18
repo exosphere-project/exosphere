@@ -132,6 +132,7 @@ hydrateProjectFromStoredProject storedProject =
     , shareAccessRules = Dict.empty
     , shareExportLocations = Dict.empty
     , shareTypes = RDPP.empty
+    , objectStorageUploads = []
     , autoAllocatedNetworkUuid = RDPP.empty
     , dnsRecordSets = RDPP.empty
     , floatingIps = RDPP.empty
