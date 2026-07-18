@@ -349,6 +349,9 @@ type alias ViewConfig =
     -- body's `summary.durationSec`) so the line freezes. `Nothing` hides the line entirely.
     , scanTimer : Maybe { startMillis : Int, doneDurationSec : Maybe Int }
 
+    -- A muted host-drawn line for transport warnings/errors outside the sandboxed manifest.
+    , transportWarning : Maybe String
+
     -- the authoritative live state of the in-flight run, read from the polled status object
     -- (§4.3) and projected onto its target row, overriding the optimistic local scanState.
     , statusOverride : Maybe { targetId : String, state : String }
@@ -385,6 +388,7 @@ view palette currentTime config instances model =
             [ Element.width Element.fill, Element.spacing spacer.px8 ]
             [ provenanceMarker palette config.sourceName
             , rendererView palette config.allowedIframeOrigins config.manifestJson config.results config.embedUrl config.statusOverride instances model
+            , transportWarningView palette config.transportWarning
             , scanTimerView palette currentTime config.scanTimer
             , demoIframePanel palette config.demoIframeUrl model.showDemoIframe
             , disableAffordance palette
@@ -392,6 +396,20 @@ view palette currentTime config instances model =
 
     else
         optInAffordance palette config.sourceName
+
+
+transportWarningView : ExoPalette -> Maybe String -> Element.Element Msg
+transportWarningView palette warning =
+    case warning of
+        Just label ->
+            Element.el
+                [ Text.fontSize Text.Small
+                , Font.color (SH.toElementColor palette.neutral.text.subdued)
+                ]
+                (Text.body label)
+
+        Nothing ->
+            Element.none
 
 
 {-| A muted, host-drawn line under the rendered manifest that gives the scan visible progress:

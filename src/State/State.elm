@@ -1858,6 +1858,7 @@ processProjectSpecificMsg outerModel project msg =
                     Rest.Nova.receiveServers sharedModel project servers
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerDetailMsg Page.ServerDetail.GotCloudShieldSync))
 
                 Err e ->
                     let
@@ -1901,6 +1902,7 @@ processProjectSpecificMsg outerModel project msg =
                     ( newerSharedModel, newCmd )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerDetailMsg Page.ServerDetail.GotCloudShieldSync))
 
                 Err httpErrorWithBody ->
                     let
@@ -4286,6 +4288,20 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     in
                     ( newSharedModel, Cmd.none )
                         |> mapToOuterModel outerModel
+
+        ReceiveCloudShieldManifestObject etag result ->
+            updateUnderlying
+                (ServerDetailMsg <|
+                    Page.ServerDetail.GotCloudShieldManifestObject sharedModel.clientCurrentTime etag result
+                )
+                outerModel
+
+        ReceiveCloudShieldResultObject etag objectName result ->
+            updateUnderlying
+                (ServerDetailMsg <|
+                    Page.ServerDetail.GotCloudShieldResultObject sharedModel.clientCurrentTime etag objectName result
+                )
+                outerModel
 
         ReceiveGuacamoleAuthToken result ->
             let

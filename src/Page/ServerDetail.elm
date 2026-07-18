@@ -1,4 +1,4 @@
-module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, init, update, view)
+module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, cloudShieldManifestBodyForEtag, cloudShieldManifestNeedsFetch, effectiveCloudShieldResultBody, init, update, view)
 
 import CloudShield.Card
 import CloudShield.Discovery
@@ -28,6 +28,7 @@ import OpenStack.Types as OSTypes
 import Page.ServerResourceUsageAlerts
 import Page.ServerResourceUsageCharts
 import Rest.Nova
+import Rest.Swift
 import Route
 import State.Error as Error
 import Style.Helpers as SH
@@ -49,6 +50,7 @@ import Style.Widgets.Uuid exposing (copyableUuid)
 import Style.Widgets.Validation exposing (warningMessage)
 import Task
 import Time
+import Types.Error exposing (HttpErrorWithBody)
 import Types.Guacamole exposing (ServerGuacamoleStatus(..))
 import Types.HelperTypes exposing (FloatingIpOption(..), ProjectIdentifier, ServerResourceQtys, UserAppProxyHostname)
 import Types.Interaction as ITypes
@@ -70,6 +72,10 @@ type alias Model =
     , retainFloatingIpsWhenDeleting : Bool
     , deleteFloatingIpsWhenShelving : Bool
     , cloudShield : CloudShield.Card.Model
+    , cloudShieldManifest : RDPP.RemoteDataPlusPlus String { etag : String, body : String }
+    , cloudShieldManifestRequestEtag : Maybe String
+    , cloudShieldResultRef : RDPP.RemoteDataPlusPlus String { etag : String, objectName : String, body : String }
+    , cloudShieldResultRefRequest : Maybe { etag : String, objectName : String }
     }
 
 
@@ -90,6 +96,9 @@ type Msg
     | GotRetainFloatingIpsWhenDeleting Bool
     | GotDeleteFloatingIpsWhenShelving Bool
     | GotSetServerName String
+    | GotCloudShieldSync
+    | GotCloudShieldManifestObject Time.Posix String (Result HttpErrorWithBody String)
+    | GotCloudShieldResultObject Time.Posix String String (Result HttpErrorWithBody String)
     | CloudShieldMsg CloudShield.Card.Msg
     | CloudShieldWriteRequest { seq : Int, targetIds : List String } Time.Posix
     | SharedMsg SharedMsg.SharedMsg
@@ -106,6 +115,10 @@ init serverUuid =
     , retainFloatingIpsWhenDeleting = False
     , deleteFloatingIpsWhenShelving = True
     , cloudShield = CloudShield.Card.init
+    , cloudShieldManifest = RDPP.empty
+    , cloudShieldManifestRequestEtag = Nothing
+    , cloudShieldResultRef = RDPP.empty
+    , cloudShieldResultRefRequest = Nothing
     }
 
 
@@ -142,6 +155,19 @@ update msg project model =
                 SharedMsg.ServerMsg model.serverUuid <|
                     SharedMsg.RequestSetServerName validName
             )
+
+        GotCloudShieldSync ->
+            let
+                ( newModel, cmd ) =
+                    syncCloudShieldReads project model
+            in
+            ( newModel, cmd, SharedMsg.NoOp )
+
+        GotCloudShieldManifestObject receivedTime etag result ->
+            ( receiveCloudShieldManifest project receivedTime etag result model, Cmd.none, SharedMsg.NoOp )
+
+        GotCloudShieldResultObject receivedTime etag objectName result ->
+            ( receiveCloudShieldResultRef project receivedTime etag objectName result model, Cmd.none, SharedMsg.NoOp )
 
         CloudShieldMsg cloudMsg ->
             let
@@ -216,6 +242,259 @@ cloudShieldInstances project model =
         |> CloudShield.Discovery.eligibleInstances model.serverUuid
 
 
+syncCloudShieldReads : Project -> Model -> ( Model, Cmd Msg )
+syncCloudShieldReads project model =
+    case GetterSetters.serverLookup project model.serverUuid of
+        Just server ->
+            let
+                metadata =
+                    server.osProps.details.metadata
+            in
+            case CloudShield.Discovery.readSentinel metadata of
+                Just ({ store } as sentinel) ->
+                    if store == CloudShield.Discovery.StoreSwift then
+                        let
+                            etag =
+                                cloudShieldEtag metadata
+                        in
+                        syncCloudShieldResultRef project sentinel etag metadata <|
+                            syncCloudShieldManifest project sentinel etag model
+
+                    else
+                        ( model, Cmd.none )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+syncCloudShieldManifest : Project -> CloudShield.Discovery.Sentinel -> String -> Model -> ( Model, Cmd Msg )
+syncCloudShieldManifest project sentinel etag model =
+    case ( project.endpoints.swift, CloudShield.Discovery.manifestObjectLocation sentinel ) of
+        ( Nothing, _ ) ->
+            ( cloudShieldManifestError (Time.millisToPosix 0)
+                etag
+                {- @nonlocalized -} "CloudShield manifest is stored in object storage, but this cloud has no Swift endpoint."
+                model
+            , Cmd.none
+            )
+
+        ( _, Nothing ) ->
+            ( cloudShieldManifestError (Time.millisToPosix 0) etag "CloudShield manifest is stored in object storage, but its container or object name is missing." model
+            , Cmd.none
+            )
+
+        ( Just swiftUrl, Just location ) ->
+            if cloudShieldManifestNeedsFetch etag model then
+                ( { model
+                    | cloudShieldManifest = RDPP.setLoading model.cloudShieldManifest
+                    , cloudShieldManifestRequestEtag = Just etag
+                  }
+                , Rest.Swift.requestGetObjectCapped
+                    project
+                    swiftUrl
+                    location.container
+                    location.objectName
+                    CloudShield.Transport.manifestCapBytes
+                    (\result ->
+                        SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                            SharedMsg.ServerMsg model.serverUuid <|
+                                SharedMsg.ReceiveCloudShieldManifestObject etag result
+                    )
+                    |> Cmd.map SharedMsg
+                )
+
+            else
+                ( model, Cmd.none )
+
+
+syncCloudShieldResultRef : Project -> CloudShield.Discovery.Sentinel -> String -> List OSTypes.MetadataItem -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+syncCloudShieldResultRef project sentinel etag metadata ( model, manifestCmd ) =
+    case CloudShield.Transport.resultBodyFromMetadata metadata |> Maybe.map CloudShield.Transport.resolveResultBody of
+        Just (CloudShield.Transport.ResultRef objectName) ->
+            case ( project.endpoints.swift, sentinel.container ) of
+                ( Nothing, _ ) ->
+                    ( cloudShieldResultRefError (Time.millisToPosix 0)
+                        etag
+                        objectName
+                        {- @nonlocalized -} "CloudShield result is stored in object storage, but this cloud has no Swift endpoint."
+                        model
+                    , manifestCmd
+                    )
+
+                ( _, Nothing ) ->
+                    ( cloudShieldResultRefError (Time.millisToPosix 0) etag objectName "CloudShield result is stored in object storage, but its container is missing." model
+                    , manifestCmd
+                    )
+
+                ( Just swiftUrl, Just container ) ->
+                    if cloudShieldResultRefNeedsFetch etag objectName model then
+                        ( { model
+                            | cloudShieldResultRef = RDPP.setLoading model.cloudShieldResultRef
+                            , cloudShieldResultRefRequest = Just { etag = etag, objectName = objectName }
+                          }
+                        , Cmd.batch
+                            [ manifestCmd
+                            , Rest.Swift.requestGetObjectCapped
+                                project
+                                swiftUrl
+                                container
+                                objectName
+                                CloudShield.Transport.resultCapBytes
+                                (\result ->
+                                    SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                                        SharedMsg.ServerMsg model.serverUuid <|
+                                            SharedMsg.ReceiveCloudShieldResultObject etag objectName result
+                                )
+                                |> Cmd.map SharedMsg
+                            ]
+                        )
+
+                    else
+                        ( model, manifestCmd )
+
+        _ ->
+            ( model, manifestCmd )
+
+
+receiveCloudShieldManifest : Project -> Time.Posix -> String -> Result HttpErrorWithBody String -> Model -> Model
+receiveCloudShieldManifest project receivedTime etag result model =
+    if currentCloudShieldEtag project model == Just etag then
+        case result |> Result.mapError Helpers.httpErrorWithBodyToString |> Result.andThen (CloudShield.Transport.capBody CloudShield.Transport.manifestCapBytes) of
+            Ok body ->
+                { model
+                    | cloudShieldManifest =
+                        model.cloudShieldManifest
+                            |> RDPP.setData (RDPP.DoHave { etag = etag, body = body } receivedTime)
+                            |> RDPP.setNotLoading Nothing
+                    , cloudShieldManifestRequestEtag = Just etag
+                }
+
+            Err error ->
+                cloudShieldManifestError receivedTime etag error model
+
+    else
+        model
+
+
+receiveCloudShieldResultRef : Project -> Time.Posix -> String -> String -> Result HttpErrorWithBody String -> Model -> Model
+receiveCloudShieldResultRef project receivedTime etag objectName result model =
+    if currentCloudShieldEtag project model == Just etag then
+        case result |> Result.mapError Helpers.httpErrorWithBodyToString |> Result.andThen (CloudShield.Transport.capBody CloudShield.Transport.resultCapBytes) of
+            Ok body ->
+                { model
+                    | cloudShieldResultRef =
+                        model.cloudShieldResultRef
+                            |> RDPP.setData (RDPP.DoHave { etag = etag, objectName = objectName, body = body } receivedTime)
+                            |> RDPP.setNotLoading Nothing
+                    , cloudShieldResultRefRequest = Just { etag = etag, objectName = objectName }
+                }
+
+            Err error ->
+                cloudShieldResultRefError receivedTime etag objectName error model
+
+    else
+        model
+
+
+cloudShieldManifestBodyForEtag : String -> Model -> Maybe String
+cloudShieldManifestBodyForEtag etag model =
+    case model.cloudShieldManifest.data of
+        RDPP.DoHave fetched _ ->
+            if fetched.etag == etag then
+                Just fetched.body
+
+            else
+                Nothing
+
+        RDPP.DontHave ->
+            Nothing
+
+
+cloudShieldManifestNeedsFetch : String -> Model -> Bool
+cloudShieldManifestNeedsFetch etag model =
+    cloudShieldManifestBodyForEtag etag model
+        == Nothing
+        && model.cloudShieldManifestRequestEtag
+        /= Just etag
+
+
+effectiveCloudShieldResultBody : String -> String -> Model -> Maybe String
+effectiveCloudShieldResultBody etag slotBody model =
+    let
+        resolved =
+            CloudShield.Transport.resolveResultBody slotBody
+
+        fetchedRefBody =
+            case ( CloudShield.Transport.resultRefObjectName resolved, model.cloudShieldResultRef.data ) of
+                ( Just objectName, RDPP.DoHave fetched _ ) ->
+                    if fetched.etag == etag && fetched.objectName == objectName then
+                        Just fetched.body
+
+                    else
+                        Nothing
+
+                _ ->
+                    Nothing
+    in
+    CloudShield.Transport.resultBody resolved fetchedRefBody
+
+
+cloudShieldResultRefNeedsFetch : String -> String -> Model -> Bool
+cloudShieldResultRefNeedsFetch etag objectName model =
+    let
+        fetched =
+            case model.cloudShieldResultRef.data of
+                RDPP.DoHave body _ ->
+                    body.etag == etag && body.objectName == objectName
+
+                RDPP.DontHave ->
+                    False
+
+        requested =
+            model.cloudShieldResultRefRequest == Just { etag = etag, objectName = objectName }
+    in
+    not fetched && not requested
+
+
+cloudShieldManifestError : Time.Posix -> String -> String -> Model -> Model
+cloudShieldManifestError receivedTime etag error model =
+    { model
+        | cloudShieldManifest =
+            RDPP.RemoteDataPlusPlus RDPP.DontHave (RDPP.NotLoading (Just ( error, receivedTime )))
+        , cloudShieldManifestRequestEtag = Just etag
+    }
+
+
+cloudShieldResultRefError : Time.Posix -> String -> String -> String -> Model -> Model
+cloudShieldResultRefError receivedTime etag objectName error model =
+    { model
+        | cloudShieldResultRef =
+            RDPP.RemoteDataPlusPlus RDPP.DontHave (RDPP.NotLoading (Just ( error, receivedTime )))
+        , cloudShieldResultRefRequest = Just { etag = etag, objectName = objectName }
+    }
+
+
+currentCloudShieldEtag : Project -> Model -> Maybe String
+currentCloudShieldEtag project model =
+    GetterSetters.serverLookup project model.serverUuid
+        |> Maybe.map (.osProps >> .details >> .metadata >> cloudShieldEtag)
+
+
+cloudShieldEtag : List OSTypes.MetadataItem -> String
+cloudShieldEtag metadata =
+    metadataValue "exoext.v1.etag" metadata |> Maybe.withDefault ""
+
+
+metadataValue : String -> List OSTypes.MetadataItem -> Maybe String
+metadataValue key metadata =
+    metadata
+        |> List.Extra.find (\item -> item.key == key)
+        |> Maybe.map .value
+
+
 {-| Resolve the manifest + provenance + live status for the card view. The body comes from
 the POC metadata transport when the discovery sentinel is present and `store=metadata`;
 otherwise it falls back to the embedded frozen `card.json` (a dev convenience so the card is
@@ -233,16 +512,33 @@ cloudShieldViewConfig project model server =
             CloudShield.Discovery.readSentinel metadata
 
         maybeTransportBody =
-            CloudShield.Discovery.manifestBodyFromMetadata metadata
+            case maybeSentinel of
+                Just { store } ->
+                    case store of
+                        CloudShield.Discovery.StoreSwift ->
+                            cloudShieldManifestBodyForEtag (cloudShieldEtag metadata) model
+
+                        _ ->
+                            CloudShield.Discovery.manifestBodyFromMetadata metadata
+
+                Nothing ->
+                    Nothing
 
         -- The header transport chip: a short, non-technical label naming how the manifest
         -- actually arrived. Only when a real transport body was resolved (metadata store);
         -- the embedded-card fallbacks transport nothing, so they show no chip.
         ( manifestJson, transportLabel ) =
             case ( maybeSentinel, maybeTransportBody ) of
-                ( Just _, Just body ) ->
+                ( Just { store }, Just body ) ->
                     ( unwrapManifestUi model.serverUuid body
-                    , Just "server metadata"
+                    , Just
+                        (case store of
+                            CloudShield.Discovery.StoreSwift ->
+                                "object storage"
+
+                            _ ->
+                                "server metadata"
+                        )
                     )
 
                 ( Just _, Nothing ) ->
@@ -263,6 +559,10 @@ cloudShieldViewConfig project model server =
                 _ ->
                     Nothing
 
+        resultBody =
+            CloudShield.Transport.resultBodyFromMetadata metadata
+                |> Maybe.andThen (\body -> effectiveCloudShieldResultBody (cloudShieldEtag metadata) body model)
+
         -- When the in-flight run is `done`, parse the §4.2 result body off the §7.1 res-slot
         -- and bind its `findings[]` array into the FindingsTable (`/results`). Gated on the
         -- correlated `done` state so a stale result body from a prior run can't show.
@@ -270,12 +570,8 @@ cloudShieldViewConfig project model server =
             case statusOverride of
                 Just override ->
                     if override.state == "done" then
-                        CloudShield.Transport.resultBodyFromMetadata metadata
-                            |> Maybe.andThen
-                                (\body ->
-                                    Decode.decodeString (Decode.field "findings" Decode.value) body
-                                        |> Result.toMaybe
-                                )
+                        resultBody
+                            |> Maybe.andThen (Decode.decodeString (Decode.field "findings" Decode.value) >> Result.toMaybe)
 
                     else
                         Nothing
@@ -298,12 +594,8 @@ cloudShieldViewConfig project model server =
             case statusOverride of
                 Just override ->
                     if override.state == "done" then
-                        CloudShield.Transport.resultBodyFromMetadata metadata
-                            |> Maybe.andThen
-                                (\body ->
-                                    Decode.decodeString (Decode.field "embedUrl" Decode.string) body
-                                        |> Result.toMaybe
-                                )
+                        resultBody
+                            |> Maybe.andThen (Decode.decodeString (Decode.field "embedUrl" Decode.string) >> Result.toMaybe)
                             |> Maybe.withDefault ""
 
                     else
@@ -335,9 +627,6 @@ cloudShieldViewConfig project model server =
                     case state of
                         "done" ->
                             let
-                                resultBody =
-                                    CloudShield.Transport.resultBodyFromMetadata metadata
-
                                 wallClockSec =
                                     resultBody
                                         |> Maybe.andThen
@@ -383,6 +672,7 @@ cloudShieldViewConfig project model server =
     { sourceName = server.osProps.name
     , manifestJson = manifestJson
     , transportLabel = transportLabel
+    , transportWarning = cloudShieldTransportWarning project model metadata maybeSentinel resultBody
     , scanTimer = scanTimer
     , statusOverride = statusOverride
     , results = results
@@ -394,6 +684,81 @@ cloudShieldViewConfig project model server =
     -- iframe; `Nothing` hides the panel and its toggle entirely.
     , demoIframeUrl = Nothing
     }
+
+
+cloudShieldTransportWarning : Project -> Model -> List OSTypes.MetadataItem -> Maybe CloudShield.Discovery.Sentinel -> Maybe String -> Maybe String
+cloudShieldTransportWarning project model metadata maybeSentinel resultBody =
+    case resultBody |> Maybe.andThen resultTruncationWarning of
+        Just warning ->
+            Just warning
+
+        Nothing ->
+            case maybeSentinel of
+                Just { store } ->
+                    if store == CloudShield.Discovery.StoreSwift then
+                        case project.endpoints.swift of
+                            Nothing ->
+                                Just
+                                    {- @nonlocalized -} "CloudShield manifest is stored in object storage, but this cloud has no Swift endpoint."
+
+                            Just _ ->
+                                cloudShieldReadErrorForEtag (cloudShieldEtag metadata) model
+
+                    else
+                        Nothing
+
+                Nothing ->
+                    Nothing
+
+
+cloudShieldReadErrorForEtag : String -> Model -> Maybe String
+cloudShieldReadErrorForEtag etag model =
+    let
+        manifestError =
+            case ( model.cloudShieldManifestRequestEtag, model.cloudShieldManifest.refreshStatus ) of
+                ( Just requestedEtag, RDPP.NotLoading (Just ( error, _ )) ) ->
+                    if requestedEtag == etag then
+                        Just ("CloudShield object-storage manifest read failed: " ++ error)
+
+                    else
+                        Nothing
+
+                _ ->
+                    Nothing
+    in
+    case manifestError of
+        Just _ ->
+            manifestError
+
+        Nothing ->
+            case ( model.cloudShieldResultRefRequest, model.cloudShieldResultRef.refreshStatus ) of
+                ( Just request, RDPP.NotLoading (Just ( error, _ )) ) ->
+                    if request.etag == etag then
+                        Just ("CloudShield object-storage result read failed: " ++ error)
+
+                    else
+                        Nothing
+
+                _ ->
+                    Nothing
+
+
+resultTruncationWarning : String -> Maybe String
+resultTruncationWarning body =
+    case Decode.decodeString (Decode.field "truncated" Decode.bool) body of
+        Ok True ->
+            let
+                suffix =
+                    Decode.decodeString (Decode.field "truncatedReason" Decode.string) body
+                        |> Result.toMaybe
+                        |> Maybe.map (\reason -> ": " ++ reason)
+                        |> Maybe.withDefault ""
+            in
+            Just
+                {- @nonlocalized -} ("Full results are too large for this cloud's metadata transport" ++ suffix)
+
+        _ ->
+            Nothing
 
 
 {-| Extract the json-render `ui` body from a §1 manifest envelope for the renderer.

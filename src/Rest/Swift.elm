@@ -1,5 +1,6 @@
 module Rest.Swift exposing
-    ( requestGetObjectCapped
+    ( requestDownloadObject
+    , requestGetObjectCapped
     )
 
 {-| HTTP wiring for OpenStack Object Storage (Swift).
@@ -25,13 +26,14 @@ import Http
 import OpenStack.ObjectStorage as ObjectStorage
 import Rest.Helpers
     exposing
-        ( expectCappedStringWithErrorBody
+        ( expectBytesWithErrorBody
+        , expectCappedStringWithErrorBody
         , openstackCredentialedRequest
         )
-import Types.Error exposing (HttpErrorWithBody)
+import Types.Error exposing (ErrorContext, HttpErrorWithBody)
 import Types.HelperTypes exposing (HttpRequestMethod(..), Url)
 import Types.Project exposing (Project)
-import Types.SharedMsg exposing (SharedMsg)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Url
 
 
@@ -54,3 +56,23 @@ requestGetObjectCapped project url containerName objectName capBytes toMsg =
         )
         Http.emptyBody
         (expectCappedStringWithErrorBody capBytes toMsg)
+
+
+requestDownloadObject : Project -> Url -> ObjectStorage.ContainerName -> ObjectStorage.ObjectName -> ErrorContext -> Cmd SharedMsg
+requestDownloadObject project url containerName objectName errorContext =
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Get
+        Nothing
+        []
+        ( url
+        , ObjectStorage.objectPath containerName objectName |> List.map Url.percentEncode
+        , []
+        )
+        Http.emptyBody
+        (expectBytesWithErrorBody
+            (\result ->
+                ProjectMsg (GetterSetters.projectIdentifier project) <|
+                    ReceiveDownloadObject errorContext objectName result
+            )
+        )
