@@ -22,6 +22,7 @@ import Toasty
 import Types.AppVersion exposing (AppVersion)
 import Types.Banner as BannerTypes
 import Types.Error exposing (ErrorContext, HttpErrorWithBody, Toast)
+import Types.ExtensionApproval exposing (ExtensionApproval)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
 import Types.Interactivity exposing (InteractionLevel)
@@ -62,6 +63,11 @@ type SharedMsg
     | SelectTheme ST.ThemeChoice
     | SetExperimentalFeaturesEnabled Bool
     | SetAppVersionUpdateNotificationsEnabled Bool
+      -- Record an extension approval (append/replace by instanceUuid), or forget one (remove by
+      -- instanceUuid). Persisted on `viewContext.extensionApprovals` via the every-update
+      -- localStorage write, like the other user preferences.
+    | GrantExtensionApproval ExtensionApproval
+    | ForgetExtensionApproval String
     | TogglePopover PopoverId
     | NetworkConnection Bool
     | ReceiveWebLock ( String, Bool )

@@ -12,6 +12,7 @@ import Dict exposing (Dict)
 import OpenStack.Types as OSTypes
 import Set exposing (Set)
 import Style.Types
+import Types.ExtensionApproval exposing (ExtensionApproval)
 import Types.Project
 import Types.Server exposing (ServerExoActions)
 import UUID
@@ -68,4 +69,5 @@ type alias StoredState =
     , experimentalFeaturesEnabled : Maybe Bool
     , appVersionUpdateNotificationsEnabled : Maybe Bool
     , dismissedBanners : Set String
+    , extensionApprovals : List ExtensionApproval
     }

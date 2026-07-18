@@ -1,4 +1,7 @@
-module Tests.LocalStorage exposing (endpointsDecoderMigrationSuite)
+module Tests.LocalStorage exposing
+    ( endpointsDecoderMigrationSuite
+    , extensionApprovalsMigrationSuite
+    )
 
 import Expect
 import Json.Decode as Decode
@@ -60,4 +63,44 @@ endpointsDecoderMigrationSuite =
 
                     Err e ->
                         Expect.fail ("expected Ok endpoints, got Err: " ++ Decode.errorToString e)
+        ]
+
+
+extensionApprovalsMigrationSuite : Test
+extensionApprovalsMigrationSuite =
+    describe "storedStateDecoder tolerates the extension-approvals migration"
+        [ test "a version-9 blob without exoextApprovals decodes with extensionApprovals == []" <|
+            \_ ->
+                case Decode.decodeString LocalStorage.storedStateDecoder """{ "9": { "projects": [] } }""" of
+                    Ok storedState ->
+                        Expect.equal [] storedState.extensionApprovals
+
+                    Err e ->
+                        Expect.fail ("expected Ok storedState, got Err: " ++ Decode.errorToString e)
+        , test "a blob WITH exoextApprovals decodes the stored records" <|
+            \_ ->
+                let
+                    json =
+                        """
+                        { "9":
+                            { "projects": []
+                            , "exoextApprovals":
+                                [ { "cloudUrl": "https://keystone.example/v3"
+                                  , "projectUuid": "proj-1"
+                                  , "instanceUuid": "vm-1"
+                                  , "nameAtApproval": "my-vm"
+                                  , "approvedAt": "2026-07-17T12:00:00Z"
+                                  , "manifestEtagAtApproval": "etag-xyz"
+                                  }
+                                ]
+                            }
+                        }
+                        """
+                in
+                case Decode.decodeString LocalStorage.storedStateDecoder json of
+                    Ok storedState ->
+                        Expect.equal [ "vm-1" ] (List.map .instanceUuid storedState.extensionApprovals)
+
+                    Err e ->
+                        Expect.fail ("expected Ok storedState, got Err: " ++ Decode.errorToString e)
         ]

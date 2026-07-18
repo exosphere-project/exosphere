@@ -85,6 +85,7 @@ import Task
 import Time
 import Types.Banner exposing (bannerId)
 import Types.Error as Error exposing (AppError, ErrorContext, ErrorLevel(..), HttpErrorWithBody)
+import Types.ExtensionApproval as ExtensionApproval
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes exposing (UnscopedProviderProject)
 import Types.Interactivity as Interactivity exposing (InteractionLevel(..))
@@ -1298,6 +1299,14 @@ processSharedMsg sharedMsg outerModel =
 
         SetAppVersionUpdateNotificationsEnabled choice ->
             ( { sharedModel | viewContext = { viewContext | appVersionUpdateNotificationsEnabled = choice } }, Cmd.none )
+                |> mapToOuterModel outerModel
+
+        GrantExtensionApproval approval ->
+            ( { sharedModel | viewContext = { viewContext | extensionApprovals = ExtensionApproval.grant approval viewContext.extensionApprovals } }, Cmd.none )
+                |> mapToOuterModel outerModel
+
+        ForgetExtensionApproval instanceUuid ->
+            ( { sharedModel | viewContext = { viewContext | extensionApprovals = ExtensionApproval.forget instanceUuid viewContext.extensionApprovals } }, Cmd.none )
                 |> mapToOuterModel outerModel
 
         TogglePopover popoverId ->

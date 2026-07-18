@@ -88,6 +88,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
             , experimentalFeaturesEnabled = Nothing
             , appVersionUpdateNotificationsEnabled = Nothing
             , dismissedBanners = Set.empty
+            , extensionApprovals = []
             }
 
         deployerColors =
@@ -235,6 +236,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                 { cloudSpecificConfigs = cloudSpecificConfigs
                 , experimentalFeaturesEnabled = False
                 , appVersionUpdateNotificationsEnabled = True
+                , extensionApprovals = []
                 , locale =
                     flags.localeGuessingString
                         |> FormatNumber.Locales.fromString
