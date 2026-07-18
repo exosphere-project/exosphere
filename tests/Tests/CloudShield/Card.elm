@@ -64,8 +64,7 @@ manifestSuite =
 
 sampleModel : Set String -> Card.Model
 sampleModel selection =
-    { optedIn = True
-    , renderer = Render.init
+    { renderer = Render.init
     , selection = selection
     , selectAll = False
     , scanState = Dict.fromList [ ( "i-2", "queued" ) ]

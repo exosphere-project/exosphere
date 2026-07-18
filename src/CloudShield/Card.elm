@@ -58,8 +58,7 @@ type alias Instance =
 
 
 type alias Model =
-    { optedIn : Bool
-    , renderer : Render.Model
+    { renderer : Render.Model
     , selection : Set String
     , selectAll : Bool
 
@@ -83,8 +82,8 @@ type alias Model =
 
 
 type Msg
-    = GotEnable
-    | GotDisable
+    = GotApprove
+    | GotForget
     | GotToggleDemoIframe
     | RendererMsg Render.Msg
 
@@ -103,12 +102,16 @@ OpenStack Cmds; the parent owns the Nova metadata write (it has `Rest.Nova` + th
 type OutMsg
     = ScanRequested { seq : Int, targetIds : List String }
     | EmbedRequested { batchId : String }
+      -- The trust decisions. The card holds no approval state of its own; it asks the host to
+      -- grant (persist an approval for the publishing instance) or forget (remove it). The host
+      -- owns the persisted `exoext.approval.v1` record and stamps the wall-clock `approvedAt`.
+    | ApprovalGranted
+    | ApprovalForgotten
 
 
 init : Model
 init =
-    { optedIn = False
-    , renderer = Render.init
+    { renderer = Render.init
     , selection = Set.empty
     , selectAll = False
     , scanState = Dict.empty
@@ -125,11 +128,11 @@ init =
 update : List Instance -> Msg -> Model -> ( Model, Maybe OutMsg )
 update instances msg model =
     case msg of
-        GotEnable ->
-            ( { model | optedIn = True }, Nothing )
+        GotApprove ->
+            ( model, Just ApprovalGranted )
 
-        GotDisable ->
-            ( { model | optedIn = False }, Nothing )
+        GotForget ->
+            ( model, Just ApprovalForgotten )
 
         GotToggleDemoIframe ->
             ( { model | showDemoIframe = not model.showDemoIframe }, Nothing )
@@ -382,7 +385,11 @@ else the embedded frozen `cardJson` fallback), a short transport label for the h
 and the scan-timer descriptor for the active/completed elapsed line.
 -}
 type alias ViewConfig =
-    { sourceName : String
+    { -- Whether the host has a persisted approval for the publishing instance (matched by its
+      -- UUID). When False the card shows only its opt-in affordance; when True it renders the
+      -- extension. The card keeps no approval state of its own — this is the whole gate.
+      approved : Bool
+    , sourceName : String
     , manifestJson : String
 
     -- a short, non-technical label for how the manifest was transported (e.g. "server
@@ -436,7 +443,7 @@ Exosphere's elm-ui tree via `Element.html`.
 -}
 view : ExoPalette -> Time.Posix -> ViewConfig -> List Instance -> Model -> Element.Element Msg
 view palette currentTime config instances model =
-    if model.optedIn then
+    if config.approved then
         Element.column
             [ Element.width Element.fill, Element.spacing spacer.px8 ]
             [ provenanceMarker palette config.sourceName
@@ -604,9 +611,9 @@ optInAffordance palette sourceName =
         ]
         [ Element.paragraph []
             [ Text.body
-                ("The VM “" ++ sourceName ++ "” offers a CloudShield extension UI. Extensions are off until you enable them.")
+                ("The VM “" ++ sourceName ++ "” offers a CloudShield extension UI. Extensions are off until you enable them. Enabling is remembered for this instance; you can forget it any time.")
             ]
-        , linkButton palette "Enable CloudShield extension" GotEnable
+        , linkButton palette "Enable this extension" GotApprove
         ]
 
 
@@ -667,7 +674,7 @@ demoIframePanel palette maybeUrl expanded =
 disableAffordance : ExoPalette -> Element.Element Msg
 disableAffordance palette =
     Element.el [ Element.alignRight ]
-        (linkButton palette "Disable extension" GotDisable)
+        (linkButton palette "Forget this extension" GotForget)
 
 
 linkButton : ExoPalette -> String -> Msg -> Element.Element Msg

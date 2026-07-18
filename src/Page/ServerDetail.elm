@@ -51,6 +51,7 @@ import Style.Widgets.Validation exposing (warningMessage)
 import Task
 import Time
 import Types.Error exposing (HttpErrorWithBody)
+import Types.ExtensionApproval as ExtensionApproval exposing (ExtensionApproval)
 import Types.Guacamole exposing (ServerGuacamoleStatus(..))
 import Types.HelperTypes exposing (FloatingIpOption(..), ProjectIdentifier, ServerResourceQtys, UserAppProxyHostname)
 import Types.Interaction as ITypes
@@ -105,6 +106,7 @@ type Msg
     | CloudShieldMsg CloudShield.Card.Msg
     | CloudShieldWriteRequest { seq : Int, targetIds : List String } Time.Posix
     | CloudShieldWriteEmbedRequest { batchId : String } Time.Posix
+    | CloudShieldWriteApproval Time.Posix
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
@@ -186,13 +188,13 @@ update msg project model =
                 ( cloudModel, outMsg ) =
                     CloudShield.Card.update instances cloudMsg model.cloudShield
 
-                cmd =
+                ( cmd, sharedMsg ) =
                     case outMsg of
                         Just (CloudShield.Card.ScanRequested req) ->
                             -- Fetch the real wall-clock time so the §4.1 `createdAt` is genuine
                             -- (the agent's §4.4 expiry guard compares it to REQUEST_TTL; a
                             -- placeholder epoch would be treated as expired and never run).
-                            Task.perform (CloudShieldWriteRequest req) Time.now
+                            ( Task.perform (CloudShieldWriteRequest req) Time.now, SharedMsg.NoOp )
 
                         Just (CloudShield.Card.EmbedRequested req) ->
                             -- §7.1 single-req-slot guard, from the live wire state: don't write a
@@ -201,17 +203,26 @@ update msg project model =
                             -- press when blocked (spec behavior). Otherwise stamp a genuine
                             -- wall-clock seq/`createdAt` (same as a scan request).
                             if cloudShieldGetEmbedBlocked project model then
-                                Cmd.none
+                                ( Cmd.none, SharedMsg.NoOp )
 
                             else
-                                Task.perform (CloudShieldWriteEmbedRequest req) Time.now
+                                ( Task.perform (CloudShieldWriteEmbedRequest req) Time.now, SharedMsg.NoOp )
+
+                        Just CloudShield.Card.ApprovalGranted ->
+                            -- Stamp a genuine wall-clock `approvedAt`, same idiom as a scan request:
+                            -- fetch `Time.now`, then build and persist the approval record.
+                            ( Task.perform CloudShieldWriteApproval Time.now, SharedMsg.NoOp )
+
+                        Just CloudShield.Card.ApprovalForgotten ->
+                            -- Forgetting needs no timestamp; drop the record for this instance.
+                            ( Cmd.none, SharedMsg.ForgetExtensionApproval model.serverUuid )
 
                         Nothing ->
-                            Cmd.none
+                            ( Cmd.none, SharedMsg.NoOp )
             in
             ( { model | cloudShield = cloudModel }
             , cmd
-            , SharedMsg.NoOp
+            , sharedMsg
             )
 
         CloudShieldWriteRequest req now ->
@@ -244,6 +255,17 @@ update msg project model =
             ( model
             , writeEmbedRequestCmd project model req now
             , SharedMsg.NoOp
+            )
+
+        CloudShieldWriteApproval now ->
+            -- Build the `exoext.approval.v1` record with a genuine wall-clock `approvedAt`, then
+            -- hand it to the shared model for persistence. A missing server (nothing to approve)
+            -- is a no-op.
+            ( model
+            , Cmd.none
+            , buildCloudShieldApproval project model now
+                |> Maybe.map SharedMsg.GrantExtensionApproval
+                |> Maybe.withDefault SharedMsg.NoOp
             )
 
         SharedMsg sharedMsg ->
@@ -284,6 +306,27 @@ cloudShieldGetEmbedBlocked project model =
 
         Nothing ->
             True
+
+
+{-| Build the `exoext.approval.v1` record for the instance being viewed, stamped with a genuine
+wall-clock `approvedAt`. Cloud/project identity reuse the values the stored-project convention
+already keys on (keystone URL + `auth.project.uuid`); `nameAtApproval` and
+`manifestEtagAtApproval` are display/staleness metadata captured at approval time (matching is
+by `instanceUuid` only). `Nothing` when the server is not in the project's list.
+-}
+buildCloudShieldApproval : Project -> Model -> Time.Posix -> Maybe ExtensionApproval
+buildCloudShieldApproval project model now =
+    GetterSetters.serverLookup project model.serverUuid
+        |> Maybe.map
+            (\server ->
+                { cloudUrl = project.endpoints.keystone
+                , projectUuid = project.auth.project.uuid
+                , instanceUuid = server.osProps.uuid
+                , nameAtApproval = server.osProps.name
+                , approvedAt = ISO8601.toString (ISO8601.fromPosix now)
+                , manifestEtagAtApproval = cloudShieldEtag server.osProps.details.metadata
+                }
+            )
 
 
 syncCloudShieldReads : Project -> Model -> ( Model, Cmd Msg )
@@ -641,8 +684,8 @@ demoable locally without a publishing VM). The fail-closed renderer validates wh
 is used. The live `statusOverride` is read from the §7.1 status slot on this instance's
 metadata and correlated to the in-flight request by `seq`.
 -}
-cloudShieldViewConfig : Project -> Model -> Server -> CloudShield.Card.ViewConfig
-cloudShieldViewConfig project model server =
+cloudShieldViewConfig : Bool -> Project -> Model -> Server -> CloudShield.Card.ViewConfig
+cloudShieldViewConfig approved project model server =
     let
         metadata =
             server.osProps.details.metadata
@@ -844,7 +887,8 @@ cloudShieldViewConfig project model server =
                 ( Nothing, Nothing ) ->
                     Nothing
     in
-    { sourceName = server.osProps.name
+    { approved = approved
+    , sourceName = server.osProps.name
     , manifestJson = manifestJson
     , transportLabel = transportLabel
     , transportWarning = cloudShieldTransportWarning project model metadata maybeSentinel resultBody
@@ -1627,8 +1671,13 @@ cloudShieldCard context project currentTime server model =
     in
     if context.experimentalFeaturesEnabled && sentinelPresent then
         let
+            -- Approval is matched by the publishing instance's UUID only (a persisted
+            -- `exoext.approval.v1` record). No record => the card shows its opt-in affordance.
+            approved =
+                ExtensionApproval.isApproved server.osProps.uuid context.extensionApprovals
+
             config =
-                cloudShieldViewConfig project model server
+                cloudShieldViewConfig approved project model server
 
             -- The transport label rides in the header (top-right), not the card body.
             headerChip =
@@ -1643,6 +1692,7 @@ cloudShieldCard context project currentTime server model =
             context
             ([ Icon.featherIcon [] Icons.shield
              , Element.text "CloudShield (extension)"
+             , extensionExperimentalTag context
              ]
                 ++ headerChip
             )
@@ -1657,6 +1707,33 @@ cloudShieldCard context project currentTime server model =
 
     else
         Element.none
+
+
+{-| The "Experimental" tag for the CloudShield card header (plan §C3). Same idiom as the
+Settings "Experimental features" label: an emphasized word with a toggle-tip explaining that
+extensions are experimental and that the card's UI is published by a VM, not by Exosphere. It
+sits in the card header so it shows in both the opt-in and the approved state.
+-}
+extensionExperimentalTag : View.Types.Context -> Element.Element Msg
+extensionExperimentalTag context =
+    Text.text Text.Emphasized
+        [ Element.onRight
+            (Element.el [ Element.paddingXY spacer.px8 0 ] <|
+                Style.Widgets.ToggleTip.toggleTip
+                    context
+                    (\tipId -> SharedMsg <| SharedMsg.TogglePopover tipId)
+                    "cloudShieldExtensionExperimentalToggleTip"
+                    (Element.paragraph
+                        [ Element.width (Element.fill |> Element.minimum 300)
+                        , Element.spacing spacer.px8
+                        , Font.regular
+                        ]
+                        [ Element.text ("Extensions are an experimental feature. This interface is published by a VM in your " ++ context.localization.unitOfTenancy ++ ", not by Exosphere.") ]
+                    )
+                    ST.PositionRight
+            )
+        ]
+        "Experimental"
 
 
 serverNameEditView : View.Types.Context -> Project -> Time.Posix -> Model -> Server -> Element.Element Msg

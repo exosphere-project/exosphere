@@ -3,10 +3,16 @@ module Page.Settings exposing (Model, Msg(..), headerView, init, update, view)
 import Element
 import Element.Font as Font
 import Element.Input as Input
+import Helpers.String
+import Helpers.Time
+import Style.Helpers as SH
 import Style.Types as ST
+import Style.Widgets.Button as Button
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
+import Style.Widgets.Uuid exposing (copyableUuid)
+import Types.ExtensionApproval exposing (ExtensionApproval)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -141,4 +147,86 @@ view context sharedModel _ =
                         "Show App Update Notifications"
                     )
             }
+        , extensionsSection context
+        ]
+
+
+{-| The "Extensions" section lists the per-instance extension approvals the user has granted
+(the `exoext` dynamic-UI mechanism), each with a Forget action. It is hidden entirely when no
+approval exists, so users who never enabled an extension never see it. Layout follows the flat
+Settings column; no new table widget.
+-}
+extensionsSection : View.Types.Context -> Element.Element Msg
+extensionsSection context =
+    case context.extensionApprovals of
+        [] ->
+            Element.none
+
+        approvals ->
+            let
+                extensionsToggleTip =
+                    Element.el [ Element.paddingXY spacer.px8 0 ] <|
+                        Style.Widgets.ToggleTip.toggleTip
+                            context
+                            (\extensionsTipId -> SharedMsg <| SharedMsg.TogglePopover extensionsTipId)
+                            "settingsExtensionsToggleTip"
+                            (Element.paragraph
+                                [ Element.width (Element.fill |> Element.minimum 300)
+                                , Element.spacing spacer.px8
+                                , Font.regular
+                                ]
+                                [ Element.text ("Extensions are an experimental feature. Each interface is published by a VM in your " ++ context.localization.unitOfTenancy ++ ", not by Exosphere. Forgetting one returns that VM's card to its off state.") ]
+                            )
+                            ST.PositionRight
+            in
+            Element.column
+                [ Element.spacing spacer.px16, Element.width Element.fill ]
+                (Text.text Text.Emphasized
+                    [ Element.onRight extensionsToggleTip ]
+                    "Extensions"
+                    :: List.map (extensionApprovalRow context) approvals
+                )
+
+
+extensionApprovalRow : View.Types.Context -> ExtensionApproval -> Element.Element Msg
+extensionApprovalRow context approval =
+    let
+        subdued =
+            Font.color (SH.toElementColor context.palette.neutral.text.subdued)
+
+        approvedAtDisplay =
+            Helpers.Time.iso8601StringToPosix approval.approvedAt
+                |> Result.map Helpers.Time.humanReadableDateAndTime
+                |> Result.withDefault approval.approvedAt
+
+        displayName =
+            if approval.nameAtApproval == "" then
+                "(unnamed " ++ context.localization.virtualComputer ++ ")"
+
+            else
+                approval.nameAtApproval
+
+        detailLine label value =
+            Element.wrappedRow [ Element.spacing spacer.px8, subdued, Text.fontSize Text.Small ]
+                [ Element.text label
+                , value
+                ]
+    in
+    Element.column
+        [ Element.spacing spacer.px8
+        , Element.width Element.fill
+        ]
+        [ Element.row [ Element.spacing spacer.px12, Element.width Element.fill ]
+            [ Text.strong displayName
+            , Element.el [ Element.alignRight ]
+                (Button.default context.palette
+                    { text = "Forget"
+                    , onPress = Just (SharedMsg (SharedMsg.ForgetExtensionApproval approval.instanceUuid))
+                    }
+                )
+            ]
+        , detailLine (Helpers.String.toTitleCase context.localization.virtualComputer) (copyableUuid context.palette approval.instanceUuid)
+        , detailLine (Helpers.String.toTitleCase context.localization.openstackWithOwnKeystone) (Element.text approval.cloudUrl)
+        , detailLine (Helpers.String.toTitleCase context.localization.unitOfTenancy) (copyableUuid context.palette approval.projectUuid)
+        , detailLine "Approved" (Element.text approvedAtDisplay)
         ]
