@@ -12,6 +12,8 @@ module CloudShield.Transport exposing
     , decodeIndex
     , embedRequestJson
     , embedResultFromBody
+    , getEmbedBlocked
+    , historyRefreshKey
     , indexCapBytes
     , indexObjectName
     , manifestCapBytes
@@ -391,6 +393,29 @@ optionalInt key =
     Decode.oneOf [ Decode.field key Decode.int, Decode.succeed 0 ]
 
 
+{-| The cache key that decides when to refetch the history index. The CloudShield `etag`
+(`exoext.v1.etag`) is a content hash of the **static manifest UI body**, so it does NOT change
+when a scan completes — keying a refetch on it alone would leave history stale until reload.
+Instead compose it with the run slot (`run.seq` + `run.state`), which advances on every scan
+state transition (queued → running → done) and on a getEmbed claim. Missing keys render as `""`.
+So each transition triggers one cheap ≤`indexCapBytes` refetch; a steady state refetches nothing.
+-}
+historyRefreshKey : List OSTypes.MetadataItem -> String
+historyRefreshKey metadata =
+    let
+        dict =
+            toDict metadata
+
+        get key =
+            Dict.get key dict |> Maybe.withDefault ""
+    in
+    String.join ":"
+        [ get "exoext.v1.etag"
+        , get "exoext.v1.run.seq"
+        , get "exoext.v1.run.state"
+        ]
+
+
 {-| A human-readable severity summary from a row's counts, omitting zero severities in
 descending order, e.g. `"7 high · 14 medium · 3 low"`. All-zero ⇒ `"no findings"`.
 -}
@@ -487,6 +512,43 @@ embedResultDecoder =
             , Decode.succeed Nothing
             ]
         )
+
+
+{-| Whether issuing a `getEmbed` right now would disturb an in-flight scan and must be blocked
+(§7.1, single req slot). Derived purely from the live `exoext.v1.*` metadata:
+
+  - the run is active — `run.state ∈ {queued, running}`; or
+  - a just-written scan request is still **unclaimed** — `req.seq` is present and `req.claimed`
+    does not equal it (the ≤10 s window before the bridge claims a request).
+
+In either case writing the getEmbed req slot bumps `req.seq`, and the bridge's `is_cancelled`
+(compares `req.seq` vs `run.seq`) would cancel that pending/running scan. A missing `req.claimed`
+counts as unclaimed. Terminal runs (`done`/`error`/`expired`) with a claimed request do not block.
+
+-}
+getEmbedBlocked : List OSTypes.MetadataItem -> Bool
+getEmbedBlocked metadata =
+    let
+        dict =
+            toDict metadata
+
+        runActive =
+            case Dict.get "exoext.v1.run.state" dict of
+                Just state ->
+                    state == "queued" || state == "running"
+
+                Nothing ->
+                    False
+
+        reqUnclaimed =
+            case Dict.get "exoext.v1.req.seq" dict of
+                Just seq ->
+                    Dict.get "exoext.v1.req.claimed" dict /= Just seq
+
+                Nothing ->
+                    False
+    in
+    runActive || reqUnclaimed
 
 
 

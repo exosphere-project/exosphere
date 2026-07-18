@@ -3,6 +3,8 @@ module Tests.CloudShield.Transport exposing
     , countsLabelSuite
     , embedRequestSuite
     , embedResultSuite
+    , getEmbedBlockedSuite
+    , historyRefreshKeySuite
     , indexSuite
     , resolveResultBodySuite
     , resultBodySuite
@@ -12,6 +14,11 @@ import CloudShield.Transport as Transport
 import Expect
 import Json.Decode as Decode
 import Test exposing (Test, describe, test)
+
+
+meta : List ( String, String ) -> List { key : String, value : String }
+meta pairs =
+    List.map (\( k, v ) -> { key = k, value = v }) pairs
 
 
 capBodySuite : Test
@@ -201,4 +208,86 @@ embedResultSuite =
                 Transport.embedResultFromBody """{"kind":"embed","batchId":"b-1","status":"error","error":{"code":"expired"}}"""
                     |> Maybe.map .status
                     |> Expect.equal (Just "error")
+        ]
+
+
+getEmbedBlockedSuite : Test
+getEmbedBlockedSuite =
+    describe "getEmbedBlocked: the host-side single-req-slot guard (from live metadata)"
+        [ test "blocks while the run is queued" <|
+            \_ ->
+                Expect.equal True
+                    (Transport.getEmbedBlocked (meta [ ( "exoext.v1.run.state", "queued" ) ]))
+        , test "blocks while the run is running" <|
+            \_ ->
+                Expect.equal True
+                    (Transport.getEmbedBlocked (meta [ ( "exoext.v1.run.state", "running" ) ]))
+        , test "blocks while a request is written but unclaimed (claimed missing)" <|
+            \_ ->
+                Expect.equal True
+                    (Transport.getEmbedBlocked (meta [ ( "exoext.v1.req.seq", "1700000000000" ) ]))
+        , test "blocks while a request is written but claimed lags the seq" <|
+            \_ ->
+                Expect.equal True
+                    (Transport.getEmbedBlocked
+                        (meta
+                            [ ( "exoext.v1.req.seq", "1700000000001" )
+                            , ( "exoext.v1.req.claimed", "1700000000000" )
+                            , ( "exoext.v1.run.state", "done" )
+                            ]
+                        )
+                    )
+        , test "allows a claimed request whose run is done (terminal)" <|
+            \_ ->
+                Expect.equal False
+                    (Transport.getEmbedBlocked
+                        (meta
+                            [ ( "exoext.v1.req.seq", "1700000000000" )
+                            , ( "exoext.v1.req.claimed", "1700000000000" )
+                            , ( "exoext.v1.run.state", "done" )
+                            ]
+                        )
+                    )
+        , test "allows on error and expired terminal states" <|
+            \_ ->
+                Expect.equal ( False, False )
+                    ( Transport.getEmbedBlocked (meta [ ( "exoext.v1.run.state", "error" ) ])
+                    , Transport.getEmbedBlocked (meta [ ( "exoext.v1.run.state", "expired" ) ])
+                    )
+        , test "allows when there is no run and no request slot" <|
+            \_ ->
+                Expect.equal False (Transport.getEmbedBlocked (meta [ ( "foo", "bar" ) ]))
+        ]
+
+
+historyRefreshKeySuite : Test
+historyRefreshKeySuite =
+    describe "historyRefreshKey composes etag + run.seq + run.state"
+        [ test "it joins the three keys so a run-state transition changes it" <|
+            \_ ->
+                Expect.equal "d9d0b3c250c3:42:done"
+                    (Transport.historyRefreshKey
+                        (meta
+                            [ ( "exoext.v1.etag", "d9d0b3c250c3" )
+                            , ( "exoext.v1.run.seq", "42" )
+                            , ( "exoext.v1.run.state", "done" )
+                            ]
+                        )
+                    )
+        , test "the etag alone does not change the key across a scan (run slot does)" <|
+            \_ ->
+                let
+                    key state =
+                        Transport.historyRefreshKey
+                            (meta
+                                [ ( "exoext.v1.etag", "d9d0b3c250c3" )
+                                , ( "exoext.v1.run.seq", "42" )
+                                , ( "exoext.v1.run.state", state )
+                                ]
+                            )
+                in
+                Expect.notEqual (key "running") (key "done")
+        , test "missing keys render as empty segments" <|
+            \_ ->
+                Expect.equal "::" (Transport.historyRefreshKey (meta []))
         ]

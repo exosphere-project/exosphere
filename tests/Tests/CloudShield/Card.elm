@@ -281,7 +281,8 @@ transportSuite =
 
 
 
--- EMBED (getEmbed action guard, Phase B)
+-- EMBED (getEmbed action, Phase B). The single-req-slot guard is host-side (see
+-- Tests.CloudShield.Transport getEmbedBlockedSuite); the card just emits the request.
 
 
 idleModel : Card.Model
@@ -295,15 +296,11 @@ idleModel =
 
 embedSuite : Test
 embedSuite =
-    describe "cloudshield.getEmbed guard"
-        [ test "getEmbed emits EmbedRequested when no scan run is active" <|
+    describe "cloudshield.getEmbed emits EmbedRequested (guard is host-side)"
+        [ test "a getEmbed with a batchId emits EmbedRequested regardless of card scan state" <|
             \_ ->
-                Expect.equal ( Nothing, Just (Card.EmbedRequested { batchId = "b-1" }) )
-                    (Card.requestEmbed (Just "b-1") idleModel |> Tuple.mapFirst (always Nothing))
-        , test "getEmbed is ignored while a scan run is active (the req slot is single)" <|
-            \_ ->
-                -- sampleModel carries an active "queued" scan for i-2.
-                Expect.equal Nothing
+                -- sampleModel carries a stale "queued" scan for i-2; the card no longer guards on it.
+                Expect.equal (Just (Card.EmbedRequested { batchId = "b-1" }))
                     (Card.requestEmbed (Just "b-1") (sampleModel Set.empty) |> Tuple.second)
         , test "a getEmbed with no batchId is a no-op" <|
             \_ ->

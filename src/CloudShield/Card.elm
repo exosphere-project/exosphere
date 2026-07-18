@@ -196,19 +196,15 @@ requestScan requested model =
 
 
 {-| A `cloudshield.getEmbed` on a history row: ask the parent to mint a fresh embed URL for the
-named archived scan. Guarded while any scan run is active (the card's dedup state) — the §7.1
-req slot is single, so a seq bump here would cancel a still-pending scan request. No guard is
-needed against a previous getEmbed (it never sets that active state). A missing `batchId` ⇒ no-op.
+named archived scan. The card holds no run-state knowledge, so it does not guard here — the §7.1
+single-req-slot guard (don't disturb an active or unclaimed scan) is applied host-side in
+`Page.ServerDetail`, derived from the live wire metadata. A missing `batchId` ⇒ no-op.
 -}
 requestEmbed : Maybe String -> Model -> ( Model, Maybe OutMsg )
 requestEmbed maybeBatchId model =
     case maybeBatchId of
         Just batchId ->
-            if List.any isActive (Dict.values model.scanState) then
-                ( model, Nothing )
-
-            else
-                ( model, Just (EmbedRequested { batchId = batchId }) )
+            ( model, Just (EmbedRequested { batchId = batchId }) )
 
         Nothing ->
             ( model, Nothing )

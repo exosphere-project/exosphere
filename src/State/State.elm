@@ -4303,10 +4303,10 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 )
                 outerModel
 
-        ReceiveCloudShieldIndexObject etag result ->
+        ReceiveCloudShieldIndexObject refreshKey result ->
             updateUnderlying
                 (ServerDetailMsg <|
-                    Page.ServerDetail.GotCloudShieldIndexObject etag result
+                    Page.ServerDetail.GotCloudShieldIndexObject refreshKey result
                 )
                 outerModel
 

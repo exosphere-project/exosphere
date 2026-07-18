@@ -77,7 +77,7 @@ type alias Model =
     , cloudShieldResultRef : RDPP.RemoteDataPlusPlus String { etag : String, objectName : String, body : String }
     , cloudShieldResultRefRequest : Maybe { etag : String, objectName : String }
     , cloudShieldHistory : List CloudShield.Transport.IndexEntry
-    , cloudShieldHistoryRequestEtag : Maybe String
+    , cloudShieldHistoryRequestKey : Maybe String
     }
 
 
@@ -124,7 +124,7 @@ init serverUuid =
     , cloudShieldResultRef = RDPP.empty
     , cloudShieldResultRefRequest = Nothing
     , cloudShieldHistory = []
-    , cloudShieldHistoryRequestEtag = Nothing
+    , cloudShieldHistoryRequestKey = Nothing
     }
 
 
@@ -175,8 +175,8 @@ update msg project model =
         GotCloudShieldResultObject receivedTime etag objectName result ->
             ( receiveCloudShieldResultRef project receivedTime etag objectName result model, Cmd.none, SharedMsg.NoOp )
 
-        GotCloudShieldIndexObject etag result ->
-            ( receiveCloudShieldIndex project etag result model, Cmd.none, SharedMsg.NoOp )
+        GotCloudShieldIndexObject refreshKey result ->
+            ( receiveCloudShieldIndex project refreshKey result model, Cmd.none, SharedMsg.NoOp )
 
         CloudShieldMsg cloudMsg ->
             let
@@ -195,9 +195,16 @@ update msg project model =
                             Task.perform (CloudShieldWriteRequest req) Time.now
 
                         Just (CloudShield.Card.EmbedRequested req) ->
-                            -- Same wall-clock stamp as a scan request: the getEmbed seq and
-                            -- `createdAt` must be genuine so the bridge's expiry guard works.
-                            Task.perform (CloudShieldWriteEmbedRequest req) Time.now
+                            -- §7.1 single-req-slot guard, from the live wire state: don't write a
+                            -- getEmbed while a scan is active or its request is still unclaimed —
+                            -- the seq bump would cancel that scan bridge-side. Silently ignore the
+                            -- press when blocked (spec behavior). Otherwise stamp a genuine
+                            -- wall-clock seq/`createdAt` (same as a scan request).
+                            if cloudShieldGetEmbedBlocked project model then
+                                Cmd.none
+
+                            else
+                                Task.perform (CloudShieldWriteEmbedRequest req) Time.now
 
                         Nothing ->
                             Cmd.none
@@ -265,6 +272,20 @@ cloudShieldInstances project model =
         |> CloudShield.Discovery.eligibleInstances model.serverUuid
 
 
+{-| The §7.1 single-req-slot guard for a `getEmbed`, read from this instance's live metadata: is
+a scan active or its request still unclaimed? No server (nothing to write against) counts as
+blocked. See `CloudShield.Transport.getEmbedBlocked`.
+-}
+cloudShieldGetEmbedBlocked : Project -> Model -> Bool
+cloudShieldGetEmbedBlocked project model =
+    case GetterSetters.serverLookup project model.serverUuid of
+        Just server ->
+            CloudShield.Transport.getEmbedBlocked server.osProps.details.metadata
+
+        Nothing ->
+            True
+
+
 syncCloudShieldReads : Project -> Model -> ( Model, Cmd Msg )
 syncCloudShieldReads project model =
     case GetterSetters.serverLookup project model.serverUuid of
@@ -280,7 +301,7 @@ syncCloudShieldReads project model =
                             etag =
                                 cloudShieldEtag metadata
                         in
-                        syncCloudShieldIndex project sentinel etag <|
+                        syncCloudShieldIndex project sentinel (CloudShield.Transport.historyRefreshKey metadata) <|
                             syncCloudShieldResultRef project sentinel etag metadata <|
                                 syncCloudShieldManifest project sentinel etag model
 
@@ -407,17 +428,19 @@ syncCloudShieldResultRef project sentinel etag metadata ( model, manifestCmd ) =
 
 
 {-| Fetch the archived-scan history index (`<prefix>results/index.json`) in the live loop. Keyed
-on the current CloudShield etag, so it refetches whenever a scan completes and bumps the etag
-(and on initial load); a fetch already in flight for the same etag is suppressed. Any failure
-resolves to no history (fail-closed), never an error card. `store=metadata` has no archive, so
-this only runs for `store=swift`.
+on `CloudShield.Transport.historyRefreshKey` (etag + run.seq + run.state), NOT the etag alone:
+the etag is a content hash of the static manifest and does not move when a scan completes, so it
+would leave history stale. The composite key advances on every run-state transition (and on a
+getEmbed claim), so each transition triggers one refetch and a steady state suppresses it. Any
+failure resolves to no history (fail-closed), never an error card. `store=metadata` has no
+archive, so this only runs for `store=swift`.
 -}
 syncCloudShieldIndex : Project -> CloudShield.Discovery.Sentinel -> String -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
-syncCloudShieldIndex project sentinel etag ( model, priorCmd ) =
+syncCloudShieldIndex project sentinel refreshKey ( model, priorCmd ) =
     case ( project.endpoints.swift, sentinel.container ) of
         ( Just swiftUrl, Just container ) ->
-            if cloudShieldIndexNeedsFetch etag model then
-                ( { model | cloudShieldHistoryRequestEtag = Just etag }
+            if cloudShieldIndexNeedsFetch refreshKey model then
+                ( { model | cloudShieldHistoryRequestKey = Just refreshKey }
                 , Cmd.batch
                     [ priorCmd
                     , Rest.Swift.requestGetObjectCapped
@@ -429,7 +452,7 @@ syncCloudShieldIndex project sentinel etag ( model, priorCmd ) =
                         (\result ->
                             SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                                 SharedMsg.ServerMsg model.serverUuid <|
-                                    SharedMsg.ReceiveCloudShieldIndexObject etag result
+                                    SharedMsg.ReceiveCloudShieldIndexObject refreshKey result
                         )
                         |> Cmd.map SharedMsg
                     ]
@@ -443,23 +466,23 @@ syncCloudShieldIndex project sentinel etag ( model, priorCmd ) =
 
 
 cloudShieldIndexNeedsFetch : String -> Model -> Bool
-cloudShieldIndexNeedsFetch etag model =
-    model.cloudShieldHistoryRequestEtag /= Just etag
+cloudShieldIndexNeedsFetch refreshKey model =
+    model.cloudShieldHistoryRequestKey /= Just refreshKey
 
 
 {-| Store the decoded history index, fail-closed. An HTTP error or an over-cap/malformed body
-both resolve to no history (`[]`) rather than an error state. Stamped by the etag it was fetched
-for, and dropped if the current etag has since moved on.
+both resolve to no history (`[]`) rather than an error state. Stamped by the refresh key it was
+fetched for, and dropped if the current key (etag + run slot) has since moved on.
 -}
 receiveCloudShieldIndex : Project -> String -> Result HttpErrorWithBody String -> Model -> Model
-receiveCloudShieldIndex project etag result model =
-    if currentCloudShieldEtag project model == Just etag then
+receiveCloudShieldIndex project refreshKey result model =
+    if currentCloudShieldHistoryKey project model == Just refreshKey then
         { model
             | cloudShieldHistory =
                 result
                     |> Result.map CloudShield.Transport.decodeIndex
                     |> Result.withDefault []
-            , cloudShieldHistoryRequestEtag = Just etag
+            , cloudShieldHistoryRequestKey = Just refreshKey
         }
 
     else
@@ -590,6 +613,15 @@ currentCloudShieldEtag project model =
         |> Maybe.map (.osProps >> .details >> .metadata >> cloudShieldEtag)
 
 
+{-| The current history refresh key (etag + run slot) from this instance's live metadata, used to
+drop a stale index response whose key no longer matches. See `historyRefreshKey`.
+-}
+currentCloudShieldHistoryKey : Project -> Model -> Maybe String
+currentCloudShieldHistoryKey project model =
+    GetterSetters.serverLookup project model.serverUuid
+        |> Maybe.map (.osProps >> .details >> .metadata >> CloudShield.Transport.historyRefreshKey)
+
+
 cloudShieldEtag : List OSTypes.MetadataItem -> String
 cloudShieldEtag metadata =
     metadataValue "exoext.v1.etag" metadata |> Maybe.withDefault ""
@@ -700,9 +732,11 @@ cloudShieldViewConfig project model server =
             case maybeEmbedResult of
                 Just embed ->
                     -- Findings for the selected history scan, parsed from the archived body fetched
-                    -- into `cloudShieldResultRef`. The last-fetched body is kept (etag-matched,
-                    -- objectName-agnostic) so `/results` is not clobbered while the newly selected
-                    -- batch's body is still in flight.
+                    -- into `cloudShieldResultRef` (the fetch is deduped by objectName via
+                    -- `cloudShieldResultRefRequest`). The last-fetched body is kept so `/results` is
+                    -- not clobbered while the newly selected batch's body is still in flight. The
+                    -- etag check does not give scan-freshness (the etag is a constant manifest hash);
+                    -- it only rejects a body left over from a different instance/manifest.
                     let
                         archivedFindings =
                             case model.cloudShieldResultRef.data of
