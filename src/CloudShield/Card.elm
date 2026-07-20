@@ -969,8 +969,8 @@ cardJson =
           "action": "cloudshield.startScan",
           "params": { "targetInstanceIds": [{ "$item": "id" }] },
           "confirm": {
-            "title": "Scan this instance?",
-            "message": "Queue a CloudShield scan for this instance?",
+            "title": "Start scan",
+            "message": { "$template": "Run a snapshot-clone scan of \\"${name}\\"?" },
             "variant": "default"
           }
         }
@@ -996,9 +996,9 @@ cardJson =
     "history-row": {
       "type": "Stack",
       "props": { "direction": "row", "gap": 2 },
-      "children": ["history-completed", "history-target", "history-status", "history-counts", "history-view-btn"]
+      "children": ["history-date", "history-target", "history-status", "history-counts", "history-view-btn"]
     },
-    "history-completed": {
+    "history-date": {
       "type": "Text",
       "props": { "value": { "$item": "completedAt" } },
       "children": []
@@ -1041,7 +1041,7 @@ cardJson =
       "type": "Iframe",
       "props": {
         "src": { "$state": "/embedUrl" },
-        "title": "CloudShield results"
+        "title": "CloudShield scan results"
       },
       "children": []
     }
