@@ -4,6 +4,7 @@ import Expect
 import Helpers.UnifiedLimits as UnifiedLimits
 import OpenStack.Types as OSTypes
 import Test exposing (Test, describe, test)
+import Types.HelperTypes as HelperTypes
 
 
 unifiedLimitsSuite : Test
@@ -153,4 +154,68 @@ unifiedLimitsSuite =
                               }
                             ]
             ]
+        , describe "flavor custom resource requirements"
+            [ test "parses multiple trimmed alias requirements" <|
+                \_ ->
+                    flavorWithAliasSpec " A100 : 1, NVMe:2 "
+                        |> UnifiedLimits.parseFlavorCustomResourceRequirements
+                        |> Expect.equal
+                            [ Ok { alias = "A100", count = 1 }
+                            , Ok { alias = "NVMe", count = 2 }
+                            ]
+            , test "keeps malformed requirements unresolved" <|
+                \_ ->
+                    flavorWithAliasSpec "A100:0, :2, malformed, H100:two"
+                        |> UnifiedLimits.parseFlavorCustomResourceRequirements
+                        |> List.map Result.toMaybe
+                        |> Expect.equal
+                            [ Nothing, Nothing, Nothing, Nothing ]
+            , test "is case insensitive when matching aliases" <|
+                \_ ->
+                    flavorWithAliasSpec "A100:1,nvme:1,a100:2,NVME:2"
+                        |> UnifiedLimits.customResourceRequirementsForFlavor
+                            [ customResourceA100
+                            , customResourceNVMe
+                            ]
+                        |> Expect.equal
+                            [ Ok { resource = customResourceA100, count = 3 }
+                            , Ok { resource = customResourceNVMe, count = 3 }
+                            ]
+            , test "aggregates requirements that resolve to the same resource" <|
+                \_ ->
+                    [ Ok { resource = customResourceA100, count = 1 }
+                    , Ok { resource = customResourceNVMe, count = 2 }
+                    , Ok { resource = customResourceA100, count = 3 }
+                    , Err "unresolved"
+                    ]
+                        |> UnifiedLimits.aggregateCustomResourceRequirements
+                        |> Expect.equal
+                            [ Ok { resource = customResourceA100, count = 4 }
+                            , Ok { resource = customResourceNVMe, count = 2 }
+                            , Err "unresolved"
+                            ]
+            ]
         ]
+
+
+flavorWithAliasSpec : String -> OSTypes.Flavor
+flavorWithAliasSpec value =
+    { id = "flavor-id"
+    , name = "flavor-name"
+    , description = Nothing
+    , vcpu = 1
+    , ram_mb = 1024
+    , disk_root = 0
+    , disk_ephemeral = 0
+    , extra_specs = [ OSTypes.MetadataItem "pci_passthrough:alias" value ]
+    }
+
+
+customResourceA100 : HelperTypes.CustomResource
+customResourceA100 =
+    { resource = "CUSTOM_A100", friendlyName = "A100", alias = Just "A100" }
+
+
+customResourceNVMe : HelperTypes.CustomResource
+customResourceNVMe =
+    { resource = "CUSTOM_NVME", friendlyName = "NVMe", alias = Just "NVMe" }

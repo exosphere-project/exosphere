@@ -1,8 +1,145 @@
-module Helpers.UnifiedLimits exposing (comparableStringForLimitResourceName, quotasFromUnifiedLimits)
+module Helpers.UnifiedLimits exposing
+    ( CustomResourceRequirement
+    , ResourceAliasRequirement
+    , aggregateCustomResourceRequirements
+    , comparableStringForLimitResourceName
+    , customResourceRequirementsForFlavor
+    , parseFlavorCustomResourceRequirements
+    , quotasFromUnifiedLimits
+    )
 
 import Dict
+import Helpers.String
+import List.Extra
 import OpenStack.Types as OSTypes
 import String.Extra
+import Types.HelperTypes as HelperTypes
+
+
+type alias ResourceAliasRequirement =
+    { alias : String
+    , count : Int
+    }
+
+
+type alias CustomResourceRequirement =
+    { resource : HelperTypes.CustomResource
+    , count : Int
+    }
+
+
+parseFlavorCustomResourceRequirements : OSTypes.Flavor -> List (Result String ResourceAliasRequirement)
+parseFlavorCustomResourceRequirements flavor =
+    flavor.extra_specs
+        |> List.Extra.find (\item -> item.key == "pci_passthrough:alias")
+        |> Maybe.map (.value >> parseCustomResourceRequirements)
+        |> Maybe.withDefault []
+
+
+parseCustomResourceRequirements : String -> List (Result String ResourceAliasRequirement)
+parseCustomResourceRequirements value =
+    value
+        |> String.split ","
+        |> List.map parseCustomResourceRequirement
+
+
+parseCustomResourceRequirement : String -> Result String ResourceAliasRequirement
+parseCustomResourceRequirement rawRequirement =
+    let
+        requirement =
+            String.trim rawRequirement
+    in
+    case String.split ":" requirement of
+        [ alias, countString ] ->
+            let
+                trimmedAlias =
+                    String.trim alias
+            in
+            if String.isEmpty trimmedAlias then
+                Err ("Custom resource alias is empty in requirement: " ++ rawRequirement)
+
+            else
+                let
+                    trimmedCount =
+                        String.trim countString
+                in
+                case String.toInt trimmedCount of
+                    Just count ->
+                        if count > 0 then
+                            Ok
+                                { alias = trimmedAlias
+                                , count = count
+                                }
+
+                        else
+                            Err ("Custom resource count must be positive in requirement: " ++ rawRequirement)
+
+                    Nothing ->
+                        Err ("Custom resource count is not an integer in requirement: " ++ rawRequirement)
+
+        _ ->
+            Err ("Custom resource requirement must have the form alias:count: " ++ rawRequirement)
+
+
+customResourceRequirementsForFlavor : List HelperTypes.CustomResource -> OSTypes.Flavor -> List (Result String CustomResourceRequirement)
+customResourceRequirementsForFlavor customResources flavor =
+    flavor
+        |> parseFlavorCustomResourceRequirements
+        |> List.map (mapCustomResourceRequirement customResources)
+        |> aggregateCustomResourceRequirements
+
+
+mapCustomResourceRequirement : List HelperTypes.CustomResource -> Result String ResourceAliasRequirement -> Result String CustomResourceRequirement
+mapCustomResourceRequirement customResources parsedRequirement =
+    parsedRequirement
+        |> Result.andThen
+            (\requirement ->
+                customResources
+                    |> List.filterMap (\customResource -> customResource.alias |> Maybe.map (\alias -> ( alias, customResource )))
+                    |> List.Extra.find (\( alias, _ ) -> Helpers.String.equalsCaseInsensitive alias requirement.alias)
+                    |> Maybe.map
+                        (\( _, customResource ) ->
+                            Ok
+                                { resource = customResource
+                                , count = requirement.count
+                                }
+                        )
+                    |> Maybe.withDefault
+                        (Err ("No custom resource is configured for alias: " ++ requirement.alias))
+            )
+
+
+aggregateCustomResourceRequirements : List (Result String CustomResourceRequirement) -> List (Result String CustomResourceRequirement)
+aggregateCustomResourceRequirements requirements =
+    let
+        ( resolved, unresolved ) =
+            List.foldl
+                (\requirement ( resolvedRequirements, unresolvedRequirements ) ->
+                    case requirement of
+                        Ok mappedRequirement ->
+                            ( addOrAccumulate mappedRequirement resolvedRequirements, unresolvedRequirements )
+
+                        Err reason ->
+                            ( resolvedRequirements, unresolvedRequirements ++ [ Err reason ] )
+                )
+                ( [], [] )
+                requirements
+    in
+    List.map Ok resolved ++ unresolved
+
+
+addOrAccumulate : CustomResourceRequirement -> List CustomResourceRequirement -> List CustomResourceRequirement
+addOrAccumulate requirement requirements =
+    case requirements of
+        [] ->
+            [ requirement ]
+
+        first :: rest ->
+            if first.resource == requirement.resource then
+                { first | count = first.count + requirement.count } :: rest
+
+            else
+                first :: addOrAccumulate requirement rest
 
 
 quotasFromUnifiedLimits : List OSTypes.RegisteredLimit -> List OSTypes.ProjectLimit -> List OSTypes.ProjectUsage -> List { resourceName : String, quota : OSTypes.QuotaItem }

@@ -41,7 +41,7 @@ Each of these JSON objects contains the following properties:
 - `featuredImageNamePrefix` (null, string): A (public) image is 'featured' if the name starts with this string
 - `instanceTypes` (array): An array of instance types specific to this cloud, can be left empty. See `docs/instance-types.md` for more information.
 - `flavorGroups` (array): An array of flavor groups specific to this cloud, can be left empty. See `docs/flavor-groups.md` for more information.
-- `customResources` (array): An array of custom Placement resource names and friendly labels for this cloud, can be left empty. Each item should contain `resource` and `friendlyName`.
+- `customResources` (array): An array of custom Placement resource names and friendly labels for this cloud, can be left empty. Each item should contain `resource` and `friendlyName`, and may contain `alias` to associate it with the operator-defined alias in a flavor's `pci_passthrough:alias` extra spec.
 - `desktopMessage` (null, string): Override message to show users who select a graphical desktop environment when creating an instance. `null` will display a default message, while an empty string will display no message.
 - `securityGroups` (null, JSON object): A map of default Security Groups for each cloud region, using `noRegion` as a fallback. See `docs/security-groups.md` for more information.
 
@@ -120,7 +120,8 @@ var cloud_configs = {
       "customResources":[
         {
           "resource":"CUSTOM_PCI_10DE_20B0",
-          "friendlyName":"A100"
+          "friendlyName":"A100",
+          "alias":"A100",
         }
       ],
       "desktopMessage":null,
