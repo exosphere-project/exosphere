@@ -1,7 +1,10 @@
-module Tests.CloudShield.ServerDetail exposing (cloudShieldReadDecisionSuite)
+module Tests.CloudShield.ServerDetail exposing (cloudShieldEmbedProjectionSuite, cloudShieldPendingEmbedSuite, cloudShieldReadDecisionSuite)
 
+import CloudShield.Card as Card
 import Expect
 import Helpers.RemoteDataPlusPlus as RDPP
+import ISO8601
+import Json.Encode as Encode
 import Page.ServerDetail as ServerDetail
 import Test exposing (Test, describe, test)
 import Time
@@ -108,5 +111,187 @@ cloudShieldReadDecisionSuite =
                         "etag-new"
                         """{"ref":"results/run-1.json"}"""
                         (modelWithResultRef "etag-old" "results/run-1.json" """{"findings":[]}""")
+                    )
+        ]
+
+
+
+-- HISTORY-VIEW EMBED PROJECTION (spinner / error surface / expiry guard)
+
+
+{-| The archived scan body's `findings`, as `/results` should carry them.
+-}
+archivedFindingsJson : String
+archivedFindingsJson =
+    """[{"severity":"low"}]"""
+
+
+{-| A model that has fetched the archived scan body for `etag-1` (a history pick's findings).
+-}
+modelWithArchivedFindings : ServerDetail.Model
+modelWithArchivedFindings =
+    modelWithResultRef "etag-1" "results/b1.json" """{"findings":[{"severity":"low"}]}"""
+
+
+{-| Res-slot metadata carrying a chunked `kind:"embed"` result body, plus the manifest etag the
+archived-findings fetch is keyed on.
+-}
+embedResultMetadata : String -> List { key : String, value : String }
+embedResultMetadata bodyJson =
+    [ { key = "exoext.v1.etag", value = "etag-1" }
+    , { key = "exoext.v1.res.body.n", value = "1" }
+    , { key = "exoext.v1.res.body.0", value = bodyJson }
+    ]
+
+
+{-| An `status:"ok"` embed result body for requestId `exo-cs-req-100`, expiring at `expiresAt`.
+-}
+okEmbedBody : String -> String
+okEmbedBody expiresAt =
+    "{\"kind\":\"embed\",\"requestId\":\"exo-cs-req-100\",\"batchId\":\"b1\",\"status\":\"ok\",\"embedUrl\":\"https://vm.example/embed\",\"embedExpiresAt\":\"" ++ expiresAt ++ "\"}"
+
+
+{-| An `status:"error"` embed result body with a plain-string error.
+-}
+errorEmbedBody : String
+errorEmbedBody =
+    "{\"kind\":\"embed\",\"requestId\":\"exo-cs-req-100\",\"batchId\":\"b1\",\"status\":\"error\",\"embedUrl\":\"\",\"embedExpiresAt\":\"\",\"error\":\"remint failed\"}"
+
+
+{-| A fixed embed-token expiry, and the client clock set just before / just after it.
+-}
+expiresAtIso : String
+expiresAtIso =
+    "2026-07-20T21:00:00.000Z"
+
+
+expiresMillis : Int
+expiresMillis =
+    ISO8601.fromString expiresAtIso
+        |> Result.map (ISO8601.toPosix >> Time.posixToMillis)
+        |> Result.withDefault 0
+
+
+beforeExpiry : Time.Posix
+beforeExpiry =
+    Time.millisToPosix (expiresMillis - 60000)
+
+
+afterExpiry : Time.Posix
+afterExpiry =
+    Time.millisToPosix (expiresMillis + 60000)
+
+
+modelPendingEmbed : Time.Posix -> ServerDetail.Model
+modelPendingEmbed since =
+    let
+        model =
+            ServerDetail.init "self"
+    in
+    { model
+        | cloudShieldPendingEmbed =
+            Just { requestId = "exo-cs-req-200", batchId = "b1", since = since }
+    }
+
+
+cloudShieldEmbedProjectionSuite : Test
+cloudShieldEmbedProjectionSuite =
+    describe "ServerDetail cloudShieldEmbedProjection (history-View reader)"
+        [ test "an ok, unexpired embed result renders findings + the iframe url and reports EmbedReady" <|
+            \_ ->
+                let
+                    projection =
+                        ServerDetail.cloudShieldEmbedProjection
+                            (embedResultMetadata (okEmbedBody expiresAtIso))
+                            beforeExpiry
+                            Nothing
+                            Nothing
+                            modelWithArchivedFindings
+                in
+                Expect.equal
+                    ( "https://vm.example/embed", Just archivedFindingsJson, Card.EmbedReady )
+                    ( projection.embedUrl
+                    , projection.results |> Maybe.map (Encode.encode 0)
+                    , projection.embedState
+                    )
+        , test "the same result past its expiry unmounts the iframe and reports EmbedExpired" <|
+            \_ ->
+                let
+                    projection =
+                        ServerDetail.cloudShieldEmbedProjection
+                            (embedResultMetadata (okEmbedBody expiresAtIso))
+                            afterExpiry
+                            Nothing
+                            Nothing
+                            modelWithArchivedFindings
+                in
+                Expect.equal ( "", Card.EmbedExpired )
+                    ( projection.embedUrl, projection.embedState )
+        , test "an error embed result reports EmbedError with the unwrapped message and no iframe" <|
+            \_ ->
+                let
+                    projection =
+                        ServerDetail.cloudShieldEmbedProjection
+                            (embedResultMetadata errorEmbedBody)
+                            beforeExpiry
+                            Nothing
+                            Nothing
+                            (ServerDetail.init "self")
+                in
+                Expect.equal ( "", Card.EmbedError "remint failed" )
+                    ( projection.embedUrl, projection.embedState )
+        , test "a pending getEmbed with no matching result yet reports EmbedLoading" <|
+            \_ ->
+                let
+                    now =
+                        Time.millisToPosix 1000000
+
+                    projection =
+                        ServerDetail.cloudShieldEmbedProjection
+                            [ { key = "exoext.v1.etag", value = "etag-1" } ]
+                            now
+                            Nothing
+                            Nothing
+                            (modelPendingEmbed now)
+                in
+                Expect.equal Card.EmbedLoading projection.embedState
+        , test "a pending getEmbed older than the timeout reports EmbedError" <|
+            \_ ->
+                let
+                    now =
+                        Time.millisToPosix 1000000
+
+                    projection =
+                        ServerDetail.cloudShieldEmbedProjection
+                            [ { key = "exoext.v1.etag", value = "etag-1" } ]
+                            now
+                            Nothing
+                            Nothing
+                            (modelPendingEmbed (Time.millisToPosix (1000000 - 61000)))
+                in
+                Expect.equal (Card.EmbedError "the request timed out") projection.embedState
+        ]
+
+
+cloudShieldPendingEmbedSuite : Test
+cloudShieldPendingEmbedSuite =
+    describe "ServerDetail clearResolvedPendingEmbed"
+        [ test "a matching-requestId result clears the pending marker" <|
+            \_ ->
+                Expect.equal Nothing
+                    (ServerDetail.clearResolvedPendingEmbed
+                        (embedResultMetadata (okEmbedBody expiresAtIso))
+                        (Just { requestId = "exo-cs-req-100", batchId = "b1", since = Time.millisToPosix 0 })
+                    )
+        , test "a result for a different requestId leaves the pending marker in place" <|
+            \_ ->
+                let
+                    pending =
+                        Just { requestId = "exo-cs-req-999", batchId = "b1", since = Time.millisToPosix 0 }
+                in
+                Expect.equal pending
+                    (ServerDetail.clearResolvedPendingEmbed
+                        (embedResultMetadata (okEmbedBody expiresAtIso))
+                        pending
                     )
         ]

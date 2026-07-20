@@ -1,4 +1,4 @@
-module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, cloudShieldManifestBodyForEtag, cloudShieldManifestNeedsFetch, effectiveCloudShieldResultBody, init, update, view)
+module Page.ServerDetail exposing (CloudShieldPendingEmbed, Model, Msg(..), PassphraseVisibility, VerboseStatus, clearResolvedPendingEmbed, cloudShieldEmbedProjection, cloudShieldManifestBodyForEtag, cloudShieldManifestNeedsFetch, effectiveCloudShieldResultBody, init, update, view)
 
 import CloudShield.Card
 import CloudShield.Discovery
@@ -79,6 +79,21 @@ type alias Model =
     , cloudShieldResultRefRequest : Maybe { etag : String, objectName : String }
     , cloudShieldHistory : List CloudShield.Transport.IndexEntry
     , cloudShieldHistoryRequestKey : Maybe String
+
+    -- the in-flight history-View getEmbed, recorded when its req slot is written so the card can
+    -- show a spinner while the bridge mints a fresh embed (~10s over the next poll) and can time
+    -- the request out. Single-slot: a newer getEmbed replaces it; a matching-`requestId` result
+    -- clears it (see `clearResolvedPendingEmbed`). `Nothing` when nothing is in flight.
+    , cloudShieldPendingEmbed : Maybe CloudShieldPendingEmbed
+    }
+
+
+{-| The in-flight history-View getEmbed marker (see `Model.cloudShieldPendingEmbed`).
+-}
+type alias CloudShieldPendingEmbed =
+    { requestId : String
+    , batchId : String
+    , since : Time.Posix
     }
 
 
@@ -127,6 +142,7 @@ init serverUuid =
     , cloudShieldResultRefRequest = Nothing
     , cloudShieldHistory = []
     , cloudShieldHistoryRequestKey = Nothing
+    , cloudShieldPendingEmbed = Nothing
     }
 
 
@@ -251,8 +267,17 @@ update msg project model =
         CloudShieldWriteEmbedRequest req now ->
             -- getEmbed does not touch the card's scan state or `pending`; it just writes the
             -- §7.1 req slot. The embed result is correlated later by `kind == "embed"`, not by
-            -- `run.state`, so there is no run correlation to record here.
-            ( model
+            -- `run.state`. Record a single-slot pending marker so the card can show a spinner and
+            -- time the request out; its `requestId` mirrors the one `writeEmbedRequestCmd` stamps
+            -- (both derived from the same `now`) so a matching result later clears it.
+            ( { model
+                | cloudShieldPendingEmbed =
+                    Just
+                        { requestId = "exo-cs-req-" ++ String.fromInt (Time.posixToMillis now)
+                        , batchId = req.batchId
+                        , since = now
+                        }
+              }
             , writeEmbedRequestCmd project model req now
             , SharedMsg.NoOp
             )
@@ -336,6 +361,14 @@ syncCloudShieldReads project model =
             let
                 metadata =
                     server.osProps.details.metadata
+
+                -- Fold each fresh poll's metadata into the pending-embed marker: a matching
+                -- result resolves the in-flight getEmbed, so drop the spinner state here.
+                syncedModel =
+                    { model
+                        | cloudShieldPendingEmbed =
+                            clearResolvedPendingEmbed metadata model.cloudShieldPendingEmbed
+                    }
             in
             case CloudShield.Discovery.readSentinel metadata of
                 Just ({ store } as sentinel) ->
@@ -346,16 +379,38 @@ syncCloudShieldReads project model =
                         in
                         syncCloudShieldIndex project sentinel (CloudShield.Transport.historyRefreshKey metadata) <|
                             syncCloudShieldResultRef project sentinel etag metadata <|
-                                syncCloudShieldManifest project sentinel etag model
+                                syncCloudShieldManifest project sentinel etag syncedModel
 
                     else
-                        ( model, Cmd.none )
+                        ( syncedModel, Cmd.none )
 
                 Nothing ->
-                    ( model, Cmd.none )
+                    ( syncedModel, Cmd.none )
 
         Nothing ->
             ( model, Cmd.none )
+
+
+{-| Resolve the pending getEmbed marker against fresh metadata: clear it once a res-slot embed
+result carrying the same `requestId` appears (the bridge answered this request). A result for a
+different (earlier) requestId leaves the marker in place — a newer request is still in flight.
+-}
+clearResolvedPendingEmbed : List OSTypes.MetadataItem -> Maybe CloudShieldPendingEmbed -> Maybe CloudShieldPendingEmbed
+clearResolvedPendingEmbed metadata pending =
+    pending
+        |> Maybe.andThen
+            (\p ->
+                case CloudShield.Transport.resultBodyFromMetadata metadata |> Maybe.andThen CloudShield.Transport.embedResultFromBody of
+                    Just embed ->
+                        if embed.requestId == p.requestId then
+                            Nothing
+
+                        else
+                            Just p
+
+                    Nothing ->
+                        Just p
+            )
 
 
 syncCloudShieldManifest : Project -> CloudShield.Discovery.Sentinel -> String -> Model -> ( Model, Cmd Msg )
@@ -684,8 +739,8 @@ demoable locally without a publishing VM). The fail-closed renderer validates wh
 is used. The live `statusOverride` is read from the §7.1 status slot on this instance's
 metadata and correlated to the in-flight request by `seq`.
 -}
-cloudShieldViewConfig : Bool -> Project -> Model -> Server -> CloudShield.Card.ViewConfig
-cloudShieldViewConfig approved project model server =
+cloudShieldViewConfig : Bool -> Project -> Model -> Time.Posix -> Server -> CloudShield.Card.ViewConfig
+cloudShieldViewConfig approved project model currentTime server =
     let
         metadata =
             server.osProps.details.metadata
@@ -745,21 +800,6 @@ cloudShieldViewConfig approved project model server =
             CloudShield.Transport.resultBodyFromMetadata metadata
                 |> Maybe.andThen (\body -> effectiveCloudShieldResultBody (cloudShieldEtag metadata) body model)
 
-        -- An embed result (`kind == "embed"`, `status == "ok"`) in the res slot means the user
-        -- picked a history row: switch BOTH the findings table and the iframe to that archived
-        -- scan. Correlated purely by `kind == "embed"`, never by `run.state`.
-        maybeEmbedResult =
-            CloudShield.Transport.resultBodyFromMetadata metadata
-                |> Maybe.andThen CloudShield.Transport.embedResultFromBody
-                |> Maybe.andThen
-                    (\embed ->
-                        if embed.status == "ok" then
-                            Just embed
-
-                        else
-                            Nothing
-                    )
-
         -- The origin-pin for the catalog `Iframe`: the instance's own floating IPs, each mapped
         -- to its `https://<ip>.sslip.io` origin (dotted quad, matching the Let's Encrypt cert and
         -- the bridge's EMBED_PUBLIC_BASE). The renderer emits an `<iframe>` only for a `src` whose
@@ -768,55 +808,19 @@ cloudShieldViewConfig approved project model server =
             GetterSetters.getServerFloatingIps project server.osProps.uuid
                 |> List.map (\ip -> "https://" ++ ip.address ++ ".sslip.io")
 
-        -- The embed result (history pick) wins over the live scan result for both the findings
-        -- table and the iframe; otherwise the scan-result path is used exactly as before. Both
-        -- sides are computed inside the branch that uses them (avoids premature work either way).
-        ( results, embedUrl ) =
-            case maybeEmbedResult of
-                Just embed ->
-                    -- Findings for the selected history scan, parsed from the archived body fetched
-                    -- into `cloudShieldResultRef` (the fetch is deduped by objectName via
-                    -- `cloudShieldResultRefRequest`). The last-fetched body is kept so `/results` is
-                    -- not clobbered while the newly selected batch's body is still in flight. The
-                    -- etag check does not give scan-freshness (the etag is a constant manifest hash);
-                    -- it only rejects a body left over from a different instance/manifest.
-                    let
-                        archivedFindings =
-                            case model.cloudShieldResultRef.data of
-                                RDPP.DoHave fetched _ ->
-                                    if fetched.etag == cloudShieldEtag metadata then
-                                        Decode.decodeString (Decode.field "findings" Decode.value) fetched.body
-                                            |> Result.toMaybe
+        -- The reader projection for the history-View embed flow: the findings/`embedUrl` binding
+        -- (a valid history pick wins over the live scan result), the host-side `embedState` line,
+        -- and whether a history pick is active (used to hide the live-scan timer). `embedUrl` is
+        -- gated on `embedState`: only `EmbedReady` carries the live URL, so an expired/errored/
+        -- loading embed unmounts the iframe (the resource-drain fix).
+        embedProjection =
+            cloudShieldEmbedProjection metadata currentTime statusOverride resultBody model
 
-                                    else
-                                        Nothing
+        results =
+            embedProjection.results
 
-                                RDPP.DontHave ->
-                                    Nothing
-                    in
-                    ( archivedFindings, embed.embedUrl )
-
-                Nothing ->
-                    -- The scan-result path: when the in-flight run is `done`, bind the §4.2 result
-                    -- body's `findings[]` into `/results` and its `embedUrl` into `/embedUrl`. Gated
-                    -- on the correlated `done` state so a stale prior-run result can't show.
-                    let
-                        atDone decoder =
-                            case statusOverride of
-                                Just override ->
-                                    if override.state == "done" then
-                                        resultBody |> Maybe.andThen decoder
-
-                                    else
-                                        Nothing
-
-                                Nothing ->
-                                    Nothing
-                    in
-                    ( atDone (Decode.decodeString (Decode.field "findings" Decode.value) >> Result.toMaybe)
-                    , atDone (Decode.decodeString (Decode.field "embedUrl" Decode.string) >> Result.toMaybe)
-                        |> Maybe.withDefault ""
-                    )
+        embedUrl =
+            embedProjection.embedUrl
 
         -- The scan-timer descriptor for the card's elapsed line. It exists only while a run is
         -- tracked this session (`pending` set). `startMillis` is the request seq (wall-clock
@@ -832,12 +836,12 @@ cloudShieldViewConfig approved project model server =
         -- read as a bug against the counted-up time, so it is only a fallback when `completedAt`
         -- is missing/unparseable; absent both, the line is hidden (Nothing).
         scanTimer =
-            case ( maybeEmbedResult, model.cloudShield.pending ) of
+            case ( embedProjection.historyPickActive, model.cloudShield.pending ) of
                 -- While viewing a history pick, the live-scan timer is out of context: hide it.
-                ( Just _, _ ) ->
+                ( True, _ ) ->
                     Nothing
 
-                ( Nothing, Just pending ) ->
+                ( False, Just pending ) ->
                     let
                         state =
                             statusOverride |> Maybe.map .state |> Maybe.withDefault "queued"
@@ -884,7 +888,7 @@ cloudShieldViewConfig approved project model server =
                         _ ->
                             Just { startMillis = pending.seq, doneDurationSec = Nothing }
 
-                ( Nothing, Nothing ) ->
+                ( False, Nothing ) ->
                     Nothing
     in
     { approved = approved
@@ -898,12 +902,189 @@ cloudShieldViewConfig approved project model server =
     , history = model.cloudShieldHistory
     , allowedIframeOrigins = allowedIframeOrigins
     , embedUrl = embedUrl
+    , embedState = embedProjection.embedState
 
     -- The results iframe is now the catalog's origin-pinned `Iframe` element (bound to the scan
     -- result's embedUrl). The old raw/unpinned demo panel is disabled to avoid a second, confusing
     -- iframe; `Nothing` hides the panel and its toggle entirely.
     , demoIframeUrl = Nothing
     }
+
+
+{-| How long a written getEmbed waits for its result before the pending marker is treated as a
+timeout error. getEmbed normally resolves in ~10s (one poll after the bridge claims the slot).
+-}
+embedRequestTimeoutMillis : Int
+embedRequestTimeoutMillis =
+    60 * 1000
+
+
+{-| The reader projection for the history-View embed flow, decided purely from this instance's
+metadata, the fetched archived body (`model.cloudShieldResultRef`), the pending getEmbed marker,
+and the shared client clock. Returns the findings/`embedUrl` binding for the renderer, the
+host-side `embedState` line, and whether a history pick is active.
+
+An ok embed result in the res slot is a history pick and wins over the live scan result for both
+the findings table and the iframe; otherwise the scan-result path is used exactly as before.
+`embedUrl` is gated on `embedState`: only `EmbedReady` carries the live URL, so an expired
+(`embedExpiresAt <= currentTime`), errored, or in-flight embed emits `""` and the origin-pinned
+Iframe self-hides. That unmount is the resource-drain fix (an expired CloudShield+Clerk app kept
+mounted spins forever on auth retries).
+
+-}
+cloudShieldEmbedProjection :
+    List OSTypes.MetadataItem
+    -> Time.Posix
+    -> Maybe { targetId : String, state : String }
+    -> Maybe String
+    -> Model
+    -> { results : Maybe Encode.Value, embedUrl : String, embedState : CloudShield.Card.EmbedState, historyPickActive : Bool }
+cloudShieldEmbedProjection metadata currentTime statusOverride resultBody model =
+    let
+        rawEmbedResult =
+            CloudShield.Transport.resultBodyFromMetadata metadata
+                |> Maybe.andThen CloudShield.Transport.embedResultFromBody
+
+        -- A history pick to show: an ok embed result in the res slot. A non-ok embed result is
+        -- surfaced through `embedState` but never binds findings/iframe (falls to the scan path).
+        maybeEmbedResult =
+            rawEmbedResult
+                |> Maybe.andThen
+                    (\embed ->
+                        if embed.status == "ok" then
+                            Just embed
+
+                        else
+                            Nothing
+                    )
+
+        embedExpired embed =
+            case ISO8601.fromString embed.embedExpiresAt of
+                Ok expiresAt ->
+                    Time.posixToMillis (ISO8601.toPosix expiresAt) <= Time.posixToMillis currentTime
+
+                Err _ ->
+                    -- Unparseable expiry: don't hide a possibly-valid embed on a parse quirk.
+                    False
+
+        resolvedState embed =
+            if embed.status == "ok" then
+                if embedExpired embed then
+                    CloudShield.Card.EmbedExpired
+
+                else
+                    CloudShield.Card.EmbedReady
+
+            else if embed.status == "error" then
+                CloudShield.Card.EmbedError (embedErrorMessage embed)
+
+            else
+                CloudShield.Card.EmbedIdle
+
+        loadingOrTimeout pending =
+            if Time.posixToMillis currentTime - Time.posixToMillis pending.since > embedRequestTimeoutMillis then
+                CloudShield.Card.EmbedError "the request timed out"
+
+            else
+                CloudShield.Card.EmbedLoading
+
+        embedState =
+            case model.cloudShieldPendingEmbed of
+                Just pending ->
+                    case rawEmbedResult of
+                        Just embed ->
+                            if embed.requestId == pending.requestId then
+                                resolvedState embed
+
+                            else
+                                -- The slot still holds an earlier result; our request is in flight.
+                                loadingOrTimeout pending
+
+                        Nothing ->
+                            loadingOrTimeout pending
+
+                Nothing ->
+                    case rawEmbedResult of
+                        Just embed ->
+                            resolvedState embed
+
+                        Nothing ->
+                            CloudShield.Card.EmbedIdle
+
+        ( results, embedUrl ) =
+            case maybeEmbedResult of
+                Just embed ->
+                    -- Findings for the selected history scan, parsed from the archived body fetched
+                    -- into `cloudShieldResultRef` (the fetch is deduped by objectName via
+                    -- `cloudShieldResultRefRequest`). The last-fetched body is kept so `/results` is
+                    -- not clobbered while the newly selected batch's body is still in flight. The
+                    -- etag check does not give scan-freshness (the etag is a constant manifest hash);
+                    -- it only rejects a body left over from a different instance/manifest.
+                    let
+                        archivedFindings =
+                            case model.cloudShieldResultRef.data of
+                                RDPP.DoHave fetched _ ->
+                                    if fetched.etag == cloudShieldEtag metadata then
+                                        Decode.decodeString (Decode.field "findings" Decode.value) fetched.body
+                                            |> Result.toMaybe
+
+                                    else
+                                        Nothing
+
+                                RDPP.DontHave ->
+                                    Nothing
+                    in
+                    ( archivedFindings
+                    , case embedState of
+                        CloudShield.Card.EmbedReady ->
+                            embed.embedUrl
+
+                        _ ->
+                            -- Expired/loading: keep the findings table but unmount the iframe.
+                            ""
+                    )
+
+                Nothing ->
+                    -- The scan-result path: when the in-flight run is `done`, bind the §4.2 result
+                    -- body's `findings[]` into `/results` and its `embedUrl` into `/embedUrl`. Gated
+                    -- on the correlated `done` state so a stale prior-run result can't show.
+                    let
+                        atDone decoder =
+                            case statusOverride of
+                                Just override ->
+                                    if override.state == "done" then
+                                        resultBody |> Maybe.andThen decoder
+
+                                    else
+                                        Nothing
+
+                                Nothing ->
+                                    Nothing
+                    in
+                    ( atDone (Decode.decodeString (Decode.field "findings" Decode.value) >> Result.toMaybe)
+                    , atDone (Decode.decodeString (Decode.field "embedUrl" Decode.string) >> Result.toMaybe)
+                        |> Maybe.withDefault ""
+                    )
+    in
+    { results = results
+    , embedUrl = embedUrl
+    , embedState = embedState
+    , historyPickActive = maybeEmbedResult /= Nothing
+    }
+
+
+{-| The user-facing text of an embed result's `error`. `EmbedResult.error` holds the error field
+re-encoded as a JSON string (the bridge may send a string or an object), so unwrap a plain-string
+error back to its text for a clean line, falling back to the raw JSON for a structured error.
+-}
+embedErrorMessage : CloudShield.Transport.EmbedResult -> String
+embedErrorMessage embed =
+    case embed.error of
+        Just encoded ->
+            Decode.decodeString Decode.string encoded |> Result.withDefault encoded
+
+        Nothing ->
+            "the request failed"
 
 
 cloudShieldTransportWarning : Project -> Model -> List OSTypes.MetadataItem -> Maybe CloudShield.Discovery.Sentinel -> Maybe String -> Maybe String
@@ -1677,7 +1858,7 @@ cloudShieldCard context project currentTime server model =
                 ExtensionApproval.isApproved server.osProps.uuid context.extensionApprovals
 
             config =
-                cloudShieldViewConfig approved project model server
+                cloudShieldViewConfig approved project model currentTime server
 
             -- The transport label rides in the header (top-right), not the card body.
             headerChip =

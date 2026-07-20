@@ -1,4 +1,4 @@
-module CloudShield.Card exposing (Instance, Model, Msg, OutMsg(..), ViewConfig, cardJson, init, projection, requestEmbed, transportChip, update, view)
+module CloudShield.Card exposing (EmbedState(..), Instance, Model, Msg, OutMsg(..), ViewConfig, cardJson, init, projection, requestEmbed, transportChip, update, view)
 
 {-| Host wiring for the CloudShield dynamic-UI card (Phase 1, browser side).
 
@@ -39,6 +39,7 @@ import Set exposing (Set)
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Spinner as Spinner
 import Style.Widgets.Text as Text
 import Time
 
@@ -459,12 +460,40 @@ type alias ViewConfig =
     -- placeholder) until a run is `done` and the result carries an embed URL.
     , embedUrl : String
 
+    -- the host-computed state of the history-View embed flow, drawn as a quiet affordance line
+    -- beside the results/iframe area (same slot discipline as `scanTimer`/`transportWarning`).
+    -- It gates whether the iframe is mounted: only `EmbedReady` carries a live `embedUrl`; every
+    -- other state emits `embedUrl == ""` so the origin-pinned Iframe self-hides (the expired-token
+    -- resource-drain fix). `EmbedIdle`/`EmbedReady` draw no line.
+    , embedState : EmbedState
+
     -- DEMO-ONLY: when set, the card shows a collapsible panel embedding the *real* CloudShield
     -- web UI from this URL in a raw, unpinned host-chrome iframe (no origin allowlist). This is
     -- separate from the catalog's origin-pinned Iframe element and is for the program-officer
     -- demo only. `Nothing` disables the panel entirely.
     , demoIframeUrl : Maybe String
     }
+
+
+{-| The host-computed state of a history-View embed round-trip, decided in
+`Page.ServerDetail.cloudShieldEmbedProjection` from (the pending getEmbed marker, the res-slot
+embed result, and the shared client clock). It drives the quiet affordance line and gates the
+iframe mount.
+
+  - `EmbedIdle` — nothing in flight and no embed result to show; draws no line.
+  - `EmbedLoading` — a getEmbed is in flight (pending set, no matching result yet).
+  - `EmbedError` — the matching result reported `status == "error"`, or the request timed out.
+  - `EmbedExpired` — an ok result whose `embedExpiresAt` is at/before the client clock; the
+    iframe is unmounted so an expired CloudShield+Clerk app can't keep spinning on auth retries.
+  - `EmbedReady` — an ok, unexpired result; the iframe shows it.
+
+-}
+type EmbedState
+    = EmbedIdle
+    | EmbedLoading
+    | EmbedError String
+    | EmbedExpired
+    | EmbedReady
 
 
 {-| Render the card with its host trust chrome. The whole thing is mounted inside
@@ -477,6 +506,7 @@ view palette currentTime config instances model =
             [ Element.width Element.fill, Element.spacing spacer.px8 ]
             [ provenanceMarker palette config.sourceName
             , rendererView palette config.allowedIframeOrigins config.manifestJson config.history config.results config.embedUrl config.statusOverride instances model
+            , embedStateView palette config.embedState
             , transportWarningView palette config.transportWarning
             , scanTimerView palette currentTime config.scanTimer
             , demoIframePanel palette config.demoIframeUrl model.showDemoIframe
@@ -499,6 +529,45 @@ transportWarningView palette warning =
 
         Nothing ->
             Element.none
+
+
+{-| A quiet, host-drawn line beside the results/iframe area that gives the history-View flow
+visible feedback: a spinner while a getEmbed is in flight, an error-toned line if it failed or
+timed out, and a gentle prompt when an embed token has expired (the iframe having been
+unmounted by the host so the dead CloudShield app stops spinning). `EmbedReady`/`EmbedIdle`
+draw nothing. Same muted-line idiom as `transportWarningView`/`scanTimerView`.
+-}
+embedStateView : ExoPalette -> EmbedState -> Element.Element Msg
+embedStateView palette embedState =
+    let
+        mutedLine tone label =
+            Element.el
+                [ Text.fontSize Text.Small
+                , Font.color (SH.toElementColor tone)
+                ]
+                (Text.body label)
+    in
+    case embedState of
+        EmbedIdle ->
+            Element.none
+
+        EmbedReady ->
+            Element.none
+
+        EmbedLoading ->
+            Element.row
+                [ Element.spacing spacer.px8 ]
+                [ Element.el [ Element.centerY ] (Spinner.sized 16 palette)
+                , mutedLine palette.neutral.text.subdued "Opening scan results…"
+                ]
+
+        EmbedError message ->
+            mutedLine palette.danger.textOnNeutralBG
+                ("Couldn't open these results: " ++ message ++ ". Try again.")
+
+        EmbedExpired ->
+            mutedLine palette.neutral.text.subdued
+                "This results session expired. Click View to reopen."
 
 
 {-| A muted, host-drawn line under the rendered manifest that gives the scan visible progress:
