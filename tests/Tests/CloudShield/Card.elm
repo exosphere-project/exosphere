@@ -2,6 +2,7 @@ module Tests.CloudShield.Card exposing
     ( discoverySuite
     , embedSuite
     , historySuite
+    , historyViewParamsSuite
     , manifestSuite
     , projectionSuite
     , transportSuite
@@ -21,7 +22,9 @@ import CloudShield.Transport as Transport
 import Dict
 import Expect
 import Json.Decode as Decode
+import Json.Encode as Encode
 import JsonRender
+import JsonRender.Expr as Expr
 import JsonRender.Render as Render
 import OpenStack.Types as OSTypes
 import Set exposing (Set)
@@ -331,34 +334,105 @@ historyBatchIds value =
         |> Result.mapError Decode.errorToString
 
 
+historyNoteOf : Decode.Value -> Result String String
+historyNoteOf value =
+    Decode.decodeValue (Decode.field "historyNote" Decode.string) value
+        |> Result.mapError Decode.errorToString
+
+
+{-| `n` history entries in append-only (oldest-first) file order, batchIds `b-01`..`b-<n>`.
+-}
+historyEntries : Int -> List Transport.IndexEntry
+historyEntries n =
+    List.range 1 n
+        |> List.map (\i -> historyEntry ("b-" ++ String.padLeft 2 '0' (String.fromInt i)))
+
+
+projectHistory : List Transport.IndexEntry -> Decode.Value
+projectHistory entries =
+    Card.projection entries Nothing "" Nothing sampleInstances idleModel
+
+
 historySuite : Test
 historySuite =
     describe "the /history projection"
         [ test "rows are newest first (the append-only index is reversed)" <|
             \_ ->
-                let
-                    -- index file order is oldest first
-                    value =
-                        Card.projection
-                            [ historyEntry "b-1", historyEntry "b-2", historyEntry "b-3" ]
-                            Nothing
-                            ""
-                            Nothing
-                            sampleInstances
-                            idleModel
-                in
-                Expect.equal (Ok [ "b-3", "b-2", "b-1" ]) (historyBatchIds value)
+                Expect.equal (Ok [ "b-3", "b-2", "b-1" ])
+                    (historyBatchIds (projectHistory [ historyEntry "b-1", historyEntry "b-2", historyEntry "b-3" ]))
         , test "each row carries a human countsLabel" <|
             \_ ->
                 let
-                    value =
-                        Card.projection [ historyEntry "b-1" ] Nothing "" Nothing sampleInstances idleModel
-
                     label =
                         Decode.decodeValue
                             (Decode.field "history" (Decode.index 0 (Decode.field "countsLabel" Decode.string)))
-                            value
+                            (projectHistory [ historyEntry "b-1" ])
                             |> Result.mapError Decode.errorToString
                 in
                 Expect.equal (Ok "2 high") label
+        , test "at or under the cap, all rows show and the note is empty" <|
+            \_ ->
+                let
+                    value =
+                        projectHistory (historyEntries 20)
+                in
+                Expect.equal ( Ok 20, Ok "" )
+                    ( historyBatchIds value |> Result.map List.length
+                    , historyNoteOf value
+                    )
+        , test "above the cap, only the latest 20 show (newest first) with the overflow note" <|
+            \_ ->
+                let
+                    value =
+                        projectHistory (historyEntries 25)
+
+                    ids =
+                        historyBatchIds value
+                in
+                Expect.equal ( Ok 20, Ok "b-25", Ok "b-06" )
+                    ( ids |> Result.map List.length
+                    , ids |> Result.map (List.head >> Maybe.withDefault "?")
+                    , ids |> Result.map (List.reverse >> List.head >> Maybe.withDefault "?")
+                    )
+        , test "the overflow note wording names the cap and the total" <|
+            \_ ->
+                Expect.equal (Ok "Showing the latest 20 of 25 scans.")
+                    (historyNoteOf (projectHistory (historyEntries 25)))
+        ]
+
+
+{-| Regression pin for the history View button: its `params` must emit the batchId VALUE, not
+the item PATH. A top-level `{"$item":"batchId"}` resolves (per `Expr.resolveTopLevelParam`) to
+`"/history/0/batchId"` — the pointer string — which the bridge rejects. The fallback cardJson
+uses `{"$template":"${batchId}"}`, which resolves to the row's batchId value.
+-}
+historyViewParamsSuite : Test
+historyViewParamsSuite =
+    describe "the history View button emits a batchId value, not a JSON Pointer"
+        [ test "resolveParams in a /history row 0 childContext yields the item's batchId value" <|
+            \_ ->
+                case JsonRender.decodeString Card.cardJson of
+                    Ok spec ->
+                        case Dict.get "history-view-btn" spec.elements |> Maybe.andThen (\el -> Dict.get "press" el.on) |> Maybe.andThen List.head of
+                            Just binding ->
+                                let
+                                    item =
+                                        Encode.object
+                                            [ ( "batchId", Encode.string "b-1" )
+                                            , ( "targetName", Encode.string "alpha" )
+                                            ]
+
+                                    ctx =
+                                        Expr.childContext "/history" 0 item (Expr.rootContext [] Encode.null)
+
+                                    resolved =
+                                        Expr.resolveParams ctx binding.params
+                                in
+                                Expect.equal "{\"batchId\":\"b-1\"}" (Encode.encode 0 resolved)
+
+                            Nothing ->
+                                Expect.fail "history-view-btn should carry a press binding"
+
+                    Err message ->
+                        Expect.fail ("the fallback cardJson should validate: " ++ message)
         ]

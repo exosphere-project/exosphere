@@ -321,14 +321,43 @@ allSelected instances selection =
 -- THE RENDERER-FACING PROJECTION (host-renderer-interface.md §1.2)
 
 
+{-| How many history rows the card projects into `/history`. Older scans beyond this are
+summarized by `/historyNote` rather than rendered, so the card stays bounded no matter how
+long the archived index grows.
+-}
+historyDisplayCap : Int
+historyDisplayCap =
+    20
+
+
 projection : List Transport.IndexEntry -> Maybe Encode.Value -> String -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Encode.Value
 projection history results embedUrl statusOverride instances model =
+    let
+        total =
+            List.length history
+
+        -- Newest first (the index is append-only, oldest first), capped to the latest N.
+        shown =
+            List.reverse history |> List.take historyDisplayCap
+
+        historyNote =
+            if total <= historyDisplayCap then
+                ""
+
+            else
+                "Showing the latest "
+                    ++ String.fromInt historyDisplayCap
+                    ++ " of "
+                    ++ String.fromInt total
+                    ++ " scans."
+    in
     Encode.object
         [ ( "selectAll", Encode.bool model.selectAll )
         , ( "results", Maybe.withDefault Encode.null results )
         , ( "embedUrl", Encode.string embedUrl )
         , ( "instances", Encode.list (instanceProjection statusOverride model) instances )
-        , ( "history", Encode.list historyRow (List.reverse history) )
+        , ( "history", Encode.list historyRow shown )
+        , ( "historyNote", Encode.string historyNote )
         ]
 
 
@@ -831,6 +860,14 @@ rendererStyle palette =
                 , ".jr-iframe { display: flex; flex-direction: column; }"
                 , ".jr-iframe__provenance { padding: 5px 10px; font-size: 0.78em; color: " ++ muted ++ "; background: " ++ frontBg ++ "; border: 1px solid " ++ border ++ "; border-bottom: 0; border-radius: 6px 6px 0 0; }"
                 , ".jr-iframe__frame { border: 1px solid " ++ border ++ "; border-radius: 0 0 6px 6px; overflow: hidden; }"
+
+                -- Disclosure: a native <details> styled as quiet host chrome. The summary reads as a
+                -- muted, clickable section label (no default triangle fuss beyond the browser marker);
+                -- the body gets a modest top gap so expanded content is not flush against the summary.
+                , ".jr-disclosure { border: 0; }"
+                , ".jr-disclosure__summary { cursor: pointer; font-size: 0.85em; font-weight: 600; color: " ++ muted ++ "; padding: 2px 0; user-select: none; }"
+                , ".jr-disclosure__summary:hover { color: " ++ text ++ "; }"
+                , ".jr-disclosure__body { margin-top: 8px; }"
                 , ".jr-confirm { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 1000; }"
                 , ".jr-confirm__box { background: " ++ frontBg ++ "; color: " ++ text ++ "; padding: 20px 22px; border-radius: 8px; max-width: 380px; border: 1px solid " ++ border ++ "; box-shadow: 0 8px 40px rgba(0,0,0,0.5); }"
                 , ".jr-confirm__title { margin: 0 0 8px 0; font-size: 1.1em; font-weight: 600; }"
@@ -861,7 +898,7 @@ cardJson =
     "card": {
       "type": "Card",
       "props": { "title": "CloudShield — scan instances" },
-      "children": ["toolbar", "list", "results"]
+      "children": ["toolbar", "list", "history", "results", "results-embed"]
     },
     "toolbar": {
       "type": "Stack",
@@ -940,6 +977,58 @@ cardJson =
       },
       "children": []
     },
+    "history": {
+      "type": "Disclosure",
+      "props": { "label": "Scan history" },
+      "children": ["history-note", "history-rows"]
+    },
+    "history-note": {
+      "type": "Text",
+      "props": { "value": { "$state": "/historyNote" } },
+      "children": []
+    },
+    "history-rows": {
+      "type": "Stack",
+      "props": { "direction": "col", "gap": 1 },
+      "repeat": { "statePath": "/history", "key": "batchId" },
+      "children": ["history-row"]
+    },
+    "history-row": {
+      "type": "Stack",
+      "props": { "direction": "row", "gap": 2 },
+      "children": ["history-completed", "history-target", "history-status", "history-counts", "history-view-btn"]
+    },
+    "history-completed": {
+      "type": "Text",
+      "props": { "value": { "$item": "completedAt" } },
+      "children": []
+    },
+    "history-target": {
+      "type": "Text",
+      "props": { "value": { "$item": "targetName" } },
+      "children": []
+    },
+    "history-status": {
+      "type": "Badge",
+      "props": { "value": { "$item": "status" } },
+      "children": []
+    },
+    "history-counts": {
+      "type": "Text",
+      "props": { "value": { "$item": "countsLabel" } },
+      "children": []
+    },
+    "history-view-btn": {
+      "type": "Button",
+      "props": { "label": "View" },
+      "on": {
+        "press": {
+          "action": "cloudshield.getEmbed",
+          "params": { "batchId": { "$template": "${batchId}" } }
+        }
+      },
+      "children": []
+    },
     "results": {
       "type": "FindingsTable",
       "props": {
@@ -947,12 +1036,22 @@ cardJson =
         "groupBy": "severity"
       },
       "children": []
+    },
+    "results-embed": {
+      "type": "Iframe",
+      "props": {
+        "src": { "$state": "/embedUrl" },
+        "title": "CloudShield results"
+      },
+      "children": []
     }
   },
   "state": {
     "selectAll": false,
     "instances": [],
-    "results": null
+    "results": null,
+    "history": [],
+    "historyNote": ""
   }
 }
 """

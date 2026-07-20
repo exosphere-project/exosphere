@@ -253,6 +253,9 @@ renderComponent ctx element childrenHtml =
         AlertP props ->
             renderAlert ctx props
 
+        DisclosureP props ->
+            renderDisclosure ctx props childrenHtml
+
 
 renderCard : Context -> Spec.CardProps -> List (Html Msg) -> Html Msg
 renderCard ctx props childrenHtml =
@@ -286,6 +289,28 @@ renderStack props childrenHtml =
         , Attr.attribute "data-gap" (String.fromInt props.gap)
         ]
         childrenHtml
+
+
+{-| Render a `Disclosure` as a native `<details>`: a `<summary>` carrying the resolved `label`,
+followed by the children inside a `jr-disclosure__body` div. `Attr.attribute "open" ""` is added
+only when `open == True` (boolean-attribute presence sets the initial expanded state). Repeat and
+context semantics are unchanged — the children walk normally.
+-}
+renderDisclosure : Context -> Spec.DisclosureProps -> List (Html Msg) -> Html Msg
+renderDisclosure ctx props childrenHtml =
+    let
+        openAttr =
+            if props.open then
+                [ Attr.attribute "open" "" ]
+
+            else
+                []
+    in
+    Html.details (Attr.class "jr-disclosure" :: openAttr)
+        [ Html.summary [ Attr.class "jr-disclosure__summary" ]
+            [ Html.text (Expr.resolveDisplay ctx props.label) ]
+        , Html.div [ Attr.class "jr-disclosure__body" ] childrenHtml
+        ]
 
 
 renderBadge : Context -> Spec.BadgeProps -> Html Msg

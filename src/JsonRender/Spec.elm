@@ -17,6 +17,7 @@ module JsonRender.Spec exposing
     , TableProps
     , Column
     , AlertProps
+    , DisclosureProps
     , Tone(..)
     , ActionBinding
     , Confirm
@@ -68,6 +69,7 @@ A rejected manifest never produces a partial tree — the host shows an error st
 @docs TableProps
 @docs Column
 @docs AlertProps
+@docs DisclosureProps
 @docs Tone
 
 
@@ -122,6 +124,7 @@ type ComponentType
     | Iframe
     | Table
     | Alert
+    | Disclosure
 
 
 {-| Strictly-decoded props, one variant per component type. The variant always agrees
@@ -139,6 +142,7 @@ type Props
     | IframeP IframeProps
     | TableP TableProps
     | AlertP AlertProps
+    | DisclosureP DisclosureProps
 
 
 {-| `Stack` layout direction.
@@ -245,6 +249,16 @@ type alias AlertProps =
     }
 
 
+{-| `Disclosure` props: a `label` expression shown in the always-visible summary, and an
+optional `open` literal bool (default `False`) that sets the initial expanded state. Children
+render inside the disclosure body.
+-}
+type alias DisclosureProps =
+    { label : Expr
+    , open : Bool
+    }
+
+
 {-| An event binding: a named verb, its (unresolved) params, and an optional confirm
 dialog. The key is `action`/`params` per the pinned format — never a URL.
 -}
@@ -310,6 +324,9 @@ componentType ct =
 
         Alert ->
             "Alert"
+
+        Disclosure ->
+            "Disclosure"
 
 
 
@@ -475,6 +492,9 @@ parseComponentType name =
         "Alert" ->
             Just Alert
 
+        "Disclosure" ->
+            Just Disclosure
+
         _ ->
             Nothing
 
@@ -534,6 +554,9 @@ allowedPropKeys ct =
 
         Alert ->
             [ "tone", "title", "message" ]
+
+        Disclosure ->
+            [ "label", "open" ]
 
 
 decodeFromValue : Decoder a -> Value -> Decoder a
@@ -595,6 +618,11 @@ propsBodyDecoder ct =
                 (Decode.field "tone" toneDecoder)
                 (Decode.maybe (Decode.field "title" Expr.decoder))
                 (Decode.field "message" Expr.decoder)
+
+        Disclosure ->
+            Decode.map2 (\l o -> DisclosureP (DisclosureProps l o))
+                (Decode.field "label" Expr.decoder)
+                (optionalField "open" Decode.bool False)
 
 
 columnDecoder : Decoder Column
