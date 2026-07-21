@@ -326,12 +326,14 @@ renderBadge ctx props =
         [ Html.text state ]
 
 
-{-| Tone mapping from a per-row `scanState` string. Identical to the Track A island so
-both renderers match (`pinned-format-reference.md` §"STILL-UNCERTAIN" item 3).
+{-| Tone mapping from a per-row `scanState` string. Keyed on the leading whitespace-delimited
+token so a value that carries a trailing detail suffix (e.g. `"scanning · 0:15"`, the live-scan
+row's counting-up elapsed) still maps to its state tone. Mirrors the Track A island's state→tone
+table (`pinned-format-reference.md` §"STILL-UNCERTAIN" item 3).
 -}
 badgeTone : String -> String
 badgeTone state =
-    case state of
+    case badgeToken state of
         "idle" ->
             "neutral"
 
@@ -339,6 +341,9 @@ badgeTone state =
             "info"
 
         "running" ->
+            "info"
+
+        "scanning" ->
             "info"
 
         "done" ->
@@ -349,6 +354,14 @@ badgeTone state =
 
         _ ->
             "neutral"
+
+
+{-| The leading token of a badge value: everything before the first space. So `"scanning · 0:15"`
+tones as `"scanning"` while a plain `"done"` is unchanged.
+-}
+badgeToken : String -> String
+badgeToken state =
+    state |> String.split " " |> List.head |> Maybe.withDefault state
 
 
 renderButton : Context -> UIElement -> Spec.ButtonProps -> Html Msg

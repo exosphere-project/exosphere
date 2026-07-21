@@ -1,4 +1,4 @@
-module Page.ServerDetail exposing (CloudShieldPendingEmbed, Model, Msg(..), PassphraseVisibility, VerboseStatus, clearResolvedPendingEmbed, cloudShieldEmbedProjection, cloudShieldManifestBodyForEtag, cloudShieldManifestNeedsFetch, effectiveCloudShieldResultBody, init, update, view)
+module Page.ServerDetail exposing (CloudShieldPendingEmbed, Model, Msg(..), PassphraseVisibility, VerboseStatus, clearResolvedPendingEmbed, cloudShieldEmbedProjection, cloudShieldManifestBodyForEtag, cloudShieldManifestNeedsFetch, cloudShieldScanTimer, effectiveCloudShieldResultBody, init, update, view)
 
 import CloudShield.Card
 import CloudShield.Discovery
@@ -827,74 +827,35 @@ cloudShieldViewConfig approved project model currentTime server =
         embedUrl =
             embedProjection.embedUrl
 
-        -- The scan-timer descriptor for the card's elapsed line. It exists only while a run is
-        -- tracked this session (`pending` set). `startMillis` is the request seq (wall-clock
-        -- millis; see `CloudShieldWriteRequest`). The correlated live state decides the shape:
-        -- an active run counts up (`doneDurationSec = Nothing`); a `done` run freezes to the
-        -- wall-clock pipeline duration; a terminal non-`done` state (error/cancelled/expired)
-        -- drops the line.
-        --
-        -- The freeze must match the counting phase: the count is wall-clock (snapshot -> boot
-        -- clone -> scan, ~minutes), so we freeze to wall-clock too, computed from the result
-        -- body's top-level `completedAt` (ISO 8601, emitted by the bridge) minus the request
-        -- start. The result body's `summary.durationSec` is scanner-only (~seconds) and would
-        -- read as a bug against the counted-up time, so it is only a fallback when `completedAt`
-        -- is missing/unparseable; absent both, the line is hidden (Nothing).
+        -- The scan-completion descriptor for the card's frozen confirmation line. It exists only
+        -- while a run is tracked this session (`pending` set) and drops the moment the run is
+        -- terminal-but-not-done. It is independent of any concurrent history view: the *running*
+        -- progress now lives on the scanning target row (`displayStatusOverride`), so the timer is
+        -- no longer suppressed while a past scan is "Now viewing". See `cloudShieldScanTimer`.
         scanTimer =
-            case ( embedProjection.historyPickActive, model.cloudShield.pending ) of
-                -- While viewing a history pick, the live-scan timer is out of context: hide it.
-                ( True, _ ) ->
-                    Nothing
+            cloudShieldScanTimer
+                (Maybe.map .seq model.cloudShield.pending)
+                (statusOverride |> Maybe.map .state |> Maybe.withDefault "queued")
+                resultBody
 
-                ( False, Just pending ) ->
-                    let
-                        state =
-                            statusOverride |> Maybe.map .state |> Maybe.withDefault "queued"
-                    in
-                    case state of
-                        "done" ->
-                            let
-                                wallClockSec =
-                                    resultBody
-                                        |> Maybe.andThen
-                                            (\body ->
-                                                Decode.decodeString (Decode.field "completedAt" Decode.string) body
-                                                    |> Result.toMaybe
-                                            )
-                                        |> Maybe.andThen (Helpers.Time.iso8601StringToPosix >> Result.toMaybe)
-                                        |> Maybe.map (\completedAt -> max 0 ((Time.posixToMillis completedAt - pending.seq) // 1000))
-                            in
-                            Just
-                                { startMillis = pending.seq
-                                , doneDurationSec =
-                                    case wallClockSec of
-                                        Just _ ->
-                                            wallClockSec
+        -- The row display state (left column). Raw `statusOverride` drives the reader logic above
+        -- (embed projection, completion timer); here, while the run is `running`, we compose the
+        -- counting-up elapsed into its state (`"scanning · m:ss"`) so the scanning row is the live
+        -- progress signal. `queued`/`done`/terminal states pass through raw.
+        displayStatusOverride =
+            case ( statusOverride, model.cloudShield.pending ) of
+                ( Just override, Just pending ) ->
+                    if override.state == "running" then
+                        Just
+                            { targetId = override.targetId
+                            , state = CloudShield.Card.scanningRowLabel pending.seq (Time.posixToMillis currentTime)
+                            }
 
-                                        Nothing ->
-                                            -- Fallback: scanner-only duration when `completedAt` is absent.
-                                            resultBody
-                                                |> Maybe.andThen
-                                                    (\body ->
-                                                        Decode.decodeString (Decode.at [ "summary", "durationSec" ] Decode.int) body
-                                                            |> Result.toMaybe
-                                                    )
-                                }
+                    else
+                        Just override
 
-                        "error" ->
-                            Nothing
-
-                        "cancelled" ->
-                            Nothing
-
-                        "expired" ->
-                            Nothing
-
-                        _ ->
-                            Just { startMillis = pending.seq, doneDurationSec = Nothing }
-
-                ( False, Nothing ) ->
-                    Nothing
+                ( other, _ ) ->
+                    other
     in
     { approved = approved
     , sourceName = server.osProps.name
@@ -902,7 +863,7 @@ cloudShieldViewConfig approved project model currentTime server =
     , transportLabel = transportLabel
     , transportWarning = cloudShieldTransportWarning project model metadata maybeSentinel resultBody
     , scanTimer = scanTimer
-    , statusOverride = statusOverride
+    , statusOverride = displayStatusOverride
     , results = results
     , history = model.cloudShieldHistory
     , activeBatchId = embedProjection.activeBatchId
@@ -919,6 +880,57 @@ cloudShieldViewConfig approved project model currentTime server =
     }
 
 
+{-| The scan-completion timer descriptor, derived purely from the tracked run's wall-clock start
+(`Just` the request seq, else `Nothing` when no scan is tracked), the correlated live `state`, and
+the fetched result body. Independent of any history view — a scan that is queued/running/done keeps
+its descriptor while a past scan is viewed on the right (its running progress renders on the row).
+
+Shapes:
+
+  - no tracked run (`Nothing` start) ⇒ `Nothing` (no descriptor).
+  - `done` ⇒ freeze to the full wall-clock flow, `completedAt - startMillis` (minutes; snapshot →
+    boot clone → scan). It never falls back to `summary.durationSec` (the scanner-only ~seconds,
+    which reads as "faster than reality"); if `completedAt` is missing/unparseable the frozen
+    duration is `Nothing` (no line) rather than a misleadingly small number.
+  - a terminal non-`done` state (`error`/`cancelled`/`expired`) ⇒ `Nothing` (drop the line).
+  - otherwise (queued/running) ⇒ a live descriptor with `doneDurationSec = Nothing`; the running
+    elapsed itself is drawn on the scanning row, not here.
+
+-}
+cloudShieldScanTimer : Maybe Int -> String -> Maybe String -> Maybe { startMillis : Int, doneDurationSec : Maybe Int }
+cloudShieldScanTimer maybeStartMillis state resultBody =
+    maybeStartMillis
+        |> Maybe.andThen
+            (\startMillis ->
+                case state of
+                    "done" ->
+                        Just
+                            { startMillis = startMillis
+                            , doneDurationSec =
+                                resultBody
+                                    |> Maybe.andThen
+                                        (\body ->
+                                            Decode.decodeString (Decode.field "completedAt" Decode.string) body
+                                                |> Result.toMaybe
+                                        )
+                                    |> Maybe.andThen (Helpers.Time.iso8601StringToPosix >> Result.toMaybe)
+                                    |> Maybe.map (\completedAt -> max 0 ((Time.posixToMillis completedAt - startMillis) // 1000))
+                            }
+
+                    "error" ->
+                        Nothing
+
+                    "cancelled" ->
+                        Nothing
+
+                    "expired" ->
+                        Nothing
+
+                    _ ->
+                        Just { startMillis = startMillis, doneDurationSec = Nothing }
+            )
+
+
 {-| How long a written getEmbed waits for its result before the pending marker is treated as a
 timeout error. getEmbed normally resolves in ~10s (one poll after the bridge claims the slot); 30s
 leaves headroom for a slow mint + CloudShield without leaving a dead "Opening…" row up so long it
@@ -932,7 +944,7 @@ embedRequestTimeoutMillis =
 {-| The reader projection for the history-View embed flow, decided purely from this instance's
 metadata, the fetched archived body (`model.cloudShieldResultRef`), the pending getEmbed marker,
 and the shared client clock. Returns the findings/`embedUrl` binding for the renderer, the
-host-side `embedState` line, and whether a history pick is active.
+host-side `embedState` line, and the active/pending/errored batch ids for per-row state.
 
 An ok embed result in the res slot is a history pick and wins over the live scan result for both
 the findings table and the iframe; otherwise the scan-result path is used exactly as before.
@@ -948,7 +960,7 @@ cloudShieldEmbedProjection :
     -> Maybe { targetId : String, state : String }
     -> Maybe String
     -> Model
-    -> { results : Maybe Encode.Value, embedUrl : String, embedState : CloudShield.Card.EmbedState, historyPickActive : Bool, activeBatchId : Maybe String, pendingBatchId : Maybe String, erroredBatchId : Maybe String }
+    -> { results : Maybe Encode.Value, embedUrl : String, embedState : CloudShield.Card.EmbedState, activeBatchId : Maybe String, pendingBatchId : Maybe String, erroredBatchId : Maybe String }
 cloudShieldEmbedProjection metadata currentTime statusOverride resultBody model =
     let
         rawEmbedResult =
@@ -1088,8 +1100,22 @@ cloudShieldEmbedProjection metadata currentTime statusOverride resultBody model 
                     case statusOverride of
                         Just override ->
                             if override.state == "done" then
+                                -- The just-completed live scan. Its result body's `batchId` is
+                                -- `null` for a scan request (we send `batchId: null`), so mirror the
+                                -- history index key (`batchId or requestId`) and fall back to the
+                                -- `requestId`; otherwise the new history row would key on the
+                                -- requestId while `activeBatchId` was `Nothing`, leaving it stuck on
+                                -- "View" instead of "Now viewing".
                                 resultBody
-                                    |> Maybe.andThen (Decode.decodeString (Decode.field "batchId" Decode.string) >> Result.toMaybe)
+                                    |> Maybe.andThen
+                                        (\body ->
+                                            case Decode.decodeString (Decode.field "batchId" Decode.string) body |> Result.toMaybe of
+                                                Just batchId ->
+                                                    Just batchId
+
+                                                Nothing ->
+                                                    Decode.decodeString (Decode.field "requestId" Decode.string) body |> Result.toMaybe
+                                        )
 
                             else
                                 Nothing
@@ -1132,7 +1158,6 @@ cloudShieldEmbedProjection metadata currentTime statusOverride resultBody model 
     { results = results
     , embedUrl = embedUrl
     , embedState = embedState
-    , historyPickActive = maybeEmbedResult /= Nothing
     , activeBatchId = activeBatchId
     , pendingBatchId = pendingBatchId
     , erroredBatchId = erroredBatchId
@@ -1946,7 +1971,6 @@ cloudShieldCard context project ( currentTime, timeZone ) server model =
             [ CloudShield.Card.view
                 context.palette
                 timeZone
-                currentTime
                 config
                 (cloudShieldInstances project model)
                 model.cloudShield

@@ -1,4 +1,4 @@
-module Tests.CloudShield.ServerDetail exposing (cloudShieldEmbedProjectionSuite, cloudShieldPendingEmbedSuite, cloudShieldReadDecisionSuite)
+module Tests.CloudShield.ServerDetail exposing (cloudShieldEmbedProjectionSuite, cloudShieldPendingEmbedSuite, cloudShieldReadDecisionSuite, cloudShieldScanTimerSuite)
 
 import CloudShield.Card as Card
 import Expect
@@ -296,6 +296,79 @@ cloudShieldEmbedProjectionSuite =
                 in
                 Expect.equal ( Card.EmbedError "remint failed", Nothing )
                     ( projection.embedState, projection.pendingBatchId )
+        , test "a just-completed scan whose result batchId is null keys activeBatchId on its requestId (mirrors the index row so the row reads Now viewing)" <|
+            \_ ->
+                let
+                    doneScanBody =
+                        """{"schemaVersion":"1.0","requestId":"exo-cs-req-42","batchId":null,"completedAt":"2026-07-20T21:00:00.000Z","status":"ok","findings":[]}"""
+
+                    projection =
+                        ServerDetail.cloudShieldEmbedProjection
+                            [ { key = "exoext.v1.etag", value = "etag-1" } ]
+                            beforeExpiry
+                            (Just { targetId = "i-1", state = "done" })
+                            (Just doneScanBody)
+                            (ServerDetail.init "self")
+                in
+                Expect.equal (Just "exo-cs-req-42") projection.activeBatchId
+        , test "a just-completed scan with a real result batchId keys activeBatchId on that batchId" <|
+            \_ ->
+                let
+                    doneScanBody =
+                        """{"schemaVersion":"1.0","requestId":"exo-cs-req-42","batchId":"batch-9","completedAt":"2026-07-20T21:00:00.000Z","status":"ok","findings":[]}"""
+
+                    projection =
+                        ServerDetail.cloudShieldEmbedProjection
+                            [ { key = "exoext.v1.etag", value = "etag-1" } ]
+                            beforeExpiry
+                            (Just { targetId = "i-1", state = "done" })
+                            (Just doneScanBody)
+                            (ServerDetail.init "self")
+                in
+                Expect.equal (Just "batch-9") projection.activeBatchId
+        ]
+
+
+{-| The completion-timer descriptor: freeze to the full wall-clock flow (`completedAt - start`), and
+never to the scanner-only `summary.durationSec`. Covers spec item #2.
+-}
+cloudShieldScanTimerSuite : Test
+cloudShieldScanTimerSuite =
+    let
+        completedAtIso =
+            "2026-07-20T21:02:10.000Z"
+
+        completedMillis =
+            ISO8601.fromString completedAtIso
+                |> Result.map (ISO8601.toPosix >> Time.posixToMillis)
+                |> Result.withDefault 0
+
+        -- start 130s before completion (the full snapshot -> clone -> scan wall-clock flow).
+        startMillis =
+            completedMillis - 130000
+
+        bodyWith completedField =
+            "{\"requestId\":\"exo-cs-req-42\"" ++ completedField ++ ",\"summary\":{\"durationSec\":22}}"
+    in
+    describe "ServerDetail cloudShieldScanTimer (frozen completion time)"
+        [ test "no tracked run yields no descriptor" <|
+            \_ ->
+                Expect.equal Nothing (ServerDetail.cloudShieldScanTimer Nothing "done" Nothing)
+        , test "a running scan yields a live descriptor with no frozen duration (the row carries progress)" <|
+            \_ ->
+                Expect.equal (Just { startMillis = startMillis, doneDurationSec = Nothing })
+                    (ServerDetail.cloudShieldScanTimer (Just startMillis) "running" Nothing)
+        , test "a done scan freezes to the full wall-clock flow (completedAt - start), not the 22s scanner time" <|
+            \_ ->
+                Expect.equal (Just { startMillis = startMillis, doneDurationSec = Just 130 })
+                    (ServerDetail.cloudShieldScanTimer (Just startMillis) "done" (Just (bodyWith (",\"completedAt\":\"" ++ completedAtIso ++ "\""))))
+        , test "a done scan with no completedAt shows no frozen duration (no durationSec fallback)" <|
+            \_ ->
+                Expect.equal (Just { startMillis = startMillis, doneDurationSec = Nothing })
+                    (ServerDetail.cloudShieldScanTimer (Just startMillis) "done" (Just (bodyWith "")))
+        , test "a terminal error state drops the descriptor" <|
+            \_ ->
+                Expect.equal Nothing (ServerDetail.cloudShieldScanTimer (Just startMillis) "error" Nothing)
         ]
 
 

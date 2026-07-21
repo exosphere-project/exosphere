@@ -5,6 +5,7 @@ module Tests.CloudShield.Card exposing
     , historyViewParamsSuite
     , manifestSuite
     , projectionSuite
+    , rowTimerSuite
     , transportSuite
     )
 
@@ -141,6 +142,46 @@ projectionSuite =
                     (Decode.decodeValue (Decode.field "embedUrl" Decode.string) value
                         |> Result.mapError Decode.errorToString
                     )
+        , test "the running scan's counting-up label projects onto its row, even with history present" <|
+            \_ ->
+                -- The host composes "scanning · m:ss" into the running target's override; the row must
+                -- carry it regardless of a history pick being shown on the right (non-empty history).
+                let
+                    override =
+                        Just { targetId = "i-1", state = "scanning · 0:23" }
+
+                    value =
+                        Card.projection Time.utc Nothing Nothing Nothing [ historyEntry "b-1" ] Nothing "" override sampleInstances (sampleModel Set.empty)
+                in
+                Expect.equal ( Ok "scanning · 0:23", Ok "queued" )
+                    ( rowScanState 0 value, rowScanState 1 value )
+        ]
+
+
+{-| `scanningRowLabel` builds the left-column running row's counting-up elapsed from the run's
+wall-clock start (the request seq) and the shared clock, consistent with the frozen completion time.
+-}
+rowTimerSuite : Test
+rowTimerSuite =
+    let
+        start =
+            1750000000000
+    in
+    describe "the scanning-row counting-up label (scanningRowLabel)"
+        [ test "composes scanning · m:ss from the wall-clock elapsed" <|
+            \_ ->
+                Expect.equal "scanning · 0:23" (Card.scanningRowLabel start (start + 23000))
+        , test "formats minutes past 60 seconds" <|
+            \_ ->
+                Expect.equal "scanning · 2:05" (Card.scanningRowLabel start (start + 125000))
+        , test "reads 0:00 before the wall-clock start stamp lands (non-epoch guard)" <|
+            \_ ->
+                -- A tiny optimistic seq (not yet stamped with wall-clock millis) must not read as an
+                -- absurd elapsed; it clamps to 0:00 until the real timestamp arrives.
+                Expect.equal "scanning · 0:00" (Card.scanningRowLabel 5 (start + 23000))
+        , test "reads 0:00 for a negative diff (clock skew)" <|
+            \_ ->
+                Expect.equal "scanning · 0:00" (Card.scanningRowLabel start (start - 1000))
         ]
 
 

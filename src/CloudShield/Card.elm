@@ -1,4 +1,4 @@
-module CloudShield.Card exposing (EmbedState(..), Instance, Model, Msg, OutMsg(..), ViewConfig, cardJson, init, projection, requestEmbed, transportChip, update, view)
+module CloudShield.Card exposing (EmbedState(..), Instance, Model, Msg, OutMsg(..), ViewConfig, cardJson, init, projection, requestEmbed, scanningRowLabel, transportChip, update, view)
 
 {-| Host wiring for the CloudShield dynamic-UI card (Phase 1, browser side).
 
@@ -570,18 +570,24 @@ type alias ViewConfig =
     -- `Nothing` hides the chip.
     , transportLabel : Maybe String
 
-    -- the tracked scan's elapsed-timer descriptor. `startMillis` is the run's wall-clock start
-    -- (the request seq, which the host sets to `Time.posixToMillis`); while the run is active
-    -- `doneDurationSec` is `Nothing` (the timer counts up from `startMillis` against the shared
-    -- clock); once the run is `done` it holds the authoritative scan duration (from the result
-    -- body's `summary.durationSec`) so the line freezes. `Nothing` hides the line entirely.
+    -- the tracked scan's completion descriptor. The *running* elapsed now lives on the scanning
+    -- target row (projected into `statusOverride` as `"scanning · m:ss"`), so this only drives the
+    -- brief "Scan completed in m:ss" confirmation line: while the run is active `doneDurationSec` is
+    -- `Nothing` (nothing drawn here — the row carries the progress); once the run is `done` it holds
+    -- the full wall-clock flow duration (`completedAt - startMillis`), never the scanner-only
+    -- `summary.durationSec` (which reads faster than the flow the user watched). `startMillis` is the
+    -- run's wall-clock start (the request seq). `Nothing`, or a `Nothing` `doneDurationSec`, draws no
+    -- confirmation line.
     , scanTimer : Maybe { startMillis : Int, doneDurationSec : Maybe Int }
 
     -- A muted host-drawn line for transport warnings/errors outside the sandboxed manifest.
     , transportWarning : Maybe String
 
-    -- the authoritative live state of the in-flight run, read from the polled status object
-    -- (§4.3) and projected onto its target row, overriding the optimistic local scanState.
+    -- the display state of the in-flight run, projected onto its target row (left column),
+    -- overriding the optimistic local scanState. Read from the polled status object (§4.3); while
+    -- the run is `running` the host composes the counting-up elapsed into it (`"scanning · m:ss"`),
+    -- so the scanning row itself is the primary live-progress signal — independent of whether a
+    -- history row is being viewed on the right. `queued`/`done`/terminal states pass through raw.
     , statusOverride : Maybe { targetId : String, state : String }
 
     -- the §4.2 result's `findings[]` array (host-parsed from the polled result object),
@@ -662,8 +668,8 @@ type EmbedState
 {-| Render the card with its host trust chrome. The whole thing is mounted inside
 Exosphere's elm-ui tree via `Element.html`.
 -}
-view : ExoPalette -> Time.Zone -> Time.Posix -> ViewConfig -> List Instance -> Model -> Element.Element Msg
-view palette zone currentTime config instances model =
+view : ExoPalette -> Time.Zone -> ViewConfig -> List Instance -> Model -> Element.Element Msg
+view palette zone config instances model =
     if config.approved then
         -- The card is now a two-column desktop layout (scan targets | scan history, with the
         -- results region full-width below), so it wants room. Cap the whole column at ~1300px so it
@@ -676,7 +682,7 @@ view palette zone currentTime config instances model =
             , rendererView palette zone config.activeBatchId config.pendingBatchId config.erroredBatchId config.allowedIframeOrigins config.manifestJson config.history config.results config.embedUrl config.statusOverride instances model
             , embedStateView palette config.embedState config.erroredBatchId
             , transportWarningView palette config.transportWarning
-            , scanTimerView palette currentTime config.scanTimer
+            , scanTimerView palette config.scanTimer
             , demoIframePanel palette config.demoIframeUrl model.showDemoIframe
             , disableAffordance palette
             ]
@@ -777,47 +783,52 @@ spinner palette =
         )
 
 
-{-| A muted, host-drawn line under the rendered manifest that gives the scan visible progress:
-`Scanning… m:ss` while a run is active (counting up from the run's start against the shared
-clock), frozen to `Scan completed in m:ss` once the run is `done`. `Nothing` hides it.
+{-| A muted, host-drawn confirmation line under the rendered manifest, shown only once the run is
+`done`: `Scan completed in m:ss`, frozen to the full wall-clock flow. The _running_ progress lives
+on the scanning target row (see `scanningRowLabel`), so this draws nothing while a run is active or
+when no frozen duration is available (`doneDurationSec == Nothing`).
 -}
-scanTimerView : ExoPalette -> Time.Posix -> Maybe { startMillis : Int, doneDurationSec : Maybe Int } -> Element.Element Msg
-scanTimerView palette currentTime timer =
-    case timer of
-        Just { startMillis, doneDurationSec } ->
-            let
-                label =
-                    case doneDurationSec of
-                        Just secs ->
-                            "Scan completed in " ++ formatElapsed secs
-
-                        Nothing ->
-                            let
-                                diffMs =
-                                    Time.posixToMillis currentTime - startMillis
-
-                                -- `startMillis` is the request seq, which the host stamps with
-                                -- wall-clock millis. For the ~1 frame before that stamp lands it
-                                -- is still the small optimistic counter, which would read as an
-                                -- absurd elapsed; treat any non-epoch start (or a negative diff)
-                                -- as 0:00 until the real timestamp arrives.
-                                elapsedSec =
-                                    if startMillis < 1000000000000 || diffMs < 0 then
-                                        0
-
-                                    else
-                                        diffMs // 1000
-                            in
-                            "Scanning… " ++ formatElapsed elapsedSec
-            in
+scanTimerView : ExoPalette -> Maybe { startMillis : Int, doneDurationSec : Maybe Int } -> Element.Element Msg
+scanTimerView palette timer =
+    case timer |> Maybe.andThen .doneDurationSec of
+        Just secs ->
             Element.el
                 [ Text.fontSize Text.Small
                 , Font.color (SH.toElementColor palette.neutral.text.subdued)
                 ]
-                (Text.body label)
+                (Text.body ("Scan completed in " ++ formatElapsed secs))
 
         Nothing ->
             Element.none
+
+
+{-| The scanning target row's counting-up label, `"scanning · m:ss"`, elapsed since the run's
+wall-clock start (`startMillis`, the request seq stamped with `Time.posixToMillis`). The host
+composes this into the row's `scanState` while the run is `running`, so the live progress reads on
+the row and is never suppressed by a concurrent history view. Wall-clock, so it stays consistent
+with the frozen `Scan completed in …` value (`completedAt - startMillis`).
+-}
+scanningRowLabel : Int -> Int -> String
+scanningRowLabel startMillis nowMillis =
+    "scanning · " ++ formatElapsed (elapsedSeconds startMillis nowMillis)
+
+
+{-| Whole seconds between a wall-clock `startMillis` and `nowMillis`. `startMillis` is the request
+seq, which the host stamps with wall-clock millis. For the ~1 frame before that stamp lands it is
+still the small optimistic counter, which would read as an absurd elapsed; treat any non-epoch
+start (or a negative diff) as 0 until the real timestamp arrives.
+-}
+elapsedSeconds : Int -> Int -> Int
+elapsedSeconds startMillis nowMillis =
+    let
+        diffMs =
+            nowMillis - startMillis
+    in
+    if startMillis < 1000000000000 || diffMs < 0 then
+        0
+
+    else
+        diffMs // 1000
 
 
 {-| Format a whole-second count as `m:ss` (e.g. 125 -> "2:05").
@@ -1118,7 +1129,7 @@ rendererStyle palette =
 
                 -- In-progress badges (queued/running) get a small spinning ring before the label
                 -- so an active scan reads as moving. `currentColor` inherits the badge tone color.
-                , ".jr-badge[data-state=\"queued\"]::before, .jr-badge[data-state=\"running\"]::before { content: \"\"; display: inline-block; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: jr-badge-spin 0.7s linear infinite; }"
+                , ".jr-badge[data-state^=\"queued\"]::before, .jr-badge[data-state^=\"running\"]::before, .jr-badge[data-state^=\"scanning\"]::before { content: \"\"; display: inline-block; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: jr-badge-spin 0.7s linear infinite; }"
                 , "@keyframes jr-badge-spin { to { transform: rotate(360deg); } }"
                 , ".jr-badge--neutral { background: " ++ frontBg ++ "; color: " ++ muted ++ "; border-color: " ++ border ++ "; }"
                 , ".jr-badge--info { background: " ++ infoBg ++ "; color: " ++ infoText ++ "; border-color: " ++ infoBorder ++ "; }"
