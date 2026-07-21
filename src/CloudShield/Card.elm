@@ -29,6 +29,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Events
 import Element.Font as Font
+import Helpers.Time
 import Html
 import Html.Attributes
 import Json.Decode as Decode
@@ -331,8 +332,8 @@ historyDisplayCap =
     20
 
 
-projection : List Transport.IndexEntry -> Maybe Encode.Value -> String -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Encode.Value
-projection history results embedUrl statusOverride instances model =
+projection : Time.Zone -> Maybe String -> List Transport.IndexEntry -> Maybe Encode.Value -> String -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Encode.Value
+projection zone activeBatchId history results embedUrl statusOverride instances model =
     let
         total =
             List.length history
@@ -357,24 +358,107 @@ projection history results embedUrl statusOverride instances model =
         , ( "results", Maybe.withDefault Encode.null results )
         , ( "embedUrl", Encode.string embedUrl )
         , ( "instances", Encode.list (instanceProjection statusOverride model) instances )
-        , ( "history", Encode.list historyRow shown )
+        , ( "history", Encode.list (historyRow zone activeBatchId) shown )
         , ( "historyNote", Encode.string historyNote )
         ]
 
 
 {-| Project one history row for the `/history` render state. The index is append-only
-(oldest first), so the render state reverses it to newest-first. `countsLabel` is the
-human-readable severity summary derived from the row's counts.
+(oldest first), so the render state reverses it to newest-first.
+
+The host computes every per-row visual signal here, so the renderer stays a pure catalog with
+no conditionals (host-renderer-interface.md §1.2):
+
+  - `completedAt` — humanized local timestamp ("Jul 20, 2026 · 10:52 PM"), not raw ISO.
+  - `subLabel` — the target + short batch id ("alpha · #84a1c6"), or "failed · no findings" for
+    an errored scan.
+  - `findings` — a findings-shaped array synthesized from the aggregate counts, bound into the
+    row's `FindingsTable` so history pills match the live `/results` pills.
+  - `rowState` — the one active/failed hook the stylesheet keys on: "Now viewing" for the row
+    the embed/results are showing, "failed" for an errored scan, "" (hidden badge) otherwise.
+  - `actionLabel` — the View/Refresh flip ("Refresh" for the active row, "" for a failed scan
+    that has nothing to view).
+
+`countsLabel` is retained (unbound by the current manifest) as a stable plain-text fallback.
+
 -}
-historyRow : Transport.IndexEntry -> Encode.Value
-historyRow entry =
+historyRow : Time.Zone -> Maybe String -> Transport.IndexEntry -> Encode.Value
+historyRow zone activeBatchId entry =
+    let
+        isError =
+            entry.status == "error"
+
+        isActiveRow =
+            (activeBatchId == Just entry.batchId) && not isError
+
+        completedAtLabel =
+            case Helpers.Time.iso8601StringToPosix entry.completedAt of
+                Ok posix ->
+                    Helpers.Time.humanReadableDateAndTimeCompact zone posix
+
+                Err _ ->
+                    entry.completedAt
+
+        subLabel =
+            if isError then
+                "failed · no findings"
+
+            else
+                entry.targetName ++ " · #" ++ String.left 6 entry.batchId
+
+        rowState =
+            if isError then
+                "failed"
+
+            else if isActiveRow then
+                "Now viewing"
+
+            else
+                ""
+
+        actionLabel =
+            if isError then
+                ""
+
+            else if isActiveRow then
+                "Refresh"
+
+            else
+                "View"
+    in
     Encode.object
         [ ( "batchId", Encode.string entry.batchId )
         , ( "targetName", Encode.string entry.targetName )
-        , ( "completedAt", Encode.string entry.completedAt )
+        , ( "completedAt", Encode.string completedAtLabel )
+        , ( "subLabel", Encode.string subLabel )
         , ( "status", Encode.string entry.status )
         , ( "countsLabel", Encode.string (Transport.countsLabel entry.counts) )
+        , ( "findings", findingsFromCounts entry.counts )
+        , ( "rowState", Encode.string rowState )
+        , ( "actionLabel", Encode.string actionLabel )
         ]
+
+
+{-| Synthesize a findings-shaped array from a row's aggregate `counts` so the per-row
+`FindingsTable` renders the same palette-driven severity pills as the live `/results` view: one
+`{ "severity": <sev> }` object per counted finding, which the table groups and counts back into
+pills. This keeps history pills byte-consistent with results pills without a second pill
+renderer or any renderer conditional. Cost is O(total findings) per row; history is display-
+capped and scan counts are modest, so the projected state stays small.
+-}
+findingsFromCounts : Transport.Counts -> Encode.Value
+findingsFromCounts counts =
+    let
+        entriesFor severity n =
+            List.repeat n (Encode.object [ ( "severity", Encode.string severity ) ])
+    in
+    Encode.list identity
+        (entriesFor "critical" counts.critical
+            ++ entriesFor "high" counts.high
+            ++ entriesFor "medium" counts.medium
+            ++ entriesFor "low" counts.low
+            ++ entriesFor "info" counts.info
+        )
 
 
 instanceProjection : Maybe { targetId : String, state : String } -> Model -> Instance -> Encode.Value
@@ -450,6 +534,12 @@ type alias ViewConfig =
     -- store, or nothing archived yet).
     , history : List Transport.IndexEntry
 
+    -- the batchId whose results/embed are currently on screen (the picked history row, else the
+    -- just-completed live scan). The row with this batchId renders as the single "Now viewing"
+    -- state (accent stripe + tint, action button flips View -> Refresh). `Nothing` when nothing
+    -- is being viewed.
+    , activeBatchId : Maybe String
+
     -- the iframe origin allowlist, derived host-side from the instance's own floating IPs.
     -- The renderer emits an `<iframe>` only for a `src` whose origin is an exact member of
     -- this list; it is the whole safety boundary for the catalog's origin-pinned Iframe.
@@ -499,13 +589,13 @@ type EmbedState
 {-| Render the card with its host trust chrome. The whole thing is mounted inside
 Exosphere's elm-ui tree via `Element.html`.
 -}
-view : ExoPalette -> Time.Posix -> ViewConfig -> List Instance -> Model -> Element.Element Msg
-view palette currentTime config instances model =
+view : ExoPalette -> Time.Zone -> Time.Posix -> ViewConfig -> List Instance -> Model -> Element.Element Msg
+view palette zone currentTime config instances model =
     if config.approved then
         Element.column
             [ Element.width Element.fill, Element.spacing spacer.px8 ]
             [ provenanceMarker palette config.sourceName
-            , rendererView palette config.allowedIframeOrigins config.manifestJson config.history config.results config.embedUrl config.statusOverride instances model
+            , rendererView palette zone config.activeBatchId config.allowedIframeOrigins config.manifestJson config.history config.results config.embedUrl config.statusOverride instances model
             , embedStateView palette config.embedState
             , transportWarningView palette config.transportWarning
             , scanTimerView palette currentTime config.scanTimer
@@ -645,8 +735,8 @@ transportChip palette label =
         (Element.text label)
 
 
-rendererView : ExoPalette -> List String -> String -> List Transport.IndexEntry -> Maybe Encode.Value -> String -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Element.Element Msg
-rendererView palette allowedIframeOrigins manifestJson history results embedUrl statusOverride instances model =
+rendererView : ExoPalette -> Time.Zone -> Maybe String -> List String -> String -> List Transport.IndexEntry -> Maybe Encode.Value -> String -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Element.Element Msg
+rendererView palette zone activeBatchId allowedIframeOrigins manifestJson history results embedUrl statusOverride instances model =
     -- Decode per render is fine for the small card; the fail-closed decoder is the security
     -- gate (an off-catalog or oversized manifest yields the error stub, never a partial tree).
     case JsonRender.decodeString manifestJson of
@@ -658,7 +748,7 @@ rendererView palette allowedIframeOrigins manifestJson history results embedUrl 
                 (Element.html
                     (Html.div [ Html.Attributes.style "width" "100%" ]
                         [ rendererStyle palette
-                        , Html.map RendererMsg (Render.view allowedIframeOrigins spec (projection history results embedUrl statusOverride instances model) model.renderer)
+                        , Html.map RendererMsg (Render.view allowedIframeOrigins spec (projection zone activeBatchId history results embedUrl statusOverride instances model) model.renderer)
                         ]
                     )
                 )
@@ -691,8 +781,11 @@ provenanceMarker palette sourceName =
             , Text.fontSize Text.Small
             ]
             (Element.text "?")
-        , Element.paragraph [ Text.fontSize Text.Small ]
-            [ Text.body ("Published by the \"" ++ sourceName ++ "\" VM.")
+        , Element.paragraph
+            [ Text.fontSize Text.Small
+            , Font.color (SH.toElementColor palette.neutral.text.subdued)
+            ]
+            [ Text.body ("Published by the \"" ++ sourceName ++ "\" VM — not verified by Exosphere.")
             ]
         ]
 
@@ -867,6 +960,18 @@ rendererStyle palette =
 
         neutralDot =
             c palette.muted.default
+
+        -- Interactive/active accent, derived ENTIRELY from the Exosphere primary (never a
+        -- hardcoded hue): a faint fill, a stronger fill, and a hairline. `color-mix` keeps these
+        -- correct in both themes because `primary` itself flips with the palette.
+        primaryTint =
+            "color-mix(in srgb, " ++ primary ++ " 10%, transparent)"
+
+        primaryTintStrong =
+            "color-mix(in srgb, " ++ primary ++ " 16%, transparent)"
+
+        primaryLine =
+            "color-mix(in srgb, " ++ primary ++ " 55%, transparent)"
     in
     Html.node "style"
         []
@@ -937,6 +1042,56 @@ rendererStyle palette =
                 , ".jr-disclosure__summary { cursor: pointer; font-size: 0.85em; font-weight: 600; color: " ++ muted ++ "; padding: 2px 0; user-select: none; }"
                 , ".jr-disclosure__summary:hover { color: " ++ text ++ "; }"
                 , ".jr-disclosure__body { margin-top: 8px; }"
+
+                -- REDESIGN — a composed card surface, not a flat list. Everything below styles a
+                -- FIXED renderer DOM (no manifest class hooks); the one per-row hook is the
+                -- rowState Badge's `data-state`, which `:has()` reads to style the whole row.
+                --
+                -- Section rubrics: the card's standalone Text child ("Scan targets") and the
+                -- history disclosure summary read as uppercase muted labels.
+                , ".jr-card { gap: 14px; }"
+                , ".jr-card > .jr-text { text-transform: uppercase; letter-spacing: 0.07em; font-size: 0.72em; font-weight: 700; color: " ++ muted ++ "; margin: 2px 0 -4px; }"
+                , ".jr-disclosure__summary { text-transform: uppercase; letter-spacing: 0.07em; font-size: 0.72em; font-weight: 700; }"
+
+                -- Scan-target rows: the name grows; the primary-filled Scan button sits at the right.
+                , ".jr-card > .jr-stack--col > .jr-stack--row { align-items: center; gap: 10px; padding: 7px 10px; border-radius: 8px; }"
+                , ".jr-card > .jr-stack--col > .jr-stack--row:hover { background: " ++ frontBg ++ "; }"
+                , ".jr-card > .jr-stack--col > .jr-stack--row > .jr-text { flex: 1; min-width: 0; font-weight: 500; }"
+                , ".jr-card > .jr-stack--col > .jr-stack--row .jr-button { background: " ++ primary ++ "; border-color: " ++ primary ++ "; color: #fff; }"
+                , ".jr-card > .jr-stack--col > .jr-stack--row .jr-button:hover { filter: brightness(1.08); color: #fff; }"
+
+                -- Toolbar (Select all | Scan selected): push the button to the right edge.
+                , ".jr-card > .jr-stack--row { align-items: center; }"
+                , ".jr-card > .jr-stack--row .jr-button { margin-left: auto; }"
+
+                -- History rows: a two-line main block (when + sub) that grows, then pills, then action.
+                , ".jr-disclosure__body > .jr-stack--col { gap: 2px; }"
+                , ".jr-disclosure__body > .jr-stack--col > .jr-stack--row { align-items: center; gap: 12px; padding: 9px 10px; border-radius: 9px; border-left: 3px solid transparent; }"
+                , ".jr-disclosure__body > .jr-stack--col > .jr-stack--row:hover { background: " ++ frontBg ++ "; }"
+                , ".jr-disclosure__body .jr-stack--row > .jr-stack--col { flex: 1; min-width: 0; gap: 1px; }"
+                , ".jr-disclosure__body .jr-stack--row > .jr-stack--col > .jr-text:first-child { font-size: 0.95em; font-weight: 600; color: " ++ text ++ "; }"
+                , ".jr-disclosure__body .jr-stack--row > .jr-stack--col > .jr-text:last-child { font-size: 0.82em; color: " ++ muted ++ "; }"
+                , ".jr-disclosure__body .jr-stack--row .jr-findings { flex: 0 0 auto; }"
+                , ".jr-disclosure__body .jr-findings__total { display: none; }"
+
+                -- The single per-row state hook. Empty rowState => hidden badge (the common case).
+                , ".jr-badge[data-state=\"\"] { display: none; }"
+
+                -- Active / now-viewing row: accent stripe + primary tint + a pulsing flag, action
+                -- flips to Refresh. Keyed on the rowState Badge value the host projects.
+                , ".jr-disclosure__body > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Now viewing\"]) { background: " ++ primaryTint ++ "; border-left-color: " ++ primary ++ "; box-shadow: inset 0 0 0 1px " ++ primaryLine ++ "; }"
+                , ".jr-badge[data-state=\"Now viewing\"] { display: inline-flex; align-items: center; gap: 5px; background: " ++ primaryTintStrong ++ "; color: " ++ primary ++ "; border-color: " ++ primaryLine ++ "; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.7em; font-weight: 700; }"
+                , ".jr-badge[data-state=\"Now viewing\"]::before { content: \"\"; width: 6px; height: 6px; border-radius: 50%; background: " ++ primary ++ "; animation: jr-viewing-pulse 2s ease-in-out infinite; }"
+                , "@keyframes jr-viewing-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }"
+                , "@media (prefers-reduced-motion: reduce) { .jr-badge[data-state=\"Now viewing\"]::before { animation: none; } }"
+                , ".jr-disclosure__body > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Now viewing\"]) .jr-button { background: transparent; border-color: " ++ primaryLine ++ "; color: " ++ primary ++ "; }"
+
+                -- Failed scan row: de-emphasized, a small danger 'failed' pill, and no pills/action
+                -- (nothing to view). The host also blanks its actionLabel; this hides the button.
+                , ".jr-badge[data-state=\"failed\"] { background: " ++ dangerBg ++ "; color: " ++ dangerText ++ "; border-color: " ++ dangerBorder ++ "; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.7em; font-weight: 700; }"
+                , ".jr-disclosure__body > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"failed\"]) { opacity: 0.72; }"
+                , ".jr-disclosure__body > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"failed\"]) .jr-button { display: none; }"
+                , ".jr-disclosure__body > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"failed\"]) .jr-findings { display: none; }"
                 , ".jr-confirm { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 1000; }"
                 , ".jr-confirm__box { background: " ++ frontBg ++ "; color: " ++ text ++ "; padding: 20px 22px; border-radius: 8px; max-width: 380px; border: 1px solid " ++ border ++ "; box-shadow: 0 8px 40px rgba(0,0,0,0.5); }"
                 , ".jr-confirm__title { margin: 0 0 8px 0; font-size: 1.1em; font-weight: 600; }"
@@ -966,8 +1121,13 @@ cardJson =
   "elements": {
     "card": {
       "type": "Card",
-      "props": { "title": "CloudShield — scan instances" },
-      "children": ["toolbar", "list", "history", "results", "results-embed"]
+      "props": {},
+      "children": ["targets-label", "toolbar", "list", "history", "results", "results-embed"]
+    },
+    "targets-label": {
+      "type": "Text",
+      "props": { "value": "Scan targets" },
+      "children": []
     },
     "toolbar": {
       "type": "Stack",
@@ -1048,7 +1208,7 @@ cardJson =
     },
     "history": {
       "type": "Disclosure",
-      "props": { "label": "Scan history" },
+      "props": { "label": "Scan history", "open": true },
       "children": ["history-note", "history-rows"]
     },
     "history-note": {
@@ -1065,31 +1225,39 @@ cardJson =
     "history-row": {
       "type": "Stack",
       "props": { "direction": "row", "gap": 2 },
-      "children": ["history-date", "history-target", "history-status", "history-counts", "history-view-btn"]
+      "children": ["history-main", "history-pills", "history-state", "history-view-btn"]
     },
-    "history-date": {
+    "history-main": {
+      "type": "Stack",
+      "props": { "direction": "col", "gap": 0 },
+      "children": ["history-when", "history-sub"]
+    },
+    "history-when": {
       "type": "Text",
       "props": { "value": { "$item": "completedAt" } },
       "children": []
     },
-    "history-target": {
+    "history-sub": {
       "type": "Text",
-      "props": { "value": { "$item": "targetName" } },
+      "props": { "value": { "$item": "subLabel" } },
       "children": []
     },
-    "history-status": {
+    "history-pills": {
+      "type": "FindingsTable",
+      "props": {
+        "bind": { "$item": "findings" },
+        "groupBy": "severity"
+      },
+      "children": []
+    },
+    "history-state": {
       "type": "Badge",
-      "props": { "value": { "$item": "status" } },
-      "children": []
-    },
-    "history-counts": {
-      "type": "Text",
-      "props": { "value": { "$item": "countsLabel" } },
+      "props": { "value": { "$item": "rowState" } },
       "children": []
     },
     "history-view-btn": {
       "type": "Button",
-      "props": { "label": "View" },
+      "props": { "label": { "$item": "actionLabel" } },
       "on": {
         "press": {
           "action": "cloudshield.getEmbed",

@@ -900,6 +900,7 @@ cloudShieldViewConfig approved project model currentTime server =
     , statusOverride = statusOverride
     , results = results
     , history = model.cloudShieldHistory
+    , activeBatchId = embedProjection.activeBatchId
     , allowedIframeOrigins = allowedIframeOrigins
     , embedUrl = embedUrl
     , embedState = embedProjection.embedState
@@ -938,7 +939,7 @@ cloudShieldEmbedProjection :
     -> Maybe { targetId : String, state : String }
     -> Maybe String
     -> Model
-    -> { results : Maybe Encode.Value, embedUrl : String, embedState : CloudShield.Card.EmbedState, historyPickActive : Bool }
+    -> { results : Maybe Encode.Value, embedUrl : String, embedState : CloudShield.Card.EmbedState, historyPickActive : Bool, activeBatchId : Maybe String }
 cloudShieldEmbedProjection metadata currentTime statusOverride resultBody model =
     let
         rawEmbedResult =
@@ -1065,11 +1066,33 @@ cloudShieldEmbedProjection metadata currentTime statusOverride resultBody model 
                     , atDone (Decode.decodeString (Decode.field "embedUrl" Decode.string) >> Result.toMaybe)
                         |> Maybe.withDefault ""
                     )
+
+        -- The batchId whose findings/embed are on screen, so the card can flag exactly one
+        -- history row as "Now viewing": the picked history row wins, else the just-completed
+        -- live scan (read from the result body only when the correlated run is `done`).
+        activeBatchId =
+            case maybeEmbedResult of
+                Just embed ->
+                    Just embed.batchId
+
+                Nothing ->
+                    case statusOverride of
+                        Just override ->
+                            if override.state == "done" then
+                                resultBody
+                                    |> Maybe.andThen (Decode.decodeString (Decode.field "batchId" Decode.string) >> Result.toMaybe)
+
+                            else
+                                Nothing
+
+                        Nothing ->
+                            Nothing
     in
     { results = results
     , embedUrl = embedUrl
     , embedState = embedState
     , historyPickActive = maybeEmbedResult /= Nothing
+    , activeBatchId = activeBatchId
     }
 
 
@@ -1834,13 +1857,13 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
 
           else
             Element.none
-        , cloudShieldCard context project currentTime server model
+        , cloudShieldCard context project ( currentTime, timeZone ) server model
         , Element.wrappedRow [ Element.spacing spacer.px24 ] serverDetailTiles
         ]
 
 
-cloudShieldCard : View.Types.Context -> Project -> Time.Posix -> Server -> Model -> Element.Element Msg
-cloudShieldCard context project currentTime server model =
+cloudShieldCard : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Server -> Model -> Element.Element Msg
+cloudShieldCard context project ( currentTime, timeZone ) server model =
     -- Gated behind the experimental-features flag AND the §5.1 self-instance-placement
     -- discovery gate: the card appears only on an instance that actually published an
     -- extension, i.e. the `exoext.v1.kind` sentinel is present in *this* instance's own Nova
@@ -1879,6 +1902,7 @@ cloudShieldCard context project currentTime server model =
             )
             [ CloudShield.Card.view
                 context.palette
+                timeZone
                 currentTime
                 config
                 (cloudShieldInstances project model)

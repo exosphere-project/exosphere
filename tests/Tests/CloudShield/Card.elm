@@ -29,6 +29,7 @@ import JsonRender.Render as Render
 import OpenStack.Types as OSTypes
 import Set exposing (Set)
 import Test exposing (Test, describe, test)
+import Time
 
 
 
@@ -107,7 +108,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection [] Nothing "" Nothing sampleInstances (sampleModel (Set.singleton "i-1"))
+                        Card.projection Time.utc Nothing [] Nothing "" Nothing sampleInstances (sampleModel (Set.singleton "i-1"))
                 in
                 Expect.equal ( Ok True, Ok False )
                     ( rowSelected 0 value, rowSelected 1 value )
@@ -115,7 +116,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection [] Nothing "" Nothing sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc Nothing [] Nothing "" Nothing sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal ( Ok "idle", Ok "queued" )
                     ( rowScanState 0 value, rowScanState 1 value )
@@ -126,7 +127,7 @@ projectionSuite =
                         Just { targetId = "i-1", state = "running" }
 
                     value =
-                        Card.projection [] Nothing "" override sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc Nothing [] Nothing "" override sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal ( Ok "running", Ok "queued" )
                     ( rowScanState 0 value, rowScanState 1 value )
@@ -134,7 +135,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection [] Nothing "https://1-2-3-4.sslip.io/app" Nothing sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc Nothing [] Nothing "https://1-2-3-4.sslip.io/app" Nothing sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal (Ok "https://1-2-3-4.sslip.io/app")
                     (Decode.decodeValue (Decode.field "embedUrl" Decode.string) value
@@ -350,7 +351,27 @@ historyEntries n =
 
 projectHistory : List Transport.IndexEntry -> Decode.Value
 projectHistory entries =
-    Card.projection entries Nothing "" Nothing sampleInstances idleModel
+    Card.projection Time.utc Nothing entries Nothing "" Nothing sampleInstances idleModel
+
+
+{-| Project a single history row and read a string field from `/history/0`.
+-}
+historyRowField : Maybe String -> Transport.IndexEntry -> String -> Result String String
+historyRowField activeBatchId entry field =
+    Card.projection Time.utc activeBatchId [ entry ] Nothing "" Nothing sampleInstances idleModel
+        |> Decode.decodeValue (Decode.field "history" (Decode.index 0 (Decode.field field Decode.string)))
+        |> Result.mapError Decode.errorToString
+
+
+erroredEntry : Transport.IndexEntry
+erroredEntry =
+    { batchId = "b-err"
+    , targetId = "i-1"
+    , targetName = "alpha"
+    , completedAt = "2026-07-01T00:00:00Z"
+    , status = "error"
+    , counts = { critical = 0, high = 0, medium = 0, low = 0, info = 0 }
+    }
 
 
 historySuite : Test
@@ -398,6 +419,48 @@ historySuite =
             \_ ->
                 Expect.equal (Ok "Showing the latest 20 of 25 scans.")
                     (historyNoteOf (projectHistory (historyEntries 25)))
+        , test "completedAt is humanized (local, 12-hour), not raw ISO" <|
+            \_ ->
+                Expect.equal (Ok "Jul 1, 2026 · 12:00 AM")
+                    (Decode.decodeValue
+                        (Decode.field "history" (Decode.index 0 (Decode.field "completedAt" Decode.string)))
+                        (projectHistory [ historyEntry "b-1" ])
+                        |> Result.mapError Decode.errorToString
+                    )
+        , test "a done row not being viewed is a plain View with an empty (hidden) rowState" <|
+            \_ ->
+                Expect.equal ( Ok "", Ok "View", Ok "alpha · #b-1" )
+                    ( historyRowField Nothing (historyEntry "b-1") "rowState"
+                    , historyRowField Nothing (historyEntry "b-1") "actionLabel"
+                    , historyRowField Nothing (historyEntry "b-1") "subLabel"
+                    )
+        , test "the active batch row flips to Now viewing / Refresh" <|
+            \_ ->
+                Expect.equal ( Ok "Now viewing", Ok "Refresh" )
+                    ( historyRowField (Just "b-1") (historyEntry "b-1") "rowState"
+                    , historyRowField (Just "b-1") (historyEntry "b-1") "actionLabel"
+                    )
+        , test "a failed scan is muted: failed state, nothing to view, no findings" <|
+            \_ ->
+                Expect.equal ( Ok "failed", Ok "", Ok "failed · no findings" )
+                    ( historyRowField Nothing erroredEntry "rowState"
+                    , historyRowField Nothing erroredEntry "actionLabel"
+                    , historyRowField Nothing erroredEntry "subLabel"
+                    )
+        , test "an errored batch never reads as active even if it is the active batchId" <|
+            \_ ->
+                Expect.equal ( Ok "failed", Ok "" )
+                    ( historyRowField (Just "b-err") erroredEntry "rowState"
+                    , historyRowField (Just "b-err") erroredEntry "actionLabel"
+                    )
+        , test "per-row findings are synthesized from counts so history pills match results pills" <|
+            \_ ->
+                Expect.equal (Ok [ "high", "high" ])
+                    (Decode.decodeValue
+                        (Decode.field "history" (Decode.index 0 (Decode.field "findings" (Decode.list (Decode.field "severity" Decode.string)))))
+                        (projectHistory [ historyEntry "b-1" ])
+                        |> Result.mapError Decode.errorToString
+                    )
         ]
 
 
