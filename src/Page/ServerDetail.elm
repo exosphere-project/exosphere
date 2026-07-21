@@ -907,6 +907,7 @@ cloudShieldViewConfig approved project model currentTime server =
     , history = model.cloudShieldHistory
     , activeBatchId = embedProjection.activeBatchId
     , pendingBatchId = embedProjection.pendingBatchId
+    , erroredBatchId = embedProjection.erroredBatchId
     , allowedIframeOrigins = allowedIframeOrigins
     , embedUrl = embedUrl
     , embedState = embedProjection.embedState
@@ -947,7 +948,7 @@ cloudShieldEmbedProjection :
     -> Maybe { targetId : String, state : String }
     -> Maybe String
     -> Model
-    -> { results : Maybe Encode.Value, embedUrl : String, embedState : CloudShield.Card.EmbedState, historyPickActive : Bool, activeBatchId : Maybe String, pendingBatchId : Maybe String }
+    -> { results : Maybe Encode.Value, embedUrl : String, embedState : CloudShield.Card.EmbedState, historyPickActive : Bool, activeBatchId : Maybe String, pendingBatchId : Maybe String, erroredBatchId : Maybe String }
 cloudShieldEmbedProjection metadata currentTime statusOverride resultBody model =
     let
         rawEmbedResult =
@@ -1108,6 +1109,25 @@ cloudShieldEmbedProjection metadata currentTime statusOverride resultBody model 
 
                 _ ->
                     Nothing
+
+        -- The batchId of the last getEmbed that failed / timed out, for the per-row "Couldn't open"
+        -- + Retry state and the results-region Retry affordance. Derived purely from `embedState`,
+        -- so it is `Just` ONLY while `EmbedError` and clears the moment a new getEmbed starts (the
+        -- pending marker's requestId no longer matches -> `EmbedLoading`) or one succeeds
+        -- (`EmbedReady`). The batchId comes from the still-set pending marker on a timeout, else from
+        -- the error result sitting in the res slot after the marker was cleared.
+        erroredBatchId =
+            case embedState of
+                CloudShield.Card.EmbedError _ ->
+                    case model.cloudShieldPendingEmbed of
+                        Just pending ->
+                            Just pending.batchId
+
+                        Nothing ->
+                            Maybe.map .batchId rawEmbedResult
+
+                _ ->
+                    Nothing
     in
     { results = results
     , embedUrl = embedUrl
@@ -1115,6 +1135,7 @@ cloudShieldEmbedProjection metadata currentTime statusOverride resultBody model 
     , historyPickActive = maybeEmbedResult /= Nothing
     , activeBatchId = activeBatchId
     , pendingBatchId = pendingBatchId
+    , erroredBatchId = erroredBatchId
     }
 
 

@@ -86,6 +86,7 @@ type Msg
     = GotApprove
     | GotForget
     | GotToggleDemoIframe
+    | GotRetryEmbed String
     | RendererMsg Render.Msg
 
 
@@ -137,6 +138,12 @@ update instances msg model =
 
         GotToggleDemoIframe ->
             ( { model | showDemoIframe = not model.showDemoIframe }, Nothing )
+
+        GotRetryEmbed batchId ->
+            -- The results-region "Retry" affordance re-fires getEmbed for the last-attempted batch.
+            -- Same OutMsg the history-row press emits, so it flows through the host's single-req-slot
+            -- guard exactly like a fresh View.
+            requestEmbed (Just batchId) model
 
         RendererMsg rmsg ->
             let
@@ -331,8 +338,8 @@ historyDisplayCap =
     20
 
 
-projection : Time.Zone -> Maybe String -> Maybe String -> List Transport.IndexEntry -> Maybe Encode.Value -> String -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Encode.Value
-projection zone activeBatchId pendingBatchId history results embedUrl statusOverride instances model =
+projection : Time.Zone -> Maybe String -> Maybe String -> Maybe String -> List Transport.IndexEntry -> Maybe Encode.Value -> String -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Encode.Value
+projection zone activeBatchId pendingBatchId erroredBatchId history results embedUrl statusOverride instances model =
     let
         total =
             List.length history
@@ -351,14 +358,25 @@ projection zone activeBatchId pendingBatchId history results embedUrl statusOver
                     ++ " of "
                     ++ String.fromInt total
                     ++ " scans."
+
+        -- The two columns each carry a header with a live count, so the researcher can tell at a
+        -- glance how many targets / scans exist even though each column is height-bounded and
+        -- scrolls internally (counts unbounded; "unlimited" instances and scans).
+        targetsLabel =
+            "Scan targets · " ++ String.fromInt (List.length instances)
+
+        historyLabel =
+            "Scan history · " ++ String.fromInt total
     in
     Encode.object
         [ ( "selectAll", Encode.bool model.selectAll )
         , ( "results", Maybe.withDefault Encode.null results )
         , ( "embedUrl", Encode.string embedUrl )
         , ( "instances", Encode.list (instanceProjection statusOverride model) instances )
-        , ( "history", Encode.list (historyRow zone activeBatchId pendingBatchId) shown )
+        , ( "history", Encode.list (historyRow zone activeBatchId pendingBatchId erroredBatchId) shown )
         , ( "historyNote", Encode.string historyNote )
+        , ( "targetsLabel", Encode.string targetsLabel )
+        , ( "historyLabel", Encode.string historyLabel )
         ]
 
 
@@ -382,23 +400,43 @@ no conditionals (host-renderer-interface.md §1.2):
 `pendingBatchId` is the getEmbed that is genuinely in flight right now: its row shows the loading
 state, and while it is set NO row shows "Now viewing" (the clicked row supersedes the prior one).
 
+`erroredBatchId` is the last getEmbed that failed / timed out (host-tracked, retained until a new
+getEmbed starts or one succeeds). That row reads "Couldn't open" and its action flips to "Retry"
+(re-firing the same `getEmbed` press for its batch), and — crucially — while it is set the prior
+active row does NOT falsely reclaim "Now viewing".
+
+Precedence for a row's state: **failed scan (dead scan, never View-able) → embed error (this batch
+just failed) → loading (in-flight) → now viewing (resolved ok) → idle**. The two "error" concepts
+never co-occur on one row (a failed scan is never getEmbed-clickable, so `erroredBatchId` can never
+name a failed-scan batch), so keying `isError` first keeps the failed-scan row pristine.
+
 `countsLabel` is retained (unbound by the current manifest) as a stable plain-text fallback.
 
 -}
-historyRow : Time.Zone -> Maybe String -> Maybe String -> Transport.IndexEntry -> Encode.Value
-historyRow zone activeBatchId pendingBatchId entry =
+historyRow : Time.Zone -> Maybe String -> Maybe String -> Maybe String -> Transport.IndexEntry -> Encode.Value
+historyRow zone activeBatchId pendingBatchId erroredBatchId entry =
     let
         isError =
             entry.status == "error"
 
-        -- This row's getEmbed is in flight: it shows the loading state and its button de-emphasizes.
-        isLoadingRow =
-            (pendingBatchId == Just entry.batchId) && not isError
+        -- This row's last getEmbed failed / timed out: it shows a danger "Couldn't open" state and
+        -- its action flips to "Retry" (the same press re-fires getEmbed). Never on a failed scan.
+        isEmbedErrorRow =
+            (erroredBatchId == Just entry.batchId) && not isError
 
-        -- While ANY getEmbed is pending, no row reads as "Now viewing": the clicked (loading) row
-        -- supersedes the previously-active one immediately, so the old row drops its active state.
+        -- This row's getEmbed is in flight: it shows the loading state and its button de-emphasizes.
+        -- An error on this same batch supersedes the loading look (it can only be one at a time).
+        isLoadingRow =
+            (pendingBatchId == Just entry.batchId) && not isError && not isEmbedErrorRow
+
+        -- While ANY getEmbed is pending, OR while this batch's getEmbed just errored, no row reads as
+        -- "Now viewing": the clicked (loading/errored) row supersedes the previously-active one, so
+        -- the old row drops its active state instead of falsely reclaiming it.
         isActiveRow =
-            (pendingBatchId == Nothing) && (activeBatchId == Just entry.batchId) && not isError
+            (pendingBatchId == Nothing)
+                && (erroredBatchId == Nothing)
+                && (activeBatchId == Just entry.batchId)
+                && not isError
 
         completedAtLabel =
             case Helpers.Time.iso8601StringToPosix entry.completedAt of
@@ -419,6 +457,9 @@ historyRow zone activeBatchId pendingBatchId entry =
             if isError then
                 "failed"
 
+            else if isEmbedErrorRow then
+                "Couldn't open"
+
             else if isLoadingRow then
                 "Opening…"
 
@@ -431,6 +472,9 @@ historyRow zone activeBatchId pendingBatchId entry =
         actionLabel =
             if isError then
                 ""
+
+            else if isEmbedErrorRow then
+                "Retry"
 
             else if isLoadingRow then
                 "Opening…"
@@ -562,6 +606,13 @@ type alias ViewConfig =
     -- errors, or times out, so no row is ever wedged in the loading state.
     , pendingBatchId : Maybe String
 
+    -- the batchId of the last getEmbed that failed or timed out (`EmbedError`), retained until a
+    -- new getEmbed starts or one succeeds. Its history row reads a danger "Couldn't open" state
+    -- with a "Retry" action (re-firing getEmbed for it), and while it is set NO row falsely shows
+    -- "Now viewing". Also drives the results-region "Retry" affordance. `Nothing` when no embed is
+    -- in an error state.
+    , erroredBatchId : Maybe String
+
     -- the iframe origin allowlist, derived host-side from the instance's own floating IPs.
     -- The renderer emits an `<iframe>` only for a `src` whose origin is an exact member of
     -- this list; it is the whole safety boundary for the catalog's origin-pinned Iframe.
@@ -614,15 +665,16 @@ Exosphere's elm-ui tree via `Element.html`.
 view : ExoPalette -> Time.Zone -> Time.Posix -> ViewConfig -> List Instance -> Model -> Element.Element Msg
 view palette zone currentTime config instances model =
     if config.approved then
-        -- Cap the whole card column so a wide instance-detail page doesn't fling each row's left
-        -- cluster (date/target) and right cluster (pills + state + action) to opposite edges. The
-        -- provenance bar, rendered manifest, and the muted lines all share this one contained
-        -- ~900px surface (left-aligned within the page column).
+        -- The card is now a two-column desktop layout (scan targets | scan history, with the
+        -- results region full-width below), so it wants room. Cap the whole column at ~1300px so it
+        -- doesn't stretch absurdly on ultra-wide displays; below that it fills the page column and
+        -- the CSS grid stacks to one column on narrow widths. The provenance bar, rendered manifest,
+        -- and the muted host lines all share this one contained surface.
         Element.column
-            [ Element.width (Element.fill |> Element.maximum 900), Element.spacing spacer.px8 ]
+            [ Element.width (Element.fill |> Element.maximum 1300), Element.spacing spacer.px8 ]
             [ provenanceMarker palette config.sourceName
-            , rendererView palette zone config.activeBatchId config.pendingBatchId config.allowedIframeOrigins config.manifestJson config.history config.results config.embedUrl config.statusOverride instances model
-            , embedStateView palette config.embedState
+            , rendererView palette zone config.activeBatchId config.pendingBatchId config.erroredBatchId config.allowedIframeOrigins config.manifestJson config.history config.results config.embedUrl config.statusOverride instances model
+            , embedStateView palette config.embedState config.erroredBatchId
             , transportWarningView palette config.transportWarning
             , scanTimerView palette currentTime config.scanTimer
             , demoIframePanel palette config.demoIframeUrl model.showDemoIframe
@@ -647,16 +699,24 @@ transportWarningView palette warning =
             Element.none
 
 
-{-| A quiet, host-drawn line beside the results/iframe area that surfaces the terminal outcomes of
-the history-View flow: an error-toned line if a getEmbed failed or timed out, and a gentle prompt
-when an embed token has expired (the iframe having been unmounted by the host so the dead
-CloudShield app stops spinning). The in-flight/loading signal is now the per-row "Opening…" state
-in the history list (the primary signal), so `EmbedLoading` draws nothing here to avoid a redundant
-second spinner. `EmbedReady`/`EmbedIdle` also draw nothing. Same muted-line idiom as
-`transportWarningView`/`scanTimerView`.
+{-| The host-drawn state line for the full-width results region below the columns. It owns the
+empty / loading / error affordance for the embed flow — the catalog `Iframe` now renders NOTHING
+for an empty `src` (`renderIframe`), so this line is the single source of truth for "no iframe yet"
+and never the renderer's old fail-closed "Embedded content is unavailable" placeholder.
+
+  - `EmbedIdle` — a gentle muted hint ("Select a scan to view its results.") so an untouched card
+    reads as ready, not broken.
+  - `EmbedLoading` — a spinner + "Opening scan results…" (in addition to the per-row "Opening…"
+    badge), so the region itself shows progress rather than sitting blank.
+  - `EmbedError` — a danger-toned "Couldn't open these results." with a **Retry** affordance that
+    re-fires getEmbed for the last-attempted batch (`erroredBatchId`).
+  - `EmbedExpired` — a gentle prompt to reopen (the iframe was unmounted so the dead CloudShield
+    app stops spinning on auth retries).
+  - `EmbedReady` — nothing; the iframe is on screen.
+
 -}
-embedStateView : ExoPalette -> EmbedState -> Element.Element Msg
-embedStateView palette embedState =
+embedStateView : ExoPalette -> EmbedState -> Maybe String -> Element.Element Msg
+embedStateView palette embedState erroredBatchId =
     let
         mutedLine tone label =
             Element.el
@@ -667,22 +727,54 @@ embedStateView palette embedState =
     in
     case embedState of
         EmbedIdle ->
-            Element.none
+            mutedLine palette.neutral.text.subdued
+                "Select a scan to view its results."
 
         EmbedReady ->
             Element.none
 
         EmbedLoading ->
-            -- Redundant with the per-row "Opening…" state; the history row is the loading signal now.
-            Element.none
+            Element.row
+                [ Element.spacing spacer.px8 ]
+                [ spinner palette
+                , mutedLine palette.neutral.text.subdued "Opening scan results…"
+                ]
 
         EmbedError message ->
-            mutedLine palette.danger.textOnNeutralBG
-                ("Couldn't open these results: " ++ message ++ ". Try again.")
+            Element.row
+                [ Element.spacing spacer.px8 ]
+                [ mutedLine palette.danger.textOnNeutralBG
+                    ("Couldn't open these results: " ++ message ++ ".")
+                , case erroredBatchId of
+                    Just batchId ->
+                        linkButton palette "Retry" (GotRetryEmbed batchId)
+
+                    Nothing ->
+                        Element.none
+                ]
 
         EmbedExpired ->
             mutedLine palette.neutral.text.subdued
                 "This results session expired. Click View to reopen."
+
+
+{-| A small CSS-driven spinner ring for the results-region loading line, tinted to the subdued
+neutral text so it reads as quiet host chrome (matches the per-row "Opening…" ring idiom).
+-}
+spinner : ExoPalette -> Element.Element msg
+spinner palette =
+    Element.html
+        (Html.node "span"
+            [ Html.Attributes.style "display" "inline-block"
+            , Html.Attributes.style "width" "12px"
+            , Html.Attributes.style "height" "12px"
+            , Html.Attributes.style "border" ("2px solid " ++ Color.toCssString palette.neutral.text.subdued)
+            , Html.Attributes.style "border-top-color" "transparent"
+            , Html.Attributes.style "border-radius" "50%"
+            , Html.Attributes.style "animation" "jr-badge-spin 0.7s linear infinite"
+            ]
+            []
+        )
 
 
 {-| A muted, host-drawn line under the rendered manifest that gives the scan visible progress:
@@ -760,8 +852,8 @@ transportChip palette label =
         (Element.text label)
 
 
-rendererView : ExoPalette -> Time.Zone -> Maybe String -> Maybe String -> List String -> String -> List Transport.IndexEntry -> Maybe Encode.Value -> String -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Element.Element Msg
-rendererView palette zone activeBatchId pendingBatchId allowedIframeOrigins manifestJson history results embedUrl statusOverride instances model =
+rendererView : ExoPalette -> Time.Zone -> Maybe String -> Maybe String -> Maybe String -> List String -> String -> List Transport.IndexEntry -> Maybe Encode.Value -> String -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Element.Element Msg
+rendererView palette zone activeBatchId pendingBatchId erroredBatchId allowedIframeOrigins manifestJson history results embedUrl statusOverride instances model =
     -- Decode per render is fine for the small card; the fail-closed decoder is the security
     -- gate (an off-catalog or oversized manifest yields the error stub, never a partial tree).
     case JsonRender.decodeString manifestJson of
@@ -773,7 +865,7 @@ rendererView palette zone activeBatchId pendingBatchId allowedIframeOrigins mani
                 (Element.html
                     (Html.div [ Html.Attributes.style "width" "100%" ]
                         [ rendererStyle palette
-                        , Html.map RendererMsg (Render.view allowedIframeOrigins spec (projection zone activeBatchId pendingBatchId history results embedUrl statusOverride instances model) model.renderer)
+                        , Html.map RendererMsg (Render.view allowedIframeOrigins spec (projection zone activeBatchId pendingBatchId erroredBatchId history results embedUrl statusOverride instances model) model.renderer)
                         ]
                     )
                 )
@@ -997,6 +1089,15 @@ rendererStyle palette =
 
         primaryLine =
             "color-mix(in srgb, " ++ primary ++ " 55%, transparent)"
+
+        -- Danger accent for the embed-error ("Couldn't open") history row, mirroring the primary
+        -- tint/line idiom so the failed-to-open surface reads in the same visual language as the
+        -- active/loading rows, just danger-toned. `color-mix` keeps both correct in either theme.
+        dangerTint =
+            "color-mix(in srgb, " ++ dangerDot ++ " 9%, transparent)"
+
+        dangerLine =
+            "color-mix(in srgb, " ++ dangerDot ++ " 55%, transparent)"
     in
     Html.node "style"
         []
@@ -1060,72 +1161,104 @@ rendererStyle palette =
                 , ".jr-iframe__provenance { padding: 5px 10px; font-size: 0.78em; color: " ++ muted ++ "; background: " ++ frontBg ++ "; border: 1px solid " ++ border ++ "; border-bottom: 0; border-radius: 6px 6px 0 0; }"
                 , ".jr-iframe__frame { border: 1px solid " ++ border ++ "; border-radius: 0 0 6px 6px; overflow: hidden; }"
 
-                -- Disclosure: a native <details> styled as quiet host chrome. The summary reads as a
-                -- muted, clickable section label (no default triangle fuss beyond the browser marker);
-                -- the body gets a modest top gap so expanded content is not flush against the summary.
-                , ".jr-disclosure { border: 0; }"
-                , ".jr-disclosure__summary { cursor: pointer; font-size: 0.85em; font-weight: 600; color: " ++ muted ++ "; padding: 2px 0; user-select: none; }"
-                , ".jr-disclosure__summary:hover { color: " ++ text ++ "; }"
-                , ".jr-disclosure__body { margin-top: 8px; }"
-
-                -- REDESIGN — a composed card surface, not a flat list. Everything below styles a
-                -- FIXED renderer DOM (no manifest class hooks); the one per-row hook is the
-                -- rowState Badge's `data-state`, which `:has()` reads to style the whole row.
+                -- REDESIGN v2 — a TWO-COLUMN desktop layout. Provenance (above) and the results
+                -- region (below) are host chrome outside the manifest; INSIDE the manifest the card
+                -- is a two-column row (scan targets | scan history) followed by the full-width
+                -- results findings + iframe. Everything below styles a FIXED renderer DOM (no
+                -- manifest class hooks); the one per-row hook is the rowState Badge's `data-state`,
+                -- which `:has()` reads to style the whole row.
                 --
-                -- Section rubrics: the card's standalone Text child ("Scan targets") and the
-                -- history disclosure summary read as uppercase muted labels.
-                , ".jr-card { gap: 14px; }"
-                , ".jr-card > .jr-text { text-transform: uppercase; letter-spacing: 0.07em; font-size: 0.72em; font-weight: 700; color: " ++ muted ++ "; margin: 2px 0 -4px; }"
-                , ".jr-disclosure__summary { text-transform: uppercase; letter-spacing: 0.07em; font-size: 0.72em; font-weight: 700; }"
+                -- Selector anchoring — the columns row, the toolbar, and the history rows are ALL
+                -- Stack rows, so we key strictly on depth from `.jr-card`:
+                --   COLUMNS = `.jr-card > .jr-stack--row`  (the ONLY row that is a direct card child)
+                --   TARGETS = COLUMNS `> .jr-stack--col:nth-child(1)`
+                --   HISTORY = COLUMNS `> .jr-stack--col:nth-child(2)`
+                --   scroll  = TARGETS/HISTORY `> .jr-stack--col`  (the repeat container in a column)
+                , ".jr-card { gap: 16px; }"
 
-                -- Scan-target rows: the name grows; the primary-filled Scan button sits at the right.
-                , ".jr-card > .jr-stack--col > .jr-stack--row { align-items: center; gap: 10px; padding: 7px 10px; border-radius: 8px; }"
-                , ".jr-card > .jr-stack--col > .jr-stack--row:hover { background: " ++ frontBg ++ "; }"
-                , ".jr-card > .jr-stack--col > .jr-stack--row > .jr-text { flex: 1; min-width: 0; font-weight: 500; }"
+                -- The two-column grid: targets narrower than history (history rows carry more —
+                -- date, target, pills, state, action). On a narrow card it collapses to one column
+                -- (see the @media at the end). A hairline divider runs down the gutter.
+                , ".jr-card > .jr-stack--row { display: grid; grid-template-columns: 5fr 7fr; gap: 0; align-items: stretch; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col { min-width: 0; gap: 8px; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(1) { padding-right: 26px; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) { padding-left: 26px; border-left: 1px solid " ++ border ++ "; }"
 
-                -- Toolbar (Select all | Scan selected): push the button to the right edge.
-                , ".jr-card > .jr-stack--row { align-items: center; }"
-                , ".jr-card > .jr-stack--row .jr-button { margin-left: auto; }"
+                -- Column headers: an uppercase muted rubric carrying the live count. The history
+                -- overflow note ("showing latest 20 of M") is the history column's 2nd Text child.
+                , ".jr-card > .jr-stack--row > .jr-stack--col > .jr-text:first-child { text-transform: uppercase; letter-spacing: 0.07em; font-size: 0.72em; font-weight: 700; color: " ++ muted ++ "; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col > .jr-text:nth-child(2) { font-size: 0.78em; color: " ++ muted ++ "; margin-top: -2px; }"
 
-                -- History rows: a two-line main block (when + sub) that grows, then pills, then action.
-                , ".jr-disclosure__body > .jr-stack--col { gap: 2px; }"
-                , ".jr-disclosure__body > .jr-stack--col > .jr-stack--row { align-items: center; gap: 12px; padding: 9px 10px; border-radius: 9px; border-left: 3px solid transparent; }"
-                , ".jr-disclosure__body > .jr-stack--col > .jr-stack--row:hover { background: " ++ frontBg ++ "; }"
-                , ".jr-disclosure__body .jr-stack--row > .jr-stack--col { flex: 1; min-width: 0; gap: 1px; }"
-                , ".jr-disclosure__body .jr-stack--row > .jr-stack--col > .jr-text:first-child { font-size: 0.95em; font-weight: 600; color: " ++ text ++ "; }"
-                , ".jr-disclosure__body .jr-stack--row > .jr-stack--col > .jr-text:last-child { font-size: 0.82em; color: " ++ muted ++ "; }"
-                , ".jr-disclosure__body .jr-stack--row .jr-findings { flex: 0 0 auto; }"
-                , ".jr-disclosure__body .jr-findings__total { display: none; }"
+                -- The scroll areas: BOTH the targets list and the history rows are height-bounded and
+                -- scroll internally, so the two columns stay EQUAL height and can never be lopsided
+                -- regardless of item counts. Grid `align-items: stretch` grows the shorter column's
+                -- scroll area to match the taller; the taller one caps at ~6 rows and scrolls. This
+                -- is the key requirement (the researcher may have "unlimited" instances and scans).
+                , ".jr-card > .jr-stack--row > .jr-stack--col > .jr-stack--col { flex: 1 1 auto; max-height: 16rem; overflow-y: auto; gap: 2px; }"
+
+                -- Scan-target rows (TARGETS scroll rows): the name grows; the Scan button sits right.
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(1) > .jr-stack--col > .jr-stack--row { align-items: center; gap: 10px; padding: 7px 10px; border-radius: 8px; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(1) > .jr-stack--col > .jr-stack--row:hover { background: " ++ frontBg ++ "; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(1) > .jr-stack--col > .jr-stack--row > .jr-text { flex: 1; min-width: 0; font-weight: 500; }"
+
+                -- Toolbar (Select all | Scan selected): the targets column's own row child; the
+                -- button pushes to the right edge.
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(1) > .jr-stack--row { align-items: center; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(1) > .jr-stack--row .jr-button { margin-left: auto; }"
+
+                -- History rows (HISTORY scroll rows): a two-line main block (when + sub) that grows,
+                -- then pills, then the state badge, then the action.
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row { align-items: center; gap: 12px; padding: 9px 10px; border-radius: 9px; border-left: 3px solid transparent; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:hover { background: " ++ frontBg ++ "; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-stack--col { flex: 1; min-width: 0; gap: 1px; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-stack--col > .jr-text:first-child { font-size: 0.95em; font-weight: 600; color: " ++ text ++ "; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-stack--col > .jr-text:last-child { font-size: 0.82em; color: " ++ muted ++ "; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) .jr-findings { flex: 0 0 auto; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) .jr-findings__total { display: none; }"
 
                 -- The single per-row state hook. Empty rowState => hidden badge (the common case).
                 , ".jr-badge[data-state=\"\"] { display: none; }"
 
                 -- Active / now-viewing row: accent stripe + primary tint + a pulsing flag, action
                 -- flips to Refresh. Keyed on the rowState Badge value the host projects.
-                , ".jr-disclosure__body > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Now viewing\"]) { background: " ++ primaryTint ++ "; border-left-color: " ++ primary ++ "; box-shadow: inset 0 0 0 1px " ++ primaryLine ++ "; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Now viewing\"]) { background: " ++ primaryTint ++ "; border-left-color: " ++ primary ++ "; box-shadow: inset 0 0 0 1px " ++ primaryLine ++ "; }"
                 , ".jr-badge[data-state=\"Now viewing\"] { display: inline-flex; align-items: center; gap: 5px; background: " ++ primaryTintStrong ++ "; color: " ++ primary ++ "; border-color: " ++ primaryLine ++ "; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.7em; font-weight: 700; }"
                 , ".jr-badge[data-state=\"Now viewing\"]::before { content: \"\"; width: 6px; height: 6px; border-radius: 50%; background: " ++ primary ++ "; animation: jr-viewing-pulse 2s ease-in-out infinite; }"
                 , "@keyframes jr-viewing-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }"
                 , "@media (prefers-reduced-motion: reduce) { .jr-badge[data-state=\"Now viewing\"]::before { animation: none; } }"
-                , ".jr-disclosure__body > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Now viewing\"]) .jr-button { background: transparent; border-color: " ++ primaryLine ++ "; color: " ++ primary ++ "; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Now viewing\"]) .jr-button { background: transparent; border-color: " ++ primaryLine ++ "; color: " ++ primary ++ "; }"
 
                 -- Opening / loading row: this row's getEmbed is in flight. Same accent surface as
                 -- "Now viewing" so the clicked row reads as the one taking over, but the badge carries
                 -- a spinning ring (the codebase's in-progress idiom, shared with queued/running) and
                 -- the action button is de-emphasized and non-interactive (pointer-events: none) while
                 -- the bridge mints the fresh embed.
-                , ".jr-disclosure__body > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Opening…\"]) { background: " ++ primaryTint ++ "; border-left-color: " ++ primaryLine ++ "; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Opening…\"]) { background: " ++ primaryTint ++ "; border-left-color: " ++ primaryLine ++ "; }"
                 , ".jr-badge[data-state=\"Opening…\"] { display: inline-flex; align-items: center; gap: 6px; background: " ++ primaryTintStrong ++ "; color: " ++ primary ++ "; border-color: " ++ primaryLine ++ "; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.7em; font-weight: 700; }"
                 , ".jr-badge[data-state=\"Opening…\"]::before { content: \"\"; display: inline-block; width: 9px; height: 9px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: jr-badge-spin 0.7s linear infinite; }"
                 , "@media (prefers-reduced-motion: reduce) { .jr-badge[data-state=\"Opening…\"]::before { animation: none; } }"
-                , ".jr-disclosure__body > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Opening…\"]) .jr-button { background: transparent; border-color: " ++ primaryLine ++ "; color: " ++ primary ++ "; opacity: 0.6; pointer-events: none; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Opening…\"]) .jr-button { background: transparent; border-color: " ++ primaryLine ++ "; color: " ++ primary ++ "; opacity: 0.6; pointer-events: none; }"
+
+                -- Embed-error row: this batch's last getEmbed failed / timed out. Danger-toned badge
+                -- + stripe/tint (mirroring the primary active/loading idiom, just danger-colored), and
+                -- the action flips to a danger-outlined \"Retry\" that re-fires getEmbed. Distinct from
+                -- a FAILED SCAN below (which has nothing to view): here the scan is fine, only the
+                -- results session failed to open, so the button stays and reads \"Retry\".
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Couldn't open\"]) { background: " ++ dangerTint ++ "; border-left-color: " ++ dangerDot ++ "; }"
+                , ".jr-badge[data-state=\"Couldn't open\"] { display: inline-flex; align-items: center; gap: 5px; background: " ++ dangerBg ++ "; color: " ++ dangerText ++ "; border-color: " ++ dangerBorder ++ "; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.7em; font-weight: 700; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Couldn't open\"]) .jr-button { background: transparent; border-color: " ++ dangerLine ++ "; color: " ++ dangerDot ++ "; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Couldn't open\"]) .jr-button:hover { border-color: " ++ dangerDot ++ "; }"
 
                 -- Failed scan row: de-emphasized, a small danger 'failed' pill, and no pills/action
                 -- (nothing to view). The host also blanks its actionLabel; this hides the button.
                 , ".jr-badge[data-state=\"failed\"] { background: " ++ dangerBg ++ "; color: " ++ dangerText ++ "; border-color: " ++ dangerBorder ++ "; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.7em; font-weight: 700; }"
-                , ".jr-disclosure__body > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"failed\"]) { opacity: 0.72; }"
-                , ".jr-disclosure__body > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"failed\"]) .jr-button { display: none; }"
-                , ".jr-disclosure__body > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"failed\"]) .jr-findings { display: none; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"failed\"]) { opacity: 0.72; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"failed\"]) .jr-button { display: none; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"failed\"]) .jr-findings { display: none; }"
+
+                -- Responsive: on a narrow card the two columns stack (targets, then history), each
+                -- keeping its own bounded scroll. The divider moves from a left border to a top one.
+                , "@media (max-width: 720px) { .jr-card > .jr-stack--row { grid-template-columns: 1fr; } .jr-card > .jr-stack--row > .jr-stack--col:nth-child(1) { padding-right: 0; padding-bottom: 14px; } .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) { padding-left: 0; border-left: 0; border-top: 1px solid " ++ border ++ "; padding-top: 14px; } }"
                 , ".jr-confirm { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 1000; }"
                 , ".jr-confirm__box { background: " ++ frontBg ++ "; color: " ++ text ++ "; padding: 20px 22px; border-radius: 8px; max-width: 380px; border: 1px solid " ++ border ++ "; box-shadow: 0 8px 40px rgba(0,0,0,0.5); }"
                 , ".jr-confirm__title { margin: 0 0 8px 0; font-size: 1.1em; font-weight: 600; }"
@@ -1156,11 +1289,21 @@ cardJson =
     "card": {
       "type": "Card",
       "props": {},
-      "children": ["targets-label", "toolbar", "list", "history", "results", "results-embed"]
+      "children": ["columns", "results", "results-embed"]
+    },
+    "columns": {
+      "type": "Stack",
+      "props": { "direction": "row", "gap": 3 },
+      "children": ["targets-col", "history-col"]
+    },
+    "targets-col": {
+      "type": "Stack",
+      "props": { "direction": "col", "gap": 2 },
+      "children": ["targets-label", "toolbar", "list"]
     },
     "targets-label": {
       "type": "Text",
-      "props": { "value": "Scan targets" },
+      "props": { "value": { "$state": "/targetsLabel" } },
       "children": []
     },
     "toolbar": {
@@ -1240,10 +1383,15 @@ cardJson =
       },
       "children": []
     },
-    "history": {
-      "type": "Disclosure",
-      "props": { "label": "Scan history", "open": true },
-      "children": ["history-note", "history-rows"]
+    "history-col": {
+      "type": "Stack",
+      "props": { "direction": "col", "gap": 2 },
+      "children": ["history-label", "history-note", "history-rows"]
+    },
+    "history-label": {
+      "type": "Text",
+      "props": { "value": { "$state": "/historyLabel" } },
+      "children": []
     },
     "history-note": {
       "type": "Text",
@@ -1322,7 +1470,9 @@ cardJson =
     "instances": [],
     "results": null,
     "history": [],
-    "historyNote": ""
+    "historyNote": "",
+    "targetsLabel": "Scan targets",
+    "historyLabel": "Scan history"
   }
 }
 """

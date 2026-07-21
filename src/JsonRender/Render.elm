@@ -666,9 +666,10 @@ toneClass tone =
 
 {-| Render an `Iframe`, origin-pinned. The resolved `src` is emitted as an `<iframe>` ONLY
 when it is a well-formed https URL whose origin (scheme + host + port) is an exact member of
-the host-provided `ctx.allowedOrigins`. Anything else (empty/unresolved src, non-https
-scheme, unparseable URL, or an off-allowlist origin) renders a benign placeholder instead.
-The empty-src case is why the element needs no `visible`: an unresolved binding self-hides.
+the host-provided `ctx.allowedOrigins`. An **empty / unresolved** `src` renders **nothing** —
+the element self-hides so the host can own the empty/loading/error affordance. A **non-empty
+but disallowed** src (non-https scheme, unparseable URL, or off-allowlist origin) renders a
+benign security placeholder instead.
 
 When it does render, the frame is always preceded by a `jr-iframe__provenance` bar naming
 the embedded origin. The bar is emitted unconditionally by the renderer, with no prop to
@@ -683,7 +684,15 @@ renderIframe ctx props =
         url =
             Expr.resolveDisplay ctx props.src
     in
-    if isAllowedIframeSrc ctx.allowedOrigins url then
+    if String.isEmpty url then
+        -- An empty / unresolved `src` renders NOTHING. This is not an error to surface: the
+        -- host owns the empty / loading / error affordance around the frame, and a "content
+        -- unavailable" placeholder here would fight (and duplicate) that host chrome. The
+        -- security placeholder below is reserved for a *non-empty but disallowed* src, which is
+        -- a genuine "someone tried to point the frame off-allowlist" signal worth showing.
+        Html.text ""
+
+    else if isAllowedIframeSrc ctx.allowedOrigins url then
         -- The provenance bar is keyed by a constant so it never remounts. The frame wrapper is
         -- keyed by the iframe's full src so a changed URL REMOUNTS it: the embed token lives in
         -- the URL fragment (#token=...), and browsers do not reload an iframe when only the

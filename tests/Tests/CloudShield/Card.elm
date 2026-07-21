@@ -108,7 +108,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Time.utc Nothing Nothing [] Nothing "" Nothing sampleInstances (sampleModel (Set.singleton "i-1"))
+                        Card.projection Time.utc Nothing Nothing Nothing [] Nothing "" Nothing sampleInstances (sampleModel (Set.singleton "i-1"))
                 in
                 Expect.equal ( Ok True, Ok False )
                     ( rowSelected 0 value, rowSelected 1 value )
@@ -116,7 +116,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Time.utc Nothing Nothing [] Nothing "" Nothing sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc Nothing Nothing Nothing [] Nothing "" Nothing sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal ( Ok "idle", Ok "queued" )
                     ( rowScanState 0 value, rowScanState 1 value )
@@ -127,7 +127,7 @@ projectionSuite =
                         Just { targetId = "i-1", state = "running" }
 
                     value =
-                        Card.projection Time.utc Nothing Nothing [] Nothing "" override sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc Nothing Nothing Nothing [] Nothing "" override sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal ( Ok "running", Ok "queued" )
                     ( rowScanState 0 value, rowScanState 1 value )
@@ -135,7 +135,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Time.utc Nothing Nothing [] Nothing "https://1-2-3-4.sslip.io/app" Nothing sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc Nothing Nothing Nothing [] Nothing "https://1-2-3-4.sslip.io/app" Nothing sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal (Ok "https://1-2-3-4.sslip.io/app")
                     (Decode.decodeValue (Decode.field "embedUrl" Decode.string) value
@@ -351,15 +351,23 @@ historyEntries n =
 
 projectHistory : List Transport.IndexEntry -> Decode.Value
 projectHistory entries =
-    Card.projection Time.utc Nothing Nothing entries Nothing "" Nothing sampleInstances idleModel
+    Card.projection Time.utc Nothing Nothing Nothing entries Nothing "" Nothing sampleInstances idleModel
 
 
 {-| Project a single history row and read a string field from `/history/0`, given the active and
-in-flight (`pendingBatchId`) batch ids.
+in-flight (`pendingBatchId`) batch ids. No embed-error batch (the common case).
 -}
 historyRowField : Maybe String -> Maybe String -> Transport.IndexEntry -> String -> Result String String
 historyRowField activeBatchId pendingBatchId entry field =
-    Card.projection Time.utc activeBatchId pendingBatchId [ entry ] Nothing "" Nothing sampleInstances idleModel
+    historyRowFieldE activeBatchId pendingBatchId Nothing entry field
+
+
+{-| As `historyRowField`, but also supplying the `erroredBatchId` (the last getEmbed that failed /
+timed out) so the new "Couldn't open" / "Retry" precedence can be exercised.
+-}
+historyRowFieldE : Maybe String -> Maybe String -> Maybe String -> Transport.IndexEntry -> String -> Result String String
+historyRowFieldE activeBatchId pendingBatchId erroredBatchId entry field =
+    Card.projection Time.utc activeBatchId pendingBatchId erroredBatchId [ entry ] Nothing "" Nothing sampleInstances idleModel
         |> Decode.decodeValue (Decode.field "history" (Decode.index 0 (Decode.field field Decode.string)))
         |> Result.mapError Decode.errorToString
 
@@ -488,6 +496,54 @@ historySuite =
                         (projectHistory [ historyEntry "b-1" ])
                         |> Result.mapError Decode.errorToString
                     )
+        , test "the errored-getEmbed batch row reads Couldn't open / Retry" <|
+            \_ ->
+                Expect.equal ( Ok "Couldn't open", Ok "Retry" )
+                    ( historyRowFieldE Nothing Nothing (Just "b-1") (historyEntry "b-1") "rowState"
+                    , historyRowFieldE Nothing Nothing (Just "b-1") (historyEntry "b-1") "actionLabel"
+                    )
+        , test "while an embed error is shown, the prior active row does NOT reclaim Now viewing" <|
+            \_ ->
+                -- b-1 was the active pick, then its getEmbed errored (erroredBatchId = b-1). b-1 must
+                -- read as Couldn't open, never Now viewing.
+                Expect.equal ( Ok "Couldn't open", Ok "Retry" )
+                    ( historyRowFieldE (Just "b-1") Nothing (Just "b-1") (historyEntry "b-1") "rowState"
+                    , historyRowFieldE (Just "b-1") Nothing (Just "b-1") (historyEntry "b-1") "actionLabel"
+                    )
+        , test "an embed error on one batch suppresses Now viewing on a DIFFERENT active row" <|
+            \_ ->
+                -- b-2's getEmbed errored while b-1 was the active pick: b-1 must NOT read Now viewing.
+                Expect.equal ( Ok "", Ok "View" )
+                    ( historyRowFieldE (Just "b-1") Nothing (Just "b-2") (historyEntry "b-1") "rowState"
+                    , historyRowFieldE (Just "b-1") Nothing (Just "b-2") (historyEntry "b-1") "actionLabel"
+                    )
+        , test "a fresh getEmbed (pending) wins over a stale embed error on the same row" <|
+            \_ ->
+                -- Retry fired: pending = b-1 again while the old error for b-1 is cleared host-side; if
+                -- both were somehow set, loading supersedes the error look for that row.
+                Expect.equal ( Ok "Opening…", Ok "Opening…" )
+                    ( historyRowFieldE Nothing (Just "b-1") Nothing (historyEntry "b-1") "rowState"
+                    , historyRowFieldE Nothing (Just "b-1") Nothing (historyEntry "b-1") "actionLabel"
+                    )
+        , test "an errored SCAN is never overridden by an embed-error state (stays failed, no view)" <|
+            \_ ->
+                Expect.equal ( Ok "failed", Ok "" )
+                    ( historyRowFieldE Nothing Nothing (Just "b-err") erroredEntry "rowState"
+                    , historyRowFieldE Nothing Nothing (Just "b-err") erroredEntry "actionLabel"
+                    )
+        , test "the column headers carry a live count of targets and total scans" <|
+            \_ ->
+                let
+                    value =
+                        Card.projection Time.utc Nothing Nothing Nothing (historyEntries 3) Nothing "" Nothing sampleInstances idleModel
+
+                    stringField key =
+                        Decode.decodeValue (Decode.field key Decode.string) value
+                            |> Result.mapError Decode.errorToString
+                in
+                -- sampleInstances has 2 targets; 3 history entries.
+                Expect.equal ( Ok "Scan targets · 2", Ok "Scan history · 3" )
+                    ( stringField "targetsLabel", stringField "historyLabel" )
         ]
 
 
