@@ -1057,8 +1057,6 @@ rendererStyle palette =
                 , ".jr-card > .jr-stack--col > .jr-stack--row { align-items: center; gap: 10px; padding: 7px 10px; border-radius: 8px; }"
                 , ".jr-card > .jr-stack--col > .jr-stack--row:hover { background: " ++ frontBg ++ "; }"
                 , ".jr-card > .jr-stack--col > .jr-stack--row > .jr-text { flex: 1; min-width: 0; font-weight: 500; }"
-                , ".jr-card > .jr-stack--col > .jr-stack--row .jr-button { background: " ++ primary ++ "; border-color: " ++ primary ++ "; color: #fff; }"
-                , ".jr-card > .jr-stack--col > .jr-stack--row .jr-button:hover { filter: brightness(1.08); color: #fff; }"
 
                 -- Toolbar (Select all | Scan selected): push the button to the right edge.
                 , ".jr-card > .jr-stack--row { align-items: center; }"
