@@ -240,7 +240,7 @@ cloudShieldEmbedProjectionSuite =
                 in
                 Expect.equal ( "", Card.EmbedError "remint failed" )
                     ( projection.embedUrl, projection.embedState )
-        , test "a pending getEmbed with no matching result yet reports EmbedLoading" <|
+        , test "a pending getEmbed with no matching result yet reports EmbedLoading and its batchId as pendingBatchId" <|
             \_ ->
                 let
                     now =
@@ -254,8 +254,9 @@ cloudShieldEmbedProjectionSuite =
                             Nothing
                             (modelPendingEmbed now)
                 in
-                Expect.equal Card.EmbedLoading projection.embedState
-        , test "a pending getEmbed older than the timeout reports EmbedError" <|
+                Expect.equal ( Card.EmbedLoading, Just "b1" )
+                    ( projection.embedState, projection.pendingBatchId )
+        , test "a pending getEmbed older than the timeout reports EmbedError and clears pendingBatchId (no stuck loading)" <|
             \_ ->
                 let
                     now =
@@ -267,9 +268,34 @@ cloudShieldEmbedProjectionSuite =
                             now
                             Nothing
                             Nothing
-                            (modelPendingEmbed (Time.millisToPosix (1000000 - 61000)))
+                            (modelPendingEmbed (Time.millisToPosix (1000000 - 31000)))
                 in
-                Expect.equal (Card.EmbedError "the request timed out") projection.embedState
+                Expect.equal ( Card.EmbedError "the request timed out", Nothing )
+                    ( projection.embedState, projection.pendingBatchId )
+        , test "a matching error result reports EmbedError and clears pendingBatchId (no stuck loading)" <|
+            \_ ->
+                let
+                    -- pending marker whose requestId matches the error body's (exo-cs-req-100).
+                    model =
+                        let
+                            base =
+                                ServerDetail.init "self"
+                        in
+                        { base
+                            | cloudShieldPendingEmbed =
+                                Just { requestId = "exo-cs-req-100", batchId = "b1", since = beforeExpiry }
+                        }
+
+                    projection =
+                        ServerDetail.cloudShieldEmbedProjection
+                            (embedResultMetadata errorEmbedBody)
+                            beforeExpiry
+                            Nothing
+                            Nothing
+                            model
+                in
+                Expect.equal ( Card.EmbedError "remint failed", Nothing )
+                    ( projection.embedState, projection.pendingBatchId )
         ]
 
 

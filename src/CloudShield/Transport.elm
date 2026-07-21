@@ -514,20 +514,25 @@ embedResultDecoder =
         )
 
 
-{-| Whether issuing a `getEmbed` right now would disturb an in-flight scan and must be blocked
-(§7.1, single req slot). Derived purely from the live `exoext.v1.*` metadata:
+{-| Whether issuing a `getEmbed` right now would cancel a genuinely in-flight **scan** and must be
+blocked (§7.1, single req slot). Its only job is to protect a scan — NOT to block one View from
+superseding another. Blocked when:
 
   - the run is active — `run.state ∈ {queued, running}`; or
-  - a just-written scan request is still **unclaimed** — `req.seq` is present and `req.claimed`
-    does not equal it (the ≤10 s window before the bridge claims a request).
+  - the reader has a scan it just wrote (`pendingScanSeq` = `Just` its `pending.seq`) whose req is
+    still **unclaimed** on the wire: `req.seq` equals that scan's seq and `req.claimed` does not
+    equal it (the ≤10 s window before the bridge claims a request).
 
-In either case writing the getEmbed req slot bumps `req.seq`, and the bridge's `is_cancelled`
-(compares `req.seq` vs `run.seq`) would cancel that pending/running scan. A missing `req.claimed`
-counts as unclaimed. Terminal runs (`done`/`error`/`expired`) with a claimed request do not block.
+Writing the getEmbed req slot bumps `req.seq`, and the bridge's `is_cancelled` (compares `req.seq`
+vs `run.seq`) would cancel a pending/running scan — hence the guard. It deliberately keys the
+unclaimed branch on the scan's own seq: a req slot left unclaimed by a prior _getEmbed_ (e.g. after
+a timeout) does NOT match `pendingScanSeq`, so it never blocks — a timed-out getEmbed cannot wedge
+future clicks, and a new View always supersedes an in-flight one. A missing `req.claimed` counts as
+unclaimed. Terminal runs (`done`/`error`/`expired`) with a claimed request do not block.
 
 -}
-getEmbedBlocked : List OSTypes.MetadataItem -> Bool
-getEmbedBlocked metadata =
+getEmbedBlocked : Maybe Int -> List OSTypes.MetadataItem -> Bool
+getEmbedBlocked pendingScanSeq metadata =
     let
         dict =
             toDict metadata
@@ -540,15 +545,17 @@ getEmbedBlocked metadata =
                 Nothing ->
                     False
 
-        reqUnclaimed =
-            case Dict.get "exoext.v1.req.seq" dict of
-                Just seq ->
-                    Dict.get "exoext.v1.req.claimed" dict /= Just seq
+        scanUnclaimed =
+            case ( pendingScanSeq, Dict.get "exoext.v1.req.seq" dict ) of
+                ( Just seq, Just wireSeq ) ->
+                    -- The unclaimed req is this scan's (not a later getEmbed's) and not yet claimed.
+                    (wireSeq == String.fromInt seq)
+                        && (Dict.get "exoext.v1.req.claimed" dict /= Just wireSeq)
 
-                Nothing ->
+                _ ->
                     False
     in
-    runActive || reqUnclaimed
+    runActive || scanUnclaimed
 
 
 

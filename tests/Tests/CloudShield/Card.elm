@@ -108,7 +108,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Time.utc Nothing [] Nothing "" Nothing sampleInstances (sampleModel (Set.singleton "i-1"))
+                        Card.projection Time.utc Nothing Nothing [] Nothing "" Nothing sampleInstances (sampleModel (Set.singleton "i-1"))
                 in
                 Expect.equal ( Ok True, Ok False )
                     ( rowSelected 0 value, rowSelected 1 value )
@@ -116,7 +116,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Time.utc Nothing [] Nothing "" Nothing sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc Nothing Nothing [] Nothing "" Nothing sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal ( Ok "idle", Ok "queued" )
                     ( rowScanState 0 value, rowScanState 1 value )
@@ -127,7 +127,7 @@ projectionSuite =
                         Just { targetId = "i-1", state = "running" }
 
                     value =
-                        Card.projection Time.utc Nothing [] Nothing "" override sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc Nothing Nothing [] Nothing "" override sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal ( Ok "running", Ok "queued" )
                     ( rowScanState 0 value, rowScanState 1 value )
@@ -135,7 +135,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Time.utc Nothing [] Nothing "https://1-2-3-4.sslip.io/app" Nothing sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc Nothing Nothing [] Nothing "https://1-2-3-4.sslip.io/app" Nothing sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal (Ok "https://1-2-3-4.sslip.io/app")
                     (Decode.decodeValue (Decode.field "embedUrl" Decode.string) value
@@ -351,14 +351,15 @@ historyEntries n =
 
 projectHistory : List Transport.IndexEntry -> Decode.Value
 projectHistory entries =
-    Card.projection Time.utc Nothing entries Nothing "" Nothing sampleInstances idleModel
+    Card.projection Time.utc Nothing Nothing entries Nothing "" Nothing sampleInstances idleModel
 
 
-{-| Project a single history row and read a string field from `/history/0`.
+{-| Project a single history row and read a string field from `/history/0`, given the active and
+in-flight (`pendingBatchId`) batch ids.
 -}
-historyRowField : Maybe String -> Transport.IndexEntry -> String -> Result String String
-historyRowField activeBatchId entry field =
-    Card.projection Time.utc activeBatchId [ entry ] Nothing "" Nothing sampleInstances idleModel
+historyRowField : Maybe String -> Maybe String -> Transport.IndexEntry -> String -> Result String String
+historyRowField activeBatchId pendingBatchId entry field =
+    Card.projection Time.utc activeBatchId pendingBatchId [ entry ] Nothing "" Nothing sampleInstances idleModel
         |> Decode.decodeValue (Decode.field "history" (Decode.index 0 (Decode.field field Decode.string)))
         |> Result.mapError Decode.errorToString
 
@@ -430,28 +431,54 @@ historySuite =
         , test "a done row not being viewed is a plain View with an empty (hidden) rowState" <|
             \_ ->
                 Expect.equal ( Ok "", Ok "View", Ok "alpha · #b-1" )
-                    ( historyRowField Nothing (historyEntry "b-1") "rowState"
-                    , historyRowField Nothing (historyEntry "b-1") "actionLabel"
-                    , historyRowField Nothing (historyEntry "b-1") "subLabel"
+                    ( historyRowField Nothing Nothing (historyEntry "b-1") "rowState"
+                    , historyRowField Nothing Nothing (historyEntry "b-1") "actionLabel"
+                    , historyRowField Nothing Nothing (historyEntry "b-1") "subLabel"
                     )
         , test "the active batch row flips to Now viewing / Refresh" <|
             \_ ->
                 Expect.equal ( Ok "Now viewing", Ok "Refresh" )
-                    ( historyRowField (Just "b-1") (historyEntry "b-1") "rowState"
-                    , historyRowField (Just "b-1") (historyEntry "b-1") "actionLabel"
+                    ( historyRowField (Just "b-1") Nothing (historyEntry "b-1") "rowState"
+                    , historyRowField (Just "b-1") Nothing (historyEntry "b-1") "actionLabel"
+                    )
+        , test "the row whose getEmbed is in flight shows the Opening… loading state (button and badge)" <|
+            \_ ->
+                Expect.equal ( Ok "Opening…", Ok "Opening…" )
+                    ( historyRowField Nothing (Just "b-1") (historyEntry "b-1") "rowState"
+                    , historyRowField Nothing (Just "b-1") (historyEntry "b-1") "actionLabel"
+                    )
+        , test "a pending getEmbed suppresses Now viewing on the previously-active row (it drops to plain View)" <|
+            \_ ->
+                -- b-2's getEmbed is in flight while b-1 was the active pick: b-1 must NOT read as
+                -- Now viewing; it falls back to an idle View row.
+                Expect.equal ( Ok "", Ok "View" )
+                    ( historyRowField (Just "b-1") (Just "b-2") (historyEntry "b-1") "rowState"
+                    , historyRowField (Just "b-1") (Just "b-2") (historyEntry "b-1") "actionLabel"
+                    )
+        , test "the loading row wins over Now viewing when it is also the active batch" <|
+            \_ ->
+                Expect.equal ( Ok "Opening…", Ok "Opening…" )
+                    ( historyRowField (Just "b-1") (Just "b-1") (historyEntry "b-1") "rowState"
+                    , historyRowField (Just "b-1") (Just "b-1") (historyEntry "b-1") "actionLabel"
                     )
         , test "a failed scan is muted: failed state, nothing to view, no findings" <|
             \_ ->
                 Expect.equal ( Ok "failed", Ok "", Ok "failed · no findings" )
-                    ( historyRowField Nothing erroredEntry "rowState"
-                    , historyRowField Nothing erroredEntry "actionLabel"
-                    , historyRowField Nothing erroredEntry "subLabel"
+                    ( historyRowField Nothing Nothing erroredEntry "rowState"
+                    , historyRowField Nothing Nothing erroredEntry "actionLabel"
+                    , historyRowField Nothing Nothing erroredEntry "subLabel"
                     )
         , test "an errored batch never reads as active even if it is the active batchId" <|
             \_ ->
                 Expect.equal ( Ok "failed", Ok "" )
-                    ( historyRowField (Just "b-err") erroredEntry "rowState"
-                    , historyRowField (Just "b-err") erroredEntry "actionLabel"
+                    ( historyRowField (Just "b-err") Nothing erroredEntry "rowState"
+                    , historyRowField (Just "b-err") Nothing erroredEntry "actionLabel"
+                    )
+        , test "an errored batch never reads as loading even if its getEmbed is pending" <|
+            \_ ->
+                Expect.equal ( Ok "failed", Ok "" )
+                    ( historyRowField Nothing (Just "b-err") erroredEntry "rowState"
+                    , historyRowField Nothing (Just "b-err") erroredEntry "actionLabel"
                     )
         , test "per-row findings are synthesized from counts so history pills match results pills" <|
             \_ ->

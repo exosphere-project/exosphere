@@ -213,23 +213,25 @@ embedResultSuite =
 
 getEmbedBlockedSuite : Test
 getEmbedBlockedSuite =
-    describe "getEmbedBlocked: the host-side single-req-slot guard (from live metadata)"
-        [ test "blocks while the run is queued" <|
+    describe "getEmbedBlocked: the scan-protection guard (only blocks a genuinely in-flight scan)"
+        [ test "blocks while the run is queued (no pending scan needed)" <|
             \_ ->
                 Expect.equal True
-                    (Transport.getEmbedBlocked (meta [ ( "exoext.v1.run.state", "queued" ) ]))
-        , test "blocks while the run is running" <|
+                    (Transport.getEmbedBlocked Nothing (meta [ ( "exoext.v1.run.state", "queued" ) ]))
+        , test "blocks while the run is running (no pending scan needed)" <|
             \_ ->
                 Expect.equal True
-                    (Transport.getEmbedBlocked (meta [ ( "exoext.v1.run.state", "running" ) ]))
-        , test "blocks while a request is written but unclaimed (claimed missing)" <|
+                    (Transport.getEmbedBlocked Nothing (meta [ ( "exoext.v1.run.state", "running" ) ]))
+        , test "blocks while THIS reader's just-written scan is unclaimed (claimed missing)" <|
             \_ ->
                 Expect.equal True
-                    (Transport.getEmbedBlocked (meta [ ( "exoext.v1.req.seq", "1700000000000" ) ]))
-        , test "blocks while a request is written but claimed lags the seq" <|
+                    (Transport.getEmbedBlocked (Just 1700000000000)
+                        (meta [ ( "exoext.v1.req.seq", "1700000000000" ) ])
+                    )
+        , test "blocks while THIS reader's scan is written but claimed lags its seq" <|
             \_ ->
                 Expect.equal True
-                    (Transport.getEmbedBlocked
+                    (Transport.getEmbedBlocked (Just 1700000000001)
                         (meta
                             [ ( "exoext.v1.req.seq", "1700000000001" )
                             , ( "exoext.v1.req.claimed", "1700000000000" )
@@ -240,7 +242,7 @@ getEmbedBlockedSuite =
         , test "allows a claimed request whose run is done (terminal)" <|
             \_ ->
                 Expect.equal False
-                    (Transport.getEmbedBlocked
+                    (Transport.getEmbedBlocked (Just 1700000000000)
                         (meta
                             [ ( "exoext.v1.req.seq", "1700000000000" )
                             , ( "exoext.v1.req.claimed", "1700000000000" )
@@ -248,15 +250,32 @@ getEmbedBlockedSuite =
                             ]
                         )
                     )
+        , test "allows a getEmbed to supersede a prior unclaimed getEmbed (the wire req is not the scan's seq)" <|
+            \_ ->
+                -- The req slot is unclaimed, but it belongs to an earlier getEmbed (seq 1700000000200),
+                -- NOT to the reader's pending scan (seq 100). A timed-out getEmbed must not wedge the
+                -- next View, so this is allowed.
+                Expect.equal False
+                    (Transport.getEmbedBlocked (Just 100)
+                        (meta
+                            [ ( "exoext.v1.req.seq", "1700000000200" )
+                            , ( "exoext.v1.run.state", "done" )
+                            ]
+                        )
+                    )
+        , test "allows when an unclaimed req exists but the reader has no pending scan" <|
+            \_ ->
+                Expect.equal False
+                    (Transport.getEmbedBlocked Nothing (meta [ ( "exoext.v1.req.seq", "1700000000000" ) ]))
         , test "allows on error and expired terminal states" <|
             \_ ->
                 Expect.equal ( False, False )
-                    ( Transport.getEmbedBlocked (meta [ ( "exoext.v1.run.state", "error" ) ])
-                    , Transport.getEmbedBlocked (meta [ ( "exoext.v1.run.state", "expired" ) ])
+                    ( Transport.getEmbedBlocked Nothing (meta [ ( "exoext.v1.run.state", "error" ) ])
+                    , Transport.getEmbedBlocked Nothing (meta [ ( "exoext.v1.run.state", "expired" ) ])
                     )
         , test "allows when there is no run and no request slot" <|
             \_ ->
-                Expect.equal False (Transport.getEmbedBlocked (meta [ ( "foo", "bar" ) ]))
+                Expect.equal False (Transport.getEmbedBlocked Nothing (meta [ ( "foo", "bar" ) ]))
         ]
 
 

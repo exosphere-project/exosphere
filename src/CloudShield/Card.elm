@@ -40,7 +40,6 @@ import Set exposing (Set)
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Spacer exposing (spacer)
-import Style.Widgets.Spinner as Spinner
 import Style.Widgets.Text as Text
 import Time
 
@@ -332,8 +331,8 @@ historyDisplayCap =
     20
 
 
-projection : Time.Zone -> Maybe String -> List Transport.IndexEntry -> Maybe Encode.Value -> String -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Encode.Value
-projection zone activeBatchId history results embedUrl statusOverride instances model =
+projection : Time.Zone -> Maybe String -> Maybe String -> List Transport.IndexEntry -> Maybe Encode.Value -> String -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Encode.Value
+projection zone activeBatchId pendingBatchId history results embedUrl statusOverride instances model =
     let
         total =
             List.length history
@@ -358,7 +357,7 @@ projection zone activeBatchId history results embedUrl statusOverride instances 
         , ( "results", Maybe.withDefault Encode.null results )
         , ( "embedUrl", Encode.string embedUrl )
         , ( "instances", Encode.list (instanceProjection statusOverride model) instances )
-        , ( "history", Encode.list (historyRow zone activeBatchId) shown )
+        , ( "history", Encode.list (historyRow zone activeBatchId pendingBatchId) shown )
         , ( "historyNote", Encode.string historyNote )
         ]
 
@@ -374,22 +373,32 @@ no conditionals (host-renderer-interface.md §1.2):
     an errored scan.
   - `findings` — a findings-shaped array synthesized from the aggregate counts, bound into the
     row's `FindingsTable` so history pills match the live `/results` pills.
-  - `rowState` — the one active/failed hook the stylesheet keys on: "Now viewing" for the row
-    the embed/results are showing, "failed" for an errored scan, "" (hidden badge) otherwise.
-  - `actionLabel` — the View/Refresh flip ("Refresh" for the active row, "" for a failed scan
-    that has nothing to view).
+  - `rowState` — the one active/failed/loading hook the stylesheet keys on: "Opening…" for the
+    row whose getEmbed is in flight (wins), "Now viewing" for the row the embed/results are
+    showing, "failed" for an errored scan, "" (hidden badge) otherwise.
+  - `actionLabel` — the View/Refresh/Opening flip ("Opening…" while this row's getEmbed is in
+    flight, "Refresh" for the active row, "" for a failed scan that has nothing to view).
+
+`pendingBatchId` is the getEmbed that is genuinely in flight right now: its row shows the loading
+state, and while it is set NO row shows "Now viewing" (the clicked row supersedes the prior one).
 
 `countsLabel` is retained (unbound by the current manifest) as a stable plain-text fallback.
 
 -}
-historyRow : Time.Zone -> Maybe String -> Transport.IndexEntry -> Encode.Value
-historyRow zone activeBatchId entry =
+historyRow : Time.Zone -> Maybe String -> Maybe String -> Transport.IndexEntry -> Encode.Value
+historyRow zone activeBatchId pendingBatchId entry =
     let
         isError =
             entry.status == "error"
 
+        -- This row's getEmbed is in flight: it shows the loading state and its button de-emphasizes.
+        isLoadingRow =
+            (pendingBatchId == Just entry.batchId) && not isError
+
+        -- While ANY getEmbed is pending, no row reads as "Now viewing": the clicked (loading) row
+        -- supersedes the previously-active one immediately, so the old row drops its active state.
         isActiveRow =
-            (activeBatchId == Just entry.batchId) && not isError
+            (pendingBatchId == Nothing) && (activeBatchId == Just entry.batchId) && not isError
 
         completedAtLabel =
             case Helpers.Time.iso8601StringToPosix entry.completedAt of
@@ -410,6 +419,9 @@ historyRow zone activeBatchId entry =
             if isError then
                 "failed"
 
+            else if isLoadingRow then
+                "Opening…"
+
             else if isActiveRow then
                 "Now viewing"
 
@@ -419,6 +431,9 @@ historyRow zone activeBatchId entry =
         actionLabel =
             if isError then
                 ""
+
+            else if isLoadingRow then
+                "Opening…"
 
             else if isActiveRow then
                 "Refresh"
@@ -540,6 +555,13 @@ type alias ViewConfig =
     -- is being viewed.
     , activeBatchId : Maybe String
 
+    -- the batchId of the getEmbed that is genuinely in flight right now (`EmbedLoading`), so its
+    -- history row shows the "Opening…" loading state and its action button de-emphasizes. It wins
+    -- over `activeBatchId`: while a getEmbed is pending NO row shows "Now viewing" (the clicked row
+    -- supersedes the previously-active one immediately). `Nothing` once the request resolves,
+    -- errors, or times out, so no row is ever wedged in the loading state.
+    , pendingBatchId : Maybe String
+
     -- the iframe origin allowlist, derived host-side from the instance's own floating IPs.
     -- The renderer emits an `<iframe>` only for a `src` whose origin is an exact member of
     -- this list; it is the whole safety boundary for the catalog's origin-pinned Iframe.
@@ -592,10 +614,14 @@ Exosphere's elm-ui tree via `Element.html`.
 view : ExoPalette -> Time.Zone -> Time.Posix -> ViewConfig -> List Instance -> Model -> Element.Element Msg
 view palette zone currentTime config instances model =
     if config.approved then
+        -- Cap the whole card column so a wide instance-detail page doesn't fling each row's left
+        -- cluster (date/target) and right cluster (pills + state + action) to opposite edges. The
+        -- provenance bar, rendered manifest, and the muted lines all share this one contained
+        -- ~900px surface (left-aligned within the page column).
         Element.column
-            [ Element.width Element.fill, Element.spacing spacer.px8 ]
+            [ Element.width (Element.fill |> Element.maximum 900), Element.spacing spacer.px8 ]
             [ provenanceMarker palette config.sourceName
-            , rendererView palette zone config.activeBatchId config.allowedIframeOrigins config.manifestJson config.history config.results config.embedUrl config.statusOverride instances model
+            , rendererView palette zone config.activeBatchId config.pendingBatchId config.allowedIframeOrigins config.manifestJson config.history config.results config.embedUrl config.statusOverride instances model
             , embedStateView palette config.embedState
             , transportWarningView palette config.transportWarning
             , scanTimerView palette currentTime config.scanTimer
@@ -621,11 +647,13 @@ transportWarningView palette warning =
             Element.none
 
 
-{-| A quiet, host-drawn line beside the results/iframe area that gives the history-View flow
-visible feedback: a spinner while a getEmbed is in flight, an error-toned line if it failed or
-timed out, and a gentle prompt when an embed token has expired (the iframe having been
-unmounted by the host so the dead CloudShield app stops spinning). `EmbedReady`/`EmbedIdle`
-draw nothing. Same muted-line idiom as `transportWarningView`/`scanTimerView`.
+{-| A quiet, host-drawn line beside the results/iframe area that surfaces the terminal outcomes of
+the history-View flow: an error-toned line if a getEmbed failed or timed out, and a gentle prompt
+when an embed token has expired (the iframe having been unmounted by the host so the dead
+CloudShield app stops spinning). The in-flight/loading signal is now the per-row "Opening…" state
+in the history list (the primary signal), so `EmbedLoading` draws nothing here to avoid a redundant
+second spinner. `EmbedReady`/`EmbedIdle` also draw nothing. Same muted-line idiom as
+`transportWarningView`/`scanTimerView`.
 -}
 embedStateView : ExoPalette -> EmbedState -> Element.Element Msg
 embedStateView palette embedState =
@@ -645,11 +673,8 @@ embedStateView palette embedState =
             Element.none
 
         EmbedLoading ->
-            Element.row
-                [ Element.spacing spacer.px8 ]
-                [ Element.el [ Element.centerY ] (Spinner.sized 16 palette)
-                , mutedLine palette.neutral.text.subdued "Opening scan results…"
-                ]
+            -- Redundant with the per-row "Opening…" state; the history row is the loading signal now.
+            Element.none
 
         EmbedError message ->
             mutedLine palette.danger.textOnNeutralBG
@@ -735,8 +760,8 @@ transportChip palette label =
         (Element.text label)
 
 
-rendererView : ExoPalette -> Time.Zone -> Maybe String -> List String -> String -> List Transport.IndexEntry -> Maybe Encode.Value -> String -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Element.Element Msg
-rendererView palette zone activeBatchId allowedIframeOrigins manifestJson history results embedUrl statusOverride instances model =
+rendererView : ExoPalette -> Time.Zone -> Maybe String -> Maybe String -> List String -> String -> List Transport.IndexEntry -> Maybe Encode.Value -> String -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Element.Element Msg
+rendererView palette zone activeBatchId pendingBatchId allowedIframeOrigins manifestJson history results embedUrl statusOverride instances model =
     -- Decode per render is fine for the small card; the fail-closed decoder is the security
     -- gate (an off-catalog or oversized manifest yields the error stub, never a partial tree).
     case JsonRender.decodeString manifestJson of
@@ -748,7 +773,7 @@ rendererView palette zone activeBatchId allowedIframeOrigins manifestJson histor
                 (Element.html
                     (Html.div [ Html.Attributes.style "width" "100%" ]
                         [ rendererStyle palette
-                        , Html.map RendererMsg (Render.view allowedIframeOrigins spec (projection zone activeBatchId history results embedUrl statusOverride instances model) model.renderer)
+                        , Html.map RendererMsg (Render.view allowedIframeOrigins spec (projection zone activeBatchId pendingBatchId history results embedUrl statusOverride instances model) model.renderer)
                         ]
                     )
                 )
@@ -1083,6 +1108,17 @@ rendererStyle palette =
                 , "@keyframes jr-viewing-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }"
                 , "@media (prefers-reduced-motion: reduce) { .jr-badge[data-state=\"Now viewing\"]::before { animation: none; } }"
                 , ".jr-disclosure__body > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Now viewing\"]) .jr-button { background: transparent; border-color: " ++ primaryLine ++ "; color: " ++ primary ++ "; }"
+
+                -- Opening / loading row: this row's getEmbed is in flight. Same accent surface as
+                -- "Now viewing" so the clicked row reads as the one taking over, but the badge carries
+                -- a spinning ring (the codebase's in-progress idiom, shared with queued/running) and
+                -- the action button is de-emphasized and non-interactive (pointer-events: none) while
+                -- the bridge mints the fresh embed.
+                , ".jr-disclosure__body > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Opening…\"]) { background: " ++ primaryTint ++ "; border-left-color: " ++ primaryLine ++ "; }"
+                , ".jr-badge[data-state=\"Opening…\"] { display: inline-flex; align-items: center; gap: 6px; background: " ++ primaryTintStrong ++ "; color: " ++ primary ++ "; border-color: " ++ primaryLine ++ "; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.7em; font-weight: 700; }"
+                , ".jr-badge[data-state=\"Opening…\"]::before { content: \"\"; display: inline-block; width: 9px; height: 9px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: jr-badge-spin 0.7s linear infinite; }"
+                , "@media (prefers-reduced-motion: reduce) { .jr-badge[data-state=\"Opening…\"]::before { animation: none; } }"
+                , ".jr-disclosure__body > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Opening…\"]) .jr-button { background: transparent; border-color: " ++ primaryLine ++ "; color: " ++ primary ++ "; opacity: 0.6; pointer-events: none; }"
 
                 -- Failed scan row: de-emphasized, a small danger 'failed' pill, and no pills/action
                 -- (nothing to view). The host also blanks its actionLabel; this hides the button.

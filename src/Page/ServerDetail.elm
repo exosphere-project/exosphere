@@ -319,15 +319,20 @@ cloudShieldInstances project model =
         |> CloudShield.Discovery.eligibleInstances model.serverUuid
 
 
-{-| The §7.1 single-req-slot guard for a `getEmbed`, read from this instance's live metadata: is
-a scan active or its request still unclaimed? No server (nothing to write against) counts as
-blocked. See `CloudShield.Transport.getEmbedBlocked`.
+{-| The §7.1 single-req-slot guard for a `getEmbed`: block only when writing it would cancel a
+genuinely in-flight SCAN — a `queued`/`running` run, or a scan this reader just wrote whose req is
+still unclaimed on the wire (correlated by the scan's `pending.seq`). Crucially it does NOT block
+just because a prior _getEmbed_ left the req slot unclaimed (e.g. after a timeout), so one View can
+always supersede another and a timed-out getEmbed never wedges future clicks. No server (nothing to
+write against) counts as blocked. See `CloudShield.Transport.getEmbedBlocked`.
 -}
 cloudShieldGetEmbedBlocked : Project -> Model -> Bool
 cloudShieldGetEmbedBlocked project model =
     case GetterSetters.serverLookup project model.serverUuid of
         Just server ->
-            CloudShield.Transport.getEmbedBlocked server.osProps.details.metadata
+            CloudShield.Transport.getEmbedBlocked
+                (Maybe.map .seq model.cloudShield.pending)
+                server.osProps.details.metadata
 
         Nothing ->
             True
@@ -901,6 +906,7 @@ cloudShieldViewConfig approved project model currentTime server =
     , results = results
     , history = model.cloudShieldHistory
     , activeBatchId = embedProjection.activeBatchId
+    , pendingBatchId = embedProjection.pendingBatchId
     , allowedIframeOrigins = allowedIframeOrigins
     , embedUrl = embedUrl
     , embedState = embedProjection.embedState
@@ -913,11 +919,13 @@ cloudShieldViewConfig approved project model currentTime server =
 
 
 {-| How long a written getEmbed waits for its result before the pending marker is treated as a
-timeout error. getEmbed normally resolves in ~10s (one poll after the bridge claims the slot).
+timeout error. getEmbed normally resolves in ~10s (one poll after the bridge claims the slot); 30s
+leaves headroom for a slow mint + CloudShield without leaving a dead "Opening…" row up so long it
+reads as broken.
 -}
 embedRequestTimeoutMillis : Int
 embedRequestTimeoutMillis =
-    60 * 1000
+    30 * 1000
 
 
 {-| The reader projection for the history-View embed flow, decided purely from this instance's
@@ -939,7 +947,7 @@ cloudShieldEmbedProjection :
     -> Maybe { targetId : String, state : String }
     -> Maybe String
     -> Model
-    -> { results : Maybe Encode.Value, embedUrl : String, embedState : CloudShield.Card.EmbedState, historyPickActive : Bool, activeBatchId : Maybe String }
+    -> { results : Maybe Encode.Value, embedUrl : String, embedState : CloudShield.Card.EmbedState, historyPickActive : Bool, activeBatchId : Maybe String, pendingBatchId : Maybe String }
 cloudShieldEmbedProjection metadata currentTime statusOverride resultBody model =
     let
         rawEmbedResult =
@@ -1087,12 +1095,26 @@ cloudShieldEmbedProjection metadata currentTime statusOverride resultBody model 
 
                         Nothing ->
                             Nothing
+
+        -- The batchId of the getEmbed that is genuinely in flight right now, for the per-row
+        -- "Opening…" loading state. Derived from `embedState`, so it is `Just` ONLY while
+        -- `EmbedLoading` (pending marker set, no matching result yet, not timed out) and clears to
+        -- `Nothing` the moment the request resolves, errors, or times out — no row stays wedged in
+        -- the loading state after a terminal outcome.
+        pendingBatchId =
+            case embedState of
+                CloudShield.Card.EmbedLoading ->
+                    Maybe.map .batchId model.cloudShieldPendingEmbed
+
+                _ ->
+                    Nothing
     in
     { results = results
     , embedUrl = embedUrl
     , embedState = embedState
     , historyPickActive = maybeEmbedResult /= Nothing
     , activeBatchId = activeBatchId
+    , pendingBatchId = pendingBatchId
     }
 
 
