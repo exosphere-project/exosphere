@@ -1249,7 +1249,7 @@ projectEnqueueUpload upload project =
     }
 
 
-{-| Unique upload ids guard against stale completions from superseded queue entries.
+{-| Update the status of the queued upload whose unique `id` matches.
 -}
 projectSetUploadStatusById : Int -> ObjectStorage.UploadStatus -> Project -> Project
 projectSetUploadStatusById id status project =

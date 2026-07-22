@@ -612,18 +612,14 @@ endpointsDecoder =
             -- This decodes earlier stored projects which do not have the designate field in encoded endpoints
             (Decode.nullable Decode.string)
             Nothing
-        |> Pipeline.custom
-            (Decode.oneOf
-                [ Decode.field "swift" Decode.string |> Decode.nullable
-                , Decode.succeed Nothing
-                ]
-            )
-        |> Pipeline.custom
-            (Decode.oneOf
-                [ Decode.field "s3" Decode.string |> Decode.nullable
-                , Decode.succeed Nothing
-                ]
-            )
+        |> Pipeline.optional "swift"
+            -- This decodes earlier stored projects which do not have the swift (object-store) field in encoded endpoints
+            (Decode.nullable Decode.string)
+            Nothing
+        |> Pipeline.optional "s3"
+            -- This decodes earlier stored projects which do not have the s3 field in encoded endpoints
+            (Decode.nullable Decode.string)
+            Nothing
 
 
 nameAndIdDecoder : Decode.Decoder OSTypes.NameAndUuid
