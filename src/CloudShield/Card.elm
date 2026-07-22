@@ -21,7 +21,6 @@ Everything here is gated by `context.experimentalFeaturesEnabled` at the call si
 
 -}
 
-import CloudShield.Transport as Transport
 import Color
 import Dict exposing (Dict)
 import Element
@@ -29,6 +28,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Events
 import Element.Font as Font
+import Exoext.Transport as Transport
 import Helpers.Time
 import Html
 import Html.Attributes
@@ -73,7 +73,11 @@ type alias Model =
 
     -- the in-flight request (§7.1 single-in-flight): which seq maps to which target, so the
     -- host can project the polled run.state onto the right row.
-    , pending : Maybe { seq : Int, targetId : String }
+    , pending :
+        Maybe
+            { seq : Int
+            , targetId : String
+            }
 
     -- DEMO-ONLY: whether the embedded CloudShield live-UI iframe is expanded. This is a raw,
     -- unpinned host-chrome embed, distinct from the catalog's origin-pinned Iframe element.
@@ -338,18 +342,29 @@ historyDisplayCap =
     20
 
 
-projection : Time.Zone -> Maybe String -> Maybe String -> Maybe String -> List Transport.IndexEntry -> Maybe Encode.Value -> String -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Encode.Value
+projection :
+    Time.Zone
+    -> Maybe String
+    -> Maybe String
+    -> Maybe String
+    -> { rows : List Transport.IndexEntry, loading : Bool, loaded : Bool }
+    -> Maybe Encode.Value
+    -> String
+    -> Maybe { targetId : String, state : String }
+    -> List Instance
+    -> Model
+    -> Encode.Value
 projection zone activeBatchId pendingBatchId erroredBatchId history results embedUrl statusOverride instances model =
     let
         total =
-            List.length history
+            List.length history.rows
 
         -- Newest first (the index is append-only, oldest first), capped to the latest N.
         shown =
-            List.reverse history |> List.take historyDisplayCap
+            List.reverse history.rows |> List.take historyDisplayCap
 
         historyNote =
-            if total <= historyDisplayCap then
+            if not history.loaded || total <= historyDisplayCap then
                 ""
 
             else
@@ -366,7 +381,11 @@ projection zone activeBatchId pendingBatchId erroredBatchId history results embe
             "Scan targets · " ++ String.fromInt (List.length instances)
 
         historyLabel =
-            "Scan history · " ++ String.fromInt total
+            if history.loaded then
+                "Scan history · " ++ String.fromInt total
+
+            else
+                "Scan history"
     in
     Encode.object
         [ ( "selectAll", Encode.bool model.selectAll )
@@ -578,7 +597,11 @@ type alias ViewConfig =
     -- `summary.durationSec` (which reads faster than the flow the user watched). `startMillis` is the
     -- run's wall-clock start (the request seq). `Nothing`, or a `Nothing` `doneDurationSec`, draws no
     -- confirmation line.
-    , scanTimer : Maybe { startMillis : Int, doneDurationSec : Maybe Int }
+    , scanTimer :
+        Maybe
+            { startMillis : Int
+            , doneDurationSec : Maybe Int
+            }
 
     -- A muted host-drawn line for transport warnings/errors outside the sandboxed manifest.
     , transportWarning : Maybe String
@@ -588,16 +611,24 @@ type alias ViewConfig =
     -- the run is `running` the host composes the counting-up elapsed into it (`"scanning · m:ss"`),
     -- so the scanning row itself is the primary live-progress signal — independent of whether a
     -- history row is being viewed on the right. `queued`/`done`/terminal states pass through raw.
-    , statusOverride : Maybe { targetId : String, state : String }
+    , statusOverride :
+        Maybe
+            { targetId : String
+            , state : String
+            }
 
     -- the §4.2 result's `findings[]` array (host-parsed from the polled result object),
     -- bound into the `FindingsTable` at `/results`. `Nothing` until a run is `done`.
     , results : Maybe Encode.Value
 
-    -- the archived-scan history rows (the bridge's `results/index.json`), projected to the
-    -- render state at `/history` (newest first). Empty when there is no history (metadata
-    -- store, or nothing archived yet).
-    , history : List Transport.IndexEntry
+    -- the archived-scan history rows (the bridge's `results/index.json`) plus the first-fetch
+    -- state. Once `loaded` is true the stale rows stay visible during refreshes; first-fetch
+    -- loading hides the count and lets host CSS draw the loading line in the history column.
+    , history :
+        { rows : List Transport.IndexEntry
+        , loading : Bool
+        , loaded : Bool
+        }
 
     -- the batchId whose results/embed are currently on screen (the picked history row, else the
     -- just-completed live scan). The row with this batchId renders as the single "Now viewing"
@@ -863,7 +894,21 @@ transportChip palette label =
         (Element.text label)
 
 
-rendererView : ExoPalette -> Time.Zone -> Maybe String -> Maybe String -> Maybe String -> List String -> String -> List Transport.IndexEntry -> Maybe Encode.Value -> String -> Maybe { targetId : String, state : String } -> List Instance -> Model -> Element.Element Msg
+rendererView :
+    ExoPalette
+    -> Time.Zone
+    -> Maybe String
+    -> Maybe String
+    -> Maybe String
+    -> List String
+    -> String
+    -> { rows : List Transport.IndexEntry, loading : Bool, loaded : Bool }
+    -> Maybe Encode.Value
+    -> String
+    -> Maybe { targetId : String, state : String }
+    -> List Instance
+    -> Model
+    -> Element.Element Msg
 rendererView palette zone activeBatchId pendingBatchId erroredBatchId allowedIframeOrigins manifestJson history results embedUrl statusOverride instances model =
     -- Decode per render is fine for the small card; the fail-closed decoder is the security
     -- gate (an off-catalog or oversized manifest yields the error stub, never a partial tree).
@@ -874,7 +919,16 @@ rendererView palette zone activeBatchId pendingBatchId erroredBatchId allowedIfr
             -- elm-ui wrapper plus `width: 100%` on the div lets it use the full available width.
             Element.el [ Element.width Element.fill ]
                 (Element.html
-                    (Html.div [ Html.Attributes.style "width" "100%" ]
+                    (Html.div
+                        [ Html.Attributes.style "width" "100%"
+                        , Html.Attributes.attribute "data-exoext-history-loading"
+                            (if history.loading && not history.loaded then
+                                "true"
+
+                             else
+                                "false"
+                            )
+                        ]
                         [ rendererStyle palette
                         , Html.map RendererMsg (Render.view allowedIframeOrigins spec (projection zone activeBatchId pendingBatchId erroredBatchId history results embedUrl statusOverride instances model) model.renderer)
                         ]
@@ -1206,6 +1260,9 @@ rendererStyle palette =
                 -- scroll area to match the taller; the taller one caps at ~6 rows and scrolls. This
                 -- is the key requirement (the researcher may have "unlimited" instances and scans).
                 , ".jr-card > .jr-stack--row > .jr-stack--col > .jr-stack--col { flex: 1 1 auto; max-height: 16rem; overflow-y: auto; gap: 2px; }"
+                , "[data-exoext-history-loading=\"true\"] .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col { min-height: 3rem; display: flex; flex-direction: row; align-items: center; gap: 8px; padding: 9px 10px; color: " ++ muted ++ "; background: " ++ frontBg ++ "; border-radius: 8px; }"
+                , "[data-exoext-history-loading=\"true\"] .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col::before { content: \"\"; display: inline-block; width: 12px; height: 12px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: jr-badge-spin 0.7s linear infinite; }"
+                , "[data-exoext-history-loading=\"true\"] .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col::after { content: \"Loading history…\"; font-size: 0.9em; }"
 
                 -- Scan-target rows (TARGETS scroll rows): the name grows; the Scan button sits right.
                 , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(1) > .jr-stack--col > .jr-stack--row { align-items: center; gap: 10px; padding: 7px 10px; border-radius: 8px; }"

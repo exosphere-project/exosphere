@@ -36,6 +36,9 @@ type SharedMsg
       -- orchestration/API polling, unlike `Tick`). Used by the conditional 1s subscription
       -- that smooths the CloudShield scan timer only while a scan is actively counting.
     | ClockTick Time.Posix
+      -- Conditional exoext request poll: sets `clientCurrentTime` and asks the open
+      -- ServerDetail page's publishing server to refresh, without running full orchestration.
+    | ExoextPoll Time.Posix
     | ChangeSystemThemePreference ST.Theme
     | DoOrchestration Time.Posix
     | HandleApiErrorWithBody (Maybe HelperTypes.ProjectIdentifier) ErrorContext HttpErrorWithBody

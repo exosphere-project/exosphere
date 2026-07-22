@@ -15,9 +15,9 @@ POC transport** (server metadata + console log, spec §7 / §7.1). Everything is
 | File | Role |
 |------|------|
 | `../JsonRender.elm`, `../JsonRender/{Spec,Expr,Render}.elm` | **Vendored** native Elm json-render renderer (`avantelogic/elm-json-render`, Track B — durable, no-build, fail-closed). Source-vendored because it isn't on the package registry yet. Only deps are `elm/core`, `elm/html`, `elm/json` (already in Exosphere). |
-| `Card.elm` | Host wiring: owns the json-render `state`, projects it for the renderer (§1.2), handles renderer `Effect`s (start scans, checkbox write-backs), draws the provenance "?" marker (§5.2) + opt-in affordance (§5.3), and embeds the frozen `card.json`. |
-| `Discovery.elm` | Sentinel detection (`exoext.v1.kind`, §3.1), manifest-body assembly from metadata chunks (§7.1), and the §2.4 `$instances` eligibility filter (ACTIVE-only, exclude self). |
-| `Transport.elm` | POC wire framing (§7.1): §4.1 scan-request encode, the `exoext.v1.req.*` request slot, and the `exoext.v1.run.*` / `exoext.v1.res.*` status/result read. |
+| `Card.elm` | CloudShield-specific host wiring: owns the json-render `state`, projects it for the renderer (§1.2), handles renderer `Effect`s (start scans, checkbox write-backs), draws the provenance "?" marker (§5.2) + opt-in affordance (§5.3), and embeds the frozen `card.json`. |
+| `../Exoext/Discovery.elm` | Generic exoext sentinel detection (`exoext.v1.kind`, §3.1), manifest-body assembly from metadata chunks (§7.1), and the §2.4 `$instances` eligibility filter (ACTIVE-only, exclude self). |
+| `../Exoext/Transport.elm` | Generic exoext POC wire framing (§7.1): §4.1 scan-request encode, the `exoext.v1.req.*` request slot, and the `exoext.v1.run.*` / `exoext.v1.res.*` status/result read. |
 | `../../tests/Tests/CloudShield/Card.elm` | 19 unit tests over the pure logic (manifest validates fail-closed; projection; discovery; eligibility; transport framing). |
 
 Integration point: `Page/ServerDetail.elm` (`serverDetail_` adds a `cloudShieldCard` tile;

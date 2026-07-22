@@ -1,6 +1,6 @@
-module Tests.CloudShield.Discovery exposing (manifestObjectLocationSuite)
+module Tests.Exoext.Discovery exposing (manifestObjectLocationSuite)
 
-import CloudShield.Discovery as Discovery
+import Exoext.Discovery as Discovery
 import Expect
 import Test exposing (Test, describe, test)
 

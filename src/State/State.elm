@@ -154,6 +154,10 @@ updateValid msg outerModel =
                     -- The pure scan-timer clock tick must not trigger orchestration/API polling.
                     Cmd.none
 
+                SharedMsg (ExoextPoll _) ->
+                    -- The conditional exoext fast poll drives its own single-server refresh.
+                    Cmd.none
+
                 _ ->
                     Task.perform (\posix -> SharedMsg <| DoOrchestration posix) Time.now
     in
@@ -899,6 +903,18 @@ processSharedMsg sharedMsg outerModel =
             ( { sharedModel | clientCurrentTime = time }, Cmd.none )
                 |> mapToOuterModel outerModel
 
+        ExoextPoll time ->
+            let
+                timedSharedModel =
+                    { sharedModel | clientCurrentTime = time }
+
+                timedOuterModel =
+                    { outerModel | sharedModel = timedSharedModel }
+            in
+            exoextPollPublishingServer timedOuterModel
+                |> mapToOuterMsg
+                |> mapToOuterModel timedOuterModel
+
         DoOrchestration posixTime ->
             Orchestration.orchModel outerModel.viewState sharedModel posixTime
                 |> mapToOuterMsg
@@ -1342,6 +1358,39 @@ processTick outerModel interval time =
     ( { sharedModel | clientCurrentTime = time }
     , orchestrationCmd |> Cmd.map SharedMsg
     )
+
+
+{-| Fast-poll the single exoext publishing server while a request is pending on the open
+ServerDetail page. This reuses the existing request-server command so the response flows through
+`ReceiveServer` and the normal ServerDetail sync path. `loadingSeparately` is the in-flight dedupe
+flag set by `ApiModelHelpers.requestServer` and cleared when that single-server request returns.
+-}
+exoextPollPublishingServer : OuterModel -> ( SharedModel, Cmd SharedMsg )
+exoextPollPublishingServer outerModel =
+    case outerModel.viewState of
+        ProjectView projectId (ServerDetail pageModel) ->
+            case GetterSetters.projectLookup outerModel.sharedModel projectId of
+                Just project ->
+                    case GetterSetters.serverLookup project pageModel.serverUuid of
+                        Just server ->
+                            if server.exoProps.loadingSeparately || not (Page.ServerDetail.exoextRequestsPending project pageModel) then
+                                ( outerModel.sharedModel, Cmd.none )
+
+                            else
+                                ApiModelHelpers.requestServer
+                                    (GetterSetters.projectIdentifier project)
+                                    NoInteraction
+                                    pageModel.serverUuid
+                                    outerModel.sharedModel
+
+                        Nothing ->
+                            ( outerModel.sharedModel, Cmd.none )
+
+                Nothing ->
+                    ( outerModel.sharedModel, Cmd.none )
+
+        _ ->
+            ( outerModel.sharedModel, Cmd.none )
 
 
 processProjectSpecificMsg : OuterModel -> Project -> ProjectSpecificMsgConstructor -> ( OuterModel, Cmd OuterMsg )
@@ -4315,7 +4364,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
         ReceiveCloudShieldIndexObject refreshKey result ->
             updateUnderlying
                 (ServerDetailMsg <|
-                    Page.ServerDetail.GotCloudShieldIndexObject refreshKey result
+                    Page.ServerDetail.GotCloudShieldIndexObject sharedModel.clientCurrentTime refreshKey result
                 )
                 outerModel
 

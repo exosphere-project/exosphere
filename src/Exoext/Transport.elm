@@ -1,4 +1,4 @@
-module CloudShield.Transport exposing
+module Exoext.Transport exposing
     ( Counts
     , EmbedRequest
     , EmbedResult
@@ -28,7 +28,7 @@ module CloudShield.Transport exposing
     , scanRequestJson
     )
 
-{-| CloudShield POC wire transport over Nova server metadata (Phase 0 spec §4.1 / §7.1).
+{-| Exoext POC wire transport over Nova server metadata (Phase 0 spec §4.1 / §7.1).
 
 This is the **throwaway framing layer** for the no-Jetstream2 POC: it carries the §4.1 scan
 request and the §4.3 status / §4.2 result over server metadata instead of object storage.
@@ -38,7 +38,7 @@ path; only the `seq`/`claimed`/chunk framing here is POC-specific and is dropped
 
 All functions are pure and string-in/string-out so they unit-test without a live cloud.
 
-Wire layout (on the publishing CloudShield VM's own metadata):
+Wire layout (on the publishing extension VM's own metadata):
 
   - **Request slot (Exosphere → VM):** `exoext.v1.req.seq` = monotonic integer; the §4.1
     request JSON chunked across `exoext.v1.req.body.0..N` (≤255 chars/value, §3.1 / D5).
@@ -66,7 +66,10 @@ type alias ScanRequest =
     , batchId : Maybe String
     , createdAt : String
     , projectId : String
-    , target : { instanceId : String, instanceName : String }
+    , target :
+        { instanceId : String
+        , instanceName : String
+        }
     , profile : String
     }
 
@@ -113,7 +116,7 @@ scanRequestJson req =
 {-| Build the §7.1 request-slot metadata key/value items for a request: the monotonic `seq`,
 a **chunk count** `exoext.v1.req.body.n`, and the request JSON chunked across
 `exoext.v1.req.body.0..N-1` (≤255 chars/value). Each item is written with one
-`requestSetServerMetadata` call on the CloudShield VM.
+`requestSetServerMetadata` call on the publishing extension VM.
 
 The explicit count is what makes a re-write safe: Nova metadata POST **merges** keys and never
 deletes, so a later, shorter request would otherwise leave a stale trailing `body.N` chunk that
@@ -393,7 +396,7 @@ optionalInt key =
     Decode.oneOf [ Decode.field key Decode.int, Decode.succeed 0 ]
 
 
-{-| The cache key that decides when to refetch the history index. The CloudShield `etag`
+{-| The cache key that decides when to refetch the history index. The exoext `etag`
 (`exoext.v1.etag`) is a content hash of the **static manifest UI body**, so it does NOT change
 when a scan completes — keying a refetch on it alone would leave history stale until reload.
 Instead compose it with the run slot (`run.seq` + `run.state`), which advances on every scan

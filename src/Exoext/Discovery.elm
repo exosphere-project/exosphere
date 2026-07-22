@@ -1,4 +1,4 @@
-module CloudShield.Discovery exposing
+module Exoext.Discovery exposing
     ( Sentinel
     , Store(..)
     , eligibleInstances
@@ -8,7 +8,7 @@ module CloudShield.Discovery exposing
     , storeFromString
     )
 
-{-| CloudShield extension discovery (Phase 0 spec §3.1 / §3.3, POC slice §7).
+{-| Exoext extension discovery (Phase 0 spec §3.1 / §3.3, POC slice §7).
 
 Pure, host-side discovery logic for the browser. Two read concerns, both fed from data
 Exosphere already has on the model (no new fetch):
@@ -32,8 +32,8 @@ the publishing instance itself.
 
 -}
 
-import CloudShield.Transport as Transport
 import Dict exposing (Dict)
+import Exoext.Transport as Transport
 import OpenStack.Types as OSTypes
 
 
@@ -140,7 +140,7 @@ manifestBodyFromMetadata metadata =
 (§3.1 / §3.3: `store=swift` → fetch `<container>/<prefix><manifest>`). `Nothing` unless
 `store == StoreSwift` and both `container` and `manifest` are present in the envelope; `prefix`
 defaults to `""` (no prefix) when absent. The caller (`Rest.Swift.requestGetObjectCapped`)
-fetches this object and hands the body to `CloudShield.Transport.capBody` before parsing.
+fetches this object and hands the body to `Exoext.Transport.capBody` before parsing.
 -}
 manifestObjectLocation : Sentinel -> Maybe { container : String, objectName : String }
 manifestObjectLocation sentinel =

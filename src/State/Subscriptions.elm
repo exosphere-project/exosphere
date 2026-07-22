@@ -1,8 +1,8 @@
 module State.Subscriptions exposing (subscriptions)
 
 import Browser.Events
-import CloudShield.Transport
 import Helpers.GetterSetters as GetterSetters
+import Page.ServerDetail
 import Ports exposing (changeThemePreference, receiveWebLock, updateNetworkConnectivity)
 import Set
 import Style.Theme exposing (decodeThemePreference)
@@ -45,8 +45,17 @@ subscriptionsValid outerModel =
             -- ServerDetail page, to smooth its elapsed timer (the shared 5s tick is visibly
             -- chunky). Gated tightly so it exists only during the ~scan window and drops away
             -- the moment the run is terminal; it sends the pure `ClockTick` (no API polling).
-            ++ (if cloudShieldScanCounting outerModel then
+            ++ (if exoextScanCounting outerModel then
                     [ Time.every 1000 (\x -> SharedMsg <| ClockTick x) ]
+
+                else
+                    []
+               )
+            -- A 5s server refresh ONLY while an exoext request is pending on the open
+            -- ServerDetail page. The handler fetches that one publishing server and dedupes on
+            -- the server's `loadingSeparately` flag.
+            ++ (if exoextRequestsPending outerModel then
+                    [ Time.every (5 * 1000) (\x -> SharedMsg <| ExoextPoll x) ]
 
                 else
                     []
@@ -68,31 +77,25 @@ scan (`pending` set) in a non-terminal state — i.e. `scanTimerView` is in its 
 Mirrors the host-side gate in `ServerDetail.cloudShieldViewConfig`: an absent/uncorrelated
 status defaults to "queued" (counting); done/error/cancelled/expired stop the tick.
 -}
-cloudShieldScanCounting : OuterModel -> Bool
-cloudShieldScanCounting outerModel =
+exoextScanCounting : OuterModel -> Bool
+exoextScanCounting outerModel =
     case outerModel.viewState of
         ProjectView projectId (ServerDetail pageModel) ->
-            case pageModel.cloudShield.pending of
-                Just pending ->
-                    let
-                        runState =
-                            GetterSetters.projectLookup outerModel.sharedModel projectId
-                                |> Maybe.andThen (\project -> GetterSetters.serverLookup project pageModel.serverUuid)
-                                |> Maybe.andThen (\server -> CloudShield.Transport.runStatusFromMetadata server.osProps.details.metadata)
-                                |> Maybe.andThen
-                                    (\status ->
-                                        if status.seq == pending.seq then
-                                            Just status.state
+            GetterSetters.projectLookup outerModel.sharedModel projectId
+                |> Maybe.map (\project -> Page.ServerDetail.exoextScanRequestPending project pageModel)
+                |> Maybe.withDefault False
 
-                                        else
-                                            Nothing
-                                    )
-                                |> Maybe.withDefault "queued"
-                    in
-                    not (List.member runState [ "done", "error", "cancelled", "expired" ])
+        _ ->
+            False
 
-                Nothing ->
-                    False
+
+exoextRequestsPending : OuterModel -> Bool
+exoextRequestsPending outerModel =
+    case outerModel.viewState of
+        ProjectView projectId (ServerDetail pageModel) ->
+            GetterSetters.projectLookup outerModel.sharedModel projectId
+                |> Maybe.map (\project -> Page.ServerDetail.exoextRequestsPending project pageModel)
+                |> Maybe.withDefault False
 
         _ ->
             False

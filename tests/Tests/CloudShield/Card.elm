@@ -18,9 +18,9 @@ sentinel + §7.1 metadata transport framing, and the §2.4 `$instances` eligibil
 -}
 
 import CloudShield.Card as Card
-import CloudShield.Discovery as Discovery
-import CloudShield.Transport as Transport
 import Dict
+import Exoext.Discovery as Discovery
+import Exoext.Transport as Transport
 import Expect
 import Json.Decode as Decode
 import Json.Encode as Encode
@@ -102,6 +102,16 @@ rowSelected index value =
         |> Result.mapError Decode.errorToString
 
 
+loadedHistory : List Transport.IndexEntry -> { rows : List Transport.IndexEntry, loading : Bool, loaded : Bool }
+loadedHistory rows =
+    { rows = rows, loading = False, loaded = True }
+
+
+loadingHistory : { rows : List Transport.IndexEntry, loading : Bool, loaded : Bool }
+loadingHistory =
+    { rows = [], loading = True, loaded = False }
+
+
 projectionSuite : Test
 projectionSuite =
     describe "CloudShield host projection (§1.2)"
@@ -109,7 +119,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing [] Nothing "" Nothing sampleInstances (sampleModel (Set.singleton "i-1"))
+                        Card.projection Time.utc Nothing Nothing Nothing (loadedHistory []) Nothing "" Nothing sampleInstances (sampleModel (Set.singleton "i-1"))
                 in
                 Expect.equal ( Ok True, Ok False )
                     ( rowSelected 0 value, rowSelected 1 value )
@@ -117,7 +127,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing [] Nothing "" Nothing sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc Nothing Nothing Nothing (loadedHistory []) Nothing "" Nothing sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal ( Ok "idle", Ok "queued" )
                     ( rowScanState 0 value, rowScanState 1 value )
@@ -128,7 +138,7 @@ projectionSuite =
                         Just { targetId = "i-1", state = "running" }
 
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing [] Nothing "" override sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc Nothing Nothing Nothing (loadedHistory []) Nothing "" override sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal ( Ok "running", Ok "queued" )
                     ( rowScanState 0 value, rowScanState 1 value )
@@ -136,7 +146,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing [] Nothing "https://1-2-3-4.sslip.io/app" Nothing sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc Nothing Nothing Nothing (loadedHistory []) Nothing "https://1-2-3-4.sslip.io/app" Nothing sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal (Ok "https://1-2-3-4.sslip.io/app")
                     (Decode.decodeValue (Decode.field "embedUrl" Decode.string) value
@@ -151,10 +161,22 @@ projectionSuite =
                         Just { targetId = "i-1", state = "scanning · 0:23" }
 
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing [ historyEntry "b-1" ] Nothing "" override sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc Nothing Nothing Nothing (loadedHistory [ historyEntry "b-1" ]) Nothing "" override sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal ( Ok "scanning · 0:23", Ok "queued" )
                     ( rowScanState 0 value, rowScanState 1 value )
+        , test "history first-load state omits the count until rows have fetched" <|
+            \_ ->
+                let
+                    value =
+                        Card.projection Time.utc Nothing Nothing Nothing loadingHistory Nothing "" Nothing sampleInstances (sampleModel Set.empty)
+
+                    stringField key =
+                        Decode.decodeValue (Decode.field key Decode.string) value
+                            |> Result.mapError Decode.errorToString
+                in
+                Expect.equal ( Ok "Scan history", Ok "" )
+                    ( stringField "historyLabel", stringField "historyNote" )
         ]
 
 
@@ -326,7 +348,7 @@ transportSuite =
 
 
 -- EMBED (getEmbed action, Phase B). The single-req-slot guard is host-side (see
--- Tests.CloudShield.Transport getEmbedBlockedSuite); the card just emits the request.
+-- Tests.Exoext.Transport getEmbedBlockedSuite); the card just emits the request.
 
 
 idleModel : Card.Model
@@ -392,7 +414,7 @@ historyEntries n =
 
 projectHistory : List Transport.IndexEntry -> Decode.Value
 projectHistory entries =
-    Card.projection Time.utc Nothing Nothing Nothing entries Nothing "" Nothing sampleInstances idleModel
+    Card.projection Time.utc Nothing Nothing Nothing (loadedHistory entries) Nothing "" Nothing sampleInstances idleModel
 
 
 {-| Project a single history row and read a string field from `/history/0`, given the active and
@@ -408,7 +430,7 @@ timed out) so the new "Couldn't open" / "Retry" precedence can be exercised.
 -}
 historyRowFieldE : Maybe String -> Maybe String -> Maybe String -> Transport.IndexEntry -> String -> Result String String
 historyRowFieldE activeBatchId pendingBatchId erroredBatchId entry field =
-    Card.projection Time.utc activeBatchId pendingBatchId erroredBatchId [ entry ] Nothing "" Nothing sampleInstances idleModel
+    Card.projection Time.utc activeBatchId pendingBatchId erroredBatchId (loadedHistory [ entry ]) Nothing "" Nothing sampleInstances idleModel
         |> Decode.decodeValue (Decode.field "history" (Decode.index 0 (Decode.field field Decode.string)))
         |> Result.mapError Decode.errorToString
 
@@ -576,7 +598,7 @@ historySuite =
             \_ ->
                 let
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing (historyEntries 3) Nothing "" Nothing sampleInstances idleModel
+                        Card.projection Time.utc Nothing Nothing Nothing (loadedHistory (historyEntries 3)) Nothing "" Nothing sampleInstances idleModel
 
                     stringField key =
                         Decode.decodeValue (Decode.field key Decode.string) value

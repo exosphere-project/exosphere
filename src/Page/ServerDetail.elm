@@ -1,13 +1,13 @@
-module Page.ServerDetail exposing (CloudShieldPendingEmbed, Model, Msg(..), PassphraseVisibility, VerboseStatus, clearResolvedPendingEmbed, cloudShieldEmbedProjection, cloudShieldManifestBodyForEtag, cloudShieldManifestNeedsFetch, cloudShieldScanTimer, effectiveCloudShieldResultBody, init, update, view)
+module Page.ServerDetail exposing (CloudShieldPendingEmbed, Model, Msg(..), PassphraseVisibility, VerboseStatus, clearResolvedPendingEmbed, cloudShieldEmbedProjection, cloudShieldManifestBodyForEtag, cloudShieldManifestNeedsFetch, cloudShieldScanTimer, effectiveCloudShieldResultBody, exoextRequestsPending, exoextScanRequestPending, init, update, view)
 
 import CloudShield.Card
-import CloudShield.Discovery
-import CloudShield.Transport
 import DateFormat.Relative
 import Dict
 import Element
 import Element.Font as Font
 import Element.Input as Input
+import Exoext.Discovery
+import Exoext.Transport
 import FeatherIcons as Icons
 import Helpers.Cidr as Cidr
 import Helpers.GetterSetters as GetterSetters
@@ -73,11 +73,26 @@ type alias Model =
     , retainFloatingIpsWhenDeleting : Bool
     , deleteFloatingIpsWhenShelving : Bool
     , cloudShield : CloudShield.Card.Model
-    , cloudShieldManifest : RDPP.RemoteDataPlusPlus String { etag : String, body : String }
+    , cloudShieldManifest :
+        RDPP.RemoteDataPlusPlus
+            String
+            { etag : String
+            , body : String
+            }
     , cloudShieldManifestRequestEtag : Maybe String
-    , cloudShieldResultRef : RDPP.RemoteDataPlusPlus String { etag : String, objectName : String, body : String }
-    , cloudShieldResultRefRequest : Maybe { etag : String, objectName : String }
-    , cloudShieldHistory : List CloudShield.Transport.IndexEntry
+    , cloudShieldResultRef :
+        RDPP.RemoteDataPlusPlus
+            String
+            { etag : String
+            , objectName : String
+            , body : String
+            }
+    , cloudShieldResultRefRequest :
+        Maybe
+            { etag : String
+            , objectName : String
+            }
+    , cloudShieldHistory : RDPP.RemoteDataPlusPlus String (List Exoext.Transport.IndexEntry)
     , cloudShieldHistoryRequestKey : Maybe String
 
     -- the in-flight history-View getEmbed, recorded when its req slot is written so the card can
@@ -117,7 +132,7 @@ type Msg
     | GotCloudShieldSync
     | GotCloudShieldManifestObject Time.Posix String (Result HttpErrorWithBody String)
     | GotCloudShieldResultObject Time.Posix String String (Result HttpErrorWithBody String)
-    | GotCloudShieldIndexObject String (Result HttpErrorWithBody String)
+    | GotCloudShieldIndexObject Time.Posix String (Result HttpErrorWithBody String)
     | CloudShieldMsg CloudShield.Card.Msg
     | CloudShieldWriteRequest { seq : Int, targetIds : List String } Time.Posix
     | CloudShieldWriteEmbedRequest { batchId : String } Time.Posix
@@ -140,7 +155,7 @@ init serverUuid =
     , cloudShieldManifestRequestEtag = Nothing
     , cloudShieldResultRef = RDPP.empty
     , cloudShieldResultRefRequest = Nothing
-    , cloudShieldHistory = []
+    , cloudShieldHistory = RDPP.empty
     , cloudShieldHistoryRequestKey = Nothing
     , cloudShieldPendingEmbed = Nothing
     }
@@ -193,8 +208,8 @@ update msg project model =
         GotCloudShieldResultObject receivedTime etag objectName result ->
             ( receiveCloudShieldResultRef project receivedTime etag objectName result model, Cmd.none, SharedMsg.NoOp )
 
-        GotCloudShieldIndexObject refreshKey result ->
-            ( receiveCloudShieldIndex project refreshKey result model, Cmd.none, SharedMsg.NoOp )
+        GotCloudShieldIndexObject receivedTime refreshKey result ->
+            ( receiveCloudShieldIndex project receivedTime refreshKey result model, Cmd.none, SharedMsg.NoOp )
 
         CloudShieldMsg cloudMsg ->
             let
@@ -316,7 +331,7 @@ cloudShieldInstances project model =
                 , status = s.osProps.details.openstackStatus
                 }
             )
-        |> CloudShield.Discovery.eligibleInstances model.serverUuid
+        |> Exoext.Discovery.eligibleInstances model.serverUuid
 
 
 {-| The §7.1 single-req-slot guard for a `getEmbed`: block only when writing it would cancel a
@@ -324,18 +339,56 @@ genuinely in-flight SCAN — a `queued`/`running` run, or a scan this reader jus
 still unclaimed on the wire (correlated by the scan's `pending.seq`). Crucially it does NOT block
 just because a prior _getEmbed_ left the req slot unclaimed (e.g. after a timeout), so one View can
 always supersede another and a timed-out getEmbed never wedges future clicks. No server (nothing to
-write against) counts as blocked. See `CloudShield.Transport.getEmbedBlocked`.
+write against) counts as blocked. See `Exoext.Transport.getEmbedBlocked`.
 -}
 cloudShieldGetEmbedBlocked : Project -> Model -> Bool
 cloudShieldGetEmbedBlocked project model =
     case GetterSetters.serverLookup project model.serverUuid of
         Just server ->
-            CloudShield.Transport.getEmbedBlocked
+            Exoext.Transport.getEmbedBlocked
                 (Maybe.map .seq model.cloudShield.pending)
                 server.osProps.details.metadata
 
         Nothing ->
             True
+
+
+{-| True when any exoext request on this ServerDetail page is still worth fast-polling for.
+The CloudShield card currently exposes two browser-tracked in-flight paths: a history `getEmbed`
+request (`cloudShieldPendingEmbed`) and a scan request (`cloudShield.pending`) whose correlated
+run slot has not reached a terminal state.
+-}
+exoextRequestsPending : Project -> Model -> Bool
+exoextRequestsPending project model =
+    (model.cloudShieldPendingEmbed /= Nothing) || exoextScanRequestPending project model
+
+
+{-| True when the CloudShield scan marker is present and the publishing server's correlated
+exoext run state is not terminal. An absent/uncorrelated run slot defaults to queued because the
+request was just written and the bridge may not have claimed it yet.
+-}
+exoextScanRequestPending : Project -> Model -> Bool
+exoextScanRequestPending project model =
+    case model.cloudShield.pending of
+        Just pending ->
+            let
+                runState =
+                    GetterSetters.serverLookup project model.serverUuid
+                        |> Maybe.andThen (\server -> Exoext.Transport.runStatusFromMetadata server.osProps.details.metadata)
+                        |> Maybe.andThen
+                            (\status ->
+                                if status.seq == pending.seq then
+                                    Just status.state
+
+                                else
+                                    Nothing
+                            )
+                        |> Maybe.withDefault "queued"
+            in
+            not (List.member runState [ "done", "error", "cancelled", "expired" ])
+
+        Nothing ->
+            False
 
 
 {-| Build the `exoext.approval.v1` record for the instance being viewed, stamped with a genuine
@@ -375,14 +428,14 @@ syncCloudShieldReads project model =
                             clearResolvedPendingEmbed metadata model.cloudShieldPendingEmbed
                     }
             in
-            case CloudShield.Discovery.readSentinel metadata of
+            case Exoext.Discovery.readSentinel metadata of
                 Just ({ store } as sentinel) ->
-                    if store == CloudShield.Discovery.StoreSwift then
+                    if store == Exoext.Discovery.StoreSwift then
                         let
                             etag =
                                 cloudShieldEtag metadata
                         in
-                        syncCloudShieldIndex project sentinel (CloudShield.Transport.historyRefreshKey metadata) <|
+                        syncCloudShieldIndex project sentinel (Exoext.Transport.historyRefreshKey metadata) <|
                             syncCloudShieldResultRef project sentinel etag metadata <|
                                 syncCloudShieldManifest project sentinel etag syncedModel
 
@@ -405,7 +458,7 @@ clearResolvedPendingEmbed metadata pending =
     pending
         |> Maybe.andThen
             (\p ->
-                case CloudShield.Transport.resultBodyFromMetadata metadata |> Maybe.andThen CloudShield.Transport.embedResultFromBody of
+                case Exoext.Transport.resultBodyFromMetadata metadata |> Maybe.andThen Exoext.Transport.embedResultFromBody of
                     Just embed ->
                         if embed.requestId == p.requestId then
                             Nothing
@@ -418,9 +471,9 @@ clearResolvedPendingEmbed metadata pending =
             )
 
 
-syncCloudShieldManifest : Project -> CloudShield.Discovery.Sentinel -> String -> Model -> ( Model, Cmd Msg )
+syncCloudShieldManifest : Project -> Exoext.Discovery.Sentinel -> String -> Model -> ( Model, Cmd Msg )
 syncCloudShieldManifest project sentinel etag model =
-    case ( project.endpoints.swift, CloudShield.Discovery.manifestObjectLocation sentinel ) of
+    case ( project.endpoints.swift, Exoext.Discovery.manifestObjectLocation sentinel ) of
         ( Nothing, _ ) ->
             ( cloudShieldManifestError (Time.millisToPosix 0)
                 etag
@@ -445,7 +498,7 @@ syncCloudShieldManifest project sentinel etag model =
                     swiftUrl
                     location.container
                     location.objectName
-                    CloudShield.Transport.manifestCapBytes
+                    Exoext.Transport.manifestCapBytes
                     (\result ->
                         SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                             SharedMsg.ServerMsg model.serverUuid <|
@@ -463,12 +516,12 @@ pointer names its object directly; an embed result (`kind == "embed"`, `status =
 the archived scan body `<prefix>results/<batchId>.json` — the same capped ref-fetch path serves
 both. An inline scan result or a non-ok embed result names nothing.
 -}
-cloudShieldResultObjectName : CloudShield.Discovery.Sentinel -> List OSTypes.MetadataItem -> Maybe String
+cloudShieldResultObjectName : Exoext.Discovery.Sentinel -> List OSTypes.MetadataItem -> Maybe String
 cloudShieldResultObjectName sentinel metadata =
-    CloudShield.Transport.resultBodyFromMetadata metadata
+    Exoext.Transport.resultBodyFromMetadata metadata
         |> Maybe.andThen
             (\body ->
-                case CloudShield.Transport.embedResultFromBody body of
+                case Exoext.Transport.embedResultFromBody body of
                     Just embed ->
                         if embed.status == "ok" then
                             Just (Maybe.withDefault "" sentinel.prefix ++ "results/" ++ embed.batchId ++ ".json")
@@ -477,11 +530,11 @@ cloudShieldResultObjectName sentinel metadata =
                             Nothing
 
                     Nothing ->
-                        CloudShield.Transport.resultRefObjectName (CloudShield.Transport.resolveResultBody body)
+                        Exoext.Transport.resultRefObjectName (Exoext.Transport.resolveResultBody body)
             )
 
 
-syncCloudShieldResultRef : Project -> CloudShield.Discovery.Sentinel -> String -> List OSTypes.MetadataItem -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+syncCloudShieldResultRef : Project -> Exoext.Discovery.Sentinel -> String -> List OSTypes.MetadataItem -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
 syncCloudShieldResultRef project sentinel etag metadata ( model, manifestCmd ) =
     case cloudShieldResultObjectName sentinel metadata of
         Just objectName ->
@@ -513,7 +566,7 @@ syncCloudShieldResultRef project sentinel etag metadata ( model, manifestCmd ) =
                                 swiftUrl
                                 container
                                 objectName
-                                CloudShield.Transport.resultCapBytes
+                                Exoext.Transport.resultCapBytes
                                 (\result ->
                                     SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                                         SharedMsg.ServerMsg model.serverUuid <|
@@ -531,27 +584,30 @@ syncCloudShieldResultRef project sentinel etag metadata ( model, manifestCmd ) =
 
 
 {-| Fetch the archived-scan history index (`<prefix>results/index.json`) in the live loop. Keyed
-on `CloudShield.Transport.historyRefreshKey` (etag + run.seq + run.state), NOT the etag alone:
+on `Exoext.Transport.historyRefreshKey` (etag + run.seq + run.state), NOT the etag alone:
 the etag is a content hash of the static manifest and does not move when a scan completes, so it
 would leave history stale. The composite key advances on every run-state transition (and on a
 getEmbed claim), so each transition triggers one refetch and a steady state suppresses it. Any
 failure resolves to no history (fail-closed), never an error card. `store=metadata` has no
 archive, so this only runs for `store=swift`.
 -}
-syncCloudShieldIndex : Project -> CloudShield.Discovery.Sentinel -> String -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+syncCloudShieldIndex : Project -> Exoext.Discovery.Sentinel -> String -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
 syncCloudShieldIndex project sentinel refreshKey ( model, priorCmd ) =
     case ( project.endpoints.swift, sentinel.container ) of
         ( Just swiftUrl, Just container ) ->
             if cloudShieldIndexNeedsFetch refreshKey model then
-                ( { model | cloudShieldHistoryRequestKey = Just refreshKey }
+                ( { model
+                    | cloudShieldHistory = RDPP.setLoading model.cloudShieldHistory
+                    , cloudShieldHistoryRequestKey = Just refreshKey
+                  }
                 , Cmd.batch
                     [ priorCmd
                     , Rest.Swift.requestGetObjectCapped
                         project
                         swiftUrl
                         container
-                        (CloudShield.Transport.indexObjectName (Maybe.withDefault "" sentinel.prefix))
-                        CloudShield.Transport.indexCapBytes
+                        (Exoext.Transport.indexObjectName (Maybe.withDefault "" sentinel.prefix))
+                        Exoext.Transport.indexCapBytes
                         (\result ->
                             SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                                 SharedMsg.ServerMsg model.serverUuid <|
@@ -565,7 +621,14 @@ syncCloudShieldIndex project sentinel refreshKey ( model, priorCmd ) =
                 ( model, priorCmd )
 
         _ ->
-            ( model, priorCmd )
+            ( { model
+                | cloudShieldHistory =
+                    model.cloudShieldHistory
+                        |> RDPP.setData (RDPP.DoHave [] (Time.millisToPosix 0))
+                        |> RDPP.setNotLoading Nothing
+              }
+            , priorCmd
+            )
 
 
 cloudShieldIndexNeedsFetch : String -> Model -> Bool
@@ -573,18 +636,34 @@ cloudShieldIndexNeedsFetch refreshKey model =
     model.cloudShieldHistoryRequestKey /= Just refreshKey
 
 
-{-| Store the decoded history index, fail-closed. An HTTP error or an over-cap/malformed body
-both resolve to no history (`[]`) rather than an error state. Stamped by the refresh key it was
-fetched for, and dropped if the current key (etag + run slot) has since moved on.
+{-| Store the decoded history index, fail-closed. First-fetch errors and over-cap/malformed bodies
+resolve to fetched empty history (`[]`) rather than an error state. Refresh errors keep any stale
+loaded rows visible. Stamped by the refresh key it was fetched for, and dropped if the current key
+(etag + run slot) has since moved on.
 -}
-receiveCloudShieldIndex : Project -> String -> Result HttpErrorWithBody String -> Model -> Model
-receiveCloudShieldIndex project refreshKey result model =
+receiveCloudShieldIndex : Project -> Time.Posix -> String -> Result HttpErrorWithBody String -> Model -> Model
+receiveCloudShieldIndex project receivedTime refreshKey result model =
     if currentCloudShieldHistoryKey project model == Just refreshKey then
+        let
+            nextHistory =
+                case result of
+                    Ok body ->
+                        RDPP.RemoteDataPlusPlus
+                            (RDPP.DoHave (Exoext.Transport.decodeIndex body) receivedTime)
+                            (RDPP.NotLoading Nothing)
+
+                    Err _ ->
+                        case model.cloudShieldHistory.data of
+                            RDPP.DoHave _ _ ->
+                                RDPP.setNotLoading Nothing model.cloudShieldHistory
+
+                            RDPP.DontHave ->
+                                RDPP.RemoteDataPlusPlus
+                                    (RDPP.DoHave [] receivedTime)
+                                    (RDPP.NotLoading Nothing)
+        in
         { model
-            | cloudShieldHistory =
-                result
-                    |> Result.map CloudShield.Transport.decodeIndex
-                    |> Result.withDefault []
+            | cloudShieldHistory = nextHistory
             , cloudShieldHistoryRequestKey = Just refreshKey
         }
 
@@ -595,7 +674,7 @@ receiveCloudShieldIndex project refreshKey result model =
 receiveCloudShieldManifest : Project -> Time.Posix -> String -> Result HttpErrorWithBody String -> Model -> Model
 receiveCloudShieldManifest project receivedTime etag result model =
     if currentCloudShieldEtag project model == Just etag then
-        case result |> Result.mapError Helpers.httpErrorWithBodyToString |> Result.andThen (CloudShield.Transport.capBody CloudShield.Transport.manifestCapBytes) of
+        case result |> Result.mapError Helpers.httpErrorWithBodyToString |> Result.andThen (Exoext.Transport.capBody Exoext.Transport.manifestCapBytes) of
             Ok body ->
                 { model
                     | cloudShieldManifest =
@@ -615,7 +694,7 @@ receiveCloudShieldManifest project receivedTime etag result model =
 receiveCloudShieldResultRef : Project -> Time.Posix -> String -> String -> Result HttpErrorWithBody String -> Model -> Model
 receiveCloudShieldResultRef project receivedTime etag objectName result model =
     if currentCloudShieldEtag project model == Just etag then
-        case result |> Result.mapError Helpers.httpErrorWithBodyToString |> Result.andThen (CloudShield.Transport.capBody CloudShield.Transport.resultCapBytes) of
+        case result |> Result.mapError Helpers.httpErrorWithBodyToString |> Result.andThen (Exoext.Transport.capBody Exoext.Transport.resultCapBytes) of
             Ok body ->
                 { model
                     | cloudShieldResultRef =
@@ -658,10 +737,10 @@ effectiveCloudShieldResultBody : String -> String -> Model -> Maybe String
 effectiveCloudShieldResultBody etag slotBody model =
     let
         resolved =
-            CloudShield.Transport.resolveResultBody slotBody
+            Exoext.Transport.resolveResultBody slotBody
 
         fetchedRefBody =
-            case ( CloudShield.Transport.resultRefObjectName resolved, model.cloudShieldResultRef.data ) of
+            case ( Exoext.Transport.resultRefObjectName resolved, model.cloudShieldResultRef.data ) of
                 ( Just objectName, RDPP.DoHave fetched _ ) ->
                     if fetched.etag == etag && fetched.objectName == objectName then
                         Just fetched.body
@@ -672,7 +751,7 @@ effectiveCloudShieldResultBody etag slotBody model =
                 _ ->
                     Nothing
     in
-    CloudShield.Transport.resultBody resolved fetchedRefBody
+    Exoext.Transport.resultBody resolved fetchedRefBody
 
 
 cloudShieldResultRefNeedsFetch : String -> String -> Model -> Bool
@@ -722,7 +801,7 @@ drop a stale index response whose key no longer matches. See `historyRefreshKey`
 currentCloudShieldHistoryKey : Project -> Model -> Maybe String
 currentCloudShieldHistoryKey project model =
     GetterSetters.serverLookup project model.serverUuid
-        |> Maybe.map (.osProps >> .details >> .metadata >> CloudShield.Transport.historyRefreshKey)
+        |> Maybe.map (.osProps >> .details >> .metadata >> Exoext.Transport.historyRefreshKey)
 
 
 cloudShieldEtag : List OSTypes.MetadataItem -> String
@@ -751,20 +830,19 @@ cloudShieldViewConfig approved project model currentTime server =
             server.osProps.details.metadata
 
         maybeSentinel =
-            CloudShield.Discovery.readSentinel metadata
+            Exoext.Discovery.readSentinel metadata
 
         maybeTransportBody =
-            case maybeSentinel of
-                Just { store } ->
-                    case store of
-                        CloudShield.Discovery.StoreSwift ->
-                            cloudShieldManifestBodyForEtag (cloudShieldEtag metadata) model
+            maybeSentinel
+                |> Maybe.andThen
+                    (\{ store } ->
+                        case store of
+                            Exoext.Discovery.StoreSwift ->
+                                cloudShieldManifestBodyForEtag (cloudShieldEtag metadata) model
 
-                        _ ->
-                            CloudShield.Discovery.manifestBodyFromMetadata metadata
-
-                Nothing ->
-                    Nothing
+                            _ ->
+                                Exoext.Discovery.manifestBodyFromMetadata metadata
+                    )
 
         -- The header transport chip: a short, non-technical label naming how the manifest
         -- actually arrived. Only when a real transport body was resolved (metadata store);
@@ -775,7 +853,7 @@ cloudShieldViewConfig approved project model currentTime server =
                     ( unwrapManifestUi model.serverUuid body
                     , Just
                         (case store of
-                            CloudShield.Discovery.StoreSwift ->
+                            Exoext.Discovery.StoreSwift ->
                                 "object storage"
 
                             _ ->
@@ -790,7 +868,7 @@ cloudShieldViewConfig approved project model currentTime server =
                     ( CloudShield.Card.cardJson, Nothing )
 
         statusOverride =
-            case ( CloudShield.Transport.runStatusFromMetadata metadata, model.cloudShield.pending ) of
+            case ( Exoext.Transport.runStatusFromMetadata metadata, model.cloudShield.pending ) of
                 ( Just status, Just pending ) ->
                     if status.seq == pending.seq then
                         Just { targetId = pending.targetId, state = status.state }
@@ -802,7 +880,7 @@ cloudShieldViewConfig approved project model currentTime server =
                     Nothing
 
         resultBody =
-            CloudShield.Transport.resultBodyFromMetadata metadata
+            Exoext.Transport.resultBodyFromMetadata metadata
                 |> Maybe.andThen (\body -> effectiveCloudShieldResultBody (cloudShieldEtag metadata) body model)
 
         -- The origin-pin for the catalog `Iframe`: the instance's own floating IPs, each mapped
@@ -865,7 +943,20 @@ cloudShieldViewConfig approved project model currentTime server =
     , scanTimer = scanTimer
     , statusOverride = displayStatusOverride
     , results = results
-    , history = model.cloudShieldHistory
+    , history =
+        case maybeSentinel of
+            Just { store } ->
+                if store == Exoext.Discovery.StoreSwift then
+                    { rows = RDPP.withDefault [] model.cloudShieldHistory
+                    , loading = RDPP.isLoading model.cloudShieldHistory
+                    , loaded = RDPP.gotData model.cloudShieldHistory
+                    }
+
+                else
+                    { rows = [], loading = False, loaded = True }
+
+            Nothing ->
+                { rows = [], loading = False, loaded = True }
     , activeBatchId = embedProjection.activeBatchId
     , pendingBatchId = embedProjection.pendingBatchId
     , erroredBatchId = embedProjection.erroredBatchId
@@ -964,8 +1055,8 @@ cloudShieldEmbedProjection :
 cloudShieldEmbedProjection metadata currentTime statusOverride resultBody model =
     let
         rawEmbedResult =
-            CloudShield.Transport.resultBodyFromMetadata metadata
-                |> Maybe.andThen CloudShield.Transport.embedResultFromBody
+            Exoext.Transport.resultBodyFromMetadata metadata
+                |> Maybe.andThen Exoext.Transport.embedResultFromBody
 
         -- A history pick to show: an ok embed result in the res slot. A non-ok embed result is
         -- surfaced through `embedState` but never binds findings/iframe (falls to the scan path).
@@ -1168,7 +1259,7 @@ cloudShieldEmbedProjection metadata currentTime statusOverride resultBody model 
 re-encoded as a JSON string (the bridge may send a string or an object), so unwrap a plain-string
 error back to its text for a clean line, falling back to the raw JSON for a structured error.
 -}
-embedErrorMessage : CloudShield.Transport.EmbedResult -> String
+embedErrorMessage : Exoext.Transport.EmbedResult -> String
 embedErrorMessage embed =
     case embed.error of
         Just encoded ->
@@ -1178,7 +1269,7 @@ embedErrorMessage embed =
             "the request failed"
 
 
-cloudShieldTransportWarning : Project -> Model -> List OSTypes.MetadataItem -> Maybe CloudShield.Discovery.Sentinel -> Maybe String -> Maybe String
+cloudShieldTransportWarning : Project -> Model -> List OSTypes.MetadataItem -> Maybe Exoext.Discovery.Sentinel -> Maybe String -> Maybe String
 cloudShieldTransportWarning project model metadata maybeSentinel resultBody =
     case resultBody |> Maybe.andThen resultTruncationWarning of
         Just warning ->
@@ -1187,7 +1278,7 @@ cloudShieldTransportWarning project model metadata maybeSentinel resultBody =
         Nothing ->
             case maybeSentinel of
                 Just { store } ->
-                    if store == CloudShield.Discovery.StoreSwift then
+                    if store == Exoext.Discovery.StoreSwift then
                         case project.endpoints.swift of
                             Nothing ->
                                 Just
@@ -1332,8 +1423,8 @@ writeScanRequestCmd project model instances req now =
                     }
 
                 items =
-                    CloudShield.Transport.reqSlotMetadata req.seq
-                        (CloudShield.Transport.scanRequestJson scanRequest)
+                    Exoext.Transport.reqSlotMetadata req.seq
+                        (Exoext.Transport.scanRequestJson scanRequest)
             in
             -- One atomic POST for all request-slot keys. Firing one request per key
             -- concurrently races on Nova's single metadata row and silently drops writes,
@@ -1360,8 +1451,8 @@ writeEmbedRequestCmd project model req now =
             }
 
         items =
-            CloudShield.Transport.reqSlotMetadata timeSeq
-                (CloudShield.Transport.embedRequestJson embedRequest)
+            Exoext.Transport.reqSlotMetadata timeSeq
+                (Exoext.Transport.embedRequestJson embedRequest)
     in
     Rest.Nova.requestSetServerMetadataItems project model.serverUuid items
         |> Cmd.map SharedMsg
@@ -1939,7 +2030,7 @@ cloudShieldCard context project ( currentTime, timeZone ) server model =
     -- embedded card on every instance.)
     let
         sentinelPresent =
-            CloudShield.Discovery.readSentinel server.osProps.details.metadata /= Nothing
+            Exoext.Discovery.readSentinel server.osProps.details.metadata /= Nothing
     in
     if context.experimentalFeaturesEnabled && sentinelPresent then
         let

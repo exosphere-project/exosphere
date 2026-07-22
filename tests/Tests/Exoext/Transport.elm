@@ -1,4 +1,4 @@
-module Tests.CloudShield.Transport exposing
+module Tests.Exoext.Transport exposing
     ( capBodySuite
     , countsLabelSuite
     , embedRequestSuite
@@ -10,7 +10,7 @@ module Tests.CloudShield.Transport exposing
     , resultBodySuite
     )
 
-import CloudShield.Transport as Transport
+import Exoext.Transport as Transport
 import Expect
 import Json.Decode as Decode
 import Test exposing (Test, describe, test)
