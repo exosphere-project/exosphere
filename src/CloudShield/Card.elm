@@ -740,7 +740,7 @@ type alias ViewConfig =
 
 
 {-| The host-computed state of a history-View embed round-trip, decided in
-`Page.ServerDetail.cloudShieldEmbedProjection` from (the pending getEmbed marker, the res-slot
+`Page.ServerDetail.exoextEmbedProjection` from (the pending getEmbed marker, the res-slot
 embed result, and the shared client clock). It drives the quiet affordance line and gates the
 iframe mount.
 
