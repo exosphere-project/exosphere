@@ -22,7 +22,7 @@ modelWithManifest etag body =
             ServerDetail.init "self"
     in
     { model
-        | cloudShieldManifest =
+        | exoextManifest =
             RDPP.RemoteDataPlusPlus
                 (RDPP.DoHave { etag = etag, body = body } receivedAt)
                 (RDPP.NotLoading Nothing)
@@ -36,7 +36,7 @@ modelWithResultRef etag objectName body =
             ServerDetail.init "self"
     in
     { model
-        | cloudShieldResultRef =
+        | exoextResultRef =
             RDPP.RemoteDataPlusPlus
                 (RDPP.DoHave { etag = etag, objectName = objectName, body = body } receivedAt)
                 (RDPP.NotLoading Nothing)
@@ -49,7 +49,7 @@ cloudShieldReadDecisionSuite =
         [ test "a missing manifest body needs a fetch for the current etag" <|
             \_ ->
                 Expect.equal True
-                    (ServerDetail.cloudShieldManifestNeedsFetch "etag-1" (ServerDetail.init "self"))
+                    (ServerDetail.exoextManifestNeedsFetch "etag-1" (ServerDetail.init "self"))
         , test "a matching manifest body is usable and does not refetch" <|
             \_ ->
                 let
@@ -57,8 +57,8 @@ cloudShieldReadDecisionSuite =
                         modelWithManifest "etag-1" """{"ui":{}}"""
                 in
                 Expect.equal ( Just """{"ui":{}}""", False )
-                    ( ServerDetail.cloudShieldManifestBodyForEtag "etag-1" model
-                    , ServerDetail.cloudShieldManifestNeedsFetch "etag-1" model
+                    ( ServerDetail.exoextManifestBodyForEtag "etag-1" model
+                    , ServerDetail.exoextManifestNeedsFetch "etag-1" model
                     )
         , test "a stale manifest body is ignored and needs a fetch for the new etag" <|
             \_ ->
@@ -67,8 +67,8 @@ cloudShieldReadDecisionSuite =
                         modelWithManifest "etag-old" """{"ui":{"stale":true}}"""
                 in
                 Expect.equal ( Nothing, True )
-                    ( ServerDetail.cloudShieldManifestBodyForEtag "etag-new" model
-                    , ServerDetail.cloudShieldManifestNeedsFetch "etag-new" model
+                    ( ServerDetail.exoextManifestBodyForEtag "etag-new" model
+                    , ServerDetail.exoextManifestNeedsFetch "etag-new" model
                     )
         , test "an in-flight manifest request suppresses a duplicate fetch for the same etag" <|
             \_ ->
@@ -77,9 +77,9 @@ cloudShieldReadDecisionSuite =
                         ServerDetail.init "self"
 
                     model =
-                        { base | cloudShieldManifestRequestEtag = Just "etag-1" }
+                        { base | exoextManifestRequestEtag = Just "etag-1" }
                 in
-                Expect.equal False (ServerDetail.cloudShieldManifestNeedsFetch "etag-1" model)
+                Expect.equal False (ServerDetail.exoextManifestNeedsFetch "etag-1" model)
         , test "inline result bodies are selected directly" <|
             \_ ->
                 let
@@ -87,11 +87,11 @@ cloudShieldReadDecisionSuite =
                         """{"findings":[],"embedUrl":"https://example.test"}"""
                 in
                 Expect.equal (Just body)
-                    (ServerDetail.effectiveCloudShieldResultBody "etag-1" body (ServerDetail.init "self"))
+                    (ServerDetail.effectiveExoextResultBody "etag-1" body (ServerDetail.init "self"))
         , test "a ref result waits until the pointed object has been fetched" <|
             \_ ->
                 Expect.equal Nothing
-                    (ServerDetail.effectiveCloudShieldResultBody "etag-1" """{"ref":"results/run-1.json"}""" (ServerDetail.init "self"))
+                    (ServerDetail.effectiveExoextResultBody "etag-1" """{"ref":"results/run-1.json"}""" (ServerDetail.init "self"))
         , test "a ref result uses the matching fetched object body" <|
             \_ ->
                 let
@@ -99,7 +99,7 @@ cloudShieldReadDecisionSuite =
                         """{"findings":[{"severity":"low"}]}"""
                 in
                 Expect.equal (Just fetched)
-                    (ServerDetail.effectiveCloudShieldResultBody
+                    (ServerDetail.effectiveExoextResultBody
                         "etag-1"
                         """{"ref":"results/run-1.json"}"""
                         (modelWithResultRef "etag-1" "results/run-1.json" fetched)
@@ -107,7 +107,7 @@ cloudShieldReadDecisionSuite =
         , test "a ref result ignores a fetched object from a stale etag" <|
             \_ ->
                 Expect.equal Nothing
-                    (ServerDetail.effectiveCloudShieldResultBody
+                    (ServerDetail.effectiveExoextResultBody
                         "etag-new"
                         """{"ref":"results/run-1.json"}"""
                         (modelWithResultRef "etag-old" "results/run-1.json" """{"findings":[]}""")
@@ -189,19 +189,19 @@ modelPendingEmbed since =
             ServerDetail.init "self"
     in
     { model
-        | cloudShieldPendingEmbed =
+        | exoextPendingEmbed =
             Just { seq = 0, requestId = "exo-cs-req-200", kind = "getEmbed", subject = "b1", since = since }
     }
 
 
 cloudShieldEmbedProjectionSuite : Test
 cloudShieldEmbedProjectionSuite =
-    describe "ServerDetail cloudShieldEmbedProjection (history-View reader)"
+    describe "ServerDetail exoextEmbedProjection (history-View reader)"
         [ test "an ok, unexpired embed result renders findings + the iframe url and reports EmbedReady" <|
             \_ ->
                 let
                     projection =
-                        ServerDetail.cloudShieldEmbedProjection
+                        ServerDetail.exoextEmbedProjection
                             (embedResultMetadata (okEmbedBody expiresAtIso))
                             beforeExpiry
                             Nothing
@@ -218,7 +218,7 @@ cloudShieldEmbedProjectionSuite =
             \_ ->
                 let
                     projection =
-                        ServerDetail.cloudShieldEmbedProjection
+                        ServerDetail.exoextEmbedProjection
                             (embedResultMetadata (okEmbedBody expiresAtIso))
                             afterExpiry
                             Nothing
@@ -234,7 +234,7 @@ cloudShieldEmbedProjectionSuite =
             \_ ->
                 let
                     projection =
-                        ServerDetail.cloudShieldEmbedProjection
+                        ServerDetail.exoextEmbedProjection
                             (embedResultMetadata errorEmbedBody)
                             beforeExpiry
                             Nothing
@@ -250,7 +250,7 @@ cloudShieldEmbedProjectionSuite =
                         Time.millisToPosix 1000000
 
                     projection =
-                        ServerDetail.cloudShieldEmbedProjection
+                        ServerDetail.exoextEmbedProjection
                             [ { key = "exoext.v1.etag", value = "etag-1" } ]
                             now
                             Nothing
@@ -266,7 +266,7 @@ cloudShieldEmbedProjectionSuite =
                         Time.millisToPosix 1000000
 
                     projection =
-                        ServerDetail.cloudShieldEmbedProjection
+                        ServerDetail.exoextEmbedProjection
                             [ { key = "exoext.v1.etag", value = "etag-1" } ]
                             now
                             Nothing
@@ -285,12 +285,12 @@ cloudShieldEmbedProjectionSuite =
                                 ServerDetail.init "self"
                         in
                         { base
-                            | cloudShieldPendingEmbed =
+                            | exoextPendingEmbed =
                                 Just { seq = 0, requestId = "exo-cs-req-100", kind = "getEmbed", subject = "b1", since = beforeExpiry }
                         }
 
                     projection =
-                        ServerDetail.cloudShieldEmbedProjection
+                        ServerDetail.exoextEmbedProjection
                             (embedResultMetadata errorEmbedBody)
                             beforeExpiry
                             Nothing
@@ -306,7 +306,7 @@ cloudShieldEmbedProjectionSuite =
                         """{"schemaVersion":"1.0","requestId":"exo-cs-req-42","batchId":null,"completedAt":"2026-07-20T21:00:00.000Z","status":"ok","findings":[]}"""
 
                     projection =
-                        ServerDetail.cloudShieldEmbedProjection
+                        ServerDetail.exoextEmbedProjection
                             [ { key = "exoext.v1.etag", value = "etag-1" } ]
                             beforeExpiry
                             (Just { targetId = "i-1", state = "done" })
@@ -321,7 +321,7 @@ cloudShieldEmbedProjectionSuite =
                         """{"schemaVersion":"1.0","requestId":"exo-cs-req-42","batchId":"batch-9","completedAt":"2026-07-20T21:00:00.000Z","status":"ok","findings":[]}"""
 
                     projection =
-                        ServerDetail.cloudShieldEmbedProjection
+                        ServerDetail.exoextEmbedProjection
                             [ { key = "exoext.v1.etag", value = "etag-1" } ]
                             beforeExpiry
                             (Just { targetId = "i-1", state = "done" })
@@ -353,25 +353,25 @@ cloudShieldScanTimerSuite =
         bodyWith completedField =
             "{\"requestId\":\"exo-cs-req-42\"" ++ completedField ++ ",\"summary\":{\"durationSec\":22}}"
     in
-    describe "ServerDetail cloudShieldScanTimer (frozen completion time)"
+    describe "ServerDetail exoextScanTimer (frozen completion time)"
         [ test "no tracked run yields no descriptor" <|
             \_ ->
-                Expect.equal Nothing (ServerDetail.cloudShieldScanTimer Nothing "done" Nothing)
+                Expect.equal Nothing (ServerDetail.exoextScanTimer Nothing "done" Nothing)
         , test "a running scan yields a live descriptor with no frozen duration (the row carries progress)" <|
             \_ ->
                 Expect.equal (Just { startMillis = startMillis, doneDurationSec = Nothing })
-                    (ServerDetail.cloudShieldScanTimer (Just startMillis) "running" Nothing)
+                    (ServerDetail.exoextScanTimer (Just startMillis) "running" Nothing)
         , test "a done scan freezes to the full wall-clock flow (completedAt - start), not the 22s scanner time" <|
             \_ ->
                 Expect.equal (Just { startMillis = startMillis, doneDurationSec = Just 130 })
-                    (ServerDetail.cloudShieldScanTimer (Just startMillis) "done" (Just (bodyWith (",\"completedAt\":\"" ++ completedAtIso ++ "\""))))
+                    (ServerDetail.exoextScanTimer (Just startMillis) "done" (Just (bodyWith (",\"completedAt\":\"" ++ completedAtIso ++ "\""))))
         , test "a done scan with no completedAt shows no frozen duration (no durationSec fallback)" <|
             \_ ->
                 Expect.equal (Just { startMillis = startMillis, doneDurationSec = Nothing })
-                    (ServerDetail.cloudShieldScanTimer (Just startMillis) "done" (Just (bodyWith "")))
+                    (ServerDetail.exoextScanTimer (Just startMillis) "done" (Just (bodyWith "")))
         , test "a terminal error state drops the descriptor" <|
             \_ ->
-                Expect.equal Nothing (ServerDetail.cloudShieldScanTimer (Just startMillis) "error" Nothing)
+                Expect.equal Nothing (ServerDetail.exoextScanTimer (Just startMillis) "error" Nothing)
         ]
 
 

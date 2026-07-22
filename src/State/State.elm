@@ -1916,7 +1916,7 @@ processProjectSpecificMsg outerModel project msg =
                     Rest.Nova.receiveServers sharedModel project servers
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
-                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerDetailMsg Page.ServerDetail.GotCloudShieldSync))
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerDetailMsg Page.ServerDetail.GotExoextSync))
 
                 Err e ->
                     let
@@ -1960,7 +1960,7 @@ processProjectSpecificMsg outerModel project msg =
                     ( newerSharedModel, newCmd )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
-                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerDetailMsg Page.ServerDetail.GotCloudShieldSync))
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerDetailMsg Page.ServerDetail.GotExoextSync))
 
                 Err httpErrorWithBody ->
                     let
@@ -4350,21 +4350,21 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
         ReceiveExoextManifestObject etag result ->
             updateUnderlying
                 (ServerDetailMsg <|
-                    Page.ServerDetail.GotCloudShieldManifestObject sharedModel.clientCurrentTime etag result
+                    Page.ServerDetail.GotExoextManifestObject sharedModel.clientCurrentTime etag result
                 )
                 outerModel
 
         ReceiveExoextResultObject etag objectName result ->
             updateUnderlying
                 (ServerDetailMsg <|
-                    Page.ServerDetail.GotCloudShieldResultObject sharedModel.clientCurrentTime etag objectName result
+                    Page.ServerDetail.GotExoextResultObject sharedModel.clientCurrentTime etag objectName result
                 )
                 outerModel
 
         ReceiveExoextIndexObject refreshKey result ->
             updateUnderlying
                 (ServerDetailMsg <|
-                    Page.ServerDetail.GotCloudShieldIndexObject sharedModel.clientCurrentTime refreshKey result
+                    Page.ServerDetail.GotExoextIndexObject sharedModel.clientCurrentTime refreshKey result
                 )
                 outerModel
 
