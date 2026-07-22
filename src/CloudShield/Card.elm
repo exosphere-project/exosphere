@@ -861,21 +861,29 @@ embedStateView palette embedState erroredBatchId =
 
 {-| A small CSS-driven spinner ring for the results-region loading line, tinted to the subdued
 neutral text so it reads as quiet host chrome (matches the per-row "Opening…" ring idiom).
+The raw span is wrapped in a sized `Element.el` because elm-ui's row `spacing` only applies
+between its own wrapped children — a bare `Element.html` child gets no gap (and no measured
+box), which rendered the ring flush against the label.
 -}
 spinner : ExoPalette -> Element.Element msg
 spinner palette =
-    Element.html
-        (Html.node "span"
-            [ Html.Attributes.style "display" "inline-block"
-            , Html.Attributes.style "width" "12px"
-            , Html.Attributes.style "height" "12px"
-            , Html.Attributes.style "border" ("2px solid " ++ Color.toCssString palette.neutral.text.subdued)
-            , Html.Attributes.style "border-top-color" "transparent"
-            , Html.Attributes.style "border-radius" "50%"
-            , Html.Attributes.style "animation" "jr-badge-spin 0.7s linear infinite"
-            ]
-            []
-        )
+    Element.el
+        [ Element.width (Element.px 12)
+        , Element.height (Element.px 12)
+        ]
+    <|
+        Element.html
+            (Html.node "span"
+                [ Html.Attributes.style "display" "inline-block"
+                , Html.Attributes.style "width" "12px"
+                , Html.Attributes.style "height" "12px"
+                , Html.Attributes.style "border" ("2px solid " ++ Color.toCssString palette.neutral.text.subdued)
+                , Html.Attributes.style "border-top-color" "transparent"
+                , Html.Attributes.style "border-radius" "50%"
+                , Html.Attributes.style "animation" "jr-badge-spin 0.7s linear infinite"
+                ]
+                []
+            )
 
 
 {-| A muted, host-drawn confirmation line under the rendered manifest, shown only once the run is
