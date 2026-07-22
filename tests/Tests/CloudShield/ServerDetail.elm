@@ -190,7 +190,7 @@ modelPendingEmbed since =
     in
     { model
         | cloudShieldPendingEmbed =
-            Just { requestId = "exo-cs-req-200", batchId = "b1", since = since }
+            Just { seq = 0, requestId = "exo-cs-req-200", kind = "getEmbed", subject = "b1", since = since }
     }
 
 
@@ -214,7 +214,7 @@ cloudShieldEmbedProjectionSuite =
                     , projection.results |> Maybe.map (Encode.encode 0)
                     , projection.embedState
                     )
-        , test "the same result past its expiry unmounts the iframe and reports EmbedExpired" <|
+        , test "the same result past its expiry unmounts the iframe, reports EmbedExpired, and marks the row expired (not active) — the expiry fix" <|
             \_ ->
                 let
                     projection =
@@ -225,8 +225,11 @@ cloudShieldEmbedProjectionSuite =
                             Nothing
                             modelWithArchivedFindings
                 in
-                Expect.equal ( "", Card.EmbedExpired )
-                    ( projection.embedUrl, projection.embedState )
+                -- The expiry fix: an expired session no longer reads as active ("Now viewing"). The
+                -- iframe unmounts (embedUrl ""), the state is EmbedExpired, and the previously-viewed
+                -- row becomes `expiredBatchId` (a muted "Expired"/View row) instead of `activeBatchId`.
+                Expect.equal ( "", Card.EmbedExpired, ( Nothing, Just "b1" ) )
+                    ( projection.embedUrl, projection.embedState, ( projection.activeBatchId, projection.expiredBatchId ) )
         , test "an error embed result reports EmbedError with the unwrapped message and no iframe" <|
             \_ ->
                 let
@@ -283,7 +286,7 @@ cloudShieldEmbedProjectionSuite =
                         in
                         { base
                             | cloudShieldPendingEmbed =
-                                Just { requestId = "exo-cs-req-100", batchId = "b1", since = beforeExpiry }
+                                Just { seq = 0, requestId = "exo-cs-req-100", kind = "getEmbed", subject = "b1", since = beforeExpiry }
                         }
 
                     projection =
@@ -380,13 +383,13 @@ cloudShieldPendingEmbedSuite =
                 Expect.equal Nothing
                     (ServerDetail.clearResolvedPendingEmbed
                         (embedResultMetadata (okEmbedBody expiresAtIso))
-                        (Just { requestId = "exo-cs-req-100", batchId = "b1", since = Time.millisToPosix 0 })
+                        (Just { seq = 0, requestId = "exo-cs-req-100", kind = "getEmbed", subject = "b1", since = Time.millisToPosix 0 })
                     )
         , test "a result for a different requestId leaves the pending marker in place" <|
             \_ ->
                 let
                     pending =
-                        Just { requestId = "exo-cs-req-999", batchId = "b1", since = Time.millisToPosix 0 }
+                        Just { seq = 0, requestId = "exo-cs-req-999", kind = "getEmbed", subject = "b1", since = Time.millisToPosix 0 }
                 in
                 Expect.equal pending
                     (ServerDetail.clearResolvedPendingEmbed

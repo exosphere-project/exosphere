@@ -119,7 +119,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing (loadedHistory []) Nothing "" Nothing sampleInstances (sampleModel (Set.singleton "i-1"))
+                        Card.projection Time.utc Nothing Nothing Nothing Nothing (loadedHistory []) Nothing "" Nothing sampleInstances (sampleModel (Set.singleton "i-1"))
                 in
                 Expect.equal ( Ok True, Ok False )
                     ( rowSelected 0 value, rowSelected 1 value )
@@ -127,7 +127,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing (loadedHistory []) Nothing "" Nothing sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc Nothing Nothing Nothing Nothing (loadedHistory []) Nothing "" Nothing sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal ( Ok "idle", Ok "queued" )
                     ( rowScanState 0 value, rowScanState 1 value )
@@ -138,7 +138,7 @@ projectionSuite =
                         Just { targetId = "i-1", state = "running" }
 
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing (loadedHistory []) Nothing "" override sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc Nothing Nothing Nothing Nothing (loadedHistory []) Nothing "" override sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal ( Ok "running", Ok "queued" )
                     ( rowScanState 0 value, rowScanState 1 value )
@@ -146,7 +146,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing (loadedHistory []) Nothing "https://1-2-3-4.sslip.io/app" Nothing sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc Nothing Nothing Nothing Nothing (loadedHistory []) Nothing "https://1-2-3-4.sslip.io/app" Nothing sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal (Ok "https://1-2-3-4.sslip.io/app")
                     (Decode.decodeValue (Decode.field "embedUrl" Decode.string) value
@@ -161,7 +161,7 @@ projectionSuite =
                         Just { targetId = "i-1", state = "scanning · 0:23" }
 
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing (loadedHistory [ historyEntry "b-1" ]) Nothing "" override sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc Nothing Nothing Nothing Nothing (loadedHistory [ historyEntry "b-1" ]) Nothing "" override sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal ( Ok "scanning · 0:23", Ok "queued" )
                     ( rowScanState 0 value, rowScanState 1 value )
@@ -169,7 +169,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing loadingHistory Nothing "" Nothing sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc Nothing Nothing Nothing Nothing loadingHistory Nothing "" Nothing sampleInstances (sampleModel Set.empty)
 
                     stringField key =
                         Decode.decodeValue (Decode.field key Decode.string) value
@@ -414,7 +414,7 @@ historyEntries n =
 
 projectHistory : List Transport.IndexEntry -> Decode.Value
 projectHistory entries =
-    Card.projection Time.utc Nothing Nothing Nothing (loadedHistory entries) Nothing "" Nothing sampleInstances idleModel
+    Card.projection Time.utc Nothing Nothing Nothing Nothing (loadedHistory entries) Nothing "" Nothing sampleInstances idleModel
 
 
 {-| Project a single history row and read a string field from `/history/0`, given the active and
@@ -426,11 +426,22 @@ historyRowField activeBatchId pendingBatchId entry field =
 
 
 {-| As `historyRowField`, but also supplying the `erroredBatchId` (the last getEmbed that failed /
-timed out) so the new "Couldn't open" / "Retry" precedence can be exercised.
+timed out) so the "Couldn't open" / "Retry" precedence can be exercised.
 -}
 historyRowFieldE : Maybe String -> Maybe String -> Maybe String -> Transport.IndexEntry -> String -> Result String String
 historyRowFieldE activeBatchId pendingBatchId erroredBatchId entry field =
-    Card.projection Time.utc activeBatchId pendingBatchId erroredBatchId (loadedHistory [ entry ]) Nothing "" Nothing sampleInstances idleModel
+    Card.projection Time.utc activeBatchId pendingBatchId erroredBatchId Nothing (loadedHistory [ entry ]) Nothing "" Nothing sampleInstances idleModel
+        |> Decode.decodeValue (Decode.field "history" (Decode.index 0 (Decode.field field Decode.string)))
+        |> Result.mapError Decode.errorToString
+
+
+{-| Project a single history row supplying the `expiredBatchId` (a row whose result session has
+expired), so the expired-session row state ("Expired" / plain "View", faint highlight) can be
+exercised.
+-}
+historyRowFieldX : Maybe String -> Maybe String -> Transport.IndexEntry -> String -> Result String String
+historyRowFieldX activeBatchId expiredBatchId entry field =
+    Card.projection Time.utc activeBatchId Nothing Nothing expiredBatchId (loadedHistory [ entry ]) Nothing "" Nothing sampleInstances idleModel
         |> Decode.decodeValue (Decode.field "history" (Decode.index 0 (Decode.field field Decode.string)))
         |> Result.mapError Decode.errorToString
 
@@ -505,6 +516,14 @@ historySuite =
                     ( historyRowField Nothing Nothing (historyEntry "b-1") "rowState"
                     , historyRowField Nothing Nothing (historyEntry "b-1") "actionLabel"
                     , historyRowField Nothing Nothing (historyEntry "b-1") "subLabel"
+                    )
+        , test "an expired session row reverts to a muted Expired badge and a plain View (the expiry fix)" <|
+            \_ ->
+                -- b-1's session expired: the host sets expiredBatchId (not activeBatchId), so the row
+                -- reads "Expired" / "View" (reopen) instead of "Now viewing" / "Refresh".
+                Expect.equal ( Ok "Expired", Ok "View" )
+                    ( historyRowFieldX Nothing (Just "b-1") (historyEntry "b-1") "rowState"
+                    , historyRowFieldX Nothing (Just "b-1") (historyEntry "b-1") "actionLabel"
                     )
         , test "the active batch row flips to Now viewing / Refresh" <|
             \_ ->
@@ -598,7 +617,7 @@ historySuite =
             \_ ->
                 let
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing (loadedHistory (historyEntries 3)) Nothing "" Nothing sampleInstances idleModel
+                        Card.projection Time.utc Nothing Nothing Nothing Nothing (loadedHistory (historyEntries 3)) Nothing "" Nothing sampleInstances idleModel
 
                     stringField key =
                         Decode.decodeValue (Decode.field key Decode.string) value

@@ -4347,21 +4347,21 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     ( newSharedModel, Cmd.none )
                         |> mapToOuterModel outerModel
 
-        ReceiveCloudShieldManifestObject etag result ->
+        ReceiveExoextManifestObject etag result ->
             updateUnderlying
                 (ServerDetailMsg <|
                     Page.ServerDetail.GotCloudShieldManifestObject sharedModel.clientCurrentTime etag result
                 )
                 outerModel
 
-        ReceiveCloudShieldResultObject etag objectName result ->
+        ReceiveExoextResultObject etag objectName result ->
             updateUnderlying
                 (ServerDetailMsg <|
                     Page.ServerDetail.GotCloudShieldResultObject sharedModel.clientCurrentTime etag objectName result
                 )
                 outerModel
 
-        ReceiveCloudShieldIndexObject refreshKey result ->
+        ReceiveExoextIndexObject refreshKey result ->
             updateUnderlying
                 (ServerDetailMsg <|
                     Page.ServerDetail.GotCloudShieldIndexObject sharedModel.clientCurrentTime refreshKey result

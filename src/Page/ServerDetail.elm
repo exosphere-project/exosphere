@@ -1,4 +1,4 @@
-module Page.ServerDetail exposing (CloudShieldPendingEmbed, Model, Msg(..), PassphraseVisibility, VerboseStatus, clearResolvedPendingEmbed, cloudShieldEmbedProjection, cloudShieldManifestBodyForEtag, cloudShieldManifestNeedsFetch, cloudShieldScanTimer, effectiveCloudShieldResultBody, exoextRequestsPending, exoextScanRequestPending, init, update, view)
+module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, clearResolvedPendingEmbed, cloudShieldEmbedProjection, cloudShieldManifestBodyForEtag, cloudShieldManifestNeedsFetch, cloudShieldScanTimer, effectiveCloudShieldResultBody, exoextRequestsPending, exoextScanRequestPending, init, update, view)
 
 import CloudShield.Card
 import DateFormat.Relative
@@ -7,6 +7,7 @@ import Element
 import Element.Font as Font
 import Element.Input as Input
 import Exoext.Discovery
+import Exoext.Lifecycle
 import Exoext.Transport
 import FeatherIcons as Icons
 import Helpers.Cidr as Cidr
@@ -95,20 +96,14 @@ type alias Model =
     , cloudShieldHistory : RDPP.RemoteDataPlusPlus String (List Exoext.Transport.IndexEntry)
     , cloudShieldHistoryRequestKey : Maybe String
 
-    -- the in-flight history-View getEmbed, recorded when its req slot is written so the card can
-    -- show a spinner while the bridge mints a fresh embed (~10s over the next poll) and can time
-    -- the request out. Single-slot: a newer getEmbed replaces it; a matching-`requestId` result
-    -- clears it (see `clearResolvedPendingEmbed`). `Nothing` when nothing is in flight.
-    , cloudShieldPendingEmbed : Maybe CloudShieldPendingEmbed
-    }
-
-
-{-| The in-flight history-View getEmbed marker (see `Model.cloudShieldPendingEmbed`).
--}
-type alias CloudShieldPendingEmbed =
-    { requestId : String
-    , batchId : String
-    , since : Time.Posix
+    -- the in-flight history-View getEmbed request, as the generic `Exoext.Lifecycle.PendingRequest`
+    -- (`kind == "getEmbed"`, `subject` = the archived batch id), recorded when its req slot is
+    -- written so the card can show a spinner while the bridge mints a fresh embed (~10s over the
+    -- next poll) and can time the request out. Single-slot: a newer getEmbed replaces it; a
+    -- matching-`requestId` result clears it (see `clearResolvedPendingEmbed`). `Nothing` when
+    -- nothing is in flight. This is the session-request view of `PendingRequest`; the scan-request
+    -- view lives in the card model (`CloudShield.Card.Model.pending`).
+    , cloudShieldPendingEmbed : Maybe Exoext.Lifecycle.PendingRequest
     }
 
 
@@ -288,8 +283,10 @@ update msg project model =
             ( { model
                 | cloudShieldPendingEmbed =
                     Just
-                        { requestId = "exo-cs-req-" ++ String.fromInt (Time.posixToMillis now)
-                        , batchId = req.batchId
+                        { seq = Time.posixToMillis now
+                        , requestId = "exo-cs-req-" ++ String.fromInt (Time.posixToMillis now)
+                        , kind = "getEmbed"
+                        , subject = req.batchId
                         , since = now
                         }
               }
@@ -369,26 +366,14 @@ request was just written and the bridge may not have claimed it yet.
 -}
 exoextScanRequestPending : Project -> Model -> Bool
 exoextScanRequestPending project model =
-    case model.cloudShield.pending of
-        Just pending ->
-            let
-                runState =
-                    GetterSetters.serverLookup project model.serverUuid
-                        |> Maybe.andThen (\server -> Exoext.Transport.runStatusFromMetadata server.osProps.details.metadata)
-                        |> Maybe.andThen
-                            (\status ->
-                                if status.seq == pending.seq then
-                                    Just status.state
-
-                                else
-                                    Nothing
-                            )
-                        |> Maybe.withDefault "queued"
-            in
-            not (List.member runState [ "done", "error", "cancelled", "expired" ])
+    case GetterSetters.serverLookup project model.serverUuid of
+        Just server ->
+            Exoext.Lifecycle.requestStillPending model.cloudShield.pending server.osProps.details.metadata
 
         Nothing ->
-            False
+            -- No server to read a run slot from: with a tracked scan the request has just been
+            -- issued and cannot yet be terminal, so treat it as pending (matches the old default).
+            model.cloudShield.pending /= Nothing
 
 
 {-| Build the `exoext.approval.v1` record for the instance being viewed, stamped with a genuine
@@ -453,7 +438,7 @@ syncCloudShieldReads project model =
 result carrying the same `requestId` appears (the bridge answered this request). A result for a
 different (earlier) requestId leaves the marker in place — a newer request is still in flight.
 -}
-clearResolvedPendingEmbed : List OSTypes.MetadataItem -> Maybe CloudShieldPendingEmbed -> Maybe CloudShieldPendingEmbed
+clearResolvedPendingEmbed : List OSTypes.MetadataItem -> Maybe Exoext.Lifecycle.PendingRequest -> Maybe Exoext.Lifecycle.PendingRequest
 clearResolvedPendingEmbed metadata pending =
     pending
         |> Maybe.andThen
@@ -502,7 +487,7 @@ syncCloudShieldManifest project sentinel etag model =
                     (\result ->
                         SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                             SharedMsg.ServerMsg model.serverUuid <|
-                                SharedMsg.ReceiveCloudShieldManifestObject etag result
+                                SharedMsg.ReceiveExoextManifestObject etag result
                     )
                     |> Cmd.map SharedMsg
                 )
@@ -570,7 +555,7 @@ syncCloudShieldResultRef project sentinel etag metadata ( model, manifestCmd ) =
                                 (\result ->
                                     SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                                         SharedMsg.ServerMsg model.serverUuid <|
-                                            SharedMsg.ReceiveCloudShieldResultObject etag objectName result
+                                            SharedMsg.ReceiveExoextResultObject etag objectName result
                                 )
                                 |> Cmd.map SharedMsg
                             ]
@@ -611,7 +596,7 @@ syncCloudShieldIndex project sentinel refreshKey ( model, priorCmd ) =
                         (\result ->
                             SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                                 SharedMsg.ServerMsg model.serverUuid <|
-                                    SharedMsg.ReceiveCloudShieldIndexObject refreshKey result
+                                    SharedMsg.ReceiveExoextIndexObject refreshKey result
                         )
                         |> Cmd.map SharedMsg
                     ]
@@ -871,7 +856,7 @@ cloudShieldViewConfig approved project model currentTime server =
             case ( Exoext.Transport.runStatusFromMetadata metadata, model.cloudShield.pending ) of
                 ( Just status, Just pending ) ->
                     if status.seq == pending.seq then
-                        Just { targetId = pending.targetId, state = status.state }
+                        Just { targetId = pending.subject, state = status.state }
 
                     else
                         Nothing
@@ -960,6 +945,7 @@ cloudShieldViewConfig approved project model currentTime server =
     , activeBatchId = embedProjection.activeBatchId
     , pendingBatchId = embedProjection.pendingBatchId
     , erroredBatchId = embedProjection.erroredBatchId
+    , expiredBatchId = embedProjection.expiredBatchId
     , allowedIframeOrigins = allowedIframeOrigins
     , embedUrl = embedUrl
     , embedState = embedProjection.embedState
@@ -1051,15 +1037,15 @@ cloudShieldEmbedProjection :
     -> Maybe { targetId : String, state : String }
     -> Maybe String
     -> Model
-    -> { results : Maybe Encode.Value, embedUrl : String, embedState : CloudShield.Card.EmbedState, activeBatchId : Maybe String, pendingBatchId : Maybe String, erroredBatchId : Maybe String }
+    -> { results : Maybe Encode.Value, embedUrl : String, embedState : CloudShield.Card.EmbedState, activeBatchId : Maybe String, pendingBatchId : Maybe String, erroredBatchId : Maybe String, expiredBatchId : Maybe String }
 cloudShieldEmbedProjection metadata currentTime statusOverride resultBody model =
     let
         rawEmbedResult =
             Exoext.Transport.resultBodyFromMetadata metadata
                 |> Maybe.andThen Exoext.Transport.embedResultFromBody
 
-        -- A history pick to show: an ok embed result in the res slot. A non-ok embed result is
-        -- surfaced through `embedState` but never binds findings/iframe (falls to the scan path).
+        -- A history pick to show: an ok embed result in the res slot (fresh OR expired). A non-ok
+        -- embed result never binds findings/iframe (it falls to the scan path).
         maybeEmbedResult =
             rawEmbedResult
                 |> Maybe.andThen
@@ -1071,62 +1057,60 @@ cloudShieldEmbedProjection metadata currentTime statusOverride resultBody model 
                             Nothing
                     )
 
-        embedExpired embed =
-            case ISO8601.fromString embed.embedExpiresAt of
-                Ok expiresAt ->
-                    Time.posixToMillis (ISO8601.toPosix expiresAt) <= Time.posixToMillis currentTime
+        -- Normalize the wire embed result into the generic `Exoext.Lifecycle.ResultInput` (unwrap
+        -- the error message; parse the ISO expiry once — unparseable/absent = no expiry = Fresh).
+        -- The generic `sessionState` machine then classifies opening / open / stale / failed / idle.
+        resultInput =
+            rawEmbedResult
+                |> Maybe.map
+                    (\embed ->
+                        { requestId = embed.requestId
+                        , subject = embed.batchId
+                        , status = embed.status
+                        , url = embed.embedUrl
+                        , expiresAt =
+                            ISO8601.fromString embed.embedExpiresAt
+                                |> Result.toMaybe
+                                |> Maybe.map ISO8601.toPosix
+                        , message = embedErrorMessage embed
+                        }
+                    )
 
-                Err _ ->
-                    -- Unparseable expiry: don't hide a possibly-valid embed on a parse quirk.
-                    False
+        session =
+            Exoext.Lifecycle.sessionState embedRequestTimeoutMillis currentTime model.cloudShieldPendingEmbed resultInput
 
-        resolvedState embed =
-            if embed.status == "ok" then
-                if embedExpired embed then
-                    CloudShield.Card.EmbedExpired
+        -- The host-side embed line + iframe gate, mapped 1:1 from the generic session token.
+        embedState =
+            case session of
+                Exoext.Lifecycle.NoSession ->
+                    CloudShield.Card.EmbedIdle
 
-                else
+                Exoext.Lifecycle.Opening _ ->
+                    CloudShield.Card.EmbedLoading
+
+                Exoext.Lifecycle.Open _ ->
                     CloudShield.Card.EmbedReady
 
-            else if embed.status == "error" then
-                CloudShield.Card.EmbedError (embedErrorMessage embed)
+                Exoext.Lifecycle.OpenStale _ ->
+                    CloudShield.Card.EmbedExpired
 
-            else
-                CloudShield.Card.EmbedIdle
+                Exoext.Lifecycle.Failed { message } ->
+                    CloudShield.Card.EmbedError message
 
-        loadingOrTimeout pending =
-            if Time.posixToMillis currentTime - Time.posixToMillis pending.since > embedRequestTimeoutMillis then
-                CloudShield.Card.EmbedError "the request timed out"
+        -- The expiry fix: an ok-but-expired session is `OpenStale`, so the previously-viewed row
+        -- becomes `expiredBatchId` (a muted "Expired" / plain-View row) INSTEAD of `activeBatchId`
+        -- ("Now viewing" / Refresh). A fresh ok session stays active as before.
+        expiredBatchId =
+            case session of
+                Exoext.Lifecycle.OpenStale expiredSession ->
+                    Just expiredSession.resultId
 
-            else
-                CloudShield.Card.EmbedLoading
-
-        embedState =
-            case model.cloudShieldPendingEmbed of
-                Just pending ->
-                    case rawEmbedResult of
-                        Just embed ->
-                            if embed.requestId == pending.requestId then
-                                resolvedState embed
-
-                            else
-                                -- The slot still holds an earlier result; our request is in flight.
-                                loadingOrTimeout pending
-
-                        Nothing ->
-                            loadingOrTimeout pending
-
-                Nothing ->
-                    case rawEmbedResult of
-                        Just embed ->
-                            resolvedState embed
-
-                        Nothing ->
-                            CloudShield.Card.EmbedIdle
+                _ ->
+                    Nothing
 
         ( results, embedUrl ) =
             case maybeEmbedResult of
-                Just embed ->
+                Just _ ->
                     -- Findings for the selected history scan, parsed from the archived body fetched
                     -- into `cloudShieldResultRef` (the fetch is deduped by objectName via
                     -- `cloudShieldResultRefRequest`). The last-fetched body is kept so `/results` is
@@ -1148,12 +1132,13 @@ cloudShieldEmbedProjection metadata currentTime statusOverride resultBody model 
                                     Nothing
                     in
                     ( archivedFindings
-                    , case embedState of
-                        CloudShield.Card.EmbedReady ->
-                            embed.embedUrl
+                    , case session of
+                        Exoext.Lifecycle.Open openSession ->
+                            -- Only a fresh, open session mounts the iframe (its live URL from the
+                            -- generic session). Expired/loading keep the findings but unmount it.
+                            openSession.url
 
                         _ ->
-                            -- Expired/loading: keep the findings table but unmount the iframe.
                             ""
                     )
 
@@ -1180,12 +1165,17 @@ cloudShieldEmbedProjection metadata currentTime statusOverride resultBody model 
                     )
 
         -- The batchId whose findings/embed are on screen, so the card can flag exactly one
-        -- history row as "Now viewing": the picked history row wins, else the just-completed
+        -- history row as "Now viewing": the picked history row wins (only while its session is not
+        -- expired — an expired session becomes `expiredBatchId` above), else the just-completed
         -- live scan (read from the result body only when the correlated run is `done`).
         activeBatchId =
             case maybeEmbedResult of
                 Just embed ->
-                    Just embed.batchId
+                    if expiredBatchId == Nothing then
+                        Just embed.batchId
+
+                    else
+                        Nothing
 
                 Nothing ->
                     case statusOverride of
@@ -1214,34 +1204,22 @@ cloudShieldEmbedProjection metadata currentTime statusOverride resultBody model 
                         Nothing ->
                             Nothing
 
-        -- The batchId of the getEmbed that is genuinely in flight right now, for the per-row
-        -- "Opening…" loading state. Derived from `embedState`, so it is `Just` ONLY while
-        -- `EmbedLoading` (pending marker set, no matching result yet, not timed out) and clears to
-        -- `Nothing` the moment the request resolves, errors, or times out — no row stays wedged in
-        -- the loading state after a terminal outcome.
+        -- The in-flight getEmbed's batch (`Opening`) for the per-row "Opening…" loading state, and
+        -- the last failed getEmbed's batch (`Failed`) for the per-row "Couldn't open" + Retry state.
+        -- Both come straight from the generic session token, so each is `Just` only in its state and
+        -- clears the moment the request resolves — no row is ever wedged loading or errored.
         pendingBatchId =
-            case embedState of
-                CloudShield.Card.EmbedLoading ->
-                    Maybe.map .batchId model.cloudShieldPendingEmbed
+            case session of
+                Exoext.Lifecycle.Opening { subject } ->
+                    Just subject
 
                 _ ->
                     Nothing
 
-        -- The batchId of the last getEmbed that failed / timed out, for the per-row "Couldn't open"
-        -- + Retry state and the results-region Retry affordance. Derived purely from `embedState`,
-        -- so it is `Just` ONLY while `EmbedError` and clears the moment a new getEmbed starts (the
-        -- pending marker's requestId no longer matches -> `EmbedLoading`) or one succeeds
-        -- (`EmbedReady`). The batchId comes from the still-set pending marker on a timeout, else from
-        -- the error result sitting in the res slot after the marker was cleared.
         erroredBatchId =
-            case embedState of
-                CloudShield.Card.EmbedError _ ->
-                    case model.cloudShieldPendingEmbed of
-                        Just pending ->
-                            Just pending.batchId
-
-                        Nothing ->
-                            Maybe.map .batchId rawEmbedResult
+            case session of
+                Exoext.Lifecycle.Failed { subject } ->
+                    Just subject
 
                 _ ->
                     Nothing
@@ -1252,6 +1230,7 @@ cloudShieldEmbedProjection metadata currentTime statusOverride resultBody model 
     , activeBatchId = activeBatchId
     , pendingBatchId = pendingBatchId
     , erroredBatchId = erroredBatchId
+    , expiredBatchId = expiredBatchId
     }
 
 

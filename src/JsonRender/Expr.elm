@@ -826,7 +826,7 @@ jsonEq : Value -> Value -> Bool
 jsonEq a b =
     case ( toScalar a, toScalar b ) of
         ( Just sa, Just sb ) ->
-            sa == sb
+            scalarEq sa sb
 
         _ ->
             False
@@ -837,6 +837,29 @@ type Scalar
     | SBool Bool
     | SNum Float
     | SStr String
+
+
+{-| Scalar equality by same-type-same-value. (The vendored copy extracts each constructor arg
+explicitly rather than deriving `==` on `Scalar`, to satisfy Exosphere's stricter
+`NoUnused.CustomTypeConstructorArgs` review rule — behavior is identical to the upstream `sa == sb`.)
+-}
+scalarEq : Scalar -> Scalar -> Bool
+scalarEq a b =
+    case ( a, b ) of
+        ( SNull, SNull ) ->
+            True
+
+        ( SBool x, SBool y ) ->
+            x == y
+
+        ( SNum x, SNum y ) ->
+            x == y
+
+        ( SStr x, SStr y ) ->
+            x == y
+
+        _ ->
+            False
 
 
 toScalar : Value -> Maybe Scalar

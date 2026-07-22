@@ -28,6 +28,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Events
 import Element.Font as Font
+import Exoext.Lifecycle as Lifecycle
 import Exoext.Transport as Transport
 import Helpers.Time
 import Html
@@ -71,13 +72,12 @@ type alias Model =
     -- monotonic request seq for the §7.1 metadata req-slot (per CloudShield VM).
     , seq : Int
 
-    -- the in-flight request (§7.1 single-in-flight): which seq maps to which target, so the
-    -- host can project the polled run.state onto the right row.
-    , pending :
-        Maybe
-            { seq : Int
-            , targetId : String
-            }
+    -- the in-flight scan request (§7.1 single-in-flight), as the generic
+    -- `Exoext.Lifecycle.PendingRequest` (`kind == "scan"`, `subject` = the target instance id):
+    -- which seq maps to which target, so the host can project the polled run.state onto the right
+    -- row. A scan correlates by `seq`, so its `requestId` / `since` are inert here (the host owns
+    -- the getEmbed tracker, the other view of `PendingRequest`).
+    , pending : Maybe Lifecycle.PendingRequest
 
     -- DEMO-ONLY: whether the embedded CloudShield live-UI iframe is expanded. This is a raw,
     -- unpinned host-chrome embed, distinct from the catalog's origin-pinned Iframe element.
@@ -164,19 +164,47 @@ applyEffect instances effect model =
             ( model, Nothing )
 
         Just (Render.EmitAction action) ->
-            -- The host re-checks the verb against its own allowlist; an off-list verb is
-            -- ignored (fail-closed).
-            if action.verb == "cloudshield.startScan" then
-                requestScan (targetsOf model action.params) model
+            -- The manifest still emits the frozen `cloudshield.*` action names; they are a pure DATA
+            -- alias table (`actionAliases`) resolved to generic `Exoext.Lifecycle` verbs by the
+            -- generic dispatcher. An off-table / off-verb action is ignored (fail-closed).
+            dispatchVerb (Lifecycle.resolveVerb actionAliases action.verb) action.params model
 
-            else if action.verb == "cloudshield.getEmbed" then
-                requestEmbed (batchIdOf action.params) model
+        Just (Render.EmitStateChange change) ->
+            ( applyStateChange instances change model, Nothing )
+
+
+{-| The CloudShield adapter's action-name → generic-verb alias table (pure data). The frozen
+manifest emits `cloudshield.startScan` (a §4.1 request, kind `"scan"`) and `cloudshield.getEmbed`
+(open a result session for an archived scan); both map onto `Exoext.Lifecycle`'s generic verbs.
+There are no `cloudshield.*`-named dispatch FUNCTIONS — only this table.
+-}
+actionAliases : List Lifecycle.VerbAlias
+actionAliases =
+    [ { name = "cloudshield.startScan", verb = Lifecycle.verbWriteRequest, kind = "scan" }
+    , { name = "cloudshield.getEmbed", verb = Lifecycle.verbOpenSession, kind = "" }
+    ]
+
+
+{-| The generic verb dispatcher: interpret a resolved [`Lifecycle.VerbAlias`](Exoext-Lifecycle#VerbAlias)
+against this adapter's request/session handlers. `verbWriteRequest` frames + writes a scan request
+(targets resolved §5.4); `verbOpenSession` opens a result session for the pressed row's batch.
+`Nothing` (an unaliased action) and any not-yet-wired verb are no-ops (fail-closed).
+-}
+dispatchVerb : Maybe Lifecycle.VerbAlias -> Encode.Value -> Model -> ( Model, Maybe OutMsg )
+dispatchVerb maybeAlias params model =
+    case maybeAlias of
+        Just alias ->
+            if alias.verb == Lifecycle.verbWriteRequest then
+                requestScan (targetsOf model params) model
+
+            else if alias.verb == Lifecycle.verbOpenSession then
+                requestEmbed (batchIdOf params) model
 
             else
                 ( model, Nothing )
 
-        Just (Render.EmitStateChange change) ->
-            ( applyStateChange instances change model, Nothing )
+        Nothing ->
+            ( model, Nothing )
 
 
 {-| A confirmed `startScan`: bump the seq, flip the targeted rows to `queued` optimistically
@@ -203,7 +231,14 @@ requestScan requested model =
             in
             ( { model
                 | seq = seq
-                , pending = Just { seq = seq, targetId = firstTarget }
+                , pending =
+                    Just
+                        { seq = seq
+                        , requestId = ""
+                        , kind = "scan"
+                        , subject = firstTarget
+                        , since = Time.millisToPosix 0
+                        }
                 , scanState = startScan targets model.scanState
               }
             , Just (ScanRequested { seq = seq, targetIds = targets })
@@ -347,6 +382,7 @@ projection :
     -> Maybe String
     -> Maybe String
     -> Maybe String
+    -> Maybe String
     -> { rows : List Transport.IndexEntry, loading : Bool, loaded : Bool }
     -> Maybe Encode.Value
     -> String
@@ -354,7 +390,7 @@ projection :
     -> List Instance
     -> Model
     -> Encode.Value
-projection zone activeBatchId pendingBatchId erroredBatchId history results embedUrl statusOverride instances model =
+projection zone activeBatchId pendingBatchId erroredBatchId expiredBatchId history results embedUrl statusOverride instances model =
     let
         total =
             List.length history.rows
@@ -392,7 +428,7 @@ projection zone activeBatchId pendingBatchId erroredBatchId history results embe
         , ( "results", Maybe.withDefault Encode.null results )
         , ( "embedUrl", Encode.string embedUrl )
         , ( "instances", Encode.list (instanceProjection statusOverride model) instances )
-        , ( "history", Encode.list (historyRow zone activeBatchId pendingBatchId erroredBatchId) shown )
+        , ( "history", Encode.list (historyRow zone activeBatchId pendingBatchId erroredBatchId expiredBatchId) shown )
         , ( "historyNote", Encode.string historyNote )
         , ( "targetsLabel", Encode.string targetsLabel )
         , ( "historyLabel", Encode.string historyLabel )
@@ -412,9 +448,11 @@ no conditionals (host-renderer-interface.md §1.2):
     row's `FindingsTable` so history pills match the live `/results` pills.
   - `rowState` — the one active/failed/loading hook the stylesheet keys on: "Opening…" for the
     row whose getEmbed is in flight (wins), "Now viewing" for the row the embed/results are
-    showing, "failed" for an errored scan, "" (hidden badge) otherwise.
+    showing, "Expired" for the row whose session has expired, "failed" for an errored scan,
+    "" (hidden badge) otherwise.
   - `actionLabel` — the View/Refresh/Opening flip ("Opening…" while this row's getEmbed is in
-    flight, "Refresh" for the active row, "" for a failed scan that has nothing to view).
+    flight, "Refresh" for the active row, "View" for an expired row (reopen), "" for a failed scan
+    that has nothing to view).
 
 `pendingBatchId` is the getEmbed that is genuinely in flight right now: its row shows the loading
 state, and while it is set NO row shows "Now viewing" (the clicked row supersedes the prior one).
@@ -424,16 +462,24 @@ getEmbed starts or one succeeds). That row reads "Couldn't open" and its action 
 (re-firing the same `getEmbed` press for its batch), and — crucially — while it is set the prior
 active row does NOT falsely reclaim "Now viewing".
 
+`expiredBatchId` is the row whose result SESSION has expired (its embed URL is no longer served).
+The host derives it from `Exoext.Lifecycle`'s `OpenStale` token instead of leaving that row
+`activeBatchId`. The row reverts from "Now viewing" / "Refresh" to a muted "Expired" badge and a
+plain "View" action (reopen), while keeping a faint highlight so the researcher still sees which
+scan they were on. This is the expired-session fix.
+
 Precedence for a row's state: **failed scan (dead scan, never View-able) → embed error (this batch
-just failed) → loading (in-flight) → now viewing (resolved ok) → idle**. The two "error" concepts
-never co-occur on one row (a failed scan is never getEmbed-clickable, so `erroredBatchId` can never
-name a failed-scan batch), so keying `isError` first keeps the failed-scan row pristine.
+just failed) → loading (in-flight) → expired (session lapsed) → now viewing (resolved ok, fresh) →
+idle**. The two "error" concepts never co-occur on one row (a failed scan is never
+getEmbed-clickable, so `erroredBatchId` can never name a failed-scan batch), so keying `isError`
+first keeps the failed-scan row pristine; `expiredBatchId` and `activeBatchId` are mutually
+exclusive (`OpenStale` sets one, `Open` the other), so they never contend for a row.
 
 `countsLabel` is retained (unbound by the current manifest) as a stable plain-text fallback.
 
 -}
-historyRow : Time.Zone -> Maybe String -> Maybe String -> Maybe String -> Transport.IndexEntry -> Encode.Value
-historyRow zone activeBatchId pendingBatchId erroredBatchId entry =
+historyRow : Time.Zone -> Maybe String -> Maybe String -> Maybe String -> Maybe String -> Transport.IndexEntry -> Encode.Value
+historyRow zone activeBatchId pendingBatchId erroredBatchId expiredBatchId entry =
     let
         isError =
             entry.status == "error"
@@ -447,6 +493,11 @@ historyRow zone activeBatchId pendingBatchId erroredBatchId entry =
         -- An error on this same batch supersedes the loading look (it can only be one at a time).
         isLoadingRow =
             (pendingBatchId == Just entry.batchId) && not isError && not isEmbedErrorRow
+
+        -- This row's result session has expired: it reverts to a muted "Expired" / plain-View row
+        -- (never on a failed scan, and superseded by an in-flight / errored getEmbed on this batch).
+        isExpiredRow =
+            (expiredBatchId == Just entry.batchId) && not isError && not isEmbedErrorRow && not isLoadingRow
 
         -- While ANY getEmbed is pending, OR while this batch's getEmbed just errored, no row reads as
         -- "Now viewing": the clicked (loading/errored) row supersedes the previously-active one, so
@@ -482,6 +533,9 @@ historyRow zone activeBatchId pendingBatchId erroredBatchId entry =
             else if isLoadingRow then
                 "Opening…"
 
+            else if isExpiredRow then
+                "Expired"
+
             else if isActiveRow then
                 "Now viewing"
 
@@ -497,6 +551,9 @@ historyRow zone activeBatchId pendingBatchId erroredBatchId entry =
 
             else if isLoadingRow then
                 "Opening…"
+
+            else if isExpiredRow then
+                "View"
 
             else if isActiveRow then
                 "Refresh"
@@ -650,6 +707,13 @@ type alias ViewConfig =
     -- in an error state.
     , erroredBatchId : Maybe String
 
+    -- the batchId whose result session has EXPIRED (`EmbedExpired`, from `Lifecycle.OpenStale`).
+    -- Its history row reverts from "Now viewing"/"Refresh" to a muted "Expired" badge + plain
+    -- "View" (reopen), keeping only a faint highlight. The host sets this INSTEAD of
+    -- `activeBatchId` for the expired batch, so the expired session no longer reads as active.
+    -- `Nothing` when the open session (if any) is still fresh. This is the expired-session fix.
+    , expiredBatchId : Maybe String
+
     -- the iframe origin allowlist, derived host-side from the instance's own floating IPs.
     -- The renderer emits an `<iframe>` only for a `src` whose origin is an exact member of
     -- this list; it is the whole safety boundary for the catalog's origin-pinned Iframe.
@@ -710,7 +774,7 @@ view palette zone config instances model =
         Element.column
             [ Element.width (Element.fill |> Element.maximum 1300), Element.spacing spacer.px8 ]
             [ provenanceMarker palette config.sourceName
-            , rendererView palette zone config.activeBatchId config.pendingBatchId config.erroredBatchId config.allowedIframeOrigins config.manifestJson config.history config.results config.embedUrl config.statusOverride instances model
+            , rendererView palette zone config.activeBatchId config.pendingBatchId config.erroredBatchId config.expiredBatchId config.allowedIframeOrigins config.manifestJson config.history config.results config.embedUrl config.statusOverride instances model
             , embedStateView palette config.embedState config.erroredBatchId
             , transportWarningView palette config.transportWarning
             , scanTimerView palette config.scanTimer
@@ -900,6 +964,7 @@ rendererView :
     -> Maybe String
     -> Maybe String
     -> Maybe String
+    -> Maybe String
     -> List String
     -> String
     -> { rows : List Transport.IndexEntry, loading : Bool, loaded : Bool }
@@ -909,7 +974,7 @@ rendererView :
     -> List Instance
     -> Model
     -> Element.Element Msg
-rendererView palette zone activeBatchId pendingBatchId erroredBatchId allowedIframeOrigins manifestJson history results embedUrl statusOverride instances model =
+rendererView palette zone activeBatchId pendingBatchId erroredBatchId expiredBatchId allowedIframeOrigins manifestJson history results embedUrl statusOverride instances model =
     -- Decode per render is fine for the small card; the fail-closed decoder is the security
     -- gate (an off-catalog or oversized manifest yields the error stub, never a partial tree).
     case JsonRender.decodeString manifestJson of
@@ -930,7 +995,7 @@ rendererView palette zone activeBatchId pendingBatchId erroredBatchId allowedIfr
                             )
                         ]
                         [ rendererStyle palette
-                        , Html.map RendererMsg (Render.view allowedIframeOrigins spec (projection zone activeBatchId pendingBatchId erroredBatchId history results embedUrl statusOverride instances model) model.renderer)
+                        , Html.map RendererMsg (Render.view allowedIframeOrigins spec (projection zone activeBatchId pendingBatchId erroredBatchId expiredBatchId history results embedUrl statusOverride instances model) model.renderer)
                         ]
                     )
                 )
@@ -1323,6 +1388,15 @@ rendererStyle palette =
                 , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"failed\"]) { opacity: 0.72; }"
                 , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"failed\"]) .jr-button { display: none; }"
                 , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"failed\"]) .jr-findings { display: none; }"
+
+                -- Expired session row (the expired-session fix): the row's result session lapsed, so
+                -- the host reverts it from "Now viewing"/"Refresh" to a muted neutral "Expired" badge
+                -- and a plain View (reopen). It keeps a FAINT highlight — the same palette-derived
+                -- primary accent as the active row, just at a lower alpha — so the researcher still
+                -- sees which scan they were on. Neutral toned (like the failed pill but not danger).
+                , ".jr-badge[data-state=\"Expired\"] { background: " ++ frontBg ++ "; color: " ++ muted ++ "; border-color: " ++ border ++ "; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.7em; font-weight: 700; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Expired\"]) { background: color-mix(in srgb, " ++ primary ++ " 5%, transparent); border-left-color: " ++ primaryLine ++ "; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Expired\"]) .jr-button { background: transparent; border-color: " ++ border ++ "; color: " ++ muted ++ "; }"
 
                 -- Responsive: on a narrow card the two columns stack (targets, then history), each
                 -- keeping its own bounded scroll. The divider moves from a left border to a top one.
