@@ -1,5 +1,10 @@
 module JsonRender.Expr exposing
     ( Expr(..)
+    , Condition(..)
+    , SingleCondition
+    , CondSource(..)
+    , Comparison(..)
+    , Comparand(..)
     , decoder
     , Context
     , rootContext
@@ -21,14 +26,19 @@ Every dynamic value in a manifest is a plain JSON object carrying a single
 [`Expr`](#Expr) and resolves them against a host-owned state `Value` plus an optional
 `repeat` scope, using RFC 6901 JSON Pointers throughout.
 
-**Fail-closed:** an object carrying an unsupported `$`-directive (e.g. `$cond`,
-`$computed`) **fails the decode**. json-render's own runtime is fail-open here; we are
-not. The supported set is exactly what the card uses.
+**Fail-closed:** an object carrying an unsupported `$`-directive (e.g. `$computed`)
+**fails the decode**. json-render's own runtime is fail-open here; we are not. The
+supported set is exactly what the card uses (which now includes `$cond`).
 
 
 # Expressions
 
 @docs Expr
+@docs Condition
+@docs SingleCondition
+@docs CondSource
+@docs Comparison
+@docs Comparand
 @docs decoder
 
 
@@ -69,6 +79,11 @@ import Json.Encode as Encode
   - `EBindState ptr` — `{ "$bindState": "/ptr" }`, two-way bind to global state.
   - `EBindItem field` — `{ "$bindItem": "field" }`, two-way bind to a repeat-item field.
   - `ETemplate tmpl` — `{ "$template": "…${/ptr}…${bare}…" }`, string interpolation.
+  - `ECond cond t e` — `{ "$cond": <condition>, "$then": <expr>, "$else": <expr> }`,
+    picks `t` when `cond` holds, else `e`. Both branches are themselves expressions
+    (recursive). A two-way `$bindState` / `$bindItem` inside the selected branch keeps its
+    write-back: [`writeBackPath`](#writeBackPath) targets the branch chosen at render time.
+    See [`Condition`](#Condition).
 
 -}
 type Expr
@@ -79,6 +94,75 @@ type Expr
     | EBindState String
     | EBindItem String
     | ETemplate String
+    | ECond Condition Expr Expr
+
+
+{-| A json-render **condition** — the predicate of a `$cond`, and the same grammar as
+core's `visible` / `hidden` (pinned to `@json-render/core` v0.19.0). Evaluated to a
+`Bool` by [`resolve`](#resolve) when picking a `$cond` branch:
+
+  - `CBool b`: a literal `true` / `false`.
+  - `CSingle c`: one `$state` / `$item` / `$index` comparison.
+  - `CEvery cs`: a bare JSON **array** of single conditions, an implicit AND (all true).
+  - `CAnd cs` / `COr cs`: explicit `{ "$and": [ … ] }` / `{ "$or": [ … ] }`, recursive.
+
+Malformed conditions (unknown keys, mixed sources, a non-`true` `not`, a non-numeric
+operand for `gt`/`gte`/`lt`/`lte`) **fail the decode**, mirroring the rest of this module.
+
+-}
+type Condition
+    = CBool Bool
+    | CSingle SingleCondition
+    | CEvery (List SingleCondition)
+    | CAnd (List Condition)
+    | COr (List Condition)
+
+
+{-| One comparison against a single source value. `negate` is core's `"not": true`
+modifier, which inverts whatever the operator (or the bare truthiness test) yields.
+-}
+type alias SingleCondition =
+    { source : CondSource
+    , comparison : Comparison
+    , negate : Bool
+    }
+
+
+{-| The left-hand side of a single condition: `$state` pointer, `$item` field, or the
+repeat `$index`.
+-}
+type CondSource
+    = SrcState String
+    | SrcItem String
+    | SrcIndex
+
+
+{-| The comparison operator. `CmpTruthy` is the no-operator case (JS `Boolean(value)`).
+`eq` / `neq` compare against any value by JSON scalar equality; `gt` / `gte` / `lt` /
+`lte` compare numbers only (a non-numeric operand on either side yields `False`, per core).
+
+A **missing** path (an absent `$state` / `$item` / `$index` source or `{$state}` operand) is
+JS `undefined`, kept distinct from JSON `null`: it is falsy, `eq`-equal only to another
+missing path (`undefined === undefined`; `undefined !== null`), and never orders.
+
+-}
+type Comparison
+    = CmpTruthy
+    | CmpEq Comparand
+    | CmpNeq Comparand
+    | CmpGt Comparand
+    | CmpGte Comparand
+    | CmpLt Comparand
+    | CmpLte Comparand
+
+
+{-| The right-hand side of a comparison: either a literal JSON value or a
+`{ "$state": "/ptr" }` reference resolved against global state at eval time (core's
+`resolveComparisonValue`).
+-}
+type Comparand
+    = CLiteral Value
+    | CStateRef String
 
 
 {-| Decode a prop value into an [`Expr`](#Expr).
@@ -98,30 +182,36 @@ classify : Value -> Decoder Expr
 classify value =
     case Decode.decodeValue (Decode.keyValuePairs Decode.value) value of
         Ok pairs ->
-            case List.filter (Tuple.first >> String.startsWith "$") pairs of
-                [] ->
-                    Decode.succeed (ELiteral value)
+            if List.any (Tuple.first >> (==) "$cond") pairs then
+                -- `$cond` is the one multi-`$`-key form (`$cond`/`$then`/`$else`); it is
+                -- routed before the single/multiple split, which would otherwise reject it.
+                condExprDecoder value
 
-                [ ( key, _ ) ] ->
-                    if List.length pairs == 1 then
-                        dispatch key value
+            else
+                case List.filter (Tuple.first >> String.startsWith "$") pairs of
+                    [] ->
+                        Decode.succeed (ELiteral value)
 
-                    else
-                        -- A directive object must be the directive ALONE. Extra siblings
-                        -- (e.g. `{ "$item": "id", "kind": "x" }`) would be silently dropped
-                        -- at resolution, corrupting the emitted payload — fail-closed.
+                    [ ( key, _ ) ] ->
+                        if List.length pairs == 1 then
+                            dispatch key value
+
+                        else
+                            -- A directive object must be the directive ALONE. Extra siblings
+                            -- (e.g. `{ "$item": "id", "kind": "x" }`) would be silently dropped
+                            -- at resolution, corrupting the emitted payload — fail-closed.
+                            Decode.fail
+                                ("directive `"
+                                    ++ key
+                                    ++ "` must be the only key, but the object also carries: "
+                                    ++ String.join ", " (siblingKeys key pairs)
+                                )
+
+                    multiple ->
                         Decode.fail
-                            ("directive `"
-                                ++ key
-                                ++ "` must be the only key, but the object also carries: "
-                                ++ String.join ", " (siblingKeys key pairs)
+                            ("json-render value carries multiple $-directives: "
+                                ++ String.join ", " (List.map Tuple.first multiple)
                             )
-
-                multiple ->
-                    Decode.fail
-                        ("json-render value carries multiple $-directives: "
-                            ++ String.join ", " (List.map Tuple.first multiple)
-                        )
 
         Err _ ->
             -- Not an object: scalar / array / null are all literals.
@@ -166,7 +256,7 @@ dispatch key value =
             Decode.fail
                 ("Unsupported json-render directive `"
                     ++ other
-                    ++ "` (fail-closed: only $state/$item/$index/$bindState/$bindItem/$template are supported)"
+                    ++ "` (fail-closed: only $state/$item/$index/$bindState/$bindItem/$template/$cond are supported)"
                 )
 
 
@@ -178,6 +268,249 @@ stringField field value toExpr =
 
         Err err ->
             Decode.fail (Decode.errorToString err)
+
+
+
+-- CONDITIONS ($cond)
+
+
+{-| Decode a `{ "$cond": …, "$then": …, "$else": … }` object into an [`ECond`](#Expr).
+Fail-closed: the object must carry **exactly** those three keys (extra keys, or a missing
+branch, fail). Both branches decode through the top-level [`decoder`](#decoder), so they may
+be any supported expression, including a nested `$cond`.
+-}
+condExprDecoder : Value -> Decoder Expr
+condExprDecoder value =
+    case Decode.decodeValue (Decode.keyValuePairs Decode.value) value of
+        Ok pairs ->
+            if List.sort (List.map Tuple.first pairs) == [ "$cond", "$else", "$then" ] then
+                Decode.map3 ECond
+                    (Decode.field "$cond" conditionDecoder)
+                    (Decode.field "$then" decoder)
+                    (Decode.field "$else" decoder)
+
+            else
+                Decode.fail
+                    ("`$cond` must carry exactly `$cond`, `$then`, and `$else`, but the object has: "
+                        ++ String.join ", " (List.sort (List.map Tuple.first pairs))
+                    )
+
+        Err err ->
+            Decode.fail (Decode.errorToString err)
+
+
+{-| Decode a [`Condition`](#Condition). The order of the `oneOf` matters: a boolean, then
+the composite `$and` / `$or` objects, then a bare array (implicit AND), then a single
+condition. Recursion (`$and` / `$or` nesting) is guarded with `Decode.lazy`.
+-}
+conditionDecoder : Decoder Condition
+conditionDecoder =
+    Decode.oneOf
+        [ Decode.bool |> Decode.map CBool
+        , compositeDecoder "$and" CAnd
+        , compositeDecoder "$or" COr
+        , Decode.list singleConditionDecoder |> Decode.map CEvery
+        , singleConditionDecoder |> Decode.map CSingle
+        ]
+
+
+{-| Decode a `{ "$and": [ … ] }` / `{ "$or": [ … ] }` composite. Fail-closed: the object
+must have that key as its **only** key.
+-}
+compositeDecoder : String -> (List Condition -> Condition) -> Decoder Condition
+compositeDecoder key toCond =
+    Decode.keyValuePairs Decode.value
+        |> Decode.andThen
+            (\pairs ->
+                case List.map Tuple.first pairs of
+                    [ only ] ->
+                        if only == key then
+                            Decode.field key
+                                (Decode.list (Decode.lazy (\_ -> conditionDecoder)))
+                                |> Decode.map toCond
+
+                        else
+                            Decode.fail ("not a `" ++ key ++ "` condition")
+
+                    _ ->
+                        Decode.fail ("`" ++ key ++ "` must be the only key of its condition")
+            )
+
+
+{-| Allowed keys of a single condition object: exactly one source key plus at most one
+comparison operator plus an optional `not`.
+-}
+condKeys : List String
+condKeys =
+    [ "$state", "$item", "$index", "eq", "neq", "gt", "gte", "lt", "lte", "not" ]
+
+
+{-| Decode one `$state` / `$item` / `$index` comparison. Strict: unknown keys, more than
+one source, more than one operator, or a non-`true` `not` all fail.
+-}
+singleConditionDecoder : Decoder SingleCondition
+singleConditionDecoder =
+    Decode.keyValuePairs Decode.value
+        |> Decode.andThen
+            (\pairs ->
+                case buildSingle pairs of
+                    Ok single ->
+                        Decode.succeed single
+
+                    Err message ->
+                        Decode.fail message
+            )
+
+
+buildSingle : List ( String, Value ) -> Result String SingleCondition
+buildSingle pairs =
+    let
+        keys =
+            List.map Tuple.first pairs
+
+        unknown =
+            List.filter (\k -> not (List.member k condKeys)) keys
+    in
+    if not (List.isEmpty unknown) then
+        Err ("unknown condition key(s): " ++ String.join ", " unknown)
+
+    else
+        Result.map3 SingleCondition
+            (parseSource pairs)
+            (parseComparison pairs)
+            (parseNegate pairs)
+
+
+getKey : String -> List ( String, Value ) -> Maybe Value
+getKey key pairs =
+    pairs |> List.filter (Tuple.first >> (==) key) |> List.head |> Maybe.map Tuple.second
+
+
+parseSource : List ( String, Value ) -> Result String CondSource
+parseSource pairs =
+    case List.filter (\( k, _ ) -> List.member k [ "$state", "$item", "$index" ]) pairs of
+        [ ( "$state", v ) ] ->
+            decodeStringValue "$state" v |> Result.map SrcState
+
+        [ ( "$item", v ) ] ->
+            decodeStringValue "$item" v |> Result.map SrcItem
+
+        [ ( "$index", v ) ] ->
+            case Decode.decodeValue Decode.bool v of
+                Ok True ->
+                    Ok SrcIndex
+
+                _ ->
+                    Err "condition `$index` must be the literal `true`"
+
+        [] ->
+            Err "condition needs a `$state`, `$item`, or `$index` source"
+
+        _ ->
+            Err "condition must have exactly one of `$state` / `$item` / `$index`"
+
+
+decodeStringValue : String -> Value -> Result String String
+decodeStringValue key v =
+    case Decode.decodeValue Decode.string v of
+        Ok s ->
+            Ok s
+
+        Err _ ->
+            Err ("condition `" ++ key ++ "` must be a string")
+
+
+parseComparison : List ( String, Value ) -> Result String Comparison
+parseComparison pairs =
+    case List.filter (\( k, _ ) -> List.member k [ "eq", "neq", "gt", "gte", "lt", "lte" ]) pairs of
+        [] ->
+            Ok CmpTruthy
+
+        [ ( "eq", v ) ] ->
+            comparand False v |> Result.map CmpEq
+
+        [ ( "neq", v ) ] ->
+            comparand False v |> Result.map CmpNeq
+
+        [ ( "gt", v ) ] ->
+            comparand True v |> Result.map CmpGt
+
+        [ ( "gte", v ) ] ->
+            comparand True v |> Result.map CmpGte
+
+        [ ( "lt", v ) ] ->
+            comparand True v |> Result.map CmpLt
+
+        [ ( "lte", v ) ] ->
+            comparand True v |> Result.map CmpLte
+
+        _ ->
+            Err "condition must have at most one comparison operator"
+
+
+parseNegate : List ( String, Value ) -> Result String Bool
+parseNegate pairs =
+    case getKey "not" pairs of
+        Nothing ->
+            Ok False
+
+        Just v ->
+            case Decode.decodeValue Decode.bool v of
+                Ok True ->
+                    Ok True
+
+                _ ->
+                    Err "condition `not` must be the literal `true`"
+
+
+{-| Build a [`Comparand`](#Comparand). A `{ "$state": "/ptr" }` object is a state
+reference for any operator (core resolves it at eval time). When `numericOnly` (for
+`gt` / `gte` / `lt` / `lte`), a literal operand must be a number, else the decode fails.
+
+Fail-closed on malformed references: any JSON **object** that carries a `$state` key must
+be exactly the one-key form `{ "$state": "<string>" }` (so `{ "$state": 123 }` or
+`{ "$state": "/x", "junk": true }` fail decode rather than degrading to a literal). A plain
+object / array literal **without** a `$state` key stays a legal literal (`eq` against it is
+then always `False` by the object-inequality rule).
+
+-}
+comparand : Bool -> Value -> Result String Comparand
+comparand numericOnly v =
+    case Decode.decodeValue (Decode.keyValuePairs Decode.value) v of
+        Ok pairs ->
+            if List.any (Tuple.first >> (==) "$state") pairs then
+                case pairs of
+                    [ ( "$state", ptrValue ) ] ->
+                        case Decode.decodeValue Decode.string ptrValue of
+                            Ok ptr ->
+                                Ok (CStateRef ptr)
+
+                            Err _ ->
+                                Err "comparison `{ \"$state\": … }` reference must be a string pointer"
+
+                    _ ->
+                        Err "comparison reference must be exactly `{ \"$state\": \"<ptr>\" }`"
+
+            else
+                literalComparand numericOnly v
+
+        Err _ ->
+            -- Not an object (scalar / array / null): a plain literal operand.
+            literalComparand numericOnly v
+
+
+literalComparand : Bool -> Value -> Result String Comparand
+literalComparand numericOnly v =
+    if numericOnly then
+        case Decode.decodeValue Decode.float v of
+            Ok _ ->
+                Ok (CLiteral v)
+
+            Err _ ->
+                Err "`gt` / `gte` / `lt` / `lte` operand must be a number or `{ \"$state\": … }`"
+
+    else
+        Ok (CLiteral v)
 
 
 
@@ -333,6 +666,13 @@ resolve ctx expr =
         ETemplate tmpl ->
             Encode.string (interpolate ctx tmpl)
 
+        ECond condition ifThen ifElse ->
+            if evalCondition ctx condition then
+                resolve ctx ifThen
+
+            else
+                resolve ctx ifElse
+
 
 resolveItem : Context -> String -> Value
 resolveItem ctx field =
@@ -342,6 +682,194 @@ resolveItem ctx field =
 
         Nothing ->
             Encode.null
+
+
+
+-- CONDITION EVALUATION
+
+
+{-| Evaluate a [`Condition`](#Condition) to a `Bool`, mirroring core's
+`evaluateVisibility`: an array / `$and` is a conjunction, `$or` a disjunction.
+-}
+evalCondition : Context -> Condition -> Bool
+evalCondition ctx condition =
+    case condition of
+        CBool b ->
+            b
+
+        CSingle single ->
+            evalSingle ctx single
+
+        CEvery singles ->
+            List.all (evalSingle ctx) singles
+
+        CAnd conditions ->
+            List.all (evalCondition ctx) conditions
+
+        COr conditions ->
+            List.any (evalCondition ctx) conditions
+
+
+evalSingle : Context -> SingleCondition -> Bool
+evalSingle ctx { source, comparison, negate } =
+    let
+        lhs =
+            resolveSource ctx source
+
+        result =
+            case comparison of
+                CmpTruthy ->
+                    truthyMaybe lhs
+
+                CmpEq c ->
+                    maybeEq lhs (resolveComparand ctx c)
+
+                CmpNeq c ->
+                    not (maybeEq lhs (resolveComparand ctx c))
+
+                CmpGt c ->
+                    numCompare (>) lhs (resolveComparand ctx c)
+
+                CmpGte c ->
+                    numCompare (>=) lhs (resolveComparand ctx c)
+
+                CmpLt c ->
+                    numCompare (<) lhs (resolveComparand ctx c)
+
+                CmpLte c ->
+                    numCompare (<=) lhs (resolveComparand ctx c)
+    in
+    if negate then
+        not result
+
+    else
+        result
+
+
+{-| Resolve a condition's left-hand side. `Nothing` marks a **missing** path (an absent
+`$state` pointer, an `$item` field or item that is not present, or `$index` outside a repeat
+scope) — JS `undefined`, kept distinct from a JSON `null` value (`Just null`).
+-}
+resolveSource : Context -> CondSource -> Maybe Value
+resolveSource ctx source =
+    case source of
+        SrcState ptr ->
+            getByPath ptr ctx.state
+
+        SrcItem field ->
+            ctx.item |> Maybe.andThen (getByPath field)
+
+        SrcIndex ->
+            ctx.index |> Maybe.map Encode.int
+
+
+{-| Resolve a comparison operand. A `{ "$state": … }` reference is `Nothing` when its path
+is missing (same `undefined` semantics as the left-hand side); a literal is always `Just`.
+-}
+resolveComparand : Context -> Comparand -> Maybe Value
+resolveComparand ctx c =
+    case c of
+        CLiteral v ->
+            Just v
+
+        CStateRef ptr ->
+            getByPath ptr ctx.state
+
+
+{-| JS `Boolean(value)` over a possibly-missing value: a missing path is falsy; `null` /
+`false` / `0` / `""` are falsy; every other scalar and any object / array is truthy.
+-}
+truthyMaybe : Maybe Value -> Bool
+truthyMaybe maybeValue =
+    case maybeValue of
+        Nothing ->
+            False
+
+        Just value ->
+            Decode.decodeValue truthyDecoder value |> Result.withDefault True
+
+
+truthyDecoder : Decoder Bool
+truthyDecoder =
+    Decode.oneOf
+        [ Decode.null False
+        , Decode.bool
+        , Decode.float |> Decode.map (\n -> n /= 0)
+        , Decode.string |> Decode.map (\s -> s /= "")
+        ]
+
+
+{-| JS `===` over possibly-missing values. Two missing paths are equal (`undefined ===
+undefined`); a missing path equals nothing else, not even JSON `null`. Two present values
+compare by [`jsonEq`](#Expr).
+-}
+maybeEq : Maybe Value -> Maybe Value -> Bool
+maybeEq a b =
+    case ( a, b ) of
+        ( Nothing, Nothing ) ->
+            True
+
+        ( Just va, Just vb ) ->
+            jsonEq va vb
+
+        _ ->
+            False
+
+
+{-| JS `===` over two present values: equal only when both are the **same** JSON scalar
+(same type and value). Objects and arrays are never equal here. This is an intentional
+divergence from JS, whose `===` returns `true` when both sides resolve to the same object
+reference (e.g. the same `$state` pointer on both sides); we do not emulate reference
+identity.
+-}
+jsonEq : Value -> Value -> Bool
+jsonEq a b =
+    case ( toScalar a, toScalar b ) of
+        ( Just sa, Just sb ) ->
+            sa == sb
+
+        _ ->
+            False
+
+
+type Scalar
+    = SNull
+    | SBool Bool
+    | SNum Float
+    | SStr String
+
+
+toScalar : Value -> Maybe Scalar
+toScalar value =
+    Decode.decodeValue scalarDecoder value |> Result.toMaybe
+
+
+scalarDecoder : Decoder Scalar
+scalarDecoder =
+    Decode.oneOf
+        [ Decode.null SNull
+        , Decode.bool |> Decode.map SBool
+        , Decode.float |> Decode.map SNum
+        , Decode.string |> Decode.map SStr
+        ]
+
+
+{-| A numeric comparison (`gt` / `gte` / `lt` / `lte`) is `False` unless both operands are
+present and both are numbers, mirroring core. A missing path on either side is `False`.
+-}
+numCompare : (Float -> Float -> Bool) -> Maybe Value -> Maybe Value -> Bool
+numCompare op a b =
+    case ( Maybe.andThen toNum a, Maybe.andThen toNum b ) of
+        ( Just x, Just y ) ->
+            op x y
+
+        _ ->
+            False
+
+
+toNum : Value -> Maybe Float
+toNum value =
+    Decode.decodeValue Decode.float value |> Result.toMaybe
 
 
 {-| Resolve an expression to its display string (for `Text` / `Badge`). Scalars render
@@ -367,7 +895,9 @@ resolveBool ctx expr =
 
 {-| The absolute JSON Pointer a two-way binding writes back to, or `Nothing` for
 read-only expressions. `$bindState` writes its own pointer; `$bindItem` writes
-`basePath ++ "/" ++ field`.
+`basePath ++ "/" ++ field`. A `$cond` passes through to the branch it selects at render
+time (see [`Expr`](#Expr)), so a `$bindState` / `$bindItem` inside the chosen branch keeps
+its write-back handler.
 -}
 writeBackPath : Context -> Expr -> Maybe String
 writeBackPath ctx expr =
@@ -385,6 +915,13 @@ writeBackPath ctx expr =
                         else
                             base ++ "/" ++ field
                     )
+
+        ECond condition ifThen ifElse ->
+            if evalCondition ctx condition then
+                writeBackPath ctx ifThen
+
+            else
+                writeBackPath ctx ifElse
 
         _ ->
             Nothing
@@ -469,7 +1006,7 @@ placeholderValue ctx inner =
 {-| A `Decoder` for an action's `params` that **validates fail-closed at decode time**:
 it returns the params `Value` unchanged, but fails if any nested object carrying a
 `$`-directive is not a supported, well-formed [`Expr`](#Expr) (e.g. an unsupported
-`$cond`, or a malformed `{ "$item": 123 }`). This closes the gap where params are stored
+`$computed`, or a malformed `{ "$item": 123 }`). This closes the gap where params are stored
 raw and only resolved at dispatch — a bad directive is rejected with the rest of the
 manifest, never emitted to the host.
 -}
