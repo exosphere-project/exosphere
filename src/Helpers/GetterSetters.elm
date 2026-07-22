@@ -1140,10 +1140,7 @@ projectSetShareTypesLoading project =
     { project | shareTypes = RDPP.setLoading project.shareTypes }
 
 
-{-| Update the status of the queued upload whose unique `id` matches, leaving every other entry
-untouched. A no-op if no such entry exists — which is exactly the stale-result guard: a completion
-for a superseded (re-enqueued) upload carries the OLD id and is correctly ignored (see
-`OpenStack.ObjectStorage.setUploadStatusById`).
+{-| Update the status of the queued upload whose unique `id` matches.
 -}
 projectSetUploadStatusById : Int -> ObjectStorage.UploadStatus -> Project -> Project
 projectSetUploadStatusById id status project =

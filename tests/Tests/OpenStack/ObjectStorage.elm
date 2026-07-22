@@ -165,7 +165,7 @@ sampleUpload id objectName status =
     }
 
 
-{-| Task 1b — the stale-result guard. Re-enqueueing an in-flight target mints a NEW id; a late
+{-| The stale-result guard: re-enqueueing an in-flight target mints a NEW id; a late
 completion for the OLD id must find no match and leave the replacement untouched. `nextUploadId`
 gives distinct, monotonically increasing ids so this guard holds.
 -}

@@ -16,9 +16,7 @@ module OpenStack.ObjectStorage exposing
 
 {-| Types + helpers for OpenStack Object Storage (Swift).
 
-This module is **backend-agnostic at the type level** for the transport subset: object names,
-container names, and queued uploads can serve a Swift backend now and an S3 backend later. Swift
-HTTP wiring lives in `Rest.Swift`; this module is pure data + pure helpers so it is fully
+Swift HTTP wiring lives in `Rest.Swift`; this module is pure data + pure helpers so it is fully
 unit-testable with no live dependency.
 
 PROVISIONAL: verified on devstack Swift 2.37 and live on Jetstream2 Ceph RGW (2026-07).
@@ -42,8 +40,7 @@ message when it is invalid, or `Nothing` when it is acceptable.
 Swift's constraints: the name must be non-empty, must not contain `/` (that separator delimits
 the container from the object path in the URL), and must be at most 256 **bytes** when UTF-8
 encoded — measured with `Helpers.String.utf8ByteLength`, NOT `String.length`, since the limit is
-on bytes and a single character can be up to 4 bytes. (This is _not_ the stricter DNS-safe rule an
-S3 backend would want.)
+on bytes and a single character can be up to 4 bytes.
 
 -}
 containerNameError : ContainerName -> Maybe String
@@ -85,7 +82,7 @@ upload results can only arrive in `State.State`; a page-local status would go pe
 
 `objectName` is the FULL object name (the current pseudo-folder `prefix` prepended to the picked
 file's name); `prefix` is retained so the detail page can render only the entries at the level it is
-showing. Backend-agnostic: an S3 backend would reuse this shape unchanged.
+showing.
 
 `id` is a per-entry unique marker assigned at enqueue (see `nextUploadId`). It is the stale-result
 guard: re-picking a file already in flight REPLACES the entry (same container/prefix/objectName) but

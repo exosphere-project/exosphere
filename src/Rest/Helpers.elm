@@ -219,11 +219,6 @@ expectVoidWithErrorBody toMsg =
 {-| Expect a **binary** response body (an object's bytes), preserving them for `File.Download.bytes`.
 On a non-2xx status the error body is decoded to a String best-effort (so the standard error toast can
 show it); a body that is not valid UTF-8 falls back to "".
-
-This is NOT the metadata-preserving expect (which additionally keeps response HEADERS for
-HEAD-container ACL/usage reads, see `expectMetadataWithErrorBody` below); this one keeps only the
-body bytes.
-
 -}
 expectBytesWithErrorBody : (Result HttpErrorWithBody Bytes -> msg) -> Http.Expect msg
 expectBytesWithErrorBody toMsg =

@@ -7,8 +7,8 @@ module Rest.Swift exposing
 
 Every request goes through `Rest.Helpers.openstackCredentialedRequest` (Keystone token + CORS
 proxy). The base URL is the project's catalog endpoint (`project.endpoints.swift`), passed in by
-the caller. Swift-specific wiring stays behind the backend-agnostic `OpenStack.ObjectStorage`
-types and `SharedMsg` constructors, so an S3 implementation can live alongside it later.
+the caller. Swift-specific wiring stays behind the `OpenStack.ObjectStorage` types and `SharedMsg`
+constructors.
 
 PROVISIONAL: verified against devstack Swift 2.37 and live against Jetstream2 Ceph RGW (2026-07)
 through an Exosphere-style proxy. A proxy must expose the Swift response headers (deployed proxies
