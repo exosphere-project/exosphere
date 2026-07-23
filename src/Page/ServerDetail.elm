@@ -718,6 +718,20 @@ exoextManifestNeedsFetch etag model =
         /= Just etag
 
 
+{-| Whether the last object-store manifest fetch settled on an error (so an unresolved Swift body
+reads as unavailable rather than still-loading). A `NotLoading (Just …)` refresh status is the
+error state `exoextManifestError` records.
+-}
+exoextManifestErrored : Model -> Bool
+exoextManifestErrored model =
+    case model.exoextManifest.refreshStatus of
+        RDPP.NotLoading (Just _) ->
+            True
+
+        _ ->
+            False
+
+
 effectiveExoextResultBody : String -> String -> Model -> Maybe String
 effectiveExoextResultBody etag slotBody model =
     let
@@ -829,13 +843,15 @@ exoextViewConfig approved project model currentTime server =
                                 Exoext.Discovery.manifestBodyFromMetadata metadata
                     )
 
-        -- The header transport chip: a short, non-technical label naming how the manifest
-        -- actually arrived. Only when a real transport body was resolved (metadata store);
-        -- the embedded-card fallbacks transport nothing, so they show no chip.
-        ( manifestJson, transportLabel ) =
+        -- The wire-resolved manifest source + the header transport chip. The manifest arrives
+        -- ONLY over the wire (no embedded fallback): a resolved body renders; a not-yet-resolved
+        -- Swift body reads as loading (host shows quiet loading chrome) until it errors; a missing
+        -- metadata body, or an errored fetch, reads as unavailable (host shows a muted line). The
+        -- transport chip appears only when a real body resolved, naming how it arrived.
+        ( manifestSource, transportLabel ) =
             case ( maybeSentinel, maybeTransportBody ) of
                 ( Just { store }, Just body ) ->
-                    ( unwrapManifestUi model.serverUuid body
+                    ( CloudShield.Card.ManifestReady (unwrapManifestUi model.serverUuid body)
                     , Just
                         (case store of
                             Exoext.Discovery.StoreSwift ->
@@ -846,11 +862,27 @@ exoextViewConfig approved project model currentTime server =
                         )
                     )
 
-                ( Just _, Nothing ) ->
-                    ( CloudShield.Card.cardJson, Nothing )
+                ( Just { store }, Nothing ) ->
+                    ( case store of
+                        Exoext.Discovery.StoreSwift ->
+                            -- The object body has not resolved yet: still loading (fetch in flight
+                            -- or not yet requested) until the fetch errors, then unavailable.
+                            if exoextManifestErrored model then
+                                CloudShield.Card.ManifestUnavailable
+
+                            else
+                                CloudShield.Card.ManifestLoading
+
+                        _ ->
+                            -- Metadata mode: the chunks ride the same server poll as the sentinel,
+                            -- so an absent / undecodable body is genuinely unavailable, not loading.
+                            CloudShield.Card.ManifestUnavailable
+                    , Nothing
+                    )
 
                 ( Nothing, _ ) ->
-                    ( CloudShield.Card.cardJson, Nothing )
+                    -- Unreachable in practice: the card is gated on the sentinel being present.
+                    ( CloudShield.Card.ManifestUnavailable, Nothing )
 
         statusOverride =
             case ( Exoext.Transport.runStatusFromMetadata metadata, model.exoextCard.pending ) of
@@ -922,7 +954,7 @@ exoextViewConfig approved project model currentTime server =
     in
     { approved = approved
     , sourceName = server.osProps.name
-    , manifestJson = manifestJson
+    , manifest = manifestSource
     , transportLabel = transportLabel
     , transportWarning = exoextTransportWarning project model metadata maybeSentinel resultBody
     , scanTimer = scanTimer
@@ -1327,11 +1359,12 @@ resultTruncationWarning body =
 
 The CloudShield agent publishes the full manifest envelope (`{schemaVersion, catalog,
 publisher, ui: {root, elements, state}}`, §1); the renderer wants the bare json-render spec.
-We unwrap `.ui`. Two host trust checks happen here, fail-closed to the safe embedded card:
+We unwrap `.ui`. Two host trust checks happen here, fail-closed:
 
   - **§5.1 self-instance placement.** If the envelope's `publisher.instanceId` is present and
     does not equal the instance whose page this is, the manifest is dropped (a VM may only
-    place UI on its own page).
+    place UI on its own page) — we return an empty body, which the fail-closed renderer decodes
+    to its error notice rather than rendering anyone else's UI.
   - A body that is already a bare spec (no `ui` field — e.g. the dev seed) is used as-is.
 
 -}
@@ -1353,8 +1386,9 @@ unwrapManifestUi pageInstanceId body =
                         body
 
             else
-                -- §5.1 violation: published-by claims another instance → fail closed.
-                CloudShield.Card.cardJson
+                -- §5.1 violation: published-by claims another instance → fail closed to an
+                -- empty (undecodable) body rather than rendering another instance's UI.
+                ""
 
         Nothing ->
             -- No envelope (bare spec, e.g. dev seed) → render directly.

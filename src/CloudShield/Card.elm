@@ -1,4 +1,4 @@
-module CloudShield.Card exposing (EmbedState(..), Instance, Model, Msg, OutMsg(..), ViewConfig, cardJson, init, projection, requestEmbed, scanningRowLabel, transportChip, update, view)
+module CloudShield.Card exposing (EmbedState(..), Instance, ManifestSource(..), Model, Msg, OutMsg(..), ViewConfig, init, projection, requestEmbed, resolveAction, scanningRowLabel, transportChip, update, view)
 
 {-| Host wiring for the CloudShield dynamic-UI card (Phase 1, browser side).
 
@@ -8,13 +8,13 @@ This is the Exosphere-side **host** for the vendored native Elm json-render rend
 (start scans, apply checkbox write-backs), and draws the host-only trust chrome — the
 provenance "?" marker (§5.2) and the opt-in affordance (§5.3) — around the rendered card.
 
-**Milestone status (M1).** The card is rendered from a hand-fed, frozen `card.json`
-(`cardJson` below) against a hand-fed fixture instance list. Selection, select-all, and the
-confirm dialog are fully live; a confirmed `startScan` flips the targeted rows to `queued`
-locally so the action round-trip is visible. Real discovery (read the `exoext.v1.kind`
-metadata sentinel + project the eligible `$instances` from `project.servers`) is M2, and the
-real metadata/console POC transport (write the scan-request, poll status) is M3. Those swaps
-do not touch the renderer wiring here.
+**Manifest source.** The card's json-render manifest arrives ONLY over the wire — a
+`store=swift` object fetch or metadata-mode chunks — surfaced to the view as a
+[`ManifestSource`](#ManifestSource). There is no built-in fallback manifest: while the body is
+still being fetched the card region shows quiet host loading chrome, and an unresolvable /
+undecodable body shows the fail-closed notice, never a stale embedded card. Selection,
+select-all, and the confirm dialog are fully live; a confirmed write-request flips the targeted
+rows to `queued` locally so the action round-trip is visible.
 
 Everything here is gated by `context.experimentalFeaturesEnabled` at the call site
 (`Page.ServerDetail`), so normal operation is unaffected.
@@ -164,10 +164,12 @@ applyEffect instances effect model =
             ( model, Nothing )
 
         Just (Render.EmitAction action) ->
-            -- The manifest still emits the frozen `cloudshield.*` action names; they are a pure DATA
-            -- alias table (`actionAliases`) resolved to generic `Exoext.Lifecycle` verbs by the
-            -- generic dispatcher. An off-table / off-verb action is ignored (fail-closed).
-            dispatchVerb (Lifecycle.resolveVerb actionAliases action.verb) action.params model
+            -- Resolve the manifest's action name to a generic `Exoext.Lifecycle` verb, then
+            -- dispatch. Manifest v2 emits the generic verbs directly (`exoext.writeRequest`,
+            -- `exoext.openSession`); manifest v1 emits the `cloudshield.*` names carried by the
+            -- pure-data alias table. Both resolve here; an off-table / off-verb action is ignored
+            -- (fail-closed).
+            dispatchVerb (resolveAction action.verb action.params) action.params model
 
         Just (Render.EmitStateChange change) ->
             ( applyStateChange instances change model, Nothing )
@@ -183,6 +185,39 @@ actionAliases =
     [ { name = "cloudshield.startScan", verb = Lifecycle.verbWriteRequest, kind = "scan" }
     , { name = "cloudshield.getEmbed", verb = Lifecycle.verbOpenSession, kind = "" }
     ]
+
+
+{-| Resolve a manifest action name to a generic [`Lifecycle.VerbAlias`](Exoext-Lifecycle#VerbAlias).
+Two ways in: the v1 [`actionAliases`](#actionAliases) table (the `cloudshield.*` names), and — for
+manifest v2 — a name that IS already a generic verb (`exoext.writeRequest` / `exoext.openSession`),
+accepted directly with its `kind` read from the emitted params. Anything else is `Nothing`
+(fail-closed). Keeping the alias table means a v1 manifest still dispatches against this host until
+the demo VM redeploys v2.
+-}
+resolveAction : String -> Encode.Value -> Maybe Lifecycle.VerbAlias
+resolveAction name params =
+    case Lifecycle.resolveVerb actionAliases name of
+        Just alias ->
+            Just alias
+
+        Nothing ->
+            if name == Lifecycle.verbWriteRequest then
+                Just { name = name, verb = Lifecycle.verbWriteRequest, kind = kindOf params }
+
+            else if name == Lifecycle.verbOpenSession then
+                Just { name = name, verb = Lifecycle.verbOpenSession, kind = "" }
+
+            else
+                Nothing
+
+
+{-| The generic `exoext.writeRequest` carries its wire request `kind` in params (v1 carried it in
+the alias table). Read it, defaulting to `""` when absent.
+-}
+kindOf : Encode.Value -> String
+kindOf params =
+    Decode.decodeValue (Decode.field "kind" Decode.string) params
+        |> Result.withDefault ""
 
 
 {-| The generic verb dispatcher: interpret a resolved [`Lifecycle.VerbAlias`](Exoext-Lifecycle#VerbAlias)
@@ -430,8 +465,18 @@ projection zone activeBatchId pendingBatchId erroredBatchId expiredBatchId histo
         , ( "instances", Encode.list (instanceProjection statusOverride model) instances )
         , ( "history", Encode.list (historyRow zone activeBatchId pendingBatchId erroredBatchId expiredBatchId) shown )
         , ( "historyNote", Encode.string historyNote )
+
+        -- Old display-string header keys (manifest v1). Kept alongside the new count/flag keys
+        -- below so a v1 manifest still renders against this host until the demo VM redeploys v2.
         , ( "targetsLabel", Encode.string targetsLabel )
         , ( "historyLabel", Encode.string historyLabel )
+
+        -- New wire-owned keys (manifest v2): the manifest composes the header strings itself from
+        -- these counts/flag, so no display string lives in the host. `historyLoaded` gates the
+        -- history count the same way `historyLabel` did above (one source, two projections).
+        , ( "historyLoaded", Encode.bool history.loaded )
+        , ( "historyCount", Encode.int total )
+        , ( "targetsCount", Encode.int (List.length instances) )
         ]
 
 
@@ -560,6 +605,30 @@ historyRow zone activeBatchId pendingBatchId erroredBatchId expiredBatchId entry
 
             else
                 "View"
+
+        -- The SAME precedence chain as `rowState`, projected as a stable token instead of a
+        -- display string. Manifest v2 keys its badge `variant` (→ `data-state`) and its per-row
+        -- `$cond` text/action chains on this token, so the host owns no CloudShield display
+        -- strings. `rowState`/`actionLabel` above stay projected for manifest v1 until the demo VM
+        -- redeploys v2 — one source of truth, two projections, so they can never disagree.
+        state =
+            if isError then
+                "failed"
+
+            else if isEmbedErrorRow then
+                "error"
+
+            else if isLoadingRow then
+                "opening"
+
+            else if isExpiredRow then
+                "expired"
+
+            else if isActiveRow then
+                "viewing"
+
+            else
+                "idle"
     in
     Encode.object
         [ ( "batchId", Encode.string entry.batchId )
@@ -571,6 +640,7 @@ historyRow zone activeBatchId pendingBatchId erroredBatchId expiredBatchId entry
         , ( "findings", findingsFromCounts entry.counts )
         , ( "rowState", Encode.string rowState )
         , ( "actionLabel", Encode.string actionLabel )
+        , ( "state", Encode.string state )
         ]
 
 
@@ -628,10 +698,28 @@ localScanState model id =
 -- VIEW
 
 
+{-| The card's json-render manifest as resolved by the host from the wire. There is no built-in
+fallback manifest (the frozen `cardJson` is gone): the body arrives only over a `store=swift`
+object fetch or metadata-mode chunks.
+
+  - `ManifestLoading` — the sentinel is present but the body has not resolved yet (the object
+    fetch is in flight / not yet requested). The card region shows quiet host loading chrome.
+  - `ManifestReady body` — a resolved manifest body to decode (fail-closed by the renderer; an
+    undecodable body still shows the error notice, never a partial tree).
+  - `ManifestUnavailable` — the body could not be resolved (fetch errored, or over the transport
+    cap). The card region shows a muted "unavailable" line, never a blank region.
+
+-}
+type ManifestSource
+    = ManifestLoading
+    | ManifestReady String
+    | ManifestUnavailable
+
+
 {-| What the host hands the card view: the publishing instance's display name (for the
-provenance marker, §5.2), the resolved manifest JSON (from POC transport when discovered,
-else the embedded frozen `cardJson` fallback), a short transport label for the header chip,
-and the scan-timer descriptor for the active/completed elapsed line.
+provenance marker, §5.2), the wire-resolved manifest ([`ManifestSource`](#ManifestSource)), a
+short transport label for the header chip, and the scan-timer descriptor for the
+active/completed elapsed line.
 -}
 type alias ViewConfig =
     { -- Whether the host has a persisted approval for the publishing instance (matched by its
@@ -639,7 +727,7 @@ type alias ViewConfig =
       -- extension. The card keeps no approval state of its own — this is the whole gate.
       approved : Bool
     , sourceName : String
-    , manifestJson : String
+    , manifest : ManifestSource
 
     -- a short, non-technical label for how the manifest was transported (e.g. "server
     -- metadata"), rendered as a muted chip in the card *header* by the host, not in the body.
@@ -774,7 +862,7 @@ view palette zone config instances model =
         Element.column
             [ Element.width (Element.fill |> Element.maximum 1300), Element.spacing spacer.px8 ]
             [ provenanceMarker palette config.sourceName
-            , rendererView palette zone config.activeBatchId config.pendingBatchId config.erroredBatchId config.expiredBatchId config.allowedIframeOrigins config.manifestJson config.history config.results config.embedUrl config.statusOverride instances model
+            , rendererView palette zone config.activeBatchId config.pendingBatchId config.erroredBatchId config.expiredBatchId config.allowedIframeOrigins config.manifest config.history config.results config.embedUrl config.statusOverride instances model
             , embedStateView palette config.embedState config.erroredBatchId
             , transportWarningView palette config.transportWarning
             , scanTimerView palette config.scanTimer
@@ -974,7 +1062,7 @@ rendererView :
     -> Maybe String
     -> Maybe String
     -> List String
-    -> String
+    -> ManifestSource
     -> { rows : List Transport.IndexEntry, loading : Bool, loaded : Bool }
     -> Maybe Encode.Value
     -> String
@@ -982,34 +1070,63 @@ rendererView :
     -> List Instance
     -> Model
     -> Element.Element Msg
-rendererView palette zone activeBatchId pendingBatchId erroredBatchId expiredBatchId allowedIframeOrigins manifestJson history results embedUrl statusOverride instances model =
-    -- Decode per render is fine for the small card; the fail-closed decoder is the security
-    -- gate (an off-catalog or oversized manifest yields the error stub, never a partial tree).
-    case JsonRender.decodeString manifestJson of
-        Ok spec ->
-            -- Fill the card width: `Element.html` shrinks to content by default, which squeezes the
-            -- rendered manifest (and the results iframe) into a narrow column. `width fill` on the
-            -- elm-ui wrapper plus `width: 100%` on the div lets it use the full available width.
-            Element.el [ Element.width Element.fill ]
-                (Element.html
-                    (Html.div
-                        [ Html.Attributes.style "width" "100%"
-                        , Html.Attributes.attribute "data-exoext-history-loading"
-                            (if history.loading && not history.loaded then
-                                "true"
+rendererView palette zone activeBatchId pendingBatchId erroredBatchId expiredBatchId allowedIframeOrigins manifest history results embedUrl statusOverride instances model =
+    case manifest of
+        ManifestReady manifestJson ->
+            -- Decode per render is fine for the small card; the fail-closed decoder is the security
+            -- gate (an off-catalog or oversized manifest yields the error stub, never a partial tree).
+            case JsonRender.decodeString manifestJson of
+                Ok spec ->
+                    -- Fill the card width: `Element.html` shrinks to content by default, which squeezes the
+                    -- rendered manifest (and the results iframe) into a narrow column. `width fill` on the
+                    -- elm-ui wrapper plus `width: 100%` on the div lets it use the full available width.
+                    Element.el [ Element.width Element.fill ]
+                        (Element.html
+                            (Html.div
+                                [ Html.Attributes.style "width" "100%"
+                                , Html.Attributes.attribute "data-exoext-history-loading"
+                                    (if history.loading && not history.loaded then
+                                        "true"
 
-                             else
-                                "false"
+                                     else
+                                        "false"
+                                    )
+                                ]
+                                [ rendererStyle palette
+                                , Html.map RendererMsg (Render.view allowedIframeOrigins spec (projection zone activeBatchId pendingBatchId erroredBatchId expiredBatchId history results embedUrl statusOverride instances model) model.renderer)
+                                ]
                             )
+                        )
+
+                Err message ->
+                    Element.el [ Element.width Element.fill ] (Element.html (JsonRender.errorStub message))
+
+        ManifestLoading ->
+            -- The sentinel is present but the manifest body has not resolved yet: quiet host chrome
+            -- (the same sized-spinner idiom as the results-region loading line), never a blank card.
+            Element.el [ Element.width Element.fill ]
+                (Element.row
+                    [ Element.spacing spacer.px8 ]
+                    [ spinner palette
+                    , Element.el
+                        [ Text.fontSize Text.Small
+                        , Font.color (SH.toElementColor palette.neutral.text.subdued)
                         ]
-                        [ rendererStyle palette
-                        , Html.map RendererMsg (Render.view allowedIframeOrigins spec (projection zone activeBatchId pendingBatchId erroredBatchId expiredBatchId history results embedUrl statusOverride instances model) model.renderer)
-                        ]
-                    )
+                        (Text.body "Loading extension UI…")
+                    ]
                 )
 
-        Err message ->
-            Element.el [ Element.width Element.fill ] (Element.html (JsonRender.errorStub message))
+        ManifestUnavailable ->
+            -- The manifest body could not be resolved (fetch errored, or over the transport cap; the
+            -- specific reason rides the separate host transportWarning line). A muted line here keeps
+            -- the region explained and non-alarming, never blank and never a stale built-in card.
+            Element.el [ Element.width Element.fill ]
+                (Element.el
+                    [ Text.fontSize Text.Small
+                    , Font.color (SH.toElementColor palette.neutral.text.subdued)
+                    ]
+                    (Text.body "Extension UI is unavailable.")
+                )
 
 
 {-| §5.2 provenance marker — host-drawn, naming the source instance and stating that the UI
@@ -1357,38 +1474,46 @@ rendererStyle palette =
                 , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) .jr-findings { flex: 0 0 auto; }"
                 , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) .jr-findings__total { display: none; }"
 
-                -- The single per-row state hook. Empty rowState => hidden badge (the common case).
+                -- The single per-row state hook. Empty rowState => hidden badge (the common case,
+                -- manifest v1). Manifest v2 projects the idle token instead of an empty string, so
+                -- the twin hides the idle history badge too — scoped to the history column so it
+                -- can't hide a targets-column "idle" scanState badge (which stays visible).
                 , ".jr-badge[data-state=\"\"] { display: none; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"idle\"] { display: none; }"
 
                 -- Active / now-viewing row: accent stripe + primary tint + a pulsing flag, action
-                -- flips to Refresh. Keyed on the rowState Badge value the host projects.
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Now viewing\"]) { background: " ++ primaryTint ++ "; border-left-color: " ++ primary ++ "; box-shadow: inset 0 0 0 1px " ++ primaryLine ++ "; }"
-                , ".jr-badge[data-state=\"Now viewing\"] { display: inline-flex; align-items: center; gap: 5px; background: " ++ primaryTintStrong ++ "; color: " ++ primary ++ "; border-color: " ++ primaryLine ++ "; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.7em; font-weight: 700; }"
-                , ".jr-badge[data-state=\"Now viewing\"]::before { content: \"\"; width: 6px; height: 6px; border-radius: 50%; background: " ++ primary ++ "; animation: jr-viewing-pulse 2s ease-in-out infinite; }"
+                -- flips to Refresh. Keyed on the history Badge's data-state. Each rule carries BOTH
+                -- selectors: the manifest-v1 display string ("Now viewing") and the manifest-v2
+                -- token ("viewing", from the Badge `variant`). The token twins are history-scoped
+                -- (never a bare global) so they cannot collide with a targets-column scanState. Both
+                -- selector sets live side by side until the demo VM redeploys v2.
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Now viewing\"]), .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"viewing\"]) { background: " ++ primaryTint ++ "; border-left-color: " ++ primary ++ "; box-shadow: inset 0 0 0 1px " ++ primaryLine ++ "; }"
+                , ".jr-badge[data-state=\"Now viewing\"], .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"viewing\"] { display: inline-flex; align-items: center; gap: 5px; background: " ++ primaryTintStrong ++ "; color: " ++ primary ++ "; border-color: " ++ primaryLine ++ "; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.7em; font-weight: 700; }"
+                , ".jr-badge[data-state=\"Now viewing\"]::before, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"viewing\"]::before { content: \"\"; width: 6px; height: 6px; border-radius: 50%; background: " ++ primary ++ "; animation: jr-viewing-pulse 2s ease-in-out infinite; }"
                 , "@keyframes jr-viewing-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }"
-                , "@media (prefers-reduced-motion: reduce) { .jr-badge[data-state=\"Now viewing\"]::before { animation: none; } }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Now viewing\"]) .jr-button { background: transparent; border-color: " ++ primaryLine ++ "; color: " ++ primary ++ "; }"
+                , "@media (prefers-reduced-motion: reduce) { .jr-badge[data-state=\"Now viewing\"]::before, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"viewing\"]::before { animation: none; } }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Now viewing\"]) .jr-button, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"viewing\"]) .jr-button { background: transparent; border-color: " ++ primaryLine ++ "; color: " ++ primary ++ "; }"
 
                 -- Opening / loading row: this row's getEmbed is in flight. Same accent surface as
                 -- "Now viewing" so the clicked row reads as the one taking over, but the badge carries
                 -- a spinning ring (the codebase's in-progress idiom, shared with queued/running) and
                 -- the action button is de-emphasized and non-interactive (pointer-events: none) while
                 -- the bridge mints the fresh embed.
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Opening…\"]) { background: " ++ primaryTint ++ "; border-left-color: " ++ primaryLine ++ "; }"
-                , ".jr-badge[data-state=\"Opening…\"] { display: inline-flex; align-items: center; gap: 6px; background: " ++ primaryTintStrong ++ "; color: " ++ primary ++ "; border-color: " ++ primaryLine ++ "; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.7em; font-weight: 700; }"
-                , ".jr-badge[data-state=\"Opening…\"]::before { content: \"\"; display: inline-block; width: 9px; height: 9px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: jr-badge-spin 0.7s linear infinite; }"
-                , "@media (prefers-reduced-motion: reduce) { .jr-badge[data-state=\"Opening…\"]::before { animation: none; } }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Opening…\"]) .jr-button { background: transparent; border-color: " ++ primaryLine ++ "; color: " ++ primary ++ "; opacity: 0.6; pointer-events: none; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Opening…\"]), .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"opening\"]) { background: " ++ primaryTint ++ "; border-left-color: " ++ primaryLine ++ "; }"
+                , ".jr-badge[data-state=\"Opening…\"], .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"opening\"] { display: inline-flex; align-items: center; gap: 6px; background: " ++ primaryTintStrong ++ "; color: " ++ primary ++ "; border-color: " ++ primaryLine ++ "; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.7em; font-weight: 700; }"
+                , ".jr-badge[data-state=\"Opening…\"]::before, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"opening\"]::before { content: \"\"; display: inline-block; width: 9px; height: 9px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: jr-badge-spin 0.7s linear infinite; }"
+                , "@media (prefers-reduced-motion: reduce) { .jr-badge[data-state=\"Opening…\"]::before, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"opening\"]::before { animation: none; } }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Opening…\"]) .jr-button, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"opening\"]) .jr-button { background: transparent; border-color: " ++ primaryLine ++ "; color: " ++ primary ++ "; opacity: 0.6; pointer-events: none; }"
 
                 -- Embed-error row: this batch's last getEmbed failed / timed out. Danger-toned badge
                 -- + stripe/tint (mirroring the primary active/loading idiom, just danger-colored), and
                 -- the action flips to a danger-outlined \"Retry\" that re-fires getEmbed. Distinct from
                 -- a FAILED SCAN below (which has nothing to view): here the scan is fine, only the
                 -- results session failed to open, so the button stays and reads \"Retry\".
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Couldn't open\"]) { background: " ++ dangerTint ++ "; border-left-color: " ++ dangerDot ++ "; }"
-                , ".jr-badge[data-state=\"Couldn't open\"] { display: inline-flex; align-items: center; gap: 5px; background: " ++ dangerBg ++ "; color: " ++ dangerText ++ "; border-color: " ++ dangerBorder ++ "; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.7em; font-weight: 700; }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Couldn't open\"]) .jr-button { background: transparent; border-color: " ++ dangerLine ++ "; color: " ++ dangerDot ++ "; }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Couldn't open\"]) .jr-button:hover { border-color: " ++ dangerDot ++ "; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Couldn't open\"]), .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"error\"]) { background: " ++ dangerTint ++ "; border-left-color: " ++ dangerDot ++ "; }"
+                , ".jr-badge[data-state=\"Couldn't open\"], .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"error\"] { display: inline-flex; align-items: center; gap: 5px; background: " ++ dangerBg ++ "; color: " ++ dangerText ++ "; border-color: " ++ dangerBorder ++ "; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.7em; font-weight: 700; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Couldn't open\"]) .jr-button, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"error\"]) .jr-button { background: transparent; border-color: " ++ dangerLine ++ "; color: " ++ dangerDot ++ "; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Couldn't open\"]) .jr-button:hover, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"error\"]) .jr-button:hover { border-color: " ++ dangerDot ++ "; }"
 
                 -- Failed scan row: de-emphasized, a small danger 'failed' pill, and no pills/action
                 -- (nothing to view). The host also blanks its actionLabel; this hides the button.
@@ -1402,9 +1527,9 @@ rendererStyle palette =
                 -- and a plain View (reopen). It keeps a FAINT highlight — the same palette-derived
                 -- primary accent as the active row, just at a lower alpha — so the researcher still
                 -- sees which scan they were on. Neutral toned (like the failed pill but not danger).
-                , ".jr-badge[data-state=\"Expired\"] { background: " ++ frontBg ++ "; color: " ++ muted ++ "; border-color: " ++ border ++ "; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.7em; font-weight: 700; }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Expired\"]) { background: color-mix(in srgb, " ++ primary ++ " 5%, transparent); border-left-color: " ++ primaryLine ++ "; }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Expired\"]) .jr-button { background: transparent; border-color: " ++ border ++ "; color: " ++ muted ++ "; }"
+                , ".jr-badge[data-state=\"Expired\"], .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"expired\"] { background: " ++ frontBg ++ "; color: " ++ muted ++ "; border-color: " ++ border ++ "; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.7em; font-weight: 700; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Expired\"]), .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"expired\"]) { background: color-mix(in srgb, " ++ primary ++ " 5%, transparent); border-left-color: " ++ primaryLine ++ "; }"
+                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Expired\"]) .jr-button, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"expired\"]) .jr-button { background: transparent; border-color: " ++ border ++ "; color: " ++ muted ++ "; }"
 
                 -- Responsive: on a narrow card the two columns stack (targets, then history), each
                 -- keeping its own bounded scroll. The divider moves from a left border to a top one.
@@ -1423,206 +1548,3 @@ rendererStyle palette =
                 ]
             )
         ]
-
-
-
--- THE FROZEN MANIFEST (bnr/spike/renderer/card.json) — hand-fed in M1; in M2 this comes
--- from discovery (metadata sentinel -> POC transport body).
-
-
-cardJson : String
-cardJson =
-    """
-{
-  "root": "card",
-  "elements": {
-    "card": {
-      "type": "Card",
-      "props": {},
-      "children": ["columns", "results", "results-embed"]
-    },
-    "columns": {
-      "type": "Stack",
-      "props": { "direction": "row", "gap": 3 },
-      "children": ["targets-col", "history-col"]
-    },
-    "targets-col": {
-      "type": "Stack",
-      "props": { "direction": "col", "gap": 2 },
-      "children": ["targets-label", "toolbar", "list"]
-    },
-    "targets-label": {
-      "type": "Text",
-      "props": { "value": { "$state": "/targetsLabel" } },
-      "children": []
-    },
-    "toolbar": {
-      "type": "Stack",
-      "props": { "direction": "row", "gap": 2 },
-      "children": ["select-all", "scan-selected"]
-    },
-    "select-all": {
-      "type": "Checkbox",
-      "props": {
-        "label": "Select all",
-        "checked": { "$bindState": "/selectAll" }
-      },
-      "children": []
-    },
-    "scan-selected": {
-      "type": "Button",
-      "props": { "label": "Scan selected" },
-      "on": {
-        "press": {
-          "action": "cloudshield.startScan",
-          "params": { "targetInstanceIds": [] },
-          "confirm": {
-            "title": "Scan selected instances?",
-            "message": "Queue CloudShield scans for the currently selected instances.",
-            "variant": "default"
-          }
-        }
-      },
-      "children": []
-    },
-    "list": {
-      "type": "Stack",
-      "props": { "direction": "col", "gap": 1 },
-      "repeat": { "statePath": "/instances", "key": "id" },
-      "children": ["row"]
-    },
-    "row": {
-      "type": "Stack",
-      "props": { "direction": "row", "gap": 2 },
-      "children": ["row-select", "row-name", "row-status", "row-scan-btn"]
-    },
-    "row-select": {
-      "type": "Checkbox",
-      "props": {
-        "checked": { "$bindItem": "selected" }
-      },
-      "children": []
-    },
-    "row-name": {
-      "type": "Text",
-      "props": {
-        "value": { "$item": "name" }
-      },
-      "children": []
-    },
-    "row-status": {
-      "type": "Badge",
-      "props": {
-        "value": { "$item": "scanState" }
-      },
-      "children": []
-    },
-    "row-scan-btn": {
-      "type": "Button",
-      "props": { "label": "Scan" },
-      "on": {
-        "press": {
-          "action": "cloudshield.startScan",
-          "params": { "targetInstanceIds": [{ "$item": "id" }] },
-          "confirm": {
-            "title": "Start scan",
-            "message": { "$template": "Run a snapshot-clone scan of \\"${name}\\"?" },
-            "variant": "default"
-          }
-        }
-      },
-      "children": []
-    },
-    "history-col": {
-      "type": "Stack",
-      "props": { "direction": "col", "gap": 2 },
-      "children": ["history-label", "history-note", "history-rows"]
-    },
-    "history-label": {
-      "type": "Text",
-      "props": { "value": { "$state": "/historyLabel" } },
-      "children": []
-    },
-    "history-note": {
-      "type": "Text",
-      "props": { "value": { "$state": "/historyNote" } },
-      "children": []
-    },
-    "history-rows": {
-      "type": "Stack",
-      "props": { "direction": "col", "gap": 1 },
-      "repeat": { "statePath": "/history", "key": "batchId" },
-      "children": ["history-row"]
-    },
-    "history-row": {
-      "type": "Stack",
-      "props": { "direction": "row", "gap": 2 },
-      "children": ["history-main", "history-pills", "history-state", "history-view-btn"]
-    },
-    "history-main": {
-      "type": "Stack",
-      "props": { "direction": "col", "gap": 0 },
-      "children": ["history-when", "history-sub"]
-    },
-    "history-when": {
-      "type": "Text",
-      "props": { "value": { "$item": "completedAt" } },
-      "children": []
-    },
-    "history-sub": {
-      "type": "Text",
-      "props": { "value": { "$item": "subLabel" } },
-      "children": []
-    },
-    "history-pills": {
-      "type": "FindingsTable",
-      "props": {
-        "bind": { "$item": "findings" },
-        "groupBy": "severity"
-      },
-      "children": []
-    },
-    "history-state": {
-      "type": "Badge",
-      "props": { "value": { "$item": "rowState" } },
-      "children": []
-    },
-    "history-view-btn": {
-      "type": "Button",
-      "props": { "label": { "$item": "actionLabel" } },
-      "on": {
-        "press": {
-          "action": "cloudshield.getEmbed",
-          "params": { "batchId": { "$template": "${batchId}" } }
-        }
-      },
-      "children": []
-    },
-    "results": {
-      "type": "FindingsTable",
-      "props": {
-        "bind": { "$state": "/results" },
-        "groupBy": "severity"
-      },
-      "children": []
-    },
-    "results-embed": {
-      "type": "Iframe",
-      "props": {
-        "src": { "$state": "/embedUrl" },
-        "title": "CloudShield scan results"
-      },
-      "children": []
-    }
-  },
-  "state": {
-    "selectAll": false,
-    "instances": [],
-    "results": null,
-    "history": [],
-    "historyNote": "",
-    "targetsLabel": "Scan targets",
-    "historyLabel": "Scan history"
-  }
-}
-"""
