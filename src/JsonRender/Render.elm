@@ -316,14 +316,25 @@ renderDisclosure ctx props childrenHtml =
 renderBadge : Context -> Spec.BadgeProps -> Html Msg
 renderBadge ctx props =
     let
-        state =
+        label =
             Expr.resolveDisplay ctx props.value
+
+        -- `data-state` carries the styling token: an explicit `variant` when the manifest
+        -- supplies one, else the display text itself (the historical behavior). The tone class
+        -- stays keyed on the display text so a variant never changes the visible tone.
+        state =
+            case props.variant of
+                Just variantExpr ->
+                    Expr.resolveDisplay ctx variantExpr
+
+                Nothing ->
+                    label
     in
     Html.span
-        [ Attr.class ("jr-badge jr-badge--" ++ badgeTone state)
+        [ Attr.class ("jr-badge jr-badge--" ++ badgeTone label)
         , Attr.attribute "data-state" state
         ]
-        [ Html.text state ]
+        [ Html.text label ]
 
 
 {-| Tone mapping from a per-row `scanState` string. Keyed on the leading whitespace-delimited

@@ -181,10 +181,16 @@ type alias TextProps =
     { value : Expr }
 
 
-{-| `Badge` props: the `value` expression (a per-row `scanState` string in the card).
+{-| `Badge` props: the `value` expression (a per-row status string in the card) and an
+optional `variant` expression. When `variant` is present its resolved string becomes the
+badge's `data-state` attribute (so the manifest can key styling on a stable token while
+showing different display text); when absent, `data-state` falls back to the resolved `value`
+text (the historical behavior — old manifests are unaffected).
 -}
 type alias BadgeProps =
-    { value : Expr }
+    { value : Expr
+    , variant : Maybe Expr
+    }
 
 
 {-| `Button` props: the `label` expression.
@@ -535,7 +541,7 @@ allowedPropKeys ct =
             [ "value" ]
 
         Badge ->
-            [ "value" ]
+            [ "value", "variant" ]
 
         Button ->
             [ "label" ]
@@ -586,8 +592,9 @@ propsBodyDecoder ct =
                 (Decode.field "value" Expr.decoder)
 
         Badge ->
-            Decode.map (BadgeP << BadgeProps)
+            Decode.map2 (\v var -> BadgeP (BadgeProps v var))
                 (Decode.field "value" Expr.decoder)
+                (optionalField "variant" (Decode.map Just Expr.decoder) Nothing)
 
         Button ->
             Decode.map (ButtonP << ButtonProps)
