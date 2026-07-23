@@ -20,6 +20,7 @@ sentinel + §7.1 metadata transport framing, and the §2.4 `$instances` eligibil
 import CloudShield.Card as Card
 import Dict
 import Exoext.Discovery as Discovery
+import Exoext.Lifecycle as Lifecycle
 import Exoext.Transport as Transport
 import Expect
 import Json.Decode as Decode
@@ -27,6 +28,7 @@ import Json.Encode as Encode
 import JsonRender
 import JsonRender.Expr as Expr
 import JsonRender.Render as Render
+import JsonRender.Spec as Spec exposing (Props(..))
 import OpenStack.Types as OSTypes
 import Set exposing (Set)
 import Test exposing (Test, describe, test)
@@ -34,20 +36,502 @@ import Time
 
 
 
--- MANIFEST (the fail-closed catalog gate over the frozen card.json)
+-- MANIFEST v2 (the wire-owned card.json — the manifest owns every display string)
+
+
+{-| Manifest v2 as a MANUALLY-SYNCED copy of the bridge's authoritative card.json (the source of
+truth). Re-sync whenever the bridge card changes:
+
+    sed 's/\\\\/\\\\\\\\/g' ~/dev/cloudshield-bridge/cloudshield_bridge/card.json
+
+(the only transform is doubling each JSON backslash for Elm's triple-quoted string literal.)
+
+The contract test below ties this manifest to the host: the SAME per-row `state` token and the
+SAME `/historyLoaded` + `/historyCount` + `/targetsCount` keys that `CloudShield.Card.projection`
+/ `historyRow` project drive the manifest's `$cond` text/action chains and the badge `variant`, so
+the two sides cannot silently disagree. `cardJson` is no longer embedded in the host — this fixture
+is the only in-repo copy of the manifest, and it must decode fail-closed.
+
+-}
+cardJsonV2 : String
+cardJsonV2 =
+    """
+{
+  "root": "card",
+  "elements": {
+    "card": {
+      "type": "Card",
+      "props": {},
+      "children": [
+        "columns",
+        "results",
+        "results-embed"
+      ]
+    },
+    "columns": {
+      "type": "Stack",
+      "props": {
+        "direction": "row",
+        "gap": 3
+      },
+      "children": [
+        "targets-col",
+        "history-col"
+      ]
+    },
+    "targets-col": {
+      "type": "Stack",
+      "props": {
+        "direction": "col",
+        "gap": 2
+      },
+      "children": [
+        "targets-label",
+        "toolbar",
+        "list"
+      ]
+    },
+    "targets-label": {
+      "type": "Text",
+      "props": {
+        "value": {
+          "$template": "Scan targets · ${/targetsCount}"
+        }
+      },
+      "children": []
+    },
+    "toolbar": {
+      "type": "Stack",
+      "props": {
+        "direction": "row",
+        "gap": 2
+      },
+      "children": [
+        "select-all",
+        "scan-selected"
+      ]
+    },
+    "select-all": {
+      "type": "Checkbox",
+      "props": {
+        "label": "Select all",
+        "checked": {
+          "$bindState": "/selectAll"
+        }
+      },
+      "children": []
+    },
+    "scan-selected": {
+      "type": "Button",
+      "props": {
+        "label": "Scan selected"
+      },
+      "on": {
+        "press": {
+          "action": "exoext.writeRequest",
+          "params": {
+            "kind": "scan",
+            "targetInstanceIds": []
+          },
+          "confirm": {
+            "title": "Scan selected instances?",
+            "message": "Queue CloudShield scans for the currently selected instances.",
+            "variant": "default"
+          }
+        }
+      },
+      "children": []
+    },
+    "list": {
+      "type": "Stack",
+      "props": {
+        "direction": "col",
+        "gap": 1
+      },
+      "repeat": {
+        "statePath": "/instances",
+        "key": "id"
+      },
+      "children": [
+        "row"
+      ]
+    },
+    "row": {
+      "type": "Stack",
+      "props": {
+        "direction": "row",
+        "gap": 2
+      },
+      "children": [
+        "row-select",
+        "row-name",
+        "row-status",
+        "row-scan-btn"
+      ]
+    },
+    "row-select": {
+      "type": "Checkbox",
+      "props": {
+        "checked": {
+          "$bindItem": "selected"
+        }
+      },
+      "children": []
+    },
+    "row-name": {
+      "type": "Text",
+      "props": {
+        "value": {
+          "$item": "name"
+        }
+      },
+      "children": []
+    },
+    "row-status": {
+      "type": "Badge",
+      "props": {
+        "value": {
+          "$item": "scanState"
+        }
+      },
+      "children": []
+    },
+    "row-scan-btn": {
+      "type": "Button",
+      "props": {
+        "label": "Scan"
+      },
+      "on": {
+        "press": {
+          "action": "exoext.writeRequest",
+          "params": {
+            "kind": "scan",
+            "targetInstanceIds": [
+              {
+                "$item": "id"
+              }
+            ]
+          },
+          "confirm": {
+            "title": "Start scan",
+            "message": {
+              "$template": "Run a snapshot-clone scan of \\"${name}\\"?"
+            },
+            "variant": "default"
+          }
+        }
+      },
+      "children": []
+    },
+    "history-col": {
+      "type": "Stack",
+      "props": {
+        "direction": "col",
+        "gap": 2
+      },
+      "children": [
+        "history-label",
+        "history-note",
+        "history-rows"
+      ]
+    },
+    "history-label": {
+      "type": "Text",
+      "props": {
+        "value": {
+          "$cond": {
+            "$state": "/historyLoaded"
+          },
+          "$then": {
+            "$template": "Scan history · ${/historyCount}"
+          },
+          "$else": "Scan history"
+        }
+      },
+      "children": []
+    },
+    "history-note": {
+      "type": "Text",
+      "props": {
+        "value": {
+          "$state": "/historyNote"
+        }
+      },
+      "children": []
+    },
+    "history-rows": {
+      "type": "Stack",
+      "props": {
+        "direction": "col",
+        "gap": 1
+      },
+      "repeat": {
+        "statePath": "/history",
+        "key": "batchId"
+      },
+      "children": [
+        "history-row"
+      ]
+    },
+    "history-row": {
+      "type": "Stack",
+      "props": {
+        "direction": "row",
+        "gap": 2
+      },
+      "children": [
+        "history-main",
+        "history-pills",
+        "history-state",
+        "history-view-btn"
+      ]
+    },
+    "history-main": {
+      "type": "Stack",
+      "props": {
+        "direction": "col",
+        "gap": 0
+      },
+      "children": [
+        "history-when",
+        "history-sub"
+      ]
+    },
+    "history-when": {
+      "type": "Text",
+      "props": {
+        "value": {
+          "$item": "completedAt"
+        }
+      },
+      "children": []
+    },
+    "history-sub": {
+      "type": "Text",
+      "props": {
+        "value": {
+          "$item": "subLabel"
+        }
+      },
+      "children": []
+    },
+    "history-pills": {
+      "type": "FindingsTable",
+      "props": {
+        "bind": {
+          "$item": "findings"
+        },
+        "groupBy": "severity"
+      },
+      "children": []
+    },
+    "history-state": {
+      "type": "Badge",
+      "props": {
+        "value": {
+          "$cond": {
+            "$item": "state",
+            "eq": "viewing"
+          },
+          "$then": "Now viewing",
+          "$else": {
+            "$cond": {
+              "$item": "state",
+              "eq": "opening"
+            },
+            "$then": "Opening…",
+            "$else": {
+              "$cond": {
+                "$item": "state",
+                "eq": "expired"
+              },
+              "$then": "Expired",
+              "$else": {
+                "$cond": {
+                  "$item": "state",
+                  "eq": "error"
+                },
+                "$then": "Couldn't open",
+                "$else": {
+                  "$cond": {
+                    "$item": "state",
+                    "eq": "failed"
+                  },
+                  "$then": "failed",
+                  "$else": ""
+                }
+              }
+            }
+          }
+        },
+        "variant": {
+          "$item": "state"
+        }
+      },
+      "children": []
+    },
+    "history-view-btn": {
+      "type": "Button",
+      "props": {
+        "label": {
+          "$cond": {
+            "$item": "state",
+            "eq": "viewing"
+          },
+          "$then": "Refresh",
+          "$else": {
+            "$cond": {
+              "$item": "state",
+              "eq": "opening"
+            },
+            "$then": "Opening…",
+            "$else": {
+              "$cond": {
+                "$item": "state",
+                "eq": "error"
+              },
+              "$then": "Retry",
+              "$else": {
+                "$cond": {
+                  "$item": "state",
+                  "eq": "failed"
+                },
+                "$then": "",
+                "$else": "View"
+              }
+            }
+          }
+        }
+      },
+      "on": {
+        "press": {
+          "action": "exoext.openSession",
+          "params": {
+            "batchId": {
+              "$template": "${batchId}"
+            }
+          }
+        }
+      },
+      "children": []
+    },
+    "results": {
+      "type": "FindingsTable",
+      "props": {
+        "bind": {
+          "$state": "/results"
+        },
+        "groupBy": "severity"
+      },
+      "children": []
+    },
+    "results-embed": {
+      "type": "Iframe",
+      "props": {
+        "src": {
+          "$state": "/embedUrl"
+        },
+        "title": "CloudShield scan results"
+      },
+      "children": []
+    }
+  },
+  "state": {
+    "selectAll": false,
+    "instances": [],
+    "results": null,
+    "history": [],
+    "historyNote": "",
+    "targetsLabel": "Scan targets",
+    "historyLabel": "Scan history"
+  }
+}
+    """
+
+
+{-| Resolve an element's single display expression (Text `value`, Button `label`, or Badge
+`value`) against a context, or `""` when the element / prop is absent.
+-}
+displayOf : String -> Expr.Context -> String
+displayOf id ctx =
+    case propsOf id of
+        Just (TextP p) ->
+            Expr.resolveDisplay ctx p.value
+
+        Just (ButtonP p) ->
+            Expr.resolveDisplay ctx p.label
+
+        Just (BadgeP p) ->
+            Expr.resolveDisplay ctx p.value
+
+        _ ->
+            ""
+
+
+{-| Resolve a Badge's `variant` (→ `data-state`) against a context, or `""` when absent.
+-}
+variantOf : String -> Expr.Context -> String
+variantOf id ctx =
+    case propsOf id of
+        Just (BadgeP p) ->
+            p.variant |> Maybe.map (Expr.resolveDisplay ctx) |> Maybe.withDefault ""
+
+        _ ->
+            ""
+
+
+propsOf : String -> Maybe Spec.Props
+propsOf id =
+    JsonRender.decodeString cardJsonV2
+        |> Result.toMaybe
+        |> Maybe.andThen (\spec -> Dict.get id spec.elements)
+        |> Maybe.map .props
+
+
+pressBinding : String -> Maybe Spec.ActionBinding
+pressBinding id =
+    JsonRender.decodeString cardJsonV2
+        |> Result.toMaybe
+        |> Maybe.andThen (\spec -> Dict.get id spec.elements)
+        |> Maybe.andThen (\el -> Dict.get "press" el.on)
+        |> Maybe.andThen List.head
+
+
+{-| A history-row `$item` context carrying the given `state` token (plus a batchId so the View
+button's params resolve). Mirrors `Expr.childContext "/history" 0 …`.
+-}
+rowContext : String -> Expr.Context
+rowContext token =
+    Expr.childContext "/history"
+        0
+        (Encode.object [ ( "state", Encode.string token ), ( "batchId", Encode.string "b-1" ) ])
+        (Expr.rootContext [] Encode.null)
+
+
+{-| The (badge text, badge data-state, action label) the manifest renders for a row `state` token.
+This is the whole host↔manifest contract for a history row: the manifest reproduces exactly the
+old rowState/actionLabel strings from the token the host projects.
+-}
+rowTriple : String -> ( String, String, String )
+rowTriple token =
+    let
+        ctx =
+            rowContext token
+    in
+    ( displayOf "history-state" ctx, variantOf "history-state" ctx, displayOf "history-view-btn" ctx )
 
 
 manifestSuite : Test
 manifestSuite =
-    describe "CloudShield embedded manifest"
-        [ test "the embedded card.json validates fail-closed through the catalog" <|
+    describe "CloudShield manifest v2 (wire contract, synced from the bridge card.json)"
+        [ test "(a) the v2 manifest decodes fail-closed clean through the catalog" <|
             \_ ->
-                case JsonRender.decodeString Card.cardJson of
+                case JsonRender.decodeString cardJsonV2 of
                     Ok _ ->
                         Expect.pass
 
                     Err message ->
-                        Expect.fail ("frozen card.json should validate, but: " ++ message)
+                        Expect.fail ("card.json v2 should validate, but: " ++ message)
         , test "an off-catalog component type is rejected (fail-closed)" <|
             \_ ->
                 let
@@ -60,6 +544,75 @@ manifestSuite =
 
                     Err _ ->
                         Expect.pass
+        , test "(b) the history header reads 'Scan history · N' once loaded" <|
+            \_ ->
+                let
+                    state =
+                        Card.projection Time.utc Nothing Nothing Nothing Nothing (loadedHistory (historyEntries 3)) Nothing "" Nothing sampleInstances idleModel
+                in
+                Expect.equal "Scan history · 3" (displayOf "history-label" (Expr.rootContext [] state))
+        , test "(b) the history header reads 'Scan history' before the first load resolves" <|
+            \_ ->
+                let
+                    state =
+                        Card.projection Time.utc Nothing Nothing Nothing Nothing loadingHistory Nothing "" Nothing sampleInstances idleModel
+                in
+                Expect.equal "Scan history" (displayOf "history-label" (Expr.rootContext [] state))
+        , test "(b) the targets header reads 'Scan targets · N' from /targetsCount" <|
+            \_ ->
+                let
+                    state =
+                        Card.projection Time.utc Nothing Nothing Nothing Nothing (loadedHistory []) Nothing "" Nothing sampleInstances idleModel
+                in
+                Expect.equal "Scan targets · 2" (displayOf "targets-label" (Expr.rootContext [] state))
+        , test "(c) each state token yields the right badge text + data-state + action label" <|
+            \_ ->
+                Expect.equal
+                    [ ( "Now viewing", "viewing", "Refresh" )
+                    , ( "Opening…", "opening", "Opening…" )
+                    , ( "Expired", "expired", "View" )
+                    , ( "Couldn't open", "error", "Retry" )
+                    , ( "failed", "failed", "" )
+                    , ( "", "idle", "View" )
+                    ]
+                    (List.map rowTriple [ "viewing", "opening", "expired", "error", "failed", "idle" ])
+        , test "(d) the scan button dispatches the generic write-request verb with kind=scan" <|
+            \_ ->
+                case pressBinding "scan-selected" of
+                    Just binding ->
+                        Card.resolveAction binding.action binding.params
+                            |> Expect.equal (Just { name = "exoext.writeRequest", verb = Lifecycle.verbWriteRequest, kind = "scan" })
+
+                    Nothing ->
+                        Expect.fail "scan-selected should carry a press binding"
+        , test "(d) the scan button still carries its confirm (the confirm flow fires)" <|
+            \_ ->
+                pressBinding "scan-selected"
+                    |> Maybe.andThen .confirm
+                    |> Maybe.map (\c -> Expr.resolveDisplay (Expr.rootContext [] Encode.null) c.title)
+                    |> Expect.equal (Just "Scan selected instances?")
+        , test "(d) the View button dispatches openSession and emits the embed request" <|
+            \_ ->
+                case pressBinding "history-view-btn" of
+                    Just binding ->
+                        let
+                            resolvedVerb =
+                                Card.resolveAction binding.action binding.params
+                                    |> Maybe.map .verb
+
+                            batchId =
+                                Expr.resolveParams (rowContext "expired") binding.params
+                                    |> Decode.decodeValue (Decode.field "batchId" Decode.string)
+                                    |> Result.toMaybe
+
+                            emitted =
+                                Card.requestEmbed batchId idleModel |> Tuple.second
+                        in
+                        Expect.equal ( Just Lifecycle.verbOpenSession, Just (Card.EmbedRequested { batchId = "b-1" }) )
+                            ( resolvedVerb, emitted )
+
+                    Nothing ->
+                        Expect.fail "history-view-btn should carry a press binding"
         ]
 
 
@@ -631,7 +1184,7 @@ historySuite =
 
 {-| Regression pin for the history View button: its `params` must emit the batchId VALUE, not
 the item PATH. A top-level `{"$item":"batchId"}` resolves (per `Expr.resolveTopLevelParam`) to
-`"/history/0/batchId"` — the pointer string — which the bridge rejects. The fallback cardJson
+`"/history/0/batchId"` — the pointer string — which the bridge rejects. The v2 manifest
 uses `{"$template":"${batchId}"}`, which resolves to the row's batchId value.
 -}
 historyViewParamsSuite : Test
@@ -639,7 +1192,7 @@ historyViewParamsSuite =
     describe "the history View button emits a batchId value, not a JSON Pointer"
         [ test "resolveParams in a /history row 0 childContext yields the item's batchId value" <|
             \_ ->
-                case JsonRender.decodeString Card.cardJson of
+                case JsonRender.decodeString cardJsonV2 of
                     Ok spec ->
                         case Dict.get "history-view-btn" spec.elements |> Maybe.andThen (\el -> Dict.get "press" el.on) |> Maybe.andThen List.head of
                             Just binding ->
@@ -662,5 +1215,5 @@ historyViewParamsSuite =
                                 Expect.fail "history-view-btn should carry a press binding"
 
                     Err message ->
-                        Expect.fail ("the fallback cardJson should validate: " ++ message)
+                        Expect.fail ("card.json v2 should validate: " ++ message)
         ]
