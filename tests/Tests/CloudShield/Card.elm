@@ -585,6 +585,18 @@ manifestSuite =
 
                     Nothing ->
                         Expect.fail "scan-selected should carry a press binding"
+        , test "(d) a write-request with a non-scan kind is a fail-closed no-op" <|
+            \_ ->
+                let
+                    params =
+                        Encode.object
+                            [ ( "kind", Encode.string "backup" )
+                            , ( "targetInstanceIds", Encode.list Encode.string [ "i-1" ] )
+                            ]
+                in
+                Card.dispatchVerb (Card.resolveAction "exoext.writeRequest" params) params idleModel
+                    |> Tuple.second
+                    |> Expect.equal Nothing
         , test "(d) the scan button still carries its confirm (the confirm flow fires)" <|
             \_ ->
                 pressBinding "scan-selected"

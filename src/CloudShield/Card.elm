@@ -1,4 +1,4 @@
-module CloudShield.Card exposing (EmbedState(..), Instance, ManifestSource(..), Model, Msg, OutMsg(..), ViewConfig, init, projection, requestEmbed, resolveAction, scanningRowLabel, transportChip, update, view)
+module CloudShield.Card exposing (EmbedState(..), Instance, ManifestSource(..), Model, Msg, OutMsg(..), ViewConfig, dispatchVerb, init, projection, requestEmbed, resolveAction, scanningRowLabel, transportChip, update, view)
 
 {-| Host wiring for the CloudShield dynamic-UI card (Phase 1, browser side).
 
@@ -222,14 +222,16 @@ kindOf params =
 
 {-| The generic verb dispatcher: interpret a resolved [`Lifecycle.VerbAlias`](Exoext-Lifecycle#VerbAlias)
 against this adapter's request/session handlers. `verbWriteRequest` frames + writes a scan request
-(targets resolved §5.4); `verbOpenSession` opens a result session for the pressed row's batch.
+(targets resolved §5.4) — but only for `kind == "scan"`, the one request kind this adapter
+handles; any other (or missing) kind is a no-op, so a manifest cannot route an unknown request
+kind onto the scan path. `verbOpenSession` opens a result session for the pressed row's batch.
 `Nothing` (an unaliased action) and any not-yet-wired verb are no-ops (fail-closed).
 -}
 dispatchVerb : Maybe Lifecycle.VerbAlias -> Encode.Value -> Model -> ( Model, Maybe OutMsg )
 dispatchVerb maybeAlias params model =
     case maybeAlias of
         Just alias ->
-            if alias.verb == Lifecycle.verbWriteRequest then
+            if alias.verb == Lifecycle.verbWriteRequest && alias.kind == "scan" then
                 requestScan (targetsOf model params) model
 
             else if alias.verb == Lifecycle.verbOpenSession then
