@@ -1,4 +1,4 @@
-module CloudShield.Card exposing (EmbedState(..), Instance, ManifestSource(..), Model, Msg, OutMsg(..), ViewConfig, dispatchVerb, init, projection, requestEmbed, resolveAction, scanningRowLabel, settleScanState, transportChip, update, view)
+module CloudShield.Card exposing (EmbedState(..), Instance, ManifestSource(..), Model, Msg, OutMsg(..), ViewConfig, dispatchVerb, init, projection, requestEmbed, resolveAction, rollbackScanRequest, scanningRowLabel, settleScanState, transportChip, update, view)
 
 {-| Host wiring for the CloudShield dynamic-UI card (Phase 1, browser side).
 
@@ -338,6 +338,27 @@ startScan ids scanState =
                 Dict.insert id "queued" acc
     in
     List.foldl trigger scanState ids
+
+
+{-| Undo [`requestScan`](#update)'s optimistic mutation on a request the host refused, given the
+card as it was before the press and as it is after. The card decodes the press, so it has already
+updated by the time the host's §7.1 guard gets to say no; a refused request must then leave no
+scan-tracking trace, or `pending` points at a seq the wire will never carry and the live run's
+correlation is lost. Exactly the three fields `requestScan` writes are restored — `seq`, `pending`,
+`scanState`.
+
+Everything else the press did deliberately stands. `startScan` is confirm-gated, and accepting the
+dialog is the same step that emits the action, so restoring the renderer would leave the confirm
+dialog open on a press that does nothing.
+
+-}
+rollbackScanRequest : Model -> Model -> Model
+rollbackScanRequest before after =
+    { after
+        | seq = before.seq
+        , pending = before.pending
+        , scanState = before.scanState
+    }
 
 
 {-| Commit one instance's terminal run state into the card's durable `scanState`. The live run

@@ -5,6 +5,7 @@ module Tests.CloudShield.Card exposing
     , historyViewParamsSuite
     , manifestSuite
     , projectionSuite
+    , rollbackScanRequestSuite
     , rowTimerSuite
     , transportSuite
     )
@@ -32,6 +33,9 @@ import JsonRender.Spec as Spec exposing (Props(..))
 import OpenStack.Types as OSTypes
 import Set exposing (Set)
 import Test exposing (Test, describe, test)
+import Test.Html.Event as Event
+import Test.Html.Query as Query
+import Test.Html.Selector as Selector
 import Time
 
 
@@ -1228,4 +1232,116 @@ historyViewParamsSuite =
 
                     Err message ->
                         Expect.fail ("card.json v2 should validate: " ++ message)
+        ]
+
+
+
+-- BLOCKED-SCAN ROLLBACK
+
+
+{-| A minimal confirm-gated Scan button. Reaching a renderer state with an OPEN confirm dialog is
+only possible through a real press — `Render.Msg` is opaque — so this is rendered and clicked.
+-}
+confirmGatedScanManifest : String
+confirmGatedScanManifest =
+    """
+    { "root": "scan-btn"
+    , "elements":
+        { "scan-btn":
+            { "type": "Button"
+            , "props": { "label": "Scan selected" }
+            , "on":
+                { "press":
+                    { "action": "exoext.writeRequest"
+                    , "params": { "kind": "scan", "targetInstanceIds": [] }
+                    , "confirm":
+                        { "title": "Scan selected instances?"
+                        , "message": "This starts a scan."
+                        , "confirmLabel": "Scan"
+                        , "cancelLabel": "Cancel"
+                        }
+                    }
+                }
+            }
+        }
+    }
+    """
+
+
+{-| The renderer with its confirm dialog open: press the confirm-gated button and feed the
+resulting message back through `Render.update`. Falls back to `init` if the press cannot be
+simulated, which the suite asserts against so the test cannot pass vacuously.
+-}
+rendererWithOpenDialog : Render.Model
+rendererWithOpenDialog =
+    case JsonRender.decodeString confirmGatedScanManifest of
+        Ok spec ->
+            Render.view [] spec Encode.null Render.init
+                |> Query.fromHtml
+                |> Query.find [ Selector.tag "button" ]
+                |> Event.simulate Event.click
+                |> Event.toResult
+                |> Result.map (\msg -> Render.update msg Render.init |> Tuple.first)
+                |> Result.withDefault Render.init
+
+        Err _ ->
+            Render.init
+
+
+rollbackScanRequestSuite : Test
+rollbackScanRequestSuite =
+    let
+        -- The card as it stands with the confirm dialog open, before the user accepts.
+        beforePress =
+            { renderer = rendererWithOpenDialog
+            , selection = Set.singleton "i-1"
+            , selectAll = False
+            , scanState = Dict.fromList [ ( "i-2", "done" ) ]
+            , seq = 4
+            , pending = Nothing
+            , showDemoIframe = False
+            }
+
+        -- Accepting the dialog closes it (renderer back to `init`) and, in the same step, runs
+        -- `requestScan` — exactly what `Card.update`'s RendererMsg branch does.
+        scanParams =
+            Encode.object
+                [ ( "kind", Encode.string "scan" )
+                , ( "targetInstanceIds", Encode.list Encode.string [ "i-1" ] )
+                ]
+
+        afterPress =
+            Card.dispatchVerb (Card.resolveAction "exoext.writeRequest" scanParams)
+                scanParams
+                { beforePress | renderer = Render.init }
+                |> Tuple.first
+
+        rolledBack =
+            Card.rollbackScanRequest beforePress afterPress
+    in
+    describe "CloudShield rollbackScanRequest (host refused the §7.1 request)"
+        [ test "the simulated press really opens the dialog (guards the fixture)" <|
+            \_ ->
+                Expect.notEqual Render.init rendererWithOpenDialog
+        , test "the press does mutate the scan-tracking fields" <|
+            \_ ->
+                Expect.equal ( 5, Just "i-1", Just "queued" )
+                    ( afterPress.seq
+                    , afterPress.pending |> Maybe.map .subject
+                    , Dict.get "i-1" afterPress.scanState
+                    )
+        , test "rolling back restores seq, pending and scanState" <|
+            \_ ->
+                Expect.equal ( beforePress.seq, beforePress.pending, beforePress.scanState )
+                    ( rolledBack.seq, rolledBack.pending, rolledBack.scanState )
+        , test "rolling back keeps the CLOSED dialog — the press must not re-open it" <|
+            \_ ->
+                -- The bug this guards: restoring the whole pre-press card would put back
+                -- `pendingConfirm`, so Confirm would appear to do nothing and the dialog would
+                -- stay open on exactly the path the §7.1 guard exists to protect.
+                Expect.equal Render.init rolledBack.renderer
+        , test "rolling back keeps the rest of the card untouched" <|
+            \_ ->
+                Expect.equal ( afterPress.selection, afterPress.selectAll, afterPress.showDemoIframe )
+                    ( rolledBack.selection, rolledBack.selectAll, rolledBack.showDemoIframe )
         ]

@@ -223,15 +223,17 @@ update msg project model =
                 ( cloudModel, outMsg ) =
                     CloudShield.Card.update instances cloudMsg model.exoextCard
 
-                -- A blocked scan must also discard the card's optimistic mutation: `requestScan`
-                -- has already flipped its rows to `queued` and retargeted `pending`, and keeping
-                -- that with no matching write would point the tracker at a seq the wire will never
-                -- carry — losing the live run's correlation and wedging the drain.
+                -- A blocked scan must also undo the card's optimistic mutation: `requestScan` has
+                -- already flipped its rows to `queued` and retargeted `pending`, and keeping that
+                -- with no matching write would point the tracker at a seq the wire will never
+                -- carry — losing the live run's correlation and wedging the drain. Only the
+                -- scan-tracking fields roll back; the rest of the press stands, notably the
+                -- renderer having closed its confirm dialog.
                 card =
                     case outMsg of
                         Just (CloudShield.Card.ScanRequested _) ->
                             if exoextScanBlocked project model then
-                                model.exoextCard
+                                CloudShield.Card.rollbackScanRequest model.exoextCard cloudModel
 
                             else
                                 cloudModel
