@@ -1,4 +1,4 @@
-module Tests.CloudShield.ServerDetail exposing (cloudShieldBatchSuite, cloudShieldEmbedProjectionSuite, cloudShieldPendingEmbedSuite, cloudShieldReadDecisionSuite, cloudShieldScanTimerSuite)
+module Tests.CloudShield.ServerDetail exposing (cloudShieldBatchSuite, cloudShieldEmbedProjectionSuite, cloudShieldPendingEmbedSuite, cloudShieldReadDecisionSuite, cloudShieldScanBlockedSuite, cloudShieldScanTimerSuite)
 
 import CloudShield.Card as Card
 import Dict
@@ -6,10 +6,14 @@ import Expect
 import Helpers.RemoteDataPlusPlus as RDPP
 import ISO8601
 import Json.Encode as Encode
+import OpenStack.Types as OSTypes
 import Page.ServerDetail as ServerDetail
 import Test exposing (Test, describe, test)
 import Time
+import Types.HelperTypes as HelperTypes
+import Types.Interactivity as Interactivity
 import Types.Project exposing (Project, ProjectSecret(..))
+import Types.Server exposing (Server, ServerOrigin(..))
 
 
 receivedAt : Time.Posix
@@ -443,6 +447,54 @@ project =
     }
 
 
+{-| The viewed CloudShield VM, publishing `metadata`. Only the uuid and the metadata are read by
+anything under test; the rest is the inert filler a `Server` demands.
+-}
+serverPublishing : List OSTypes.MetadataItem -> Server
+serverPublishing metadata =
+    { osProps =
+        { name = "cloudshield"
+        , uuid = "self"
+        , details =
+            { openstackStatus = OSTypes.ServerActive
+            , created = Time.millisToPosix 0
+            , powerState = OSTypes.PowerRunning
+            , imageUuid = "image-uuid"
+            , flavorId = "flavor-id"
+            , keypairName = Nothing
+            , metadata = metadata
+            , userUuid = "user-uuid"
+            , volumesAttached = []
+            , tags = []
+            , lockStatus = OSTypes.ServerUnlocked
+            , fault = Nothing
+            }
+        , consoleUrl = RDPP.empty
+        }
+    , exoProps =
+        { floatingIpCreationOption = HelperTypes.DoNotUseFloatingIp
+        , deletionAttempted = False
+        , serverOrigin = ServerNotFromExo
+        , receivedTime = Nothing
+        , loadingSeparately = False
+        }
+    , interaction = Interactivity.NoInteraction
+    }
+
+
+{-| The project as the guard reads it: the viewed instance is present and its metadata carries the
+given §7.1 status slot, so `exoextScanRequestPending` resolves against real wire state.
+-}
+projectPublishing : List OSTypes.MetadataItem -> Project
+projectPublishing metadata =
+    { project
+        | servers =
+            RDPP.RemoteDataPlusPlus
+                (RDPP.DoHave [ serverPublishing metadata ] receivedAt)
+                (RDPP.NotLoading Nothing)
+    }
+
+
 {-| The §7.1 status slot as the VM would publish it for run `seq`.
 -}
 runSlot : Int -> String -> List { key : String, value : String }
@@ -472,7 +524,7 @@ modelAfterStartScan =
                 , seq = 1
                 , pending = Just { seq = 1, requestId = "", kind = "scan", subject = "i-1", since = Time.millisToPosix 0 }
             }
-        , exoextBatch = Just { batchId = Nothing, remaining = [ "i-2", "i-3" ] }
+        , exoextBatch = Just { batchId = Nothing, remaining = [ "i-2", "i-3" ], awaitingWrite = True }
     }
 
 
@@ -520,7 +572,7 @@ cloudShieldBatchSuite =
         [ test "the first write mints the shared batchId and keeps the undrained tail" <|
             \_ ->
                 Expect.equal
-                    ( Just { batchId = Just "exo-cs-batch-1000", remaining = [ "i-2", "i-3" ] }
+                    ( Just { batchId = Just "exo-cs-batch-1000", remaining = [ "i-2", "i-3" ], awaitingWrite = False }
                     , ( Just ( "i-1", 1000 ), [ Just "queued", Just "queued", Just "queued" ] )
                     )
                     ( afterFirstWrite.exoextBatch, rowStates afterFirstWrite )
@@ -537,17 +589,29 @@ cloudShieldBatchSuite =
         , test "a settled run commits its row's terminal state and pops the next subject" <|
             \_ ->
                 Expect.equal
-                    ( Just { batchId = Just "exo-cs-batch-1000", remaining = [ "i-3" ] }
+                    ( Just { batchId = Just "exo-cs-batch-1000", remaining = [ "i-3" ], awaitingWrite = True }
                     , ( Just ( "i-1", 1000 ), [ Just "done", Just "queued", Just "queued" ] )
                     )
                     ( afterFirstSettle.exoextBatch, rowStates afterFirstSettle )
         , test "the continuation retargets the tracker, carries the SAME batchId, and row 1 holds done" <|
             \_ ->
                 Expect.equal
-                    ( Just { batchId = Just "exo-cs-batch-1000", remaining = [ "i-3" ] }
+                    ( Just { batchId = Just "exo-cs-batch-1000", remaining = [ "i-3" ], awaitingWrite = False }
                     , ( Just ( "i-2", 2000 ), [ Just "done", Just "queued", Just "queued" ] )
                     )
                     ( afterSecondWrite.exoextBatch, rowStates afterSecondWrite )
+        , test "a second poll before the continuation's write lands pops nothing further" <|
+            \_ ->
+                -- The pre-write guard. Both polls read the identical terminal metadata and no write
+                -- was issued in between, so the second must be inert: without it i-2 is popped, then
+                -- i-3, racing two requests into the one §7.1 slot and skipping a target.
+                let
+                    twice =
+                        afterFirstWrite |> advance 1000 "done" |> advance 1000 "done"
+                in
+                Expect.equal
+                    ( afterFirstSettle.exoextBatch, rowStates afterFirstSettle )
+                    ( twice.exoextBatch, rowStates twice )
         , test "a run slot still echoing the previous seq does not fire a second continuation" <|
             \_ ->
                 Expect.equal
@@ -574,10 +638,50 @@ cloudShieldBatchSuite =
             \_ ->
                 let
                     lone =
-                        { modelAfterStartScan | exoextBatch = Just { batchId = Nothing, remaining = [] } }
+                        { modelAfterStartScan | exoextBatch = Just { batchId = Nothing, remaining = [], awaitingWrite = True } }
                             |> writeRequestAt 1000 { subject = "i-1", batchId = Nothing }
                 in
-                Expect.equal (Just { batchId = Nothing, remaining = [] }) lone.exoextBatch
+                Expect.equal (Just { batchId = Nothing, remaining = [], awaitingWrite = False }) lone.exoextBatch
+        ]
+
+
+cloudShieldScanBlockedSuite : Test
+cloudShieldScanBlockedSuite =
+    let
+        afterFirstWrite =
+            writeRequestAt 1000 { subject = "i-1", batchId = Nothing } modelAfterStartScan
+
+        -- The same batch on its last leg: nothing left to write, target 3's run finished.
+        drained =
+            afterFirstWrite
+                |> advance 1000 "done"
+                |> writeRequestAt 2000 { subject = "i-2", batchId = Just "exo-cs-batch-1000" }
+                |> advance 2000 "done"
+                |> writeRequestAt 3000 { subject = "i-3", batchId = Just "exo-cs-batch-1000" }
+                |> advance 3000 "done"
+    in
+    describe "ServerDetail exoextScanBlocked (§7.1 guard on a user-initiated scan)"
+        [ test "blocked while the tracked run is still going" <|
+            \_ ->
+                Expect.equal True
+                    (ServerDetail.exoextScanBlocked (projectPublishing (runSlot 1000 "running")) afterFirstWrite)
+        , test "blocked between two siblings, when the tracked run already reads terminal" <|
+            \_ ->
+                -- The clause the run check alone would miss: target 1 is done, but targets 2 and 3
+                -- are still parked, so a new scan here would replace the batch and strand them.
+                Expect.equal True
+                    (ServerDetail.exoextScanBlocked (projectPublishing (runSlot 1000 "done")) afterFirstWrite)
+        , test "blocked while a decided continuation's write is still on its way" <|
+            \_ ->
+                -- Last subject popped (`remaining` empty) but not yet written.
+                Expect.equal True
+                    (ServerDetail.exoextScanBlocked (projectPublishing (runSlot 2000 "done"))
+                        { afterFirstWrite | exoextBatch = Just { batchId = Just "exo-cs-batch-1000", remaining = [], awaitingWrite = True } }
+                    )
+        , test "not blocked once the batch has drained — a completed batch must allow a new scan" <|
+            \_ ->
+                Expect.equal False
+                    (ServerDetail.exoextScanBlocked (projectPublishing (runSlot 3000 "done")) drained)
         ]
 
 

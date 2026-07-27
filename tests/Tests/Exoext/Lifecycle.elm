@@ -54,6 +54,14 @@ errorResult =
     }
 
 
+{-| A batch of `remaining` subjects in its steady state: the last decided-on write has been issued,
+so only the seq correlation is guarding the request slot.
+-}
+batchOf : List String -> Lifecycle.Batch
+batchOf remaining =
+    { batchId = Just "b", remaining = remaining, awaitingWrite = False }
+
+
 runSlot : Int -> String -> List { key : String, value : String }
 runSlot seq state =
     [ { key = "exoext.v1.run.seq", value = String.fromInt seq }
@@ -165,11 +173,21 @@ suite =
         , describe "advanceBatch"
             [ test "no tracked request waits" <|
                 \_ ->
-                    Lifecycle.advanceBatch Nothing (Just { batchId = Just "b", remaining = [ "i-2" ] }) (runSlot 7 "done")
+                    Lifecycle.advanceBatch Nothing (Just (batchOf [ "i-2" ])) (runSlot 7 "done")
                         |> Expect.equal Lifecycle.BatchWaiting
             , test "a non-terminal correlated run waits" <|
                 \_ ->
-                    Lifecycle.advanceBatch (Just (pendingWithSeq 7)) (Just { batchId = Just "b", remaining = [ "i-2" ] }) (runSlot 7 "running")
+                    Lifecycle.advanceBatch (Just (pendingWithSeq 7)) (Just (batchOf [ "i-2" ])) (runSlot 7 "running")
+                        |> Expect.equal Lifecycle.BatchWaiting
+            , test "a decided-on write that has not been issued yet waits, even on a settled run" <|
+                \_ ->
+                    -- The pre-write guard: `next` was popped on an earlier poll and the write is
+                    -- still on its way, so the metadata is byte-identical to what already settled.
+                    -- Without this, a second poll landing in that gap pops a second subject and
+                    -- races two requests into the one §7.1 slot.
+                    Lifecycle.advanceBatch (Just (pendingWithSeq 7))
+                        (Just { batchId = Just "b", remaining = [ "i-3" ], awaitingWrite = True })
+                        (runSlot 7 "done")
                         |> Expect.equal Lifecycle.BatchWaiting
             , test "each terminal state settles, reporting the finished subject and that state" <|
                 \_ ->
@@ -187,18 +205,18 @@ suite =
                             )
             , test "a settled run with subjects left pops the head and reports the rest" <|
                 \_ ->
-                    Lifecycle.advanceBatch (Just (pendingWithSeq 7)) (Just { batchId = Just "b", remaining = [ "i-2", "i-3" ] }) (runSlot 7 "done")
+                    Lifecycle.advanceBatch (Just (pendingWithSeq 7)) (Just (batchOf [ "i-2", "i-3" ])) (runSlot 7 "done")
                         |> Expect.equal (Lifecycle.BatchSettled { subject = "i-1", state = "done", next = Just "i-2", remaining = [ "i-3" ] })
             , test "a settled run with an exhausted batch reports no next subject" <|
                 \_ ->
-                    Lifecycle.advanceBatch (Just (pendingWithSeq 7)) (Just { batchId = Just "b", remaining = [] }) (runSlot 7 "done")
+                    Lifecycle.advanceBatch (Just (pendingWithSeq 7)) (Just (batchOf [])) (runSlot 7 "done")
                         |> Expect.equal (Lifecycle.BatchSettled { subject = "i-1", state = "done", next = Nothing, remaining = [] })
             , test "a run slot still echoing the PREVIOUS seq waits — the no-double-fire property" <|
                 \_ ->
                     -- The continuation for i-2 has just been written (pending.seq bumped to 8) while
                     -- the status slot still reports run 7 as done. The seq mismatch reads as
                     -- "queued", so this poll must not fire a second continuation.
-                    Lifecycle.advanceBatch (Just (pendingWithSeq 8)) (Just { batchId = Just "b", remaining = [ "i-3" ] }) (runSlot 7 "done")
+                    Lifecycle.advanceBatch (Just (pendingWithSeq 8)) (Just (batchOf [ "i-3" ])) (runSlot 7 "done")
                         |> Expect.equal Lifecycle.BatchWaiting
             ]
         , describe "declarative verbs"

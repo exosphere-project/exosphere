@@ -80,8 +80,12 @@ Then in the browser:
 - **Batch pacing (§7.1):** a batch/select-all now drains sequentially — the host writes one
   sibling request per settled run (`ServerDetail.advanceExoextBatch`, on each metadata poll), all
   sharing one `batchId`. What is still missing is expiry: a continuation the VM never claims has
-  no per-request timeout of its own, so the batch just stops advancing. Cancel-mid-batch is also
-  not wired.
+  no per-request timeout of its own, so the batch stops advancing and, because the request keeps
+  reading as pending, the fast poll keeps running indefinitely. Cancel-mid-batch is also not wired.
+- **Batch state is page-local:** the undrained tail, the tracked request, and the row badges all
+  live in the ServerDetail page model, which `Route.ServerDetail` rebuilds from `init`. A reload
+  or a navigation away mid-batch therefore stops the drain, leaving the untouched targets
+  un-scanned; resuming would mean reconstructing batch membership from the wire.
 - **`store=console`** manifest/result reads: `Discovery`/`Transport` cover `store=metadata`;
   the console path needs a new branch in the `ReceiveConsoleLog` handler (`State.elm:4339`
   currently discards the raw console text) — not yet added.

@@ -1,4 +1,4 @@
-module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextEmbedProjection, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextRequestsPending, exoextScanRequestPending, exoextScanTimer, init, update, view)
+module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextEmbedProjection, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextRequestsPending, exoextScanBlocked, exoextScanRequestPending, exoextScanTimer, init, update, view)
 
 import CloudShield.Card
 import DateFormat.Relative
@@ -223,6 +223,22 @@ update msg project model =
                 ( cloudModel, outMsg ) =
                     CloudShield.Card.update instances cloudMsg model.exoextCard
 
+                -- A blocked scan must also discard the card's optimistic mutation: `requestScan`
+                -- has already flipped its rows to `queued` and retargeted `pending`, and keeping
+                -- that with no matching write would point the tracker at a seq the wire will never
+                -- carry — losing the live run's correlation and wedging the drain.
+                card =
+                    case outMsg of
+                        Just (CloudShield.Card.ScanRequested _) ->
+                            if exoextScanBlocked project model then
+                                model.exoextCard
+
+                            else
+                                cloudModel
+
+                        _ ->
+                            cloudModel
+
                 ( batch, cmd, sharedMsg ) =
                     case outMsg of
                         Just (CloudShield.Card.ScanRequested req) ->
@@ -233,12 +249,17 @@ update msg project model =
                             -- Fetch the real wall-clock time so the §4.1 `createdAt` is genuine
                             -- (the agent's §4.4 expiry guard compares it to REQUEST_TTL; a
                             -- placeholder epoch would be treated as expired and never run).
-                            case req.targetIds of
-                                [] ->
+                            -- A press that would disturb an in-flight request or a draining batch
+                            -- is silently ignored, same convention as the getEmbed guard below.
+                            case ( exoextScanBlocked project model, req.targetIds ) of
+                                ( True, _ ) ->
                                     ( model.exoextBatch, Cmd.none, SharedMsg.NoOp )
 
-                                firstId :: rest ->
-                                    ( Just { batchId = Nothing, remaining = rest }
+                                ( False, [] ) ->
+                                    ( model.exoextBatch, Cmd.none, SharedMsg.NoOp )
+
+                                ( False, firstId :: rest ) ->
+                                    ( Just { batchId = Nothing, remaining = rest, awaitingWrite = True }
                                     , Task.perform (ExoextWriteRequest { subject = firstId, batchId = Nothing }) Time.now
                                     , SharedMsg.NoOp
                                     )
@@ -267,7 +288,7 @@ update msg project model =
                         Nothing ->
                             ( model.exoextBatch, Cmd.none, SharedMsg.NoOp )
             in
-            ( { model | exoextCard = cloudModel, exoextBatch = batch }
+            ( { model | exoextCard = card, exoextBatch = batch }
             , cmd
             , sharedMsg
             )
@@ -309,7 +330,10 @@ update msg project model =
             in
             ( { model
                 | exoextCard = syncedCloud
-                , exoextBatch = Maybe.map (\batch -> { batch | batchId = batchId }) model.exoextBatch
+
+                -- The decided-on write is being issued right here, so the §7.1 pre-write guard
+                -- lifts; from now on the seq correlation is what keeps the slot single-occupancy.
+                , exoextBatch = Maybe.map (\batch -> { batch | batchId = batchId, awaitingWrite = False }) model.exoextBatch
               }
             , writeScanRequestCmd project model (exoextInstances project model) { seq = timeSeq, subject = req.subject, batchId = batchId } now
             , SharedMsg.NoOp
@@ -389,6 +413,29 @@ exoextGetEmbedBlocked project model =
 
         Nothing ->
             True
+
+
+{-| The §7.1 single-req-slot guard for a user-initiated scan, the sibling of
+`exoextGetEmbedBlocked`. Writing a scan request bumps the req-slot seq, which cancels whatever the
+publisher is running, and it also replaces the batch being drained — stranding that batch's
+untouched targets at `queued` with nothing left to advance them. Blocked when EITHER:
+
+  - a tracked scan's correlated run has not reached a terminal state (`exoextScanRequestPending`), or
+  - a batch is still draining — subjects left to write, or a decided write not yet issued. This
+    second clause is not redundant: between two siblings the tracked run reads terminal, so the run
+    check alone would leave exactly the window in which a press corrupts a live batch.
+
+-}
+exoextScanBlocked : Project -> Model -> Bool
+exoextScanBlocked project model =
+    exoextScanRequestPending project model
+        || (case model.exoextBatch of
+                Just batch ->
+                    not (List.isEmpty batch.remaining) || batch.awaitingWrite
+
+                Nothing ->
+                    False
+           )
 
 
 {-| True when any exoext request on this ServerDetail page is still worth fast-polling for.
@@ -513,7 +560,7 @@ advanceExoextBatch metadata model =
                         batchId =
                             model.exoextBatch |> Maybe.andThen .batchId
                     in
-                    ( { settledModel | exoextBatch = Just { batchId = batchId, remaining = settled.remaining } }
+                    ( { settledModel | exoextBatch = Just { batchId = batchId, remaining = settled.remaining, awaitingWrite = True } }
                     , Task.perform (ExoextWriteRequest { subject = nextSubject, batchId = batchId }) Time.now
                     )
 

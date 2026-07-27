@@ -330,10 +330,18 @@ requestStillPending pending metadata =
 {-| A sequenced group of requests sharing one wire `batchId` (§4.1 siblings), paced one at a time
 through the single §7.1 request slot. `remaining` is the subjects not yet written, in order.
 `batchId` is `Nothing` for a single-subject request (the wire field is null then).
+
+`awaitingWrite` covers the gap between deciding on a subject's request and issuing that write: the
+subject has already been popped off `remaining`, but nothing has reached the wire and no tracked
+seq has moved, so the metadata still reads exactly as it did. §7.1 admits one request at a time,
+and that invariant must not rest on how the runtime interleaves the two messages — see
+[`advanceBatch`](#advanceBatch).
+
 -}
 type alias Batch =
     { batchId : Maybe String
     , remaining : List String
+    , awaitingWrite : Bool
     }
 
 
@@ -351,16 +359,20 @@ type BatchStep
 
 {-| Decide the next pacing step from the tracked request, the batch, and fresh §7.1 metadata.
 
-`BatchWaiting` when nothing is tracked or the correlated run is not yet terminal.
-`BatchSettled` when the correlated run reached a terminal state: `subject`/`state` are the finished
-subject and its final run state (commit these to durable per-subject state), `next` is the subject
-whose request should be written now (`Nothing` when the batch is exhausted), and `remaining` is
-what is left after popping `next`.
+`BatchWaiting` when nothing is tracked, when a decided-on write has not been issued yet, or when
+the correlated run is not yet terminal. `BatchSettled` when the correlated run reached a terminal
+state: `subject`/`state` are the finished subject and its final run state (commit these to durable
+per-subject state), `next` is the subject whose request should be written now (`Nothing` when the
+batch is exhausted), and `remaining` is what is left after popping `next`.
 
-Double-firing is prevented by the seq correlation, not by a flag: writing request N+1 sets
-`pending.seq` to N+1 synchronously while the status slot still echoes run N, and
-[`correlatedRunState`](#correlatedRunState) reads a seq mismatch as `"queued"`, so the very next
-poll is `BatchWaiting` again.
+Two guards keep exactly one request in flight, covering the two halves of a continuation:
+
+  - **Before the write** — deciding on `next` and issuing its write are separate steps, and the
+    metadata is unchanged in between, so a second poll landing in that gap would settle the same
+    subject again and pop another. `awaitingWrite` closes that window, and is checked first.
+  - **After the write** — the write sets `pending.seq` to N+1 while the status slot still echoes
+    run N; [`correlatedRunState`](#correlatedRunState) reads that seq mismatch as `"queued"`, so
+    the run is non-terminal again until the publisher claims the new request.
 
 -}
 advanceBatch : Maybe PendingRequest -> Maybe Batch -> List OSTypes.MetadataItem -> BatchStep
@@ -370,7 +382,10 @@ advanceBatch pending batch metadata =
             BatchWaiting
 
         Just p ->
-            if requestStillPending (Just p) metadata then
+            if batch |> Maybe.map .awaitingWrite |> Maybe.withDefault False then
+                BatchWaiting
+
+            else if requestStillPending (Just p) metadata then
                 BatchWaiting
 
             else
