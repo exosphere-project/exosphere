@@ -1,4 +1,4 @@
-module CloudShield.Card exposing (EmbedState(..), Instance, ManifestSource(..), Model, Msg, OutMsg(..), ViewConfig, dispatchVerb, init, projection, requestEmbed, resolveAction, scanningRowLabel, transportChip, update, view)
+module CloudShield.Card exposing (EmbedState(..), Instance, ManifestSource(..), Model, Msg, OutMsg(..), ViewConfig, dispatchVerb, init, projection, requestEmbed, resolveAction, scanningRowLabel, settleScanState, transportChip, update, view)
 
 {-| Host wiring for the CloudShield dynamic-UI card (Phase 1, browser side).
 
@@ -246,7 +246,9 @@ dispatchVerb maybeAlias params model =
 
 {-| A confirmed `startScan`: bump the seq, flip the targeted rows to `queued` optimistically
 (dedup-aware), record the in-flight correlation (first target — §7.1 single-in-flight), and
-ask the parent to write the §7.1 req-slot. No targets ⇒ no-op.
+ask the parent to write the §7.1 req-slot. The full target list rides along: §7.1 allows one
+request at a time, so the parent writes the head now and paces the tail as each run settles.
+No targets ⇒ no-op.
 -}
 requestScan : List String -> Model -> ( Model, Maybe OutMsg )
 requestScan requested model =
@@ -336,6 +338,16 @@ startScan ids scanState =
                 Dict.insert id "queued" acc
     in
     List.foldl trigger scanState ids
+
+
+{-| Commit one instance's terminal run state into the card's durable `scanState`. The live run
+projection (`ViewConfig.statusOverride`) covers exactly one row — the tracked request's subject —
+so while a batch drains, each finished row must be written here before the tracker retargets, or
+it falls back to its optimistic `queued` badge. The host calls this as each run settles.
+-}
+settleScanState : String -> String -> Model -> Model
+settleScanState id state model =
+    { model | scanState = Dict.insert id state model.scanState }
 
 
 isActive : String -> Bool

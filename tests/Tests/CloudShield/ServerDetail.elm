@@ -1,6 +1,7 @@
-module Tests.CloudShield.ServerDetail exposing (cloudShieldEmbedProjectionSuite, cloudShieldPendingEmbedSuite, cloudShieldReadDecisionSuite, cloudShieldScanTimerSuite)
+module Tests.CloudShield.ServerDetail exposing (cloudShieldBatchSuite, cloudShieldEmbedProjectionSuite, cloudShieldPendingEmbedSuite, cloudShieldReadDecisionSuite, cloudShieldScanTimerSuite)
 
 import CloudShield.Card as Card
+import Dict
 import Expect
 import Helpers.RemoteDataPlusPlus as RDPP
 import ISO8601
@@ -8,6 +9,7 @@ import Json.Encode as Encode
 import Page.ServerDetail as ServerDetail
 import Test exposing (Test, describe, test)
 import Time
+import Types.Project exposing (Project, ProjectSecret(..))
 
 
 receivedAt : Time.Posix
@@ -372,6 +374,210 @@ cloudShieldScanTimerSuite =
         , test "a terminal error state drops the descriptor" <|
             \_ ->
                 Expect.equal Nothing (ServerDetail.exoextScanTimer (Just startMillis) "error" Nothing)
+        ]
+
+
+
+-- BATCH CONTINUATION (§7.1 sequential pacing)
+
+
+{-| A minimal project: `update` needs one to build the Nova metadata write, but nothing here reads
+its contents (an empty server list makes §5.4 target re-resolution fall back to the raw id).
+-}
+project : Project
+project =
+    { secret = NoProjectSecret
+    , auth =
+        { catalog = []
+        , project = { name = "Project One", uuid = "project-uuid" }
+        , projectDomain = { name = "Default", uuid = "project-domain-uuid" }
+        , user = { name = "user-one", uuid = "user-uuid" }
+        , userDomain = { name = "Default", uuid = "user-domain-uuid" }
+        , expiresAt = Time.millisToPosix 0
+        , tokenValue = "token"
+        }
+    , region = Just { id = "RegionOne", description = "Region One" }
+    , endpoints =
+        { cinder = "https://openstack.example/cinder"
+        , glance = "https://openstack.example/glance"
+        , keystone = "https://openstack.example/keystone/v3"
+        , manila = Nothing
+        , nova = "https://openstack.example/nova"
+        , neutron = "https://openstack.example/neutron"
+        , jetstream2Accounting = Nothing
+        , designate = Nothing
+        , swift = Nothing
+        }
+    , description = Nothing
+    , images = RDPP.empty
+    , servers = RDPP.empty
+    , serverEvents = Dict.empty
+    , serverExoActions = Dict.empty
+    , serverSecurityGroups = Dict.empty
+    , serverVolumeAttachments = Dict.empty
+    , serverVolumeActions = Dict.empty
+    , serverActionRequestQueue = Dict.empty
+    , shares = RDPP.empty
+    , shareAccessRules = Dict.empty
+    , shareExportLocations = Dict.empty
+    , shareTypes = RDPP.empty
+    , objectStorageUploads = []
+    , flavors = RDPP.empty
+    , keypairs = RDPP.empty
+    , volumes = RDPP.empty
+    , volumeSnapshots = RDPP.empty
+    , networks = RDPP.empty
+    , autoAllocatedNetworkUuid = RDPP.empty
+    , floatingIps = RDPP.empty
+    , dnsRecordSets = RDPP.empty
+    , ports = RDPP.empty
+    , securityGroups = RDPP.empty
+    , securityGroupActions = Dict.empty
+    , computeQuota = RDPP.empty
+    , volumeQuota = RDPP.empty
+    , networkQuota = RDPP.empty
+    , shareQuota = RDPP.empty
+    , serverImages = []
+    , jetstream2Allocations = RDPP.empty
+    , knownUsernames = Dict.empty
+    }
+
+
+{-| The §7.1 status slot as the VM would publish it for run `seq`.
+-}
+runSlot : Int -> String -> List { key : String, value : String }
+runSlot seq state =
+    [ { key = "exoext.v1.run.seq", value = String.fromInt seq }
+    , { key = "exoext.v1.run.state", value = state }
+    ]
+
+
+{-| The model exactly as the `CloudShieldMsg`/`ScanRequested` branch leaves it for a confirmed
+3-target scan: all three rows optimistically `queued`, the card tracking the first target, and the
+undrained tail parked in `exoextBatch` (no `batchId` yet — it is minted on the first write).
+-}
+modelAfterStartScan : ServerDetail.Model
+modelAfterStartScan =
+    let
+        base =
+            ServerDetail.init "self"
+
+        card =
+            base.exoextCard
+    in
+    { base
+        | exoextCard =
+            { card
+                | scanState = Dict.fromList [ ( "i-1", "queued" ), ( "i-2", "queued" ), ( "i-3", "queued" ) ]
+                , seq = 1
+                , pending = Just { seq = 1, requestId = "", kind = "scan", subject = "i-1", since = Time.millisToPosix 0 }
+            }
+        , exoextBatch = Just { batchId = Nothing, remaining = [ "i-2", "i-3" ] }
+    }
+
+
+writeRequestAt : Int -> { subject : String, batchId : Maybe String } -> ServerDetail.Model -> ServerDetail.Model
+writeRequestAt millis req model =
+    let
+        ( updated, _, _ ) =
+            ServerDetail.update (ServerDetail.ExoextWriteRequest req (Time.millisToPosix millis)) project model
+    in
+    updated
+
+
+advance : Int -> String -> ServerDetail.Model -> ServerDetail.Model
+advance seq state model =
+    ServerDetail.advanceExoextBatch (runSlot seq state) model |> Tuple.first
+
+
+{-| The tracked subject/seq and the durable per-row badges — what a reviewer would read off the
+card while a batch drains.
+-}
+rowStates : ServerDetail.Model -> ( Maybe ( String, Int ), List (Maybe String) )
+rowStates model =
+    ( model.exoextCard.pending |> Maybe.map (\p -> ( p.subject, p.seq ))
+    , [ "i-1", "i-2", "i-3" ] |> List.map (\id -> Dict.get id model.exoextCard.scanState)
+    )
+
+
+cloudShieldBatchSuite : Test
+cloudShieldBatchSuite =
+    let
+        -- Target 1's request is written at t=1000; only its subject reaches the wire (the request
+        -- carries one target by construction — see `writeScanRequestCmd`).
+        afterFirstWrite =
+            writeRequestAt 1000 { subject = "i-1", batchId = Nothing } modelAfterStartScan
+
+        -- Run 1000 reports `done`: row 1 settles and target 2 becomes the next subject.
+        afterFirstSettle =
+            advance 1000 "done" afterFirstWrite
+
+        -- The continuation is written at t=2000, carrying the batch's minted id.
+        afterSecondWrite =
+            writeRequestAt 2000 { subject = "i-2", batchId = Just "exo-cs-batch-1000" } afterFirstSettle
+    in
+    describe "ServerDetail batch continuation (§7.1 sequential pacing)"
+        [ test "the first write mints the shared batchId and keeps the undrained tail" <|
+            \_ ->
+                Expect.equal
+                    ( Just { batchId = Just "exo-cs-batch-1000", remaining = [ "i-2", "i-3" ] }
+                    , ( Just ( "i-1", 1000 ), [ Just "queued", Just "queued", Just "queued" ] )
+                    )
+                    ( afterFirstWrite.exoextBatch, rowStates afterFirstWrite )
+        , test "a non-terminal run does not advance the batch" <|
+            \_ ->
+                Expect.equal
+                    ( afterFirstWrite.exoextBatch, rowStates afterFirstWrite )
+                    (let
+                        stillRunning =
+                            advance 1000 "running" afterFirstWrite
+                     in
+                     ( stillRunning.exoextBatch, rowStates stillRunning )
+                    )
+        , test "a settled run commits its row's terminal state and pops the next subject" <|
+            \_ ->
+                Expect.equal
+                    ( Just { batchId = Just "exo-cs-batch-1000", remaining = [ "i-3" ] }
+                    , ( Just ( "i-1", 1000 ), [ Just "done", Just "queued", Just "queued" ] )
+                    )
+                    ( afterFirstSettle.exoextBatch, rowStates afterFirstSettle )
+        , test "the continuation retargets the tracker, carries the SAME batchId, and row 1 holds done" <|
+            \_ ->
+                Expect.equal
+                    ( Just { batchId = Just "exo-cs-batch-1000", remaining = [ "i-3" ] }
+                    , ( Just ( "i-2", 2000 ), [ Just "done", Just "queued", Just "queued" ] )
+                    )
+                    ( afterSecondWrite.exoextBatch, rowStates afterSecondWrite )
+        , test "a run slot still echoing the previous seq does not fire a second continuation" <|
+            \_ ->
+                Expect.equal
+                    ( afterSecondWrite.exoextBatch, rowStates afterSecondWrite )
+                    (let
+                        stale =
+                            advance 1000 "done" afterSecondWrite
+                     in
+                     ( stale.exoextBatch, rowStates stale )
+                    )
+        , test "the last target drains the batch, keeps every terminal badge, and leaves the tracker set" <|
+            \_ ->
+                let
+                    drained =
+                        afterSecondWrite
+                            |> advance 2000 "done"
+                            |> writeRequestAt 3000 { subject = "i-3", batchId = Just "exo-cs-batch-1000" }
+                            |> advance 3000 "error"
+                in
+                Expect.equal
+                    ( Nothing, ( Just ( "i-3", 3000 ), [ Just "done", Just "done", Just "error" ] ) )
+                    ( drained.exoextBatch, rowStates drained )
+        , test "a single-target scan leaves batchId null on the wire" <|
+            \_ ->
+                let
+                    lone =
+                        { modelAfterStartScan | exoextBatch = Just { batchId = Nothing, remaining = [] } }
+                            |> writeRequestAt 1000 { subject = "i-1", batchId = Nothing }
+                in
+                Expect.equal (Just { batchId = Nothing, remaining = [] }) lone.exoextBatch
         ]
 
 

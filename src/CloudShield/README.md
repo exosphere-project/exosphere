@@ -64,9 +64,10 @@ Then in the browser:
 - **Discovery** reads the metadata sentinel and assembles a `store=metadata` manifest body; the
   card uses the real transport body when present, else the embedded frozen `card.json`.
 - **Live `$instances`** is the real, eligibility-filtered project server list (not the VM's data).
-- **Action round-trip**: a confirmed `startScan` re-resolves the target against Exosphere's own
+- **Action round-trip**: a confirmed `startScan` re-resolves each target against Exosphere's own
   list (§5.4), encodes the §4.1 request, and writes the §7.1 metadata request slot on the
-  CloudShield VM; targeted rows go `queued` optimistically.
+  CloudShield VM; targeted rows go `queued` optimistically. N targets are N sibling requests
+  sharing a `batchId`, written one at a time as each run settles (§7.1 single-in-flight).
 - **Live status**: polled `exoext.v1.run.state` (read on each render from the VM's metadata) is
   projected onto its target row by `seq`, overriding the optimistic badge.
 - `elm-test-rs` (159 + 12), optimized prod build, `elm-format`, and `elm-review` all green.
@@ -76,8 +77,11 @@ Then in the browser:
 - **`requestId` / `createdAt`** in the written request are seq-derived / placeholder. Real
   UUID + timestamp need the generators that live in `State.elm`, threaded in a follow-up. The
   §4.1 JSON shape and §7.1 framing are exact and unit-tested.
-- **Single-in-flight (§7.1):** a batch/select-all writes the request for the **first** target
-  only; the rest sit `queued` until the host paces the next one (live pacing not yet wired).
+- **Batch pacing (§7.1):** a batch/select-all now drains sequentially — the host writes one
+  sibling request per settled run (`ServerDetail.advanceExoextBatch`, on each metadata poll), all
+  sharing one `batchId`. What is still missing is expiry: a continuation the VM never claims has
+  no per-request timeout of its own, so the batch just stops advancing. Cancel-mid-batch is also
+  not wired.
 - **`store=console`** manifest/result reads: `Discovery`/`Transport` cover `store=metadata`;
   the console path needs a new branch in the `ReceiveConsoleLog` handler (`State.elm:4339`
   currently discards the raw console text) — not yet added.

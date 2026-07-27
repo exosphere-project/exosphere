@@ -10,6 +10,9 @@ module Exoext.Lifecycle exposing
     , isTerminalRunState
     , correlatedRunState
     , requestStillPending
+    , Batch
+    , BatchStep(..)
+    , advanceBatch
     , verbWriteRequest
     , verbCancelRequest
     , verbOpenSession
@@ -61,6 +64,13 @@ Two things live here that used to be duplicated in `Page.ServerDetail` and `Clou
 @docs isTerminalRunState
 @docs correlatedRunState
 @docs requestStillPending
+
+
+# Request batches
+
+@docs Batch
+@docs BatchStep
+@docs advanceBatch
 
 
 # Declarative verbs
@@ -311,6 +321,69 @@ requestStillPending pending metadata =
 
         Nothing ->
             False
+
+
+
+-- REQUEST BATCHES
+
+
+{-| A sequenced group of requests sharing one wire `batchId` (§4.1 siblings), paced one at a time
+through the single §7.1 request slot. `remaining` is the subjects not yet written, in order.
+`batchId` is `Nothing` for a single-subject request (the wire field is null then).
+-}
+type alias Batch =
+    { batchId : Maybe String
+    , remaining : List String
+    }
+
+
+{-| What a fresh metadata poll says the host should do about the tracked request + batch.
+-}
+type BatchStep
+    = BatchWaiting
+    | BatchSettled
+        { subject : String
+        , state : String
+        , next : Maybe String
+        , remaining : List String
+        }
+
+
+{-| Decide the next pacing step from the tracked request, the batch, and fresh §7.1 metadata.
+
+`BatchWaiting` when nothing is tracked or the correlated run is not yet terminal.
+`BatchSettled` when the correlated run reached a terminal state: `subject`/`state` are the finished
+subject and its final run state (commit these to durable per-subject state), `next` is the subject
+whose request should be written now (`Nothing` when the batch is exhausted), and `remaining` is
+what is left after popping `next`.
+
+Double-firing is prevented by the seq correlation, not by a flag: writing request N+1 sets
+`pending.seq` to N+1 synchronously while the status slot still echoes run N, and
+[`correlatedRunState`](#correlatedRunState) reads a seq mismatch as `"queued"`, so the very next
+poll is `BatchWaiting` again.
+
+-}
+advanceBatch : Maybe PendingRequest -> Maybe Batch -> List OSTypes.MetadataItem -> BatchStep
+advanceBatch pending batch metadata =
+    case pending of
+        Nothing ->
+            BatchWaiting
+
+        Just p ->
+            if requestStillPending (Just p) metadata then
+                BatchWaiting
+
+            else
+                let
+                    remaining =
+                        batch |> Maybe.map .remaining |> Maybe.withDefault []
+                in
+                BatchSettled
+                    { subject = p.subject
+                    , state = correlatedRunState p.seq metadata
+                    , next = List.head remaining
+                    , remaining = List.drop 1 remaining
+                    }
 
 
 

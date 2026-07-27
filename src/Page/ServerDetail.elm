@@ -1,4 +1,4 @@
-module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextEmbedProjection, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextRequestsPending, exoextScanRequestPending, exoextScanTimer, init, update, view)
+module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextEmbedProjection, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextRequestsPending, exoextScanRequestPending, exoextScanTimer, init, update, view)
 
 import CloudShield.Card
 import DateFormat.Relative
@@ -104,6 +104,14 @@ type alias Model =
     -- nothing is in flight. This is the session-request view of `PendingRequest`; the scan-request
     -- view lives in the card model (`CloudShield.Card.Model.pending`).
     , exoextPendingEmbed : Maybe Exoext.Lifecycle.PendingRequest
+
+    -- the undrained tail of a multi-target scan, as the generic `Exoext.Lifecycle.Batch`
+    -- (`remaining` = the target ids whose requests have not been written yet, in selection order;
+    -- `batchId` = the §4.1 id every sibling request carries, minted on the batch's first write).
+    -- §7.1 allows one request in flight per VM, so the host — which owns request writing — also
+    -- owns the pacing: `advanceExoextBatch` pops one subject per settled run. `Nothing` when no
+    -- batch is draining.
+    , exoextBatch : Maybe Exoext.Lifecycle.Batch
     }
 
 
@@ -129,7 +137,7 @@ type Msg
     | GotExoextResultObject Time.Posix String String (Result HttpErrorWithBody String)
     | GotExoextIndexObject Time.Posix String (Result HttpErrorWithBody String)
     | CloudShieldMsg CloudShield.Card.Msg
-    | ExoextWriteRequest { seq : Int, targetIds : List String } Time.Posix
+    | ExoextWriteRequest { subject : String, batchId : Maybe String } Time.Posix
     | ExoextWriteEmbedRequest { batchId : String } Time.Posix
     | ExoextWriteApproval Time.Posix
     | SharedMsg SharedMsg.SharedMsg
@@ -153,6 +161,7 @@ init serverUuid =
     , exoextHistory = RDPP.empty
     , exoextHistoryRequestKey = Nothing
     , exoextPendingEmbed = Nothing
+    , exoextBatch = Nothing
     }
 
 
@@ -214,13 +223,25 @@ update msg project model =
                 ( cloudModel, outMsg ) =
                     CloudShield.Card.update instances cloudMsg model.exoextCard
 
-                ( cmd, sharedMsg ) =
+                ( batch, cmd, sharedMsg ) =
                     case outMsg of
                         Just (CloudShield.Card.ScanRequested req) ->
+                            -- §2.2/§4.1: N targets are N sibling requests, not one request with N
+                            -- targets, and §7.1 admits one at a time — so write the head now and
+                            -- park the tail for `advanceExoextBatch` to drain. The shared `batchId`
+                            -- is minted on that first write (below), when the wall-clock seq exists.
                             -- Fetch the real wall-clock time so the §4.1 `createdAt` is genuine
                             -- (the agent's §4.4 expiry guard compares it to REQUEST_TTL; a
                             -- placeholder epoch would be treated as expired and never run).
-                            ( Task.perform (ExoextWriteRequest req) Time.now, SharedMsg.NoOp )
+                            case req.targetIds of
+                                [] ->
+                                    ( model.exoextBatch, Cmd.none, SharedMsg.NoOp )
+
+                                firstId :: rest ->
+                                    ( Just { batchId = Nothing, remaining = rest }
+                                    , Task.perform (ExoextWriteRequest { subject = firstId, batchId = Nothing }) Time.now
+                                    , SharedMsg.NoOp
+                                    )
 
                         Just (CloudShield.Card.EmbedRequested req) ->
                             -- §7.1 single-req-slot guard, from the live wire state: don't write a
@@ -229,24 +250,24 @@ update msg project model =
                             -- press when blocked (spec behavior). Otherwise stamp a genuine
                             -- wall-clock seq/`createdAt` (same as a scan request).
                             if exoextGetEmbedBlocked project model then
-                                ( Cmd.none, SharedMsg.NoOp )
+                                ( model.exoextBatch, Cmd.none, SharedMsg.NoOp )
 
                             else
-                                ( Task.perform (ExoextWriteEmbedRequest req) Time.now, SharedMsg.NoOp )
+                                ( model.exoextBatch, Task.perform (ExoextWriteEmbedRequest req) Time.now, SharedMsg.NoOp )
 
                         Just CloudShield.Card.ApprovalGranted ->
                             -- Stamp a genuine wall-clock `approvedAt`, same idiom as a scan request:
                             -- fetch `Time.now`, then build and persist the approval record.
-                            ( Task.perform ExoextWriteApproval Time.now, SharedMsg.NoOp )
+                            ( model.exoextBatch, Task.perform ExoextWriteApproval Time.now, SharedMsg.NoOp )
 
                         Just CloudShield.Card.ApprovalForgotten ->
                             -- Forgetting needs no timestamp; drop the record for this instance.
-                            ( Cmd.none, SharedMsg.ForgetExtensionApproval model.serverUuid )
+                            ( model.exoextBatch, Cmd.none, SharedMsg.ForgetExtensionApproval model.serverUuid )
 
                         Nothing ->
-                            ( Cmd.none, SharedMsg.NoOp )
+                            ( model.exoextBatch, Cmd.none, SharedMsg.NoOp )
             in
-            ( { model | exoextCard = cloudModel }
+            ( { model | exoextCard = cloudModel, exoextBatch = batch }
             , cmd
             , sharedMsg
             )
@@ -257,20 +278,40 @@ update msg project model =
                 -- on reload and would collide with a still-claimed seq persisted in the instance
                 -- metadata (the agent then treats the new request as already-handled and skips it).
                 -- A time-based seq is monotonic across reloads, so it never collides. Sync the
-                -- card's `pending.seq` to it so the run<->request correlation still matches.
+                -- card's `pending.seq` to it so the run<->request correlation still matches, and
+                -- retarget `pending.subject` so a continuation's live run projects onto its own row.
                 timeSeq =
                     Time.posixToMillis now
+
+                -- §4.1 siblings share one `batchId`. A continuation carries the id it was given;
+                -- a batch's first write mints it from that write's wall-clock seq (unique across
+                -- reloads, same shape as `requestId`). A lone target keeps `Nothing` — the wire
+                -- field is null for a single-instance scan.
+                batchId =
+                    case req.batchId of
+                        Just id ->
+                            Just id
+
+                        Nothing ->
+                            if List.isEmpty (model.exoextBatch |> Maybe.map .remaining |> Maybe.withDefault []) then
+                                Nothing
+
+                            else
+                                Just ("exo-cs-batch-" ++ String.fromInt timeSeq)
 
                 oldCloud =
                     model.exoextCard
 
                 syncedCloud =
                     { oldCloud
-                        | pending = Maybe.map (\p -> { p | seq = timeSeq }) oldCloud.pending
+                        | pending = Maybe.map (\p -> { p | seq = timeSeq, subject = req.subject }) oldCloud.pending
                     }
             in
-            ( { model | exoextCard = syncedCloud }
-            , writeScanRequestCmd project model (exoextInstances project model) { req | seq = timeSeq } now
+            ( { model
+                | exoextCard = syncedCloud
+                , exoextBatch = Maybe.map (\batch -> { batch | batchId = batchId }) model.exoextBatch
+              }
+            , writeScanRequestCmd project model (exoextInstances project model) { seq = timeSeq, subject = req.subject, batchId = batchId } now
             , SharedMsg.NoOp
             )
 
@@ -412,26 +453,72 @@ syncExoextReads project model =
                         | exoextPendingEmbed =
                             clearResolvedPendingEmbed metadata model.exoextPendingEmbed
                     }
+
+                ( readModel, readCmd ) =
+                    case Exoext.Discovery.readSentinel metadata of
+                        Just ({ store } as sentinel) ->
+                            if store == Exoext.Discovery.StoreSwift then
+                                let
+                                    etag =
+                                        exoextEtag metadata
+                                in
+                                syncExoextIndex project sentinel (Exoext.Transport.historyRefreshKey metadata) <|
+                                    syncExoextResultRef project sentinel etag metadata <|
+                                        syncExoextManifest project sentinel etag syncedModel
+
+                            else
+                                ( syncedModel, Cmd.none )
+
+                        Nothing ->
+                            ( syncedModel, Cmd.none )
+
+                -- A fresh poll is the only moment the wire can report a run settling, so it is
+                -- also the batch's continuation trigger.
+                ( batchModel, batchCmd ) =
+                    advanceExoextBatch metadata readModel
             in
-            case Exoext.Discovery.readSentinel metadata of
-                Just ({ store } as sentinel) ->
-                    if store == Exoext.Discovery.StoreSwift then
-                        let
-                            etag =
-                                exoextEtag metadata
-                        in
-                        syncExoextIndex project sentinel (Exoext.Transport.historyRefreshKey metadata) <|
-                            syncExoextResultRef project sentinel etag metadata <|
-                                syncExoextManifest project sentinel etag syncedModel
-
-                    else
-                        ( syncedModel, Cmd.none )
-
-                Nothing ->
-                    ( syncedModel, Cmd.none )
+            ( batchModel, Cmd.batch [ readCmd, batchCmd ] )
 
         Nothing ->
             ( model, Cmd.none )
+
+
+{-| Pace a §7.1 batch through the single request slot, one subject per settled run. Commit the
+finished subject's terminal state into the card's durable `scanState` first: the live run
+projection covers only the tracked request's subject, so a finished row would otherwise revert to
+its optimistic `queued` badge the moment the tracker retargets. Then write the next sibling's
+request, carrying the batch's shared `batchId`.
+
+An exhausted batch clears `exoextBatch` but deliberately leaves `exoextCard.pending` set — the
+completion timer (`exoextScanTimer`) and the settled-run projection are both keyed on it.
+
+-}
+advanceExoextBatch : List OSTypes.MetadataItem -> Model -> ( Model, Cmd Msg )
+advanceExoextBatch metadata model =
+    case Exoext.Lifecycle.advanceBatch model.exoextCard.pending model.exoextBatch metadata of
+        Exoext.Lifecycle.BatchWaiting ->
+            ( model, Cmd.none )
+
+        Exoext.Lifecycle.BatchSettled settled ->
+            let
+                settledModel =
+                    { model
+                        | exoextCard =
+                            CloudShield.Card.settleScanState settled.subject settled.state model.exoextCard
+                    }
+            in
+            case settled.next of
+                Just nextSubject ->
+                    let
+                        batchId =
+                            model.exoextBatch |> Maybe.andThen .batchId
+                    in
+                    ( { settledModel | exoextBatch = Just { batchId = batchId, remaining = settled.remaining } }
+                    , Task.perform (ExoextWriteRequest { subject = nextSubject, batchId = batchId }) Time.now
+                    )
+
+                Nothing ->
+                    ( { settledModel | exoextBatch = Nothing }, Cmd.none )
 
 
 {-| Resolve the pending getEmbed marker against fresh metadata: clear it once a res-slot embed
@@ -1395,55 +1482,47 @@ unwrapManifestUi pageInstanceId body =
             body
 
 
-{-| Write the §7.1 metadata request-slot for a confirmed scan. Per §7.1 single-in-flight, the
-POC writes the request for the **first** target only (a batch/select-all drains sequentially
-behind it); the optimistic `queued` badges for the rest are already set in the card model. The
-request slot is written on the **CloudShield VM's own** metadata (the viewed instance).
+{-| Write the §7.1 metadata request-slot for one confirmed scan subject. §7.1 admits a single
+request at a time, so a multi-target scan calls this once per target: the head from the confirmed
+`startScan`, every sibling from `advanceExoextBatch` as the previous run settles, all carrying the
+batch's shared `batchId`. The request slot is written on the **CloudShield VM's own** metadata
+(the viewed instance).
 
 POC limitations (dropped at `store=swift`, Phase 1b): `requestId` is seq-derived rather than a
-UUID. `createdAt` is now a real wall-clock timestamp (`Time.now` via `ExoextWriteRequest`),
-so the agent's §4.4 expiry guard works. The §4.1 JSON shape and §7.1 framing are exact and
-unit-tested (`Tests.CloudShield.Card`).
+UUID, and a continuation whose request is never claimed has no per-request expiry of its own —
+the batch simply stops advancing. `createdAt` is a real wall-clock timestamp (`Time.now` via
+`ExoextWriteRequest`), so the agent's §4.4 expiry guard works. The §4.1 JSON shape and §7.1
+framing are exact and unit-tested (`Tests.CloudShield.Card`).
 
 -}
-writeScanRequestCmd : Project -> Model -> List CloudShield.Card.Instance -> { seq : Int, targetIds : List String } -> Time.Posix -> Cmd Msg
+writeScanRequestCmd : Project -> Model -> List CloudShield.Card.Instance -> { seq : Int, subject : String, batchId : Maybe String } -> Time.Posix -> Cmd Msg
 writeScanRequestCmd project model instances req now =
-    case req.targetIds of
-        [] ->
-            Cmd.none
+    let
+        -- §5.4: re-resolve the target id against Exosphere's own instance list.
+        targetName =
+            instances
+                |> List.Extra.find (\i -> i.id == req.subject)
+                |> Maybe.map .name
+                |> Maybe.withDefault req.subject
 
-        firstId :: _ ->
-            let
-                -- §5.4: re-resolve the target id against Exosphere's own instance list.
-                targetName =
-                    instances
-                        |> List.Extra.find (\i -> i.id == firstId)
-                        |> Maybe.map .name
-                        |> Maybe.withDefault firstId
+        scanRequest =
+            { requestId = "exo-cs-req-" ++ String.fromInt req.seq
+            , batchId = req.batchId
+            , createdAt = ISO8601.toString (ISO8601.fromPosix now)
+            , projectId = project.auth.project.uuid
+            , target = { instanceId = req.subject, instanceName = targetName }
+            , profile = "quick"
+            }
 
-                scanRequest =
-                    { requestId = "exo-cs-req-" ++ String.fromInt req.seq
-                    , batchId =
-                        if List.length req.targetIds > 1 then
-                            Just ("exo-cs-batch-" ++ String.fromInt req.seq)
-
-                        else
-                            Nothing
-                    , createdAt = ISO8601.toString (ISO8601.fromPosix now)
-                    , projectId = project.auth.project.uuid
-                    , target = { instanceId = firstId, instanceName = targetName }
-                    , profile = "quick"
-                    }
-
-                items =
-                    Exoext.Transport.reqSlotMetadata req.seq
-                        (Exoext.Transport.scanRequestJson scanRequest)
-            in
-            -- One atomic POST for all request-slot keys. Firing one request per key
-            -- concurrently races on Nova's single metadata row and silently drops writes,
-            -- leaving a half-written (unparseable) request slot the agent never picks up.
-            Rest.Nova.requestSetServerMetadataItems project model.serverUuid items
-                |> Cmd.map SharedMsg
+        items =
+            Exoext.Transport.reqSlotMetadata req.seq
+                (Exoext.Transport.scanRequestJson scanRequest)
+    in
+    -- One atomic POST for all request-slot keys. Firing one request per key
+    -- concurrently races on Nova's single metadata row and silently drops writes,
+    -- leaving a half-written (unparseable) request slot the agent never picks up.
+    Rest.Nova.requestSetServerMetadataItems project model.serverUuid items
+        |> Cmd.map SharedMsg
 
 
 {-| Write the §7.1 metadata request-slot for a `getEmbed`. Same atomic single-POST req-slot

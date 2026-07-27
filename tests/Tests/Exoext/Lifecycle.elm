@@ -3,7 +3,7 @@ module Tests.Exoext.Lifecycle exposing (suite)
 {-| Focused coverage for the generic `Exoext.Lifecycle` request/response + session model: the
 `sessionState` derivation (opening / open / stale / failed / idle, with the expiry boundary,
 the 30s timeout, and Opening superseding a prior Open), session freshness, run-status
-correlation, and the declarative verb alias table.
+correlation, the §7.1 batch pacing step, and the declarative verb alias table.
 -}
 
 import Exoext.Lifecycle as Lifecycle
@@ -161,6 +161,45 @@ suite =
                 \_ ->
                     Lifecycle.requestStillPending Nothing (runSlot 7 "running")
                         |> Expect.equal False
+            ]
+        , describe "advanceBatch"
+            [ test "no tracked request waits" <|
+                \_ ->
+                    Lifecycle.advanceBatch Nothing (Just { batchId = Just "b", remaining = [ "i-2" ] }) (runSlot 7 "done")
+                        |> Expect.equal Lifecycle.BatchWaiting
+            , test "a non-terminal correlated run waits" <|
+                \_ ->
+                    Lifecycle.advanceBatch (Just (pendingWithSeq 7)) (Just { batchId = Just "b", remaining = [ "i-2" ] }) (runSlot 7 "running")
+                        |> Expect.equal Lifecycle.BatchWaiting
+            , test "each terminal state settles, reporting the finished subject and that state" <|
+                \_ ->
+                    [ "done", "error", "cancelled", "expired" ]
+                        |> List.map
+                            (\state ->
+                                Lifecycle.advanceBatch (Just (pendingWithSeq 7)) Nothing (runSlot 7 state)
+                            )
+                        |> Expect.equal
+                            ([ "done", "error", "cancelled", "expired" ]
+                                |> List.map
+                                    (\state ->
+                                        Lifecycle.BatchSettled { subject = "i-1", state = state, next = Nothing, remaining = [] }
+                                    )
+                            )
+            , test "a settled run with subjects left pops the head and reports the rest" <|
+                \_ ->
+                    Lifecycle.advanceBatch (Just (pendingWithSeq 7)) (Just { batchId = Just "b", remaining = [ "i-2", "i-3" ] }) (runSlot 7 "done")
+                        |> Expect.equal (Lifecycle.BatchSettled { subject = "i-1", state = "done", next = Just "i-2", remaining = [ "i-3" ] })
+            , test "a settled run with an exhausted batch reports no next subject" <|
+                \_ ->
+                    Lifecycle.advanceBatch (Just (pendingWithSeq 7)) (Just { batchId = Just "b", remaining = [] }) (runSlot 7 "done")
+                        |> Expect.equal (Lifecycle.BatchSettled { subject = "i-1", state = "done", next = Nothing, remaining = [] })
+            , test "a run slot still echoing the PREVIOUS seq waits — the no-double-fire property" <|
+                \_ ->
+                    -- The continuation for i-2 has just been written (pending.seq bumped to 8) while
+                    -- the status slot still reports run 7 as done. The seq mismatch reads as
+                    -- "queued", so this poll must not fire a second continuation.
+                    Lifecycle.advanceBatch (Just (pendingWithSeq 8)) (Just { batchId = Just "b", remaining = [ "i-3" ] }) (runSlot 7 "done")
+                        |> Expect.equal Lifecycle.BatchWaiting
             ]
         , describe "declarative verbs"
             [ test "resolveVerb maps an aliased action name to its generic verb + kind" <|
