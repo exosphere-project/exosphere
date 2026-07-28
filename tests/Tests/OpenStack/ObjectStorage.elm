@@ -189,9 +189,8 @@ uploadIdGuardSuite =
                         Succeeded
                         [ sampleUpload 1 "a" Queued, sampleUpload 2 "b" Uploading ]
                     )
-        , test "a completion for a superseded (absent) id is ignored — the replacement is untouched" <|
+        , test "a completion for a superseded (absent) id is ignored and the replacement is untouched" <|
             \_ ->
-                -- Entry id=1 (same target "report.csv") was replaced by id=2 on re-enqueue; the stale
                 let
                     afterReenqueue =
                         [ sampleUpload 2 "report.csv" Uploading ]

@@ -144,8 +144,7 @@ normalizeLineEndings =
 {-| The number of bytes a string occupies when encoded as UTF-8.
 
 Swift limits names by encoded bytes, not characters, so `String.length` (UTF-16 code units) is the
-wrong measure. Astral code points surface in Elm as two surrogate-half `Char`s and are counted as
-6 bytes rather than the true 4: a deliberate conservative overcount, safe for a UI limit check.
+wrong measure. `String.foldl` folds whole code points, so astral characters count as 4 bytes.
 
 -}
 utf8ByteLength : String -> Int
