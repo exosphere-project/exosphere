@@ -20,13 +20,9 @@ utf8ByteLengthSuite =
         , test "a 3-byte character (中, U+4E2D CJK) counts as 3" <|
             \_ ->
                 Expect.equal 3 (Helpers.String.utf8ByteLength "中")
-        , test "a 4-byte / astral character (😀, U+1F600) is counted correctly-or-conservatively-over (4 to 6)" <|
+        , test "a 4-byte / astral character (😀, U+1F600) is counted correctly" <|
             \_ ->
-                let
-                    byteCount =
-                        Helpers.String.utf8ByteLength "😀"
-                in
-                Expect.equal True (byteCount >= 4 && byteCount <= 6)
+                Expect.equal 4 (Helpers.String.utf8ByteLength "😀")
         , test "mixed ASCII + multibyte sums per-character" <|
             \_ ->
                 -- "aé中" = 1 + 2 + 3 = 6
