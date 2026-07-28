@@ -1570,7 +1570,11 @@ rendererStyle palette =
                 -- keeping its own bounded scroll. The divider moves from a left border to a top one.
                 , "@media (max-width: 720px) { .jr-card > .jr-stack--row { grid-template-columns: 1fr; } .jr-card > .jr-stack--row > .jr-stack--col:nth-child(1) { padding-right: 0; padding-bottom: 14px; } .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) { padding-left: 0; border-left: 0; border-top: 1px solid " ++ border ++ "; padding-top: 14px; } }"
                 , ".jr-confirm { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 1000; }"
-                , ".jr-confirm__box { background: " ++ frontBg ++ "; color: " ++ text ++ "; padding: 20px 22px; border-radius: 8px; max-width: 380px; border: 1px solid " ++ border ++ "; box-shadow: 0 8px 40px rgba(0,0,0,0.5); }"
+
+                -- `white-space: normal` re-establishes wrapping inside the dialog: the card is raw
+                -- HTML embedded in an elm-ui tree, and elm-ui sets `white-space: pre` on every `el`,
+                -- which inherits into the overlay — an unwrapped message overflows the box.
+                , ".jr-confirm__box { background: " ++ frontBg ++ "; color: " ++ text ++ "; padding: 20px 22px; border-radius: 8px; max-width: 380px; white-space: normal; border: 1px solid " ++ border ++ "; box-shadow: 0 8px 40px rgba(0,0,0,0.5); }"
                 , ".jr-confirm__title { margin: 0 0 8px 0; font-size: 1.1em; font-weight: 600; }"
                 , ".jr-confirm__message { margin: 0; color: " ++ muted ++ "; line-height: 1.45; }"
                 , ".jr-confirm__actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }"
