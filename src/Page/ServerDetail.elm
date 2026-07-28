@@ -1100,13 +1100,20 @@ exoextViewConfig approved project model currentTime server =
             GetterSetters.getServerFloatingIps project server.osProps.uuid
                 |> List.map (\ip -> "https://" ++ ip.address ++ ".sslip.io")
 
+        -- The object the current embed result points at, built by the SAME function that decides
+        -- what to fetch (`syncExoextResultRef`), so the read side and the fetch side can never
+        -- disagree about which body belongs to the scan on screen.
+        archivedResultObjectName =
+            maybeSentinel
+                |> Maybe.andThen (\sentinel -> exoextResultObjectName model sentinel metadata)
+
         -- The reader projection for the history-View embed flow: the findings/`embedUrl` binding
         -- (a valid history pick wins over the live scan result), the host-side `embedState` line,
         -- and whether a history pick is active (used to hide the live-scan timer). `embedUrl` is
         -- gated on `embedState`: only `EmbedReady` carries the live URL, so an expired/errored/
         -- loading embed unmounts the iframe (the resource-drain fix).
         embedProjection =
-            exoextEmbedProjection metadata currentTime statusOverride resultBody model
+            exoextEmbedProjection metadata archivedResultObjectName currentTime statusOverride resultBody model
 
         results =
             embedProjection.results
@@ -1249,7 +1256,9 @@ embedRequestTimeoutMillis =
 
 {-| The reader projection for the history-View embed flow, decided purely from this instance's
 metadata, the fetched archived body (`model.exoextResultRef`), the pending getEmbed marker,
-and the shared client clock. Returns the findings/`embedUrl` binding for the renderer, the
+and the shared client clock. `archivedResultObjectName` is the object the CURRENT embed result
+points at (`exoextResultObjectName`), which is what a cached body has to match to be bound.
+Returns the findings/`embedUrl` binding for the renderer, the
 host-side `embedState` line, and the active/pending/errored **result** ids for per-row state
 (never batch ids — §2.2 siblings share a batch, so a batch id flags every sibling row at once).
 
@@ -1263,12 +1272,13 @@ mounted spins forever on auth retries).
 -}
 exoextEmbedProjection :
     List OSTypes.MetadataItem
+    -> Maybe String
     -> Time.Posix
     -> Maybe { targetId : String, state : String }
     -> Maybe String
     -> Model
     -> { results : Maybe Encode.Value, embedUrl : String, embedState : CloudShield.Card.EmbedState, activeResultId : Maybe String, pendingResultId : Maybe String, erroredResultId : Maybe String, expiredResultId : Maybe String }
-exoextEmbedProjection metadata currentTime statusOverride resultBody model =
+exoextEmbedProjection metadata archivedResultObjectName currentTime statusOverride resultBody model =
     let
         rawEmbedResult =
             Exoext.Transport.resultBodyFromMetadata metadata
@@ -1346,16 +1356,20 @@ exoextEmbedProjection metadata currentTime statusOverride resultBody model =
             case maybeEmbedResult of
                 Just _ ->
                     -- Findings for the selected history scan, parsed from the archived body fetched
-                    -- into `exoextResultRef` (the fetch is deduped by objectName via
-                    -- `exoextResultRefRequest`). The last-fetched body is kept so `/results` is
-                    -- not clobbered while the newly selected batch's body is still in flight. The
-                    -- etag check does not give scan-freshness (the etag is a constant manifest hash);
-                    -- it only rejects a body left over from a different instance/manifest.
+                    -- into `exoextResultRef`. TWO gates, both required. The etag rejects a body left
+                    -- over from a different instance/manifest (it gives no scan-freshness — it is a
+                    -- constant manifest hash). The object name is what pins the body to THIS scan:
+                    -- `exoextResultRef` holds whatever object was fetched last, and a fetch in
+                    -- flight deliberately keeps the previous body, so without this check pressing
+                    -- View on one sibling while another's body was cached bound the OLD scan's
+                    -- findings under the new scan's "Now viewing" row and iframe — three UI elements
+                    -- showing two different scans. A mismatch reads as not-yet-loaded (`Nothing`),
+                    -- never as another object's data.
                     let
                         archivedFindings =
                             case model.exoextResultRef.data of
                                 RDPP.DoHave fetched _ ->
-                                    if fetched.etag == exoextEtag metadata then
+                                    if fetched.etag == exoextEtag metadata && Just fetched.objectName == archivedResultObjectName then
                                         Decode.decodeString (Decode.field "findings" Decode.value) fetched.body
                                             |> Result.toMaybe
 

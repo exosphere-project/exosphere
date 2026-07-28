@@ -133,11 +133,20 @@ archivedFindingsJson =
     """[{"severity":"low"}]"""
 
 
-{-| A model that has fetched the archived scan body for `etag-1` (a history pick's findings).
+{-| A model that has fetched the archived scan body for `etag-1` (a history pick's findings). The
+cached object is the one `objectFor "b1"` names.
 -}
 modelWithArchivedFindings : ServerDetail.Model
 modelWithArchivedFindings =
     modelWithResultRef "etag-1" "results/b1.json" """{"findings":[{"severity":"low"}]}"""
+
+
+{-| The archived-result object a given result id lives at (§4.2), the way
+`exoextResultObjectName` builds it. A cached body is bound only when its object name is THIS one.
+-}
+objectFor : String -> Maybe String
+objectFor resultId =
+    Just ("results/" ++ resultId ++ ".json")
 
 
 {-| Res-slot metadata carrying a chunked `kind:"embed"` result body, plus the manifest etag the
@@ -235,6 +244,7 @@ cloudShieldEmbedProjectionSuite =
                     projection =
                         ServerDetail.exoextEmbedProjection
                             (embedResultMetadata (okEmbedBody expiresAtIso))
+                            (objectFor "b1")
                             beforeExpiry
                             Nothing
                             Nothing
@@ -246,12 +256,64 @@ cloudShieldEmbedProjectionSuite =
                     , projection.results |> Maybe.map (Encode.encode 0)
                     , projection.embedState
                     )
+        , test "switching siblings does NOT bind the previous scan's cached findings (the stale-body fix)" <|
+            \_ ->
+                -- The live shape: results/b1.json is cached from viewing one sibling, the user
+                -- presses View on the next, and its body has not landed yet. The row and the iframe
+                -- are already the NEW scan's, so binding the cached findings would put two
+                -- different scans on screen at once. It must read as not-yet-loaded instead.
+                let
+                    projection =
+                        ServerDetail.exoextEmbedProjection
+                            (embedResultMetadata (okEmbedBodyWithResultId "exo-cs-req-7"))
+                            (objectFor "exo-cs-req-7")
+                            beforeExpiry
+                            Nothing
+                            Nothing
+                            modelWithArchivedFindings
+                in
+                Expect.equal ( Nothing, Just "exo-cs-req-7" )
+                    ( projection.results |> Maybe.map (Encode.encode 0)
+                    , projection.activeResultId
+                    )
+        , test "a cached body IS bound once its object is the one the current result names" <|
+            \_ ->
+                -- The other half of the gate, so the test above cannot pass by binding nothing ever.
+                let
+                    projection =
+                        ServerDetail.exoextEmbedProjection
+                            (embedResultMetadata (okEmbedBodyWithResultId "b1"))
+                            (objectFor "b1")
+                            beforeExpiry
+                            Nothing
+                            Nothing
+                            modelWithArchivedFindings
+                in
+                Expect.equal ( Just archivedFindingsJson, Just "b1" )
+                    ( projection.results |> Maybe.map (Encode.encode 0)
+                    , projection.activeResultId
+                    )
+        , test "a cached body from the right object but a stale manifest etag stays unbound" <|
+            \_ ->
+                -- The etag gate is an AND with the object name, not a replacement for it.
+                let
+                    projection =
+                        ServerDetail.exoextEmbedProjection
+                            (embedResultMetadata (okEmbedBody expiresAtIso))
+                            (objectFor "b1")
+                            beforeExpiry
+                            Nothing
+                            Nothing
+                            (modelWithResultRef "etag-old" "results/b1.json" """{"findings":[{"severity":"low"}]}""")
+                in
+                Expect.equal Nothing projection.results
         , test "the same result past its expiry unmounts the iframe, reports EmbedExpired, and marks the row expired (not active) — the expiry fix" <|
             \_ ->
                 let
                     projection =
                         ServerDetail.exoextEmbedProjection
                             (embedResultMetadata (okEmbedBody expiresAtIso))
+                            (objectFor "b1")
                             afterExpiry
                             Nothing
                             Nothing
@@ -268,6 +330,7 @@ cloudShieldEmbedProjectionSuite =
                     projection =
                         ServerDetail.exoextEmbedProjection
                             (embedResultMetadata errorEmbedBody)
+                            Nothing
                             beforeExpiry
                             Nothing
                             Nothing
@@ -284,6 +347,7 @@ cloudShieldEmbedProjectionSuite =
                     projection =
                         ServerDetail.exoextEmbedProjection
                             [ { key = "exoext.v1.etag", value = "etag-1" } ]
+                            Nothing
                             now
                             Nothing
                             Nothing
@@ -300,6 +364,7 @@ cloudShieldEmbedProjectionSuite =
                     projection =
                         ServerDetail.exoextEmbedProjection
                             [ { key = "exoext.v1.etag", value = "etag-1" } ]
+                            Nothing
                             now
                             Nothing
                             Nothing
@@ -324,6 +389,7 @@ cloudShieldEmbedProjectionSuite =
                     projection =
                         ServerDetail.exoextEmbedProjection
                             (embedResultMetadata errorEmbedBody)
+                            Nothing
                             beforeExpiry
                             Nothing
                             Nothing
@@ -340,6 +406,7 @@ cloudShieldEmbedProjectionSuite =
                     projection =
                         ServerDetail.exoextEmbedProjection
                             [ { key = "exoext.v1.etag", value = "etag-1" } ]
+                            Nothing
                             beforeExpiry
                             (Just { targetId = "i-1", state = "done" })
                             (Just doneScanBody)
@@ -357,6 +424,7 @@ cloudShieldEmbedProjectionSuite =
                     projection =
                         ServerDetail.exoextEmbedProjection
                             [ { key = "exoext.v1.etag", value = "etag-1" } ]
+                            Nothing
                             beforeExpiry
                             (Just { targetId = "i-1", state = "done" })
                             (Just doneScanBody)
@@ -372,6 +440,7 @@ cloudShieldEmbedProjectionSuite =
                     projection =
                         ServerDetail.exoextEmbedProjection
                             [ { key = "exoext.v1.etag", value = "etag-1" } ]
+                            Nothing
                             beforeExpiry
                             (Just { targetId = "i-1", state = "done" })
                             (Just doneScanBody)
@@ -387,6 +456,7 @@ cloudShieldEmbedProjectionSuite =
                     projection =
                         ServerDetail.exoextEmbedProjection
                             (embedResultMetadata (okEmbedBodyWithResultId "exo-cs-req-7"))
+                            (objectFor "exo-cs-req-7")
                             beforeExpiry
                             Nothing
                             Nothing
@@ -404,6 +474,7 @@ cloudShieldEmbedProjectionSuite =
                     projection =
                         ServerDetail.exoextEmbedProjection
                             (embedResultMetadata (okEmbedBody expiresAtIso))
+                            (objectFor "exo-cs-req-7")
                             beforeExpiry
                             Nothing
                             Nothing
@@ -418,6 +489,7 @@ cloudShieldEmbedProjectionSuite =
                     projection =
                         ServerDetail.exoextEmbedProjection
                             (embedResultMetadata (okEmbedBodyWithResultId "exo-cs-req-7"))
+                            (objectFor "exo-cs-req-7")
                             beforeExpiry
                             Nothing
                             Nothing
@@ -430,6 +502,7 @@ cloudShieldEmbedProjectionSuite =
                     projection =
                         ServerDetail.exoextEmbedProjection
                             (embedResultMetadata (okEmbedBody expiresAtIso))
+                            (objectFor "b1")
                             beforeExpiry
                             Nothing
                             Nothing
@@ -444,6 +517,7 @@ cloudShieldEmbedProjectionSuite =
                     projection =
                         ServerDetail.exoextEmbedProjection
                             (embedResultMetadata (okEmbedBodyWithResultId "exo-cs-req-7"))
+                            (objectFor "exo-cs-req-7")
                             beforeExpiry
                             Nothing
                             Nothing
