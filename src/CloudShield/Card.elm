@@ -1,4 +1,4 @@
-module CloudShield.Card exposing (EmbedState(..), Instance, ManifestSource(..), Model, Msg, OutMsg(..), ViewConfig, dispatchVerb, init, projection, requestEmbed, resolveAction, rollbackScanRequest, scanningRowLabel, settleScanState, transportChip, update, view)
+module CloudShield.Card exposing (EmbedState(..), Instance, ManifestSource(..), Model, Msg, OutMsg(..), ViewConfig, dispatchVerb, init, projection, requestEmbed, resolveAction, resultIdOf, rollbackScanRequest, scanningRowLabel, settleScanState, transportChip, update, view)
 
 {-| Host wiring for the CloudShield dynamic-UI card (Phase 1, browser side).
 
@@ -37,6 +37,7 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import JsonRender
 import JsonRender.Render as Render
+import Maybe.Extra
 import Set exposing (Set)
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
@@ -101,13 +102,15 @@ OpenStack Cmds; the parent owns the Nova metadata write (it has `Rest.Nova` + th
     re-resolves the targets (§5.4), encodes the §4.1 request, and writes the §7.1 req-slot
     on the CloudShield VM's metadata.
 
-  - `EmbedRequested { batchId }` — a `cloudshield.getEmbed` on a history row. The parent
+  - `EmbedRequested { resultId, batchId }` — a `cloudshield.getEmbed` on a history row. The parent
     stamps a wall-clock seq, encodes the `getEmbed` request, and writes the same §7.1 req-slot.
+    `resultId` is the row's own §4.2 result id (the selector); `batchId` is the shared §2.2 batch
+    id, kept on the wire for a publisher that only knows how to select by batch.
 
 -}
 type OutMsg
     = ScanRequested { seq : Int, targetIds : List String }
-    | EmbedRequested { batchId : String }
+    | EmbedRequested { resultId : String, batchId : String }
       -- The trust decisions. The card holds no approval state of its own; it asks the host to
       -- grant (persist an approval for the publishing instance) or forget (remove it). The host
       -- owns the persisted `exoext.approval.v1` record and stamps the wall-clock `approvedAt`.
@@ -143,11 +146,13 @@ update instances msg model =
         GotToggleDemoIframe ->
             ( { model | showDemoIframe = not model.showDemoIframe }, Nothing )
 
-        GotRetryEmbed batchId ->
-            -- The results-region "Retry" affordance re-fires getEmbed for the last-attempted batch.
+        GotRetryEmbed resultId ->
+            -- The results-region "Retry" affordance re-fires getEmbed for the last-attempted result.
             -- Same OutMsg the history-row press emits, so it flows through the host's single-req-slot
-            -- guard exactly like a fresh View.
-            requestEmbed (Just batchId) model
+            -- guard exactly like a fresh View. Only the result id survives into the host's errored
+            -- state, so it doubles as the batch selector: the publisher prefers `resultId`, and where
+            -- it does not (a row with no per-run id) the two ids are the same value anyway.
+            requestEmbed (Just { resultId = resultId, batchId = resultId }) model
 
         RendererMsg rmsg ->
             let
@@ -224,7 +229,7 @@ kindOf params =
 against this adapter's request/session handlers. `verbWriteRequest` frames + writes a scan request
 (targets resolved §5.4) — but only for `kind == "scan"`, the one request kind this adapter
 handles; any other (or missing) kind is a no-op, so a manifest cannot route an unknown request
-kind onto the scan path. `verbOpenSession` opens a result session for the pressed row's batch.
+kind onto the scan path. `verbOpenSession` opens a result session for the pressed row's result.
 `Nothing` (an unaliased action) and any not-yet-wired verb are no-ops (fail-closed).
 -}
 dispatchVerb : Maybe Lifecycle.VerbAlias -> Encode.Value -> Model -> ( Model, Maybe OutMsg )
@@ -235,7 +240,7 @@ dispatchVerb maybeAlias params model =
                 requestScan (targetsOf model params) model
 
             else if alias.verb == Lifecycle.verbOpenSession then
-                requestEmbed (batchIdOf params) model
+                requestEmbed (resultIdOf params) model
 
             else
                 ( model, Nothing )
@@ -287,25 +292,34 @@ requestScan requested model =
 {-| A `cloudshield.getEmbed` on a history row: ask the parent to mint a fresh embed URL for the
 named archived scan. The card holds no run-state knowledge, so it does not guard here — the §7.1
 single-req-slot guard (don't disturb an active or unclaimed scan) is applied host-side in
-`Page.ServerDetail`, derived from the live wire metadata. A missing `batchId` ⇒ no-op.
+`Page.ServerDetail`, derived from the live wire metadata. Missing ids ⇒ no-op.
 -}
-requestEmbed : Maybe String -> Model -> ( Model, Maybe OutMsg )
-requestEmbed maybeBatchId model =
-    case maybeBatchId of
-        Just batchId ->
-            ( model, Just (EmbedRequested { batchId = batchId }) )
+requestEmbed : Maybe { resultId : String, batchId : String } -> Model -> ( Model, Maybe OutMsg )
+requestEmbed maybeIds model =
+    case maybeIds of
+        Just ids ->
+            ( model, Just (EmbedRequested ids) )
 
         Nothing ->
             ( model, Nothing )
 
 
-{-| Resolve a `cloudshield.getEmbed` `batchId` param from the renderer's already-resolved
-params (the `$item.batchId` of the pressed history row).
+{-| Resolve the pressed history row's session ids from the renderer's already-resolved params.
+The manifest emits `resultId` (the row's own §4.2 result id, unique per run) and `batchId` (its
+§2.2 batch id, SHARED by siblings). Each falls back to the other, so a manifest that still emits
+only `batchId` keeps dispatching, and a legacy row with no per-run id of its own resolves both to
+the same value. `Nothing` when neither param is present (fail-closed).
 -}
-batchIdOf : Encode.Value -> Maybe String
-batchIdOf params =
-    Decode.decodeValue (Decode.field "batchId" Decode.string) params
-        |> Result.toMaybe
+resultIdOf : Encode.Value -> Maybe { resultId : String, batchId : String }
+resultIdOf params =
+    let
+        stringParam key =
+            Decode.decodeValue (Decode.field key Decode.string) params
+                |> Result.toMaybe
+    in
+    Maybe.map2 (\resultId batchId -> { resultId = resultId, batchId = batchId })
+        (Maybe.Extra.or (stringParam "resultId") (stringParam "batchId"))
+        (Maybe.Extra.or (stringParam "batchId") (stringParam "resultId"))
 
 
 {-| Resolve a `cloudshield.startScan` `targetInstanceIds` param: an empty array means "use
@@ -453,6 +467,7 @@ projection :
     -> Maybe String
     -> Maybe String
     -> Maybe String
+    -> Bool
     -> { rows : List Transport.IndexEntry, loading : Bool, loaded : Bool }
     -> Maybe Encode.Value
     -> String
@@ -460,7 +475,7 @@ projection :
     -> List Instance
     -> Model
     -> Encode.Value
-projection zone activeBatchId pendingBatchId erroredBatchId expiredBatchId history results embedUrl statusOverride instances model =
+projection zone activeResultId pendingResultId erroredResultId expiredResultId requestBusy history results embedUrl statusOverride instances model =
     let
         total =
             List.length history.rows
@@ -498,8 +513,13 @@ projection zone activeBatchId pendingBatchId erroredBatchId expiredBatchId histo
         , ( "results", Maybe.withDefault Encode.null results )
         , ( "embedUrl", Encode.string embedUrl )
         , ( "instances", Encode.list (instanceProjection statusOverride model) instances )
-        , ( "history", Encode.list (historyRow zone activeBatchId pendingBatchId erroredBatchId expiredBatchId) shown )
+        , ( "history", Encode.list (historyRow zone activeResultId pendingResultId erroredResultId expiredResultId) shown )
         , ( "historyNote", Encode.string historyNote )
+
+        -- Whether the host would SWALLOW an `exoext.openSession` press right now (the §7.1
+        -- single-req-slot guard: a scan is active or its request is still unclaimed). The manifest
+        -- binds it to the row action's `disabled`, so the guard is visible instead of silent.
+        , ( "requestBusy", Encode.bool requestBusy )
 
         -- Old display-string header keys (manifest v1). Kept alongside the new count/flag keys
         -- below so a v1 manifest still renders against this host until the demo VM redeploys v2.
@@ -534,58 +554,68 @@ no conditionals (host-renderer-interface.md §1.2):
     flight, "Refresh" for the active row, "View" for an expired row (reopen), "" for a failed scan
     that has nothing to view).
 
-`pendingBatchId` is the getEmbed that is genuinely in flight right now: its row shows the loading
+Every one of those signals is matched on the row's **`resultId`** — its own §4.2 result id
+(`entry.requestId`), falling back to `batchId` for a legacy row that carries none. §2.2 siblings
+SHARE a `batchId`, so matching on it marked every sibling of a batch "Now viewing" at once; the
+result id is unique per run, so exactly one row can ever match.
+
+`pendingResultId` is the getEmbed that is genuinely in flight right now: its row shows the loading
 state, and while it is set NO row shows "Now viewing" (the clicked row supersedes the prior one).
 
-`erroredBatchId` is the last getEmbed that failed / timed out (host-tracked, retained until a new
+`erroredResultId` is the last getEmbed that failed / timed out (host-tracked, retained until a new
 getEmbed starts or one succeeds). That row reads "Couldn't open" and its action flips to "Retry"
-(re-firing the same `getEmbed` press for its batch), and — crucially — while it is set the prior
+(re-firing the same `getEmbed` press for its result), and — crucially — while it is set the prior
 active row does NOT falsely reclaim "Now viewing".
 
-`expiredBatchId` is the row whose result SESSION has expired (its embed URL is no longer served).
+`expiredResultId` is the row whose result SESSION has expired (its embed URL is no longer served).
 The host derives it from `Exoext.Lifecycle`'s `OpenStale` token instead of leaving that row
-`activeBatchId`. The row reverts from "Now viewing" / "Refresh" to a muted "Expired" badge and a
+`activeResultId`. The row reverts from "Now viewing" / "Refresh" to a muted "Expired" badge and a
 plain "View" action (reopen), while keeping a faint highlight so the researcher still sees which
 scan they were on. This is the expired-session fix.
 
-Precedence for a row's state: **failed scan (dead scan, never View-able) → embed error (this batch
+Precedence for a row's state: **failed scan (dead scan, never View-able) → embed error (this result
 just failed) → loading (in-flight) → expired (session lapsed) → now viewing (resolved ok, fresh) →
 idle**. The two "error" concepts never co-occur on one row (a failed scan is never
-getEmbed-clickable, so `erroredBatchId` can never name a failed-scan batch), so keying `isError`
-first keeps the failed-scan row pristine; `expiredBatchId` and `activeBatchId` are mutually
+getEmbed-clickable, so `erroredResultId` can never name a failed-scan result), so keying `isError`
+first keeps the failed-scan row pristine; `expiredResultId` and `activeResultId` are mutually
 exclusive (`OpenStale` sets one, `Open` the other), so they never contend for a row.
 
 `countsLabel` is retained (unbound by the current manifest) as a stable plain-text fallback.
 
 -}
 historyRow : Time.Zone -> Maybe String -> Maybe String -> Maybe String -> Maybe String -> Transport.IndexEntry -> Encode.Value
-historyRow zone activeBatchId pendingBatchId erroredBatchId expiredBatchId entry =
+historyRow zone activeResultId pendingResultId erroredResultId expiredResultId entry =
     let
+        -- The row's identity for every session match below, and the `resultId` the View press
+        -- sends back as the §4.2 selector. `batchId` is the fallback for a legacy index row.
+        resultId =
+            Maybe.withDefault entry.batchId entry.requestId
+
         isError =
             entry.status == "error"
 
         -- This row's last getEmbed failed / timed out: it shows a danger "Couldn't open" state and
         -- its action flips to "Retry" (the same press re-fires getEmbed). Never on a failed scan.
         isEmbedErrorRow =
-            (erroredBatchId == Just entry.batchId) && not isError
+            (erroredResultId == Just resultId) && not isError
 
         -- This row's getEmbed is in flight: it shows the loading state and its button de-emphasizes.
-        -- An error on this same batch supersedes the loading look (it can only be one at a time).
+        -- An error on this same result supersedes the loading look (it can only be one at a time).
         isLoadingRow =
-            (pendingBatchId == Just entry.batchId) && not isError && not isEmbedErrorRow
+            (pendingResultId == Just resultId) && not isError && not isEmbedErrorRow
 
         -- This row's result session has expired: it reverts to a muted "Expired" / plain-View row
-        -- (never on a failed scan, and superseded by an in-flight / errored getEmbed on this batch).
+        -- (never on a failed scan, and superseded by an in-flight / errored getEmbed on this result).
         isExpiredRow =
-            (expiredBatchId == Just entry.batchId) && not isError && not isEmbedErrorRow && not isLoadingRow
+            (expiredResultId == Just resultId) && not isError && not isEmbedErrorRow && not isLoadingRow
 
-        -- While ANY getEmbed is pending, OR while this batch's getEmbed just errored, no row reads as
-        -- "Now viewing": the clicked (loading/errored) row supersedes the previously-active one, so
-        -- the old row drops its active state instead of falsely reclaiming it.
+        -- While ANY getEmbed is pending, OR while this result's getEmbed just errored, no row reads
+        -- as "Now viewing": the clicked (loading/errored) row supersedes the previously-active one,
+        -- so the old row drops its active state instead of falsely reclaiming it.
         isActiveRow =
-            (pendingBatchId == Nothing)
-                && (erroredBatchId == Nothing)
-                && (activeBatchId == Just entry.batchId)
+            (pendingResultId == Nothing)
+                && (erroredResultId == Nothing)
+                && (activeResultId == Just resultId)
                 && not isError
 
         completedAtLabel =
@@ -666,7 +696,11 @@ historyRow zone activeBatchId pendingBatchId erroredBatchId expiredBatchId entry
                 "idle"
     in
     Encode.object
-        [ ( "batchId", Encode.string entry.batchId )
+        [ -- The row's unique §4.2 result id: `repeat.key`, the View press's selector, and what
+          -- every session state above matches on. `batchId` stays projected beside it for the
+          -- shared-batch subLabel and for a manifest that still keys on it.
+          ( "resultId", Encode.string resultId )
+        , ( "batchId", Encode.string entry.batchId )
         , ( "targetName", Encode.string entry.targetName )
         , ( "completedAt", Encode.string completedAtLabel )
         , ( "subLabel", Encode.string subLabel )
@@ -810,32 +844,39 @@ type alias ViewConfig =
         , loaded : Bool
         }
 
-    -- the batchId whose results/embed are currently on screen (the picked history row, else the
-    -- just-completed live scan). The row with this batchId renders as the single "Now viewing"
+    -- the §4.2 resultId whose results/embed are currently on screen (the picked history row, else
+    -- the just-completed live scan). The row with this resultId renders as the single "Now viewing"
     -- state (accent stripe + tint, action button flips View -> Refresh). `Nothing` when nothing
-    -- is being viewed.
-    , activeBatchId : Maybe String
+    -- is being viewed. All four of these are resultIds, never batch ids: §2.2 siblings share a
+    -- batch, so a batch id would flag every sibling row at once.
+    , activeResultId : Maybe String
 
-    -- the batchId of the getEmbed that is genuinely in flight right now (`EmbedLoading`), so its
+    -- the resultId of the getEmbed that is genuinely in flight right now (`EmbedLoading`), so its
     -- history row shows the "Opening…" loading state and its action button de-emphasizes. It wins
-    -- over `activeBatchId`: while a getEmbed is pending NO row shows "Now viewing" (the clicked row
+    -- over `activeResultId`: while a getEmbed is pending NO row shows "Now viewing" (the clicked row
     -- supersedes the previously-active one immediately). `Nothing` once the request resolves,
     -- errors, or times out, so no row is ever wedged in the loading state.
-    , pendingBatchId : Maybe String
+    , pendingResultId : Maybe String
 
-    -- the batchId of the last getEmbed that failed or timed out (`EmbedError`), retained until a
+    -- the resultId of the last getEmbed that failed or timed out (`EmbedError`), retained until a
     -- new getEmbed starts or one succeeds. Its history row reads a danger "Couldn't open" state
     -- with a "Retry" action (re-firing getEmbed for it), and while it is set NO row falsely shows
     -- "Now viewing". Also drives the results-region "Retry" affordance. `Nothing` when no embed is
     -- in an error state.
-    , erroredBatchId : Maybe String
+    , erroredResultId : Maybe String
 
-    -- the batchId whose result session has EXPIRED (`EmbedExpired`, from `Lifecycle.OpenStale`).
+    -- the resultId whose result session has EXPIRED (`EmbedExpired`, from `Lifecycle.OpenStale`).
     -- Its history row reverts from "Now viewing"/"Refresh" to a muted "Expired" badge + plain
     -- "View" (reopen), keeping only a faint highlight. The host sets this INSTEAD of
-    -- `activeBatchId` for the expired batch, so the expired session no longer reads as active.
+    -- `activeResultId` for the expired result, so the expired session no longer reads as active.
     -- `Nothing` when the open session (if any) is still fresh. This is the expired-session fix.
-    , expiredBatchId : Maybe String
+    , expiredResultId : Maybe String
+
+    -- whether the host would SWALLOW an `exoext.openSession` press right now — the §7.1
+    -- single-req-slot guard (`ServerDetail.exoextGetEmbedBlocked`) protecting an active or
+    -- unclaimed scan. Projected to `/requestBusy` so the manifest can disable the row action
+    -- instead of the press vanishing with no feedback.
+    , requestBusy : Bool
 
     -- the iframe origin allowlist, derived host-side from the instance's own floating IPs.
     -- The renderer emits an `<iframe>` only for a `src` whose origin is an exact member of
@@ -897,8 +938,8 @@ view palette zone config instances model =
         Element.column
             [ Element.width (Element.fill |> Element.maximum 1300), Element.spacing spacer.px8 ]
             [ provenanceMarker palette config.sourceName
-            , rendererView palette zone config.activeBatchId config.pendingBatchId config.erroredBatchId config.expiredBatchId config.allowedIframeOrigins config.manifest config.history config.results config.embedUrl config.statusOverride instances model
-            , embedStateView palette config.embedState config.erroredBatchId
+            , rendererView palette zone config.activeResultId config.pendingResultId config.erroredResultId config.expiredResultId config.requestBusy config.allowedIframeOrigins config.manifest config.history config.results config.embedUrl config.statusOverride instances model
+            , embedStateView palette config.embedState config.erroredResultId
             , transportWarningView palette config.transportWarning
             , scanTimerView palette config.scanTimer
             , demoIframePanel palette config.demoIframeUrl model.showDemoIframe
@@ -933,14 +974,14 @@ and never the renderer's old fail-closed "Embedded content is unavailable" place
   - `EmbedLoading` — a spinner + "Opening scan results…" (in addition to the per-row "Opening…"
     badge), so the region itself shows progress rather than sitting blank.
   - `EmbedError` — a danger-toned "Couldn't open these results." with a **Retry** affordance that
-    re-fires getEmbed for the last-attempted batch (`erroredBatchId`).
+    re-fires getEmbed for the last-attempted result (`erroredResultId`).
   - `EmbedExpired` — a gentle prompt to reopen (the iframe was unmounted so the dead CloudShield
     app stops spinning on auth retries).
   - `EmbedReady` — nothing; the iframe is on screen.
 
 -}
 embedStateView : ExoPalette -> EmbedState -> Maybe String -> Element.Element Msg
-embedStateView palette embedState erroredBatchId =
+embedStateView palette embedState erroredResultId =
     let
         mutedLine tone label =
             Element.el
@@ -969,9 +1010,9 @@ embedStateView palette embedState erroredBatchId =
                 [ Element.spacing spacer.px8 ]
                 [ mutedLine palette.danger.textOnNeutralBG
                     ("Couldn't open these results: " ++ message ++ ".")
-                , case erroredBatchId of
-                    Just batchId ->
-                        linkButton palette "Retry" (GotRetryEmbed batchId)
+                , case erroredResultId of
+                    Just resultId ->
+                        linkButton palette "Retry" (GotRetryEmbed resultId)
 
                     Nothing ->
                         Element.none
@@ -1096,6 +1137,7 @@ rendererView :
     -> Maybe String
     -> Maybe String
     -> Maybe String
+    -> Bool
     -> List String
     -> ManifestSource
     -> { rows : List Transport.IndexEntry, loading : Bool, loaded : Bool }
@@ -1105,7 +1147,7 @@ rendererView :
     -> List Instance
     -> Model
     -> Element.Element Msg
-rendererView palette zone activeBatchId pendingBatchId erroredBatchId expiredBatchId allowedIframeOrigins manifest history results embedUrl statusOverride instances model =
+rendererView palette zone activeResultId pendingResultId erroredResultId expiredResultId requestBusy allowedIframeOrigins manifest history results embedUrl statusOverride instances model =
     case manifest of
         ManifestReady manifestJson ->
             -- Decode per render is fine for the small card; the fail-closed decoder is the security
@@ -1128,7 +1170,7 @@ rendererView palette zone activeBatchId pendingBatchId erroredBatchId expiredBat
                                     )
                                 ]
                                 [ rendererStyle palette
-                                , Html.map RendererMsg (Render.view allowedIframeOrigins spec (projection zone activeBatchId pendingBatchId erroredBatchId expiredBatchId history results embedUrl statusOverride instances model) model.renderer)
+                                , Html.map RendererMsg (Render.view allowedIframeOrigins spec (projection zone activeResultId pendingResultId erroredResultId expiredResultId requestBusy history results embedUrl statusOverride instances model) model.renderer)
                                 ]
                             )
                         )
@@ -1402,6 +1444,12 @@ rendererStyle palette =
                 , ".jr-text { }"
                 , ".jr-button { padding: 4px 12px; border: 1px solid " ++ border ++ "; border-radius: 4px; background: " ++ frontBg ++ "; color: " ++ text ++ "; cursor: pointer; font-size: 0.9em; }"
                 , ".jr-button:hover { border-color: " ++ primary ++ "; color: " ++ primary ++ "; }"
+
+                -- A `disabled` action (today: a row's View while the §7.1 request slot is busy).
+                -- Dimmed and not-allowed rather than hidden, so the control stays where the eye
+                -- expects it and the press reads as temporarily unavailable, not missing. The hover
+                -- rule is re-neutralized because `:hover` still fires over a disabled button.
+                , ".jr-button--disabled, .jr-button--disabled:hover { opacity: 0.45; cursor: not-allowed; border-color: " ++ border ++ "; color: " ++ muted ++ "; }"
                 , ".jr-checkbox { display: inline-flex; align-items: center; gap: 6px; }"
                 , ".jr-checkbox input { accent-color: " ++ primary ++ "; }"
                 , ".jr-badge { padding: 1px 9px; border-radius: 999px; font-size: 0.8em; border: 1px solid transparent; }"

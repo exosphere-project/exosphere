@@ -233,9 +233,9 @@ cloudShieldEmbedProjectionSuite =
                 in
                 -- The expiry fix: an expired session no longer reads as active ("Now viewing"). The
                 -- iframe unmounts (embedUrl ""), the state is EmbedExpired, and the previously-viewed
-                -- row becomes `expiredBatchId` (a muted "Expired"/View row) instead of `activeBatchId`.
+                -- row becomes `expiredResultId` (a muted "Expired"/View row) instead of `activeResultId`.
                 Expect.equal ( "", Card.EmbedExpired, ( Nothing, Just "b1" ) )
-                    ( projection.embedUrl, projection.embedState, ( projection.activeBatchId, projection.expiredBatchId ) )
+                    ( projection.embedUrl, projection.embedState, ( projection.activeResultId, projection.expiredResultId ) )
         , test "an error embed result reports EmbedError with the unwrapped message and no iframe" <|
             \_ ->
                 let
@@ -249,7 +249,7 @@ cloudShieldEmbedProjectionSuite =
                 in
                 Expect.equal ( "", Card.EmbedError "remint failed" )
                     ( projection.embedUrl, projection.embedState )
-        , test "a pending getEmbed with no matching result yet reports EmbedLoading and its batchId as pendingBatchId" <|
+        , test "a pending getEmbed with no matching result yet reports EmbedLoading and its resultId as pendingResultId" <|
             \_ ->
                 let
                     now =
@@ -264,8 +264,8 @@ cloudShieldEmbedProjectionSuite =
                             (modelPendingEmbed now)
                 in
                 Expect.equal ( Card.EmbedLoading, Just "b1" )
-                    ( projection.embedState, projection.pendingBatchId )
-        , test "a pending getEmbed older than the timeout reports EmbedError and clears pendingBatchId (no stuck loading)" <|
+                    ( projection.embedState, projection.pendingResultId )
+        , test "a pending getEmbed older than the timeout reports EmbedError and clears pendingResultId (no stuck loading)" <|
             \_ ->
                 let
                     now =
@@ -280,8 +280,8 @@ cloudShieldEmbedProjectionSuite =
                             (modelPendingEmbed (Time.millisToPosix (1000000 - 31000)))
                 in
                 Expect.equal ( Card.EmbedError "the request timed out", Nothing )
-                    ( projection.embedState, projection.pendingBatchId )
-        , test "a matching error result reports EmbedError and clears pendingBatchId (no stuck loading)" <|
+                    ( projection.embedState, projection.pendingResultId )
+        , test "a matching error result reports EmbedError and clears pendingResultId (no stuck loading)" <|
             \_ ->
                 let
                     -- pending marker whose requestId matches the error body's (exo-cs-req-100).
@@ -304,8 +304,8 @@ cloudShieldEmbedProjectionSuite =
                             model
                 in
                 Expect.equal ( Card.EmbedError "remint failed", Nothing )
-                    ( projection.embedState, projection.pendingBatchId )
-        , test "a just-completed scan whose result batchId is null keys activeBatchId on its requestId (mirrors the index row so the row reads Now viewing)" <|
+                    ( projection.embedState, projection.pendingResultId )
+        , test "a just-completed scan whose result batchId is null keys activeResultId on its requestId (mirrors the index row so the row reads Now viewing)" <|
             \_ ->
                 let
                     doneScanBody =
@@ -319,9 +319,11 @@ cloudShieldEmbedProjectionSuite =
                             (Just doneScanBody)
                             (ServerDetail.init "self")
                 in
-                Expect.equal (Just "exo-cs-req-42") projection.activeBatchId
-        , test "a just-completed scan with a real result batchId keys activeBatchId on that batchId" <|
+                Expect.equal (Just "exo-cs-req-42") projection.activeResultId
+        , test "a just-completed scan in a BATCH keys activeResultId on its own requestId, not the shared batchId" <|
             \_ ->
+                -- The history row it has to match is keyed by requestId too, and every sibling of
+                -- the batch shares `batch-9` — keying on that flags them all "Now viewing" at once.
                 let
                     doneScanBody =
                         """{"schemaVersion":"1.0","requestId":"exo-cs-req-42","batchId":"batch-9","completedAt":"2026-07-20T21:00:00.000Z","status":"ok","findings":[]}"""
@@ -334,7 +336,46 @@ cloudShieldEmbedProjectionSuite =
                             (Just doneScanBody)
                             (ServerDetail.init "self")
                 in
-                Expect.equal (Just "batch-9") projection.activeBatchId
+                Expect.equal (Just "exo-cs-req-42") projection.activeResultId
+        , test "a result body carrying no requestId at all falls back to its batchId" <|
+            \_ ->
+                let
+                    doneScanBody =
+                        """{"schemaVersion":"1.0","batchId":"batch-9","completedAt":"2026-07-20T21:00:00.000Z","status":"ok","findings":[]}"""
+
+                    projection =
+                        ServerDetail.exoextEmbedProjection
+                            [ { key = "exoext.v1.etag", value = "etag-1" } ]
+                            beforeExpiry
+                            (Just { targetId = "i-1", state = "done" })
+                            (Just doneScanBody)
+                            (ServerDetail.init "self")
+                in
+                Expect.equal (Just "batch-9") projection.activeResultId
+        , test "an open session names the RESULT the host asked for, not the response's shared batchId" <|
+            \_ ->
+                -- The response echoes only requestId + batchId, and two siblings share the batchId,
+                -- so the host's own request record is what says which archived result is on screen.
+                let
+                    base =
+                        modelWithArchivedFindings
+
+                    model =
+                        { base
+                            | exoextEmbedResultId =
+                                Just { requestId = "exo-cs-req-100", resultId = "exo-cs-req-7" }
+                        }
+
+                    projection =
+                        ServerDetail.exoextEmbedProjection
+                            (embedResultMetadata (okEmbedBody expiresAtIso))
+                            beforeExpiry
+                            Nothing
+                            Nothing
+                            model
+                in
+                Expect.equal ( Card.EmbedReady, Just "exo-cs-req-7" )
+                    ( projection.embedState, projection.activeResultId )
         ]
 
 

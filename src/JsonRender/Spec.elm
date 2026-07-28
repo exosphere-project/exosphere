@@ -193,10 +193,15 @@ type alias BadgeProps =
     }
 
 
-{-| `Button` props: the `label` expression.
+{-| `Button` props: the `label` expression and an optional `disabled` expression. When `disabled`
+resolves truthy the button renders inert (the native `disabled` attribute, a
+`jr-button--disabled` class, and no press handler at all); absent ⇒ enabled, the historical
+behavior.
 -}
 type alias ButtonProps =
-    { label : Expr }
+    { label : Expr
+    , disabled : Maybe Expr
+    }
 
 
 {-| `Checkbox` props: an optional `label` and an optional `checked` binding (typically a
@@ -208,12 +213,19 @@ type alias CheckboxProps =
     }
 
 
-{-| `FindingsTable` props: the `bind` expression pointing at the findings payload and a
-`groupBy` field name.
+{-| `FindingsTable` props: the `bind` expression pointing at the findings payload, a `groupBy`
+field name, and an optional `emptyLabel` expression for the no-findings state.
+
+`emptyLabel` is what lets a manifest say something DEFINITIVE about an empty table. The renderer's
+own default ("No findings yet") is right for a table that has nothing bound yet and wrong for a
+completed, genuinely clean scan; only the publisher knows which it is, so it supplies the string.
+Absent ⇒ the default; resolving to an empty string ⇒ no empty-state node at all.
+
 -}
 type alias FindingsTableProps =
     { bind : Expr
     , groupBy : String
+    , emptyLabel : Maybe Expr
     }
 
 
@@ -421,7 +433,7 @@ elementDecoder =
 otherwise fail-closed. The strictness floor reused for elements, props, action bindings,
 confirm, and repeat — Elm decoders ignore unknown keys (and silently default on
 non-objects) by default, which would drop unsupported contract surface (`visible`,
-`onSuccess`, a future `disabled` prop) or accept a malformed `"props": []`.
+`onSuccess`, a future `icon` prop) or accept a malformed `"props": []`.
 -}
 rejectUnknownKeys : String -> List String -> Decoder a -> Decoder a
 rejectUnknownKeys label allowed inner =
@@ -508,7 +520,7 @@ parseComponentType name =
 {-| Decode the strict per-component props. `props` is decoded against an empty object
 when absent, so the strict body decoder still runs (and still fails-closed when a
 required field like `Text.value` is missing). Unknown prop keys are **rejected** per
-component (a stray `disabled` on a Button must fail, not render an enabled button).
+component (a stray `visible` on a Button must fail, not render an unconditionally visible one).
 -}
 propsDecoder : ComponentType -> Decoder Props
 propsDecoder ct =
@@ -544,13 +556,13 @@ allowedPropKeys ct =
             [ "value", "variant" ]
 
         Button ->
-            [ "label" ]
+            [ "label", "disabled" ]
 
         Checkbox ->
             [ "label", "checked" ]
 
         FindingsTable ->
-            [ "bind", "groupBy" ]
+            [ "bind", "groupBy", "emptyLabel" ]
 
         Iframe ->
             [ "src", "title" ]
@@ -597,8 +609,9 @@ propsBodyDecoder ct =
                 (optionalField "variant" (Decode.map Just Expr.decoder) Nothing)
 
         Button ->
-            Decode.map (ButtonP << ButtonProps)
+            Decode.map2 (\l d -> ButtonP (ButtonProps l d))
                 (Decode.field "label" Expr.decoder)
+                (optionalField "disabled" (Decode.map Just Expr.decoder) Nothing)
 
         Checkbox ->
             Decode.map2 (\l c -> CheckboxP (CheckboxProps l c))
@@ -606,9 +619,10 @@ propsBodyDecoder ct =
                 (Decode.maybe (Decode.field "checked" Expr.decoder))
 
         FindingsTable ->
-            Decode.map2 (\b g -> FindingsTableP (FindingsTableProps b g))
+            Decode.map3 (\b g e -> FindingsTableP (FindingsTableProps b g e))
                 (Decode.field "bind" Expr.decoder)
                 (optionalField "groupBy" Decode.string "severity")
+                (optionalField "emptyLabel" (Decode.map Just Expr.decoder) Nothing)
 
         Iframe ->
             Decode.map2 (\s t -> IframeP (IframeProps s t))

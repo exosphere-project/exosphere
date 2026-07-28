@@ -22,6 +22,7 @@ import ISO8601
 import Json.Decode as Decode
 import Json.Encode as Encode
 import List.Extra
+import Maybe.Extra
 import OpenStack.DnsRecordSet
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.ServerVolumes exposing (serverCanHaveVolumeAttached)
@@ -97,13 +98,26 @@ type alias Model =
     , exoextHistoryRequestKey : Maybe String
 
     -- the in-flight history-View getEmbed request, as the generic `Exoext.Lifecycle.PendingRequest`
-    -- (`kind == "getEmbed"`, `subject` = the archived batch id), recorded when its req slot is
+    -- (`kind == "getEmbed"`, `subject` = the archived result id), recorded when its req slot is
     -- written so the card can show a spinner while the bridge mints a fresh embed (~10s over the
     -- next poll) and can time the request out. Single-slot: a newer getEmbed replaces it; a
     -- matching-`requestId` result clears it (see `clearResolvedPendingEmbed`). `Nothing` when
     -- nothing is in flight. This is the session-request view of `PendingRequest`; the scan-request
     -- view lives in the card model (`CloudShield.Card.Model.pending`).
     , exoextPendingEmbed : Maybe Exoext.Lifecycle.PendingRequest
+
+    -- which archived result the last getEmbed asked for, keyed by that request's own `requestId`.
+    -- The wire session result echoes only `requestId` + `batchId`, and §2.2 siblings SHARE a
+    -- batchId, so the response alone cannot say WHICH result the open session views. This is the
+    -- host's own correlation record — the request id matches the response, the result id names the
+    -- resource — and unlike `exoextPendingEmbed` it survives the response (which clears the pending
+    -- marker) so the resolved session keeps its identity. Replaced by the next getEmbed. A session
+    -- opened before a page reload has no record and falls back to the response's `batchId`.
+    , exoextEmbedResultId :
+        Maybe
+            { requestId : String
+            , resultId : String
+            }
 
     -- the undrained tail of a multi-target scan, as the generic `Exoext.Lifecycle.Batch`
     -- (`remaining` = the target ids whose requests have not been written yet, in selection order;
@@ -138,7 +152,7 @@ type Msg
     | GotExoextIndexObject Time.Posix String (Result HttpErrorWithBody String)
     | CloudShieldMsg CloudShield.Card.Msg
     | ExoextWriteRequest { subject : String, batchId : Maybe String } Time.Posix
-    | ExoextWriteEmbedRequest { batchId : String } Time.Posix
+    | ExoextWriteEmbedRequest { resultId : String, batchId : String } Time.Posix
     | ExoextWriteApproval Time.Posix
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
@@ -161,6 +175,7 @@ init serverUuid =
     , exoextHistory = RDPP.empty
     , exoextHistoryRequestKey = Nothing
     , exoextPendingEmbed = Nothing
+    , exoextEmbedResultId = Nothing
     , exoextBatch = Nothing
     }
 
@@ -347,15 +362,23 @@ update msg project model =
             -- `run.state`. Record a single-slot pending marker so the card can show a spinner and
             -- time the request out; its `requestId` mirrors the one `writeEmbedRequestCmd` stamps
             -- (both derived from the same `now`) so a matching result later clears it.
+            let
+                requestId =
+                    "exo-cs-req-" ++ String.fromInt (Time.posixToMillis now)
+            in
             ( { model
                 | exoextPendingEmbed =
                     Just
                         { seq = Time.posixToMillis now
-                        , requestId = "exo-cs-req-" ++ String.fromInt (Time.posixToMillis now)
+                        , requestId = requestId
                         , kind = "getEmbed"
-                        , subject = req.batchId
+                        , subject = req.resultId
                         , since = now
                         }
+
+                -- Outlives the pending marker: the response clears that, and the resolved session
+                -- still has to know which archived result it is showing (see the field's comment).
+                , exoextEmbedResultId = Just { requestId = requestId, resultId = req.resultId }
               }
             , writeEmbedRequestCmd project model req now
             , SharedMsg.NoOp
@@ -632,20 +655,39 @@ syncExoextManifest project sentinel etag model =
                 ( model, Cmd.none )
 
 
+{-| The archived result an embed result is about: the resultId the host asked for, when this
+response is the answer to that request, else the response's own `batchId`. §4.2 keys result objects
+by requestId and §2.2 siblings share a batchId, so the batchId is only a legacy selector — right
+for a pre-WP6 object (and for a session reopened after a reload, which has no host record).
+-}
+exoextEmbedResultId : Model -> Exoext.Transport.EmbedResult -> String
+exoextEmbedResultId model embed =
+    case model.exoextEmbedResultId of
+        Just record ->
+            if record.requestId == embed.requestId then
+                record.resultId
+
+            else
+                embed.batchId
+
+        Nothing ->
+            embed.batchId
+
+
 {-| The object to fetch for the current res-slot body, if any: a `{"ref": ...}` scan-result
 pointer names its object directly; an embed result (`kind == "embed"`, `status == "ok"`) names
-the archived scan body `<prefix>results/<batchId>.json` — the same capped ref-fetch path serves
-both. An inline scan result or a non-ok embed result names nothing.
+the archived scan body `<prefix>results/<resultId>.json` (§4.2) — the same capped ref-fetch path
+serves both. An inline scan result or a non-ok embed result names nothing.
 -}
-exoextResultObjectName : Exoext.Discovery.Sentinel -> List OSTypes.MetadataItem -> Maybe String
-exoextResultObjectName sentinel metadata =
+exoextResultObjectName : Model -> Exoext.Discovery.Sentinel -> List OSTypes.MetadataItem -> Maybe String
+exoextResultObjectName model sentinel metadata =
     Exoext.Transport.resultBodyFromMetadata metadata
         |> Maybe.andThen
             (\body ->
                 case Exoext.Transport.embedResultFromBody body of
                     Just embed ->
                         if embed.status == "ok" then
-                            Just (Maybe.withDefault "" sentinel.prefix ++ "results/" ++ embed.batchId ++ ".json")
+                            Just (Maybe.withDefault "" sentinel.prefix ++ "results/" ++ exoextEmbedResultId model embed ++ ".json")
 
                         else
                             Nothing
@@ -657,7 +699,7 @@ exoextResultObjectName sentinel metadata =
 
 syncExoextResultRef : Project -> Exoext.Discovery.Sentinel -> String -> List OSTypes.MetadataItem -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
 syncExoextResultRef project sentinel etag metadata ( model, manifestCmd ) =
-    case exoextResultObjectName sentinel metadata of
+    case exoextResultObjectName model sentinel metadata of
         Just objectName ->
             case ( project.endpoints.swift, sentinel.container ) of
                 ( Nothing, _ ) ->
@@ -1110,10 +1152,15 @@ exoextViewConfig approved project model currentTime server =
 
             Nothing ->
                 { rows = [], loading = False, loaded = True }
-    , activeBatchId = embedProjection.activeBatchId
-    , pendingBatchId = embedProjection.pendingBatchId
-    , erroredBatchId = embedProjection.erroredBatchId
-    , expiredBatchId = embedProjection.expiredBatchId
+    , activeResultId = embedProjection.activeResultId
+    , pendingResultId = embedProjection.pendingResultId
+    , erroredResultId = embedProjection.erroredResultId
+    , expiredResultId = embedProjection.expiredResultId
+
+    -- The §7.1 guard, projected so the manifest can disable the affordance it would swallow.
+    -- Same predicate the `EmbedRequested` branch of `update` applies, read from the same live wire
+    -- state — the button is greyed exactly when (and only when) a press would do nothing.
+    , requestBusy = exoextGetEmbedBlocked project model
     , allowedIframeOrigins = allowedIframeOrigins
     , embedUrl = embedUrl
     , embedState = embedProjection.embedState
@@ -1189,7 +1236,8 @@ embedRequestTimeoutMillis =
 {-| The reader projection for the history-View embed flow, decided purely from this instance's
 metadata, the fetched archived body (`model.exoextResultRef`), the pending getEmbed marker,
 and the shared client clock. Returns the findings/`embedUrl` binding for the renderer, the
-host-side `embedState` line, and the active/pending/errored batch ids for per-row state.
+host-side `embedState` line, and the active/pending/errored **result** ids for per-row state
+(never batch ids — §2.2 siblings share a batch, so a batch id flags every sibling row at once).
 
 An ok embed result in the res slot is a history pick and wins over the live scan result for both
 the findings table and the iframe; otherwise the scan-result path is used exactly as before.
@@ -1205,7 +1253,7 @@ exoextEmbedProjection :
     -> Maybe { targetId : String, state : String }
     -> Maybe String
     -> Model
-    -> { results : Maybe Encode.Value, embedUrl : String, embedState : CloudShield.Card.EmbedState, activeBatchId : Maybe String, pendingBatchId : Maybe String, erroredBatchId : Maybe String, expiredBatchId : Maybe String }
+    -> { results : Maybe Encode.Value, embedUrl : String, embedState : CloudShield.Card.EmbedState, activeResultId : Maybe String, pendingResultId : Maybe String, erroredResultId : Maybe String, expiredResultId : Maybe String }
 exoextEmbedProjection metadata currentTime statusOverride resultBody model =
     let
         rawEmbedResult =
@@ -1233,7 +1281,11 @@ exoextEmbedProjection metadata currentTime statusOverride resultBody model =
                 |> Maybe.map
                     (\embed ->
                         { requestId = embed.requestId
-                        , subject = embed.batchId
+
+                        -- The session's subject is the §4.2 RESULT it views, resolved from the
+                        -- host's own request record (see `exoextEmbedResultId`) — the response's
+                        -- `batchId` cannot tell two siblings apart.
+                        , subject = exoextEmbedResultId model embed
                         , status = embed.status
                         , url = embed.embedUrl
                         , expiresAt =
@@ -1266,9 +1318,9 @@ exoextEmbedProjection metadata currentTime statusOverride resultBody model =
                     CloudShield.Card.EmbedError message
 
         -- The expiry fix: an ok-but-expired session is `OpenStale`, so the previously-viewed row
-        -- becomes `expiredBatchId` (a muted "Expired" / plain-View row) INSTEAD of `activeBatchId`
-        -- ("Now viewing" / Refresh). A fresh ok session stays active as before.
-        expiredBatchId =
+        -- becomes `expiredResultId` (a muted "Expired" / plain-View row) INSTEAD of
+        -- `activeResultId` ("Now viewing" / Refresh). A fresh ok session stays active as before.
+        expiredResultId =
             case session of
                 Exoext.Lifecycle.OpenStale expiredSession ->
                     Just expiredSession.resultId
@@ -1332,15 +1384,15 @@ exoextEmbedProjection metadata currentTime statusOverride resultBody model =
                         |> Maybe.withDefault ""
                     )
 
-        -- The batchId whose findings/embed are on screen, so the card can flag exactly one
+        -- The resultId whose findings/embed are on screen, so the card can flag exactly one
         -- history row as "Now viewing": the picked history row wins (only while its session is not
-        -- expired — an expired session becomes `expiredBatchId` above), else the just-completed
+        -- expired — an expired session becomes `expiredResultId` above), else the just-completed
         -- live scan (read from the result body only when the correlated run is `done`).
-        activeBatchId =
+        activeResultId =
             case maybeEmbedResult of
                 Just embed ->
-                    if expiredBatchId == Nothing then
-                        Just embed.batchId
+                    if expiredResultId == Nothing then
+                        Just (exoextEmbedResultId model embed)
 
                     else
                         Nothing
@@ -1349,21 +1401,18 @@ exoextEmbedProjection metadata currentTime statusOverride resultBody model =
                     case statusOverride of
                         Just override ->
                             if override.state == "done" then
-                                -- The just-completed live scan. Its result body's `batchId` is
-                                -- `null` for a scan request (we send `batchId: null`), so mirror the
-                                -- history index key (`batchId or requestId`) and fall back to the
-                                -- `requestId`; otherwise the new history row would key on the
-                                -- requestId while `activeBatchId` was `Nothing`, leaving it stuck on
-                                -- "View" instead of "Now viewing".
+                                -- The just-completed live scan, keyed exactly as its fresh history
+                                -- row keys itself (`requestId`, falling back to `batchId` for a
+                                -- publisher that archives no per-run id). Get this wrong and the new
+                                -- row sits on "View" instead of "Now viewing".
                                 resultBody
                                     |> Maybe.andThen
                                         (\body ->
-                                            case Decode.decodeString (Decode.field "batchId" Decode.string) body |> Result.toMaybe of
-                                                Just batchId ->
-                                                    Just batchId
-
-                                                Nothing ->
-                                                    Decode.decodeString (Decode.field "requestId" Decode.string) body |> Result.toMaybe
+                                            let
+                                                stringField key =
+                                                    Decode.decodeString (Decode.field key Decode.string) body |> Result.toMaybe
+                                            in
+                                            Maybe.Extra.or (stringField "requestId") (stringField "batchId")
                                         )
 
                             else
@@ -1372,11 +1421,11 @@ exoextEmbedProjection metadata currentTime statusOverride resultBody model =
                         Nothing ->
                             Nothing
 
-        -- The in-flight getEmbed's batch (`Opening`) for the per-row "Opening…" loading state, and
-        -- the last failed getEmbed's batch (`Failed`) for the per-row "Couldn't open" + Retry state.
-        -- Both come straight from the generic session token, so each is `Just` only in its state and
-        -- clears the moment the request resolves — no row is ever wedged loading or errored.
-        pendingBatchId =
+        -- The in-flight getEmbed's result (`Opening`) for the per-row "Opening…" loading state, and
+        -- the last failed getEmbed's result (`Failed`) for the per-row "Couldn't open" + Retry
+        -- state. Both come straight from the generic session token, so each is `Just` only in its
+        -- state and clears the moment the request resolves — no row is ever wedged loading/errored.
+        pendingResultId =
             case session of
                 Exoext.Lifecycle.Opening { subject } ->
                     Just subject
@@ -1384,7 +1433,7 @@ exoextEmbedProjection metadata currentTime statusOverride resultBody model =
                 _ ->
                     Nothing
 
-        erroredBatchId =
+        erroredResultId =
             case session of
                 Exoext.Lifecycle.Failed { subject } ->
                     Just subject
@@ -1395,10 +1444,10 @@ exoextEmbedProjection metadata currentTime statusOverride resultBody model =
     { results = results
     , embedUrl = embedUrl
     , embedState = embedState
-    , activeBatchId = activeBatchId
-    , pendingBatchId = pendingBatchId
-    , erroredBatchId = erroredBatchId
-    , expiredBatchId = expiredBatchId
+    , activeResultId = activeResultId
+    , pendingResultId = pendingResultId
+    , erroredResultId = erroredResultId
+    , expiredResultId = expiredResultId
     }
 
 
@@ -1579,7 +1628,7 @@ write as a scan request (via `reqSlotMetadata`), with a wall-clock-millis seq so
 collides with a reload-reset counter. The bridge claims the slot and writes a small embed
 result inline into the res slot; it does not update `run.state`.
 -}
-writeEmbedRequestCmd : Project -> Model -> { batchId : String } -> Time.Posix -> Cmd Msg
+writeEmbedRequestCmd : Project -> Model -> { resultId : String, batchId : String } -> Time.Posix -> Cmd Msg
 writeEmbedRequestCmd project model req now =
     let
         timeSeq =
@@ -1588,6 +1637,7 @@ writeEmbedRequestCmd project model req now =
         embedRequest =
             { requestId = "exo-cs-req-" ++ String.fromInt timeSeq
             , batchId = req.batchId
+            , resultId = req.resultId
             , createdAt = ISO8601.toString (ISO8601.fromPosix now)
             }
 

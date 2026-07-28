@@ -306,9 +306,16 @@ readChunkedBody prefix metadata =
 {-| One archived-scan row from `<prefix>results/index.json` (the append-only history index the
 bridge writes in `store=swift` mode). Only the fields the reader renders are decoded; unknown
 fields are tolerated (the bridge may add more over time).
+
+`requestId` is the §4.1 request this row archives, and it is **optional**: rows written before the
+per-run result identity landed carry only `batchId`, which §2.2 siblings SHARE — so `batchId` alone
+cannot identify one run within a batch. `Nothing` for those legacy rows; the reader falls back to
+`batchId` there.
+
 -}
 type alias IndexEntry =
     { batchId : String
+    , requestId : Maybe String
     , targetId : String
     , targetName : String
     , completedAt : String
@@ -362,8 +369,9 @@ decodeIndex body =
 
 indexEntryDecoder : Decode.Decoder IndexEntry
 indexEntryDecoder =
-    Decode.map6 IndexEntry
+    Decode.map7 IndexEntry
         (optionalString "batchId")
+        (optionalIdentifier "requestId")
         (optionalString "targetId")
         (optionalString "targetName")
         (optionalString "completedAt")
@@ -389,6 +397,24 @@ emptyCounts =
 optionalString : String -> Decode.Decoder String
 optionalString key =
     Decode.oneOf [ Decode.field key Decode.string, Decode.succeed "" ]
+
+
+{-| An optional identifier field: `Nothing` when absent, wrong-typed, **or empty**. The empty
+string is folded into `Nothing` deliberately — an id that identifies nothing must not be adopted as
+a row's identity, or two rows written by a bridge that emits `""` would collide exactly the way the
+shared `batchId` does.
+-}
+optionalIdentifier : String -> Decode.Decoder (Maybe String)
+optionalIdentifier key =
+    optionalString key
+        |> Decode.map
+            (\value ->
+                if String.isEmpty value then
+                    Nothing
+
+                else
+                    Just value
+            )
 
 
 optionalInt : String -> Decode.Decoder Int
@@ -454,12 +480,18 @@ res slot without touching `run.state`.
 type alias EmbedRequest =
     { requestId : String
     , batchId : String
+    , resultId : String
     , createdAt : String
     }
 
 
 {-| Encode a `getEmbed` request to a compact JSON string (the body that gets chunked into the
-req slot). Shape: `{schemaVersion, requestId, action:"getEmbed", batchId, createdAt}`.
+req slot). Shape: `{schemaVersion, requestId, action:"getEmbed", batchId, resultId, createdAt}`.
+
+`resultId` names the ONE archived result to open (§4.2 keys results by requestId). `batchId` stays
+on the wire for a publisher that predates `resultId` and selects by batch; it is the selector of
+last resort, since §2.2 siblings share it.
+
 -}
 embedRequestJson : EmbedRequest -> String
 embedRequestJson req =
@@ -469,6 +501,7 @@ embedRequestJson req =
             , ( "requestId", Encode.string req.requestId )
             , ( "action", Encode.string "getEmbed" )
             , ( "batchId", Encode.string req.batchId )
+            , ( "resultId", Encode.string req.resultId )
             , ( "createdAt", Encode.string req.createdAt )
             ]
 

@@ -106,6 +106,21 @@ indexSuite =
 
                     [] ->
                         Expect.fail "expected at least one row"
+        , test "a row's requestId is decoded as its per-run result identity" <|
+            \_ ->
+                Expect.equal [ Just "exo-cs-req-42" ]
+                    (Transport.decodeIndex """[ { "batchId": "b-1", "requestId": "exo-cs-req-42" } ]"""
+                        |> List.map .requestId
+                    )
+        , test "a legacy row with no requestId decodes as Nothing (the batchId fallback)" <|
+            \_ ->
+                Expect.equal [ Nothing ] (Transport.decodeIndex goodIndex |> List.map .requestId |> List.take 1)
+        , test "an empty requestId is Nothing, never an id that identifies nothing" <|
+            \_ ->
+                Expect.equal [ Nothing ]
+                    (Transport.decodeIndex """[ { "batchId": "b-1", "requestId": "" } ]"""
+                        |> List.map .requestId
+                    )
         , test "unknown fields are tolerated and missing counts default to zero" <|
             \_ ->
                 let
@@ -164,13 +179,14 @@ countsLabelSuite =
 embedRequestSuite : Test
 embedRequestSuite =
     describe "embedRequestJson encodes the getEmbed request shape"
-        [ test "it carries schemaVersion, action=getEmbed, batchId and createdAt" <|
+        [ test "it carries schemaVersion, action=getEmbed, batchId, resultId and createdAt" <|
             \_ ->
                 let
                     json =
                         Transport.embedRequestJson
                             { requestId = "exo-cs-req-1700000000000"
                             , batchId = "b-1"
+                            , resultId = "exo-cs-req-1699999999999"
                             , createdAt = "2026-07-17T00:00:00Z"
                             }
 
@@ -178,8 +194,8 @@ embedRequestSuite =
                         Decode.decodeString (Decode.field key Decode.string) json
                 in
                 Expect.equal
-                    ( Ok "1.0", Ok "getEmbed", Ok "b-1" )
-                    ( field "schemaVersion", field "action", field "batchId" )
+                    ( Ok "1.0", Ok "getEmbed", ( Ok "b-1", Ok "exo-cs-req-1699999999999" ) )
+                    ( field "schemaVersion", field "action", ( field "batchId", field "resultId" ) )
         ]
 
 

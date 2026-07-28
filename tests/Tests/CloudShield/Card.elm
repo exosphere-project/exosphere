@@ -40,10 +40,10 @@ import Time
 
 
 
--- MANIFEST v2 (the wire-owned card.json — the manifest owns every display string)
+-- MANIFEST v3 (the wire-owned card.json — the manifest owns every display string)
 
 
-{-| Manifest v2 as a MANUALLY-SYNCED copy of the bridge's authoritative card.json (the source of
+{-| Manifest v3 as a MANUALLY-SYNCED copy of the bridge's authoritative card.json (the source of
 truth). Re-sync whenever the bridge card changes:
 
     sed 's/\\\\/\\\\\\\\/g' ~/dev/cloudshield-bridge/cloudshield_bridge/card.json
@@ -57,8 +57,8 @@ the two sides cannot silently disagree. `cardJson` is no longer embedded in the 
 is the only in-repo copy of the manifest, and it must decode fail-closed.
 
 -}
-cardJsonV2 : String
-cardJsonV2 =
+cardJsonV3 : String
+cardJsonV3 =
     """
 {
   "root": "card",
@@ -271,7 +271,7 @@ cardJsonV2 =
       },
       "repeat": {
         "statePath": "/history",
-        "key": "batchId"
+        "key": "resultId"
       },
       "children": [
         "history-row"
@@ -325,7 +325,15 @@ cardJsonV2 =
         "bind": {
           "$item": "findings"
         },
-        "groupBy": "severity"
+        "groupBy": "severity",
+        "emptyLabel": {
+          "$cond": {
+            "$item": "status",
+            "eq": "ok"
+          },
+          "$then": "No vulnerabilities found",
+          "$else": ""
+        }
       },
       "children": []
     },
@@ -405,12 +413,18 @@ cardJsonV2 =
               }
             }
           }
+        },
+        "disabled": {
+          "$state": "/requestBusy"
         }
       },
       "on": {
         "press": {
           "action": "exoext.openSession",
           "params": {
+            "resultId": {
+              "$template": "${resultId}"
+            },
             "batchId": {
               "$template": "${batchId}"
             }
@@ -425,7 +439,14 @@ cardJsonV2 =
         "bind": {
           "$state": "/results"
         },
-        "groupBy": "severity"
+        "groupBy": "severity",
+        "emptyLabel": {
+          "$cond": {
+            "$state": "/results"
+          },
+          "$then": "No vulnerabilities found",
+          "$else": ""
+        }
       },
       "children": []
     },
@@ -446,6 +467,7 @@ cardJsonV2 =
     "results": null,
     "history": [],
     "historyNote": "",
+    "requestBusy": false,
     "targetsLabel": "Scan targets",
     "historyLabel": "Scan history"
   }
@@ -486,7 +508,7 @@ variantOf id ctx =
 
 propsOf : String -> Maybe Spec.Props
 propsOf id =
-    JsonRender.decodeString cardJsonV2
+    JsonRender.decodeString cardJsonV3
         |> Result.toMaybe
         |> Maybe.andThen (\spec -> Dict.get id spec.elements)
         |> Maybe.map .props
@@ -494,22 +516,30 @@ propsOf id =
 
 pressBinding : String -> Maybe Spec.ActionBinding
 pressBinding id =
-    JsonRender.decodeString cardJsonV2
+    JsonRender.decodeString cardJsonV3
         |> Result.toMaybe
         |> Maybe.andThen (\spec -> Dict.get id spec.elements)
         |> Maybe.andThen (\el -> Dict.get "press" el.on)
         |> Maybe.andThen List.head
 
 
-{-| A history-row `$item` context carrying the given `state` token (plus a batchId so the View
-button's params resolve). Mirrors `Expr.childContext "/history" 0 …`.
+{-| A history-row `$item` context carrying the given `state` token (plus the row ids so the View
+button's params resolve, and a `status` so the pills' `emptyLabel` resolves). Mirrors
+`Expr.childContext "/history" 0 …`.
 -}
 rowContext : String -> Expr.Context
 rowContext token =
-    Expr.childContext "/history"
-        0
-        (Encode.object [ ( "state", Encode.string token ), ( "batchId", Encode.string "b-1" ) ])
-        (Expr.rootContext [] Encode.null)
+    rowContextWith
+        [ ( "state", Encode.string token )
+        , ( "resultId", Encode.string "r-1" )
+        , ( "batchId", Encode.string "b-1" )
+        , ( "status", Encode.string "done" )
+        ]
+
+
+rowContextWith : List ( String, Encode.Value ) -> Expr.Context
+rowContextWith fields =
+    Expr.childContext "/history" 0 (Encode.object fields) (Expr.rootContext [] Encode.null)
 
 
 {-| The (badge text, badge data-state, action label) the manifest renders for a row `state` token.
@@ -527,15 +557,15 @@ rowTriple token =
 
 manifestSuite : Test
 manifestSuite =
-    describe "CloudShield manifest v2 (wire contract, synced from the bridge card.json)"
+    describe "CloudShield manifest v3 (wire contract, synced from the bridge card.json)"
         [ test "(a) the v2 manifest decodes fail-closed clean through the catalog" <|
             \_ ->
-                case JsonRender.decodeString cardJsonV2 of
+                case JsonRender.decodeString cardJsonV3 of
                     Ok _ ->
                         Expect.pass
 
                     Err message ->
-                        Expect.fail ("card.json v2 should validate, but: " ++ message)
+                        Expect.fail ("card.json v3 should validate, but: " ++ message)
         , test "an off-catalog component type is rejected (fail-closed)" <|
             \_ ->
                 let
@@ -552,21 +582,21 @@ manifestSuite =
             \_ ->
                 let
                     state =
-                        Card.projection Time.utc Nothing Nothing Nothing Nothing (loadedHistory (historyEntries 3)) Nothing "" Nothing sampleInstances idleModel
+                        Card.projection Time.utc Nothing Nothing Nothing Nothing False (loadedHistory (historyEntries 3)) Nothing "" Nothing sampleInstances idleModel
                 in
                 Expect.equal "Scan history · 3" (displayOf "history-label" (Expr.rootContext [] state))
         , test "(b) the history header reads 'Scan history' before the first load resolves" <|
             \_ ->
                 let
                     state =
-                        Card.projection Time.utc Nothing Nothing Nothing Nothing loadingHistory Nothing "" Nothing sampleInstances idleModel
+                        Card.projection Time.utc Nothing Nothing Nothing Nothing False loadingHistory Nothing "" Nothing sampleInstances idleModel
                 in
                 Expect.equal "Scan history" (displayOf "history-label" (Expr.rootContext [] state))
         , test "(b) the targets header reads 'Scan targets · N' from /targetsCount" <|
             \_ ->
                 let
                     state =
-                        Card.projection Time.utc Nothing Nothing Nothing Nothing (loadedHistory []) Nothing "" Nothing sampleInstances idleModel
+                        Card.projection Time.utc Nothing Nothing Nothing Nothing False (loadedHistory []) Nothing "" Nothing sampleInstances idleModel
                 in
                 Expect.equal "Scan targets · 2" (displayOf "targets-label" (Expr.rootContext [] state))
         , test "(c) each state token yields the right badge text + data-state + action label" <|
@@ -616,19 +646,58 @@ manifestSuite =
                                 Card.resolveAction binding.action binding.params
                                     |> Maybe.map .verb
 
-                            batchId =
-                                Expr.resolveParams (rowContext "expired") binding.params
-                                    |> Decode.decodeValue (Decode.field "batchId" Decode.string)
-                                    |> Result.toMaybe
-
                             emitted =
-                                Card.requestEmbed batchId idleModel |> Tuple.second
+                                Expr.resolveParams (rowContext "expired") binding.params
+                                    |> Card.resultIdOf
+                                    |> (\ids -> Card.requestEmbed ids idleModel)
+                                    |> Tuple.second
                         in
-                        Expect.equal ( Just Lifecycle.verbOpenSession, Just (Card.EmbedRequested { batchId = "b-1" }) )
+                        Expect.equal
+                            ( Just Lifecycle.verbOpenSession
+                            , Just (Card.EmbedRequested { resultId = "r-1", batchId = "b-1" })
+                            )
                             ( resolvedVerb, emitted )
 
                     Nothing ->
                         Expect.fail "history-view-btn should carry a press binding"
+        , test "(e) the row action's disabled binds the host's /requestBusy guard flag" <|
+            \_ ->
+                -- The busy guard must be VISIBLE: the same host predicate that swallows the press
+                -- also greys the button, so a press during a scan reads as unavailable, not broken.
+                let
+                    isDisabled busy =
+                        case propsOf "history-view-btn" of
+                            Just (ButtonP p) ->
+                                p.disabled
+                                    |> Maybe.map
+                                        (Expr.resolveBool
+                                            (Expr.rootContext []
+                                                (Encode.object [ ( "requestBusy", Encode.bool busy ) ])
+                                            )
+                                        )
+                                    |> Maybe.withDefault False
+
+                            _ ->
+                                False
+                in
+                Expect.equal ( True, False ) ( isDisabled True, isDisabled False )
+        , test "(f) a clean OK row says so definitively; a failed row says nothing" <|
+            \_ ->
+                -- Defect #2: an all-zero completed scan must not read "No findings yet". The failed
+                -- row stays silent because its badge already says "failed" (no double-messaging).
+                let
+                    emptyLabelFor status =
+                        case propsOf "history-pills" of
+                            Just (FindingsTableP p) ->
+                                p.emptyLabel
+                                    |> Maybe.map (Expr.resolveDisplay (rowContextWith [ ( "status", Encode.string status ) ]))
+                                    |> Maybe.withDefault "No findings yet"
+
+                            _ ->
+                                ""
+                in
+                Expect.equal ( "No vulnerabilities found", "" )
+                    ( emptyLabelFor "ok", emptyLabelFor "error" )
         ]
 
 
@@ -688,7 +757,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing Nothing (loadedHistory []) Nothing "" Nothing sampleInstances (sampleModel (Set.singleton "i-1"))
+                        Card.projection Time.utc Nothing Nothing Nothing Nothing False (loadedHistory []) Nothing "" Nothing sampleInstances (sampleModel (Set.singleton "i-1"))
                 in
                 Expect.equal ( Ok True, Ok False )
                     ( rowSelected 0 value, rowSelected 1 value )
@@ -696,7 +765,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing Nothing (loadedHistory []) Nothing "" Nothing sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc Nothing Nothing Nothing Nothing False (loadedHistory []) Nothing "" Nothing sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal ( Ok "idle", Ok "queued" )
                     ( rowScanState 0 value, rowScanState 1 value )
@@ -707,7 +776,7 @@ projectionSuite =
                         Just { targetId = "i-1", state = "running" }
 
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing Nothing (loadedHistory []) Nothing "" override sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc Nothing Nothing Nothing Nothing False (loadedHistory []) Nothing "" override sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal ( Ok "running", Ok "queued" )
                     ( rowScanState 0 value, rowScanState 1 value )
@@ -715,7 +784,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing Nothing (loadedHistory []) Nothing "https://1-2-3-4.sslip.io/app" Nothing sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc Nothing Nothing Nothing Nothing False (loadedHistory []) Nothing "https://1-2-3-4.sslip.io/app" Nothing sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal (Ok "https://1-2-3-4.sslip.io/app")
                     (Decode.decodeValue (Decode.field "embedUrl" Decode.string) value
@@ -730,7 +799,7 @@ projectionSuite =
                         Just { targetId = "i-1", state = "scanning · 0:23" }
 
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing Nothing (loadedHistory [ historyEntry "b-1" ]) Nothing "" override sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc Nothing Nothing Nothing Nothing False (loadedHistory [ historyEntry "b-1" ]) Nothing "" override sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal ( Ok "scanning · 0:23", Ok "queued" )
                     ( rowScanState 0 value, rowScanState 1 value )
@@ -738,7 +807,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing Nothing loadingHistory Nothing "" Nothing sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc Nothing Nothing Nothing Nothing False loadingHistory Nothing "" Nothing sampleInstances (sampleModel Set.empty)
 
                     stringField key =
                         Decode.decodeValue (Decode.field key Decode.string) value
@@ -746,6 +815,15 @@ projectionSuite =
                 in
                 Expect.equal ( Ok "Scan history", Ok "" )
                     ( stringField "historyLabel", stringField "historyNote" )
+        , test "requestBusy is projected top-level so the manifest can disable the swallowed action" <|
+            \_ ->
+                let
+                    busyFlag requestBusy =
+                        Card.projection Time.utc Nothing Nothing Nothing Nothing requestBusy (loadedHistory []) Nothing "" Nothing sampleInstances idleModel
+                            |> Decode.decodeValue (Decode.field "requestBusy" Decode.bool)
+                            |> Result.mapError Decode.errorToString
+                in
+                Expect.equal ( Ok True, Ok False ) ( busyFlag True, busyFlag False )
         ]
 
 
@@ -932,15 +1010,37 @@ idleModel =
 embedSuite : Test
 embedSuite =
     describe "cloudshield.getEmbed emits EmbedRequested (guard is host-side)"
-        [ test "a getEmbed with a batchId emits EmbedRequested regardless of card scan state" <|
+        [ test "a getEmbed with a resultId emits EmbedRequested regardless of card scan state" <|
             \_ ->
                 -- sampleModel carries a stale "queued" scan for i-2; the card no longer guards on it.
-                Expect.equal (Just (Card.EmbedRequested { batchId = "b-1" }))
-                    (Card.requestEmbed (Just "b-1") (sampleModel Set.empty) |> Tuple.second)
-        , test "a getEmbed with no batchId is a no-op" <|
+                Expect.equal (Just (Card.EmbedRequested { resultId = "r-1", batchId = "b-1" }))
+                    (Card.requestEmbed (Just { resultId = "r-1", batchId = "b-1" }) (sampleModel Set.empty) |> Tuple.second)
+        , test "a getEmbed with no ids is a no-op" <|
             \_ ->
                 Expect.equal Nothing
                     (Card.requestEmbed Nothing idleModel |> Tuple.second)
+        , test "the params reader prefers resultId and keeps batchId beside it" <|
+            \_ ->
+                Expect.equal (Just { resultId = "r-1", batchId = "b-1" })
+                    (Card.resultIdOf
+                        (Encode.object
+                            [ ( "resultId", Encode.string "r-1" )
+                            , ( "batchId", Encode.string "b-1" )
+                            ]
+                        )
+                    )
+        , test "a manifest that emits only batchId still resolves both ids from it (fallback)" <|
+            \_ ->
+                Expect.equal (Just { resultId = "b-1", batchId = "b-1" })
+                    (Card.resultIdOf (Encode.object [ ( "batchId", Encode.string "b-1" ) ]))
+        , test "a press carrying only resultId mirrors it into batchId" <|
+            \_ ->
+                Expect.equal (Just { resultId = "r-1", batchId = "r-1" })
+                    (Card.resultIdOf (Encode.object [ ( "resultId", Encode.string "r-1" ) ]))
+        , test "neither id present is Nothing (fail-closed)" <|
+            \_ ->
+                Expect.equal Nothing
+                    (Card.resultIdOf (Encode.object [ ( "targetName", Encode.string "alpha" ) ]))
         ]
 
 
@@ -948,15 +1048,31 @@ embedSuite =
 -- HISTORY (the /history projection, newest first)
 
 
+{-| A LEGACY index row: no per-run `requestId`, so its resultId falls back to the batchId. Most of
+the suite below uses it, which keeps that fallback covered; `siblingEntry` covers the new path.
+-}
 historyEntry : String -> Transport.IndexEntry
 historyEntry batchId =
     { batchId = batchId
+    , requestId = Nothing
     , targetId = "i-1"
     , targetName = "alpha"
     , completedAt = "2026-07-01T00:00:00Z"
     , status = "done"
     , counts = { critical = 0, high = 2, medium = 0, low = 0, info = 0 }
     }
+
+
+{-| One §2.2 sibling: its own `requestId` (hence its own resultId) under a batchId it SHARES with
+the other siblings — the live shape that made BOTH rows of a batch read "Now viewing".
+-}
+siblingEntry : String -> String -> Transport.IndexEntry
+siblingEntry batchId requestId =
+    let
+        base =
+            historyEntry batchId
+    in
+    { base | requestId = Just requestId }
 
 
 historyBatchIds : Decode.Value -> Result String (List String)
@@ -983,34 +1099,34 @@ historyEntries n =
 
 projectHistory : List Transport.IndexEntry -> Decode.Value
 projectHistory entries =
-    Card.projection Time.utc Nothing Nothing Nothing Nothing (loadedHistory entries) Nothing "" Nothing sampleInstances idleModel
+    Card.projection Time.utc Nothing Nothing Nothing Nothing False (loadedHistory entries) Nothing "" Nothing sampleInstances idleModel
 
 
 {-| Project a single history row and read a string field from `/history/0`, given the active and
-in-flight (`pendingBatchId`) batch ids. No embed-error batch (the common case).
+in-flight (`pendingResultId`) batch ids. No embed-error batch (the common case).
 -}
 historyRowField : Maybe String -> Maybe String -> Transport.IndexEntry -> String -> Result String String
-historyRowField activeBatchId pendingBatchId entry field =
-    historyRowFieldE activeBatchId pendingBatchId Nothing entry field
+historyRowField activeResultId pendingResultId entry field =
+    historyRowFieldE activeResultId pendingResultId Nothing entry field
 
 
-{-| As `historyRowField`, but also supplying the `erroredBatchId` (the last getEmbed that failed /
+{-| As `historyRowField`, but also supplying the `erroredResultId` (the last getEmbed that failed /
 timed out) so the "Couldn't open" / "Retry" precedence can be exercised.
 -}
 historyRowFieldE : Maybe String -> Maybe String -> Maybe String -> Transport.IndexEntry -> String -> Result String String
-historyRowFieldE activeBatchId pendingBatchId erroredBatchId entry field =
-    Card.projection Time.utc activeBatchId pendingBatchId erroredBatchId Nothing (loadedHistory [ entry ]) Nothing "" Nothing sampleInstances idleModel
+historyRowFieldE activeResultId pendingResultId erroredResultId entry field =
+    Card.projection Time.utc activeResultId pendingResultId erroredResultId Nothing False (loadedHistory [ entry ]) Nothing "" Nothing sampleInstances idleModel
         |> Decode.decodeValue (Decode.field "history" (Decode.index 0 (Decode.field field Decode.string)))
         |> Result.mapError Decode.errorToString
 
 
-{-| Project a single history row supplying the `expiredBatchId` (a row whose result session has
+{-| Project a single history row supplying the `expiredResultId` (a row whose result session has
 expired), so the expired-session row state ("Expired" / plain "View", faint highlight) can be
 exercised.
 -}
 historyRowFieldX : Maybe String -> Maybe String -> Transport.IndexEntry -> String -> Result String String
-historyRowFieldX activeBatchId expiredBatchId entry field =
-    Card.projection Time.utc activeBatchId Nothing Nothing expiredBatchId (loadedHistory [ entry ]) Nothing "" Nothing sampleInstances idleModel
+historyRowFieldX activeResultId expiredResultId entry field =
+    Card.projection Time.utc activeResultId Nothing Nothing expiredResultId False (loadedHistory [ entry ]) Nothing "" Nothing sampleInstances idleModel
         |> Decode.decodeValue (Decode.field "history" (Decode.index 0 (Decode.field field Decode.string)))
         |> Result.mapError Decode.errorToString
 
@@ -1018,6 +1134,7 @@ historyRowFieldX activeBatchId expiredBatchId entry field =
 erroredEntry : Transport.IndexEntry
 erroredEntry =
     { batchId = "b-err"
+    , requestId = Nothing
     , targetId = "i-1"
     , targetName = "alpha"
     , completedAt = "2026-07-01T00:00:00Z"
@@ -1088,7 +1205,7 @@ historySuite =
                     )
         , test "an expired session row reverts to a muted Expired badge and a plain View (the expiry fix)" <|
             \_ ->
-                -- b-1's session expired: the host sets expiredBatchId (not activeBatchId), so the row
+                -- b-1's session expired: the host sets expiredResultId (not activeResultId), so the row
                 -- reads "Expired" / "View" (reopen) instead of "Now viewing" / "Refresh".
                 Expect.equal ( Ok "Expired", Ok "View" )
                     ( historyRowFieldX Nothing (Just "b-1") (historyEntry "b-1") "rowState"
@@ -1155,7 +1272,7 @@ historySuite =
                     )
         , test "while an embed error is shown, the prior active row does NOT reclaim Now viewing" <|
             \_ ->
-                -- b-1 was the active pick, then its getEmbed errored (erroredBatchId = b-1). b-1 must
+                -- b-1 was the active pick, then its getEmbed errored (erroredResultId = b-1). b-1 must
                 -- read as Couldn't open, never Now viewing.
                 Expect.equal ( Ok "Couldn't open", Ok "Retry" )
                     ( historyRowFieldE (Just "b-1") Nothing (Just "b-1") (historyEntry "b-1") "rowState"
@@ -1186,7 +1303,7 @@ historySuite =
             \_ ->
                 let
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing Nothing (loadedHistory (historyEntries 3)) Nothing "" Nothing sampleInstances idleModel
+                        Card.projection Time.utc Nothing Nothing Nothing Nothing False (loadedHistory (historyEntries 3)) Nothing "" Nothing sampleInstances idleModel
 
                     stringField key =
                         Decode.decodeValue (Decode.field key Decode.string) value
@@ -1195,43 +1312,67 @@ historySuite =
                 -- sampleInstances has 2 targets; 3 history entries.
                 Expect.equal ( Ok "Scan targets · 2", Ok "Scan history · 3" )
                     ( stringField "targetsLabel", stringField "historyLabel" )
+        , test "a row's resultId is its requestId, falling back to batchId on a legacy row" <|
+            \_ ->
+                Expect.equal (Ok [ "r-2", "b-1" ])
+                    (Decode.decodeValue
+                        (Decode.field "history" (Decode.list (Decode.field "resultId" Decode.string)))
+                        (projectHistory [ historyEntry "b-1", siblingEntry "b-9" "r-2" ])
+                        |> Result.mapError Decode.errorToString
+                    )
+        , test "exactly ONE of two siblings sharing a batchId reads as viewing (the live regression)" <|
+            \_ ->
+                -- The observed failure: both rows of a WP5 batch showed "Now viewing" because the
+                -- session matched on the SHARED batchId. Matching on the per-run resultId fixes it.
+                let
+                    rows =
+                        [ siblingEntry "b-shared" "r-1", siblingEntry "b-shared" "r-2" ]
+
+                    states =
+                        Card.projection Time.utc (Just "r-2") Nothing Nothing Nothing False (loadedHistory rows) Nothing "" Nothing sampleInstances idleModel
+                            |> Decode.decodeValue
+                                (Decode.field "history" (Decode.list (Decode.field "state" Decode.string)))
+                            |> Result.mapError Decode.errorToString
+                in
+                -- Newest first, so r-2 (the active one) leads.
+                Expect.equal (Ok [ "viewing", "idle" ]) states
         ]
 
 
-{-| Regression pin for the history View button: its `params` must emit the batchId VALUE, not
-the item PATH. A top-level `{"$item":"batchId"}` resolves (per `Expr.resolveTopLevelParam`) to
-`"/history/0/batchId"` — the pointer string — which the bridge rejects. The v2 manifest
-uses `{"$template":"${batchId}"}`, which resolves to the row's batchId value.
+{-| Regression pin for the history View button: its `params` must emit the id VALUES, not the item
+PATHS. A top-level `{"$item":"batchId"}` resolves (per `Expr.resolveTopLevelParam`) to
+`"/history/0/batchId"` — the pointer string — which the bridge rejects. The manifest uses
+`{"$template":"${…}"}`, which resolves to the row's value.
 -}
 historyViewParamsSuite : Test
 historyViewParamsSuite =
-    describe "the history View button emits a batchId value, not a JSON Pointer"
-        [ test "resolveParams in a /history row 0 childContext yields the item's batchId value" <|
+    describe "the history View button emits id values, not JSON Pointers"
+        [ test "resolveParams in a /history row 0 childContext yields the item's resultId + batchId values" <|
             \_ ->
-                case JsonRender.decodeString cardJsonV2 of
+                case JsonRender.decodeString cardJsonV3 of
                     Ok spec ->
                         case Dict.get "history-view-btn" spec.elements |> Maybe.andThen (\el -> Dict.get "press" el.on) |> Maybe.andThen List.head of
                             Just binding ->
                                 let
                                     item =
                                         Encode.object
-                                            [ ( "batchId", Encode.string "b-1" )
+                                            [ ( "resultId", Encode.string "r-1" )
+                                            , ( "batchId", Encode.string "b-1" )
                                             , ( "targetName", Encode.string "alpha" )
                                             ]
 
                                     ctx =
                                         Expr.childContext "/history" 0 item (Expr.rootContext [] Encode.null)
-
-                                    resolved =
-                                        Expr.resolveParams ctx binding.params
                                 in
-                                Expect.equal "{\"batchId\":\"b-1\"}" (Encode.encode 0 resolved)
+                                Expr.resolveParams ctx binding.params
+                                    |> Card.resultIdOf
+                                    |> Expect.equal (Just { resultId = "r-1", batchId = "b-1" })
 
                             Nothing ->
                                 Expect.fail "history-view-btn should carry a press binding"
 
                     Err message ->
-                        Expect.fail ("card.json v2 should validate: " ++ message)
+                        Expect.fail ("card.json v3 should validate: " ++ message)
         ]
 
 

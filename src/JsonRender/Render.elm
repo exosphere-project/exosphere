@@ -375,19 +375,37 @@ badgeToken state =
     state |> String.split " " |> List.head |> Maybe.withDefault state
 
 
+{-| Render a `Button`. A truthy `disabled` expression makes it inert three ways over: the native
+`disabled` attribute, a `jr-button--disabled` class for the host stylesheet, and **no press handler
+at all** — the last is the one that actually holds, since the others are only presentation.
+-}
 renderButton : Context -> UIElement -> Spec.ButtonProps -> Html Msg
 renderButton ctx element props =
     let
+        isDisabled =
+            props.disabled |> Maybe.map (Expr.resolveBool ctx) |> Maybe.withDefault False
+
         handler =
-            case pressEmit ctx element of
-                Just emit ->
+            case ( isDisabled, pressEmit ctx element ) of
+                ( False, Just emit ) ->
                     [ Events.onClick (Pressed emit) ]
 
-                Nothing ->
+                _ ->
                     []
+
+        disabledClass =
+            if isDisabled then
+                " jr-button--disabled"
+
+            else
+                ""
     in
     Html.button
-        (Attr.class "jr-button" :: Attr.type_ "button" :: handler)
+        (Attr.class ("jr-button" ++ disabledClass)
+            :: Attr.type_ "button"
+            :: Attr.disabled isDisabled
+            :: handler
+        )
         [ Html.text (Expr.resolveDisplay ctx props.label) ]
 
 
@@ -465,6 +483,14 @@ renderCheckbox ctx props =
         )
 
 
+{-| Render a `FindingsTable`: one severity pill per group, or the empty state.
+
+The empty state is the manifest's to name. `emptyLabel` resolves to the text shown when there are
+no groups; absent it falls back to the renderer's own provisional "No findings yet", and resolving
+to an empty string renders NO node at all (for a row that already says "failed" elsewhere, a second
+empty-state line would be double-messaging).
+
+-}
 renderFindingsTable : Context -> Spec.FindingsTableProps -> Html Msg
 renderFindingsTable ctx props =
     let
@@ -476,8 +502,18 @@ renderFindingsTable ctx props =
     in
     case groups of
         [] ->
-            Html.div [ Attr.class "jr-findings jr-findings--empty" ]
-                [ Html.text "No findings yet" ]
+            let
+                emptyLabel =
+                    props.emptyLabel
+                        |> Maybe.map (Expr.resolveDisplay ctx)
+                        |> Maybe.withDefault "No findings yet"
+            in
+            if String.isEmpty emptyLabel then
+                Html.text ""
+
+            else
+                Html.div [ Attr.class "jr-findings jr-findings--empty" ]
+                    [ Html.text emptyLabel ]
 
         _ ->
             let
