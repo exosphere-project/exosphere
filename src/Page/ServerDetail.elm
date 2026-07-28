@@ -107,12 +107,12 @@ type alias Model =
     , exoextPendingEmbed : Maybe Exoext.Lifecycle.PendingRequest
 
     -- which archived result the last getEmbed asked for, keyed by that request's own `requestId`.
-    -- The wire session result echoes only `requestId` + `batchId`, and §2.2 siblings SHARE a
-    -- batchId, so the response alone cannot say WHICH result the open session views. This is the
-    -- host's own correlation record — the request id matches the response, the result id names the
-    -- resource — and unlike `exoextPendingEmbed` it survives the response (which clears the pending
-    -- marker) so the resolved session keeps its identity. Replaced by the next getEmbed. A session
-    -- opened before a page reload has no record and falls back to the response's `batchId`.
+    -- The host's own correlation record — the request id matches the response, the result id names
+    -- the resource — and unlike `exoextPendingEmbed` it survives the response (which clears the
+    -- pending marker), so a resolved session keeps its identity. Replaced by the next getEmbed.
+    -- It is the SECOND source `exoextEmbedResultId` consults, behind the response's own echoed
+    -- `resultId`: it exists for a publisher that does not echo one, and being session-local it is
+    -- gone after a page reload, which is exactly where the echoed field takes over.
     , exoextEmbedResultId :
         Maybe
             { requestId : String
@@ -655,23 +655,37 @@ syncExoextManifest project sentinel etag model =
                 ( model, Cmd.none )
 
 
-{-| The archived result an embed result is about: the resultId the host asked for, when this
-response is the answer to that request, else the response's own `batchId`. §4.2 keys result objects
-by requestId and §2.2 siblings share a batchId, so the batchId is only a legacy selector — right
-for a pre-WP6 object (and for a session reopened after a reload, which has no host record).
+{-| The archived result an embed result is about, resolved in three steps:
+
+1.  the response's own `resultId` — self-describing, and the only source that survives a page
+    reload, so it wins whenever the publisher echoes it;
+2.  the host's record of what it asked for, when this response answers that request — this covers
+    a publisher that predates the echoed `resultId`;
+3.  the response's `batchId` — last resort. §2.2 siblings SHARE it, so it names a whole batch
+    rather than one run; it is right only for a legacy, batch-keyed archive.
+
+§4.2 keys result objects by requestId, so this same value also names the object to fetch.
+
+Steps 1 and 2 are what keep the "Now viewing" flag on exactly one row: with only step 3, an open
+session on either sibling of a batch flagged both.
+
 -}
 exoextEmbedResultId : Model -> Exoext.Transport.EmbedResult -> String
 exoextEmbedResultId model embed =
-    case model.exoextEmbedResultId of
-        Just record ->
-            if record.requestId == embed.requestId then
-                record.resultId
+    let
+        recordedResultId =
+            model.exoextEmbedResultId
+                |> Maybe.andThen
+                    (\record ->
+                        if record.requestId == embed.requestId then
+                            Just record.resultId
 
-            else
-                embed.batchId
-
-        Nothing ->
-            embed.batchId
+                        else
+                            Nothing
+                    )
+    in
+    Maybe.Extra.or embed.resultId recordedResultId
+        |> Maybe.withDefault embed.batchId
 
 
 {-| The object to fetch for the current res-slot body, if any: a `{"ref": ...}` scan-result

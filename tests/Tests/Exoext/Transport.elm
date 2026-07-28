@@ -215,6 +215,21 @@ embedResultSuite =
 
                     Nothing ->
                         Expect.fail "expected an embed result"
+        , test "an echoed resultId is decoded: the session's own §4.2 identity" <|
+            \_ ->
+                Transport.embedResultFromBody """{"kind":"embed","requestId":"r-1","batchId":"b-1","resultId":"exo-cs-req-7","status":"ok"}"""
+                    |> Maybe.andThen .resultId
+                    |> Expect.equal (Just "exo-cs-req-7")
+        , test "a publisher echoing no resultId decodes as Nothing (the reader falls back)" <|
+            \_ ->
+                Transport.embedResultFromBody """{"kind":"embed","requestId":"r-1","batchId":"b-1","status":"ok"}"""
+                    |> Maybe.andThen .resultId
+                    |> Expect.equal Nothing
+        , test "an empty resultId is Nothing, never an id that identifies nothing" <|
+            \_ ->
+                Transport.embedResultFromBody """{"kind":"embed","requestId":"r-1","batchId":"b-1","resultId":"","status":"ok"}"""
+                    |> Maybe.andThen .resultId
+                    |> Expect.equal Nothing
         , test "a scan-result body (no kind field) is not an embed result" <|
             \_ ->
                 Expect.equal Nothing

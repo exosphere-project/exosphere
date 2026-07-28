@@ -371,7 +371,7 @@ indexEntryDecoder : Decode.Decoder IndexEntry
 indexEntryDecoder =
     Decode.map7 IndexEntry
         (optionalString "batchId")
-        (optionalIdentifier "requestId")
+        (identifierField "requestId")
         (optionalString "targetId")
         (optionalString "targetName")
         (optionalString "completedAt")
@@ -399,22 +399,34 @@ optionalString key =
     Decode.oneOf [ Decode.field key Decode.string, Decode.succeed "" ]
 
 
-{-| An optional identifier field: `Nothing` when absent, wrong-typed, **or empty**. The empty
-string is folded into `Nothing` deliberately — an id that identifies nothing must not be adopted as
-a row's identity, or two rows written by a bridge that emits `""` would collide exactly the way the
-shared `batchId` does.
--}
-optionalIdentifier : String -> Decode.Decoder (Maybe String)
-optionalIdentifier key =
-    optionalString key
-        |> Decode.map
-            (\value ->
-                if String.isEmpty value then
-                    Nothing
+{-| An identifier field, read the same way wherever one appears on the wire. A publisher that
+knows no value may say so three different ways, and all three mean the same thing here:
 
-                else
-                    Just value
-            )
+  - **`null`** — the shape-stable form the bridge writes (like `embedUrl` / `embedExpiresAt`, the
+    key is always present so the object's shape never varies);
+  - **absent** — an older publisher that predates the field;
+  - **`""`** — folded in deliberately: an id that identifies nothing must never be adopted as an
+    identity, or two records carrying it collide exactly the way a shared `batchId` does.
+
+Anything else non-string is `Nothing` too, matching the tolerance of the fields around it.
+
+-}
+identifierField : String -> Decode.Decoder (Maybe String)
+identifierField key =
+    Decode.oneOf
+        [ Decode.field key (Decode.nullable Decode.string)
+        , Decode.succeed Nothing
+        ]
+        |> Decode.map (Maybe.andThen emptyToNothing)
+
+
+emptyToNothing : String -> Maybe String
+emptyToNothing value =
+    if String.isEmpty value then
+        Nothing
+
+    else
+        Just value
 
 
 optionalInt : String -> Decode.Decoder Int
@@ -508,10 +520,18 @@ embedRequestJson req =
 
 {-| The bridge's embed result, written inline into the res slot in response to a `getEmbed`.
 Distinguished from a scan result by `"kind":"embed"` (scan-result bodies carry no `kind`).
+
+`resultId` is the §4.2 result the session was minted for, and it is the ONLY self-describing
+identity on this response: `batchId` is shared by §2.2 siblings, so it cannot say which archived
+run is on screen. The bridge always writes the key and sends JSON `null` when it does not know a
+value (so the object's shape never varies); a publisher predating the field omits it entirely.
+Either way it reads as `Nothing` and sends the reader to its fallbacks.
+
 -}
 type alias EmbedResult =
     { requestId : String
     , batchId : String
+    , resultId : Maybe String
     , status : String
     , embedUrl : String
     , embedExpiresAt : String
@@ -536,9 +556,10 @@ embedResultFromBody body =
 
 embedResultDecoder : Decode.Decoder EmbedResult
 embedResultDecoder =
-    Decode.map6 EmbedResult
+    Decode.map7 EmbedResult
         (optionalString "requestId")
         (optionalString "batchId")
+        (identifierField "resultId")
         (optionalString "status")
         (optionalString "embedUrl")
         (optionalString "embedExpiresAt")

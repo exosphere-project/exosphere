@@ -5,6 +5,7 @@ import Dict
 import Expect
 import Helpers.RemoteDataPlusPlus as RDPP
 import ISO8601
+import Json.Decode as Decode
 import Json.Encode as Encode
 import OpenStack.Types as OSTypes
 import Page.ServerDetail as ServerDetail
@@ -157,6 +158,18 @@ okEmbedBody expiresAt =
     "{\"kind\":\"embed\",\"requestId\":\"exo-cs-req-100\",\"batchId\":\"b1\",\"status\":\"ok\",\"embedUrl\":\"https://vm.example/embed\",\"embedExpiresAt\":\"" ++ expiresAt ++ "\"}"
 
 
+{-| The same ok embed result, but from a publisher that echoes the §4.2 `resultId` the session was
+minted for. `batchId` stays `b1` — the id its siblings share.
+-}
+okEmbedBodyWithResultId : String -> String
+okEmbedBodyWithResultId resultId =
+    "{\"kind\":\"embed\",\"requestId\":\"exo-cs-req-100\",\"batchId\":\"b1\",\"resultId\":\""
+        ++ resultId
+        ++ "\",\"status\":\"ok\",\"embedUrl\":\"https://vm.example/embed\",\"embedExpiresAt\":\""
+        ++ expiresAtIso
+        ++ "\"}"
+
+
 {-| An `status:"error"` embed result body with a plain-string error.
 -}
 errorEmbedBody : String
@@ -186,6 +199,19 @@ beforeExpiry =
 afterExpiry : Time.Posix
 afterExpiry =
     Time.millisToPosix (expiresMillis + 60000)
+
+
+{-| A model that has fetched the archived findings AND still remembers which result its getEmbed
+`requestId` was for — the pre-reload state, and the only source for a publisher that echoes no
+`resultId` of its own.
+-}
+modelRecording : String -> String -> ServerDetail.Model
+modelRecording requestId resultId =
+    let
+        base =
+            modelWithArchivedFindings
+    in
+    { base | exoextEmbedResultId = Just { requestId = requestId, resultId = resultId } }
 
 
 modelPendingEmbed : Time.Posix -> ServerDetail.Model
@@ -352,30 +378,109 @@ cloudShieldEmbedProjectionSuite =
                             (ServerDetail.init "self")
                 in
                 Expect.equal (Just "batch-9") projection.activeResultId
-        , test "an open session names the RESULT the host asked for, not the response's shared batchId" <|
+        , test "the response's echoed resultId names the open session, with no host record at all (the reload case)" <|
             \_ ->
-                -- The response echoes only requestId + batchId, and two siblings share the batchId,
-                -- so the host's own request record is what says which archived result is on screen.
+                -- After a page reload the host's request record is gone. Only the echoed resultId
+                -- can still say which archived run is on screen; without it the reader would fall
+                -- back to the SHARED batchId and flag every sibling of the batch again.
                 let
-                    base =
-                        modelWithArchivedFindings
-
-                    model =
-                        { base
-                            | exoextEmbedResultId =
-                                Just { requestId = "exo-cs-req-100", resultId = "exo-cs-req-7" }
-                        }
-
+                    projection =
+                        ServerDetail.exoextEmbedProjection
+                            (embedResultMetadata (okEmbedBodyWithResultId "exo-cs-req-7"))
+                            beforeExpiry
+                            Nothing
+                            Nothing
+                            modelWithArchivedFindings
+                in
+                Expect.equal ( Card.EmbedReady, Just "exo-cs-req-7", Nothing )
+                    ( projection.embedState
+                    , projection.activeResultId
+                    , modelWithArchivedFindings.exoextEmbedResultId
+                    )
+        , test "with no echoed resultId, the host's own request record names the session" <|
+            \_ ->
+                -- A publisher predating the echoed field: the record is the second source.
+                let
                     projection =
                         ServerDetail.exoextEmbedProjection
                             (embedResultMetadata (okEmbedBody expiresAtIso))
                             beforeExpiry
                             Nothing
                             Nothing
-                            model
+                            (modelRecording "exo-cs-req-100" "exo-cs-req-7")
                 in
                 Expect.equal ( Card.EmbedReady, Just "exo-cs-req-7" )
                     ( projection.embedState, projection.activeResultId )
+        , test "an echoed resultId wins over a record for the same request" <|
+            \_ ->
+                -- Precedence, not merely coverage: the wire is self-describing and authoritative.
+                let
+                    projection =
+                        ServerDetail.exoextEmbedProjection
+                            (embedResultMetadata (okEmbedBodyWithResultId "exo-cs-req-7"))
+                            beforeExpiry
+                            Nothing
+                            Nothing
+                            (modelRecording "exo-cs-req-100" "exo-cs-req-STALE")
+                in
+                Expect.equal (Just "exo-cs-req-7") projection.activeResultId
+        , test "neither source present falls back to the response's batchId (legacy archive)" <|
+            \_ ->
+                let
+                    projection =
+                        ServerDetail.exoextEmbedProjection
+                            (embedResultMetadata (okEmbedBody expiresAtIso))
+                            beforeExpiry
+                            Nothing
+                            Nothing
+                            modelWithArchivedFindings
+                in
+                Expect.equal (Just "b1") projection.activeResultId
+        , test "after a reload, exactly ONE of two siblings sharing a batchId reads as viewing" <|
+            \_ ->
+                -- The end of the chain the coordinator cares about: wire response -> host
+                -- projection -> rendered row state, with no host record in play.
+                let
+                    projection =
+                        ServerDetail.exoextEmbedProjection
+                            (embedResultMetadata (okEmbedBodyWithResultId "exo-cs-req-7"))
+                            beforeExpiry
+                            Nothing
+                            Nothing
+                            modelWithArchivedFindings
+
+                    sibling requestId =
+                        { batchId = "b1"
+                        , requestId = Just requestId
+                        , targetId = "i-1"
+                        , targetName = "alpha"
+                        , completedAt = "2026-07-01T00:00:00Z"
+                        , status = "done"
+                        , counts = { critical = 0, high = 1, medium = 0, low = 0, info = 0 }
+                        }
+
+                    rowStates_ =
+                        Card.projection Time.utc
+                            projection.activeResultId
+                            projection.pendingResultId
+                            projection.erroredResultId
+                            projection.expiredResultId
+                            False
+                            { rows = [ sibling "exo-cs-req-6", sibling "exo-cs-req-7" ]
+                            , loading = False
+                            , loaded = True
+                            }
+                            Nothing
+                            ""
+                            Nothing
+                            []
+                            Card.init
+                            |> Decode.decodeValue
+                                (Decode.field "history" (Decode.list (Decode.field "state" Decode.string)))
+                            |> Result.mapError Decode.errorToString
+                in
+                -- Newest first, so the viewed run (exo-cs-req-7) leads and its sibling stays idle.
+                Expect.equal (Ok [ "viewing", "idle" ]) rowStates_
         ]
 
 
