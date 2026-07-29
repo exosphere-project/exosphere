@@ -1352,6 +1352,13 @@ exoextEmbedProjection metadata archivedResultObjectName currentTime statusOverri
                 _ ->
                     Nothing
 
+        -- A getEmbed the user just pressed is in flight, so whatever it opens supersedes whatever is
+        -- on screen now. The manual-session path gets this for free — its `results`/`embedUrl` come
+        -- from `session`, which is already `Opening` — but the auto-opened live-scan view below is
+        -- read straight off the run's result body and has to be told.
+        embedRequestInFlight =
+            model.exoextPendingEmbed /= Nothing
+
         ( results, embedUrl ) =
             case maybeEmbedResult of
                 Just _ ->
@@ -1393,24 +1400,34 @@ exoextEmbedProjection metadata archivedResultObjectName currentTime statusOverri
                 Nothing ->
                     -- The scan-result path: when the in-flight run is `done`, bind the §4.2 result
                     -- body's `findings[]` into `/results` and its `embedUrl` into `/embedUrl`. Gated
-                    -- on the correlated `done` state so a stale prior-run result can't show.
-                    let
-                        atDone decoder =
-                            case statusOverride of
-                                Just override ->
-                                    if override.state == "done" then
-                                        resultBody |> Maybe.andThen decoder
+                    -- on the correlated `done` state so a stale prior-run result can't show — and on
+                    -- no getEmbed being in flight, so pressing View on another row closes this
+                    -- auto-opened view AT THE PRESS rather than ~10s later when the bridge answers.
+                    -- Left mounted it read as "View won't close", and it put a live `embedUrl` on
+                    -- screen outside `EmbedReady`, against the invariant the rest of this function
+                    -- keeps. Yielding nothing here hands the pane to the same Opening presentation
+                    -- the manual path shows.
+                    if embedRequestInFlight then
+                        ( Nothing, "" )
 
-                                    else
+                    else
+                        let
+                            atDone decoder =
+                                case statusOverride of
+                                    Just override ->
+                                        if override.state == "done" then
+                                            resultBody |> Maybe.andThen decoder
+
+                                        else
+                                            Nothing
+
+                                    Nothing ->
                                         Nothing
-
-                                Nothing ->
-                                    Nothing
-                    in
-                    ( atDone (Decode.decodeString (Decode.field "findings" Decode.value) >> Result.toMaybe)
-                    , atDone (Decode.decodeString (Decode.field "embedUrl" Decode.string) >> Result.toMaybe)
-                        |> Maybe.withDefault ""
-                    )
+                        in
+                        ( atDone (Decode.decodeString (Decode.field "findings" Decode.value) >> Result.toMaybe)
+                        , atDone (Decode.decodeString (Decode.field "embedUrl" Decode.string) >> Result.toMaybe)
+                            |> Maybe.withDefault ""
+                        )
 
         -- The resultId whose findings/embed are on screen, so the card can flag exactly one
         -- history row as "Now viewing": the picked history row wins (only while its session is not
@@ -1428,11 +1445,14 @@ exoextEmbedProjection metadata archivedResultObjectName currentTime statusOverri
                 Nothing ->
                     case statusOverride of
                         Just override ->
-                            if override.state == "done" then
+                            if override.state == "done" && not embedRequestInFlight then
                                 -- The just-completed live scan, keyed exactly as its fresh history
                                 -- row keys itself (`requestId`, falling back to `batchId` for a
                                 -- publisher that archives no per-run id). Get this wrong and the new
-                                -- row sits on "View" instead of "Now viewing".
+                                -- row sits on "View" instead of "Now viewing". Dropped while a
+                                -- getEmbed is in flight for the same reason the bindings above are:
+                                -- one source of truth here, rather than leaning on `historyRow` to
+                                -- suppress the chip downstream via `pendingResultId`.
                                 resultBody
                                     |> Maybe.andThen
                                         (\body ->

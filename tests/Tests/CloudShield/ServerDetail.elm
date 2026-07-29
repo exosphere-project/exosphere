@@ -149,6 +149,20 @@ objectFor resultId =
     Just ("results/" ++ resultId ++ ".json")
 
 
+{-| The §4.2 body of a just-completed live scan — the one the pane auto-opens when a run settles.
+Its findings and embed URL are deliberately unlike any history pick's, so a test can tell WHICH of
+the two the pane bound.
+-}
+liveScanBody : String
+liveScanBody =
+    """{"schemaVersion":"1.0","requestId":"exo-cs-req-42","batchId":null,"completedAt":"2026-07-20T21:00:00.000Z","status":"ok","findings":[{"severity":"high"}],"embedUrl":"https://vm.example/live-scan"}"""
+
+
+liveScanFindingsJson : String
+liveScanFindingsJson =
+    """[{"severity":"high"}]"""
+
+
 {-| Res-slot metadata carrying a chunked `kind:"embed"` result body, plus the manifest etag the
 archived-findings fetch is keyed on.
 -}
@@ -447,6 +461,71 @@ cloudShieldEmbedProjectionSuite =
                             (ServerDetail.init "self")
                 in
                 Expect.equal (Just "batch-9") projection.activeResultId
+        , test "a settled live scan auto-opens its own findings + iframe when nothing else is being opened" <|
+            \_ ->
+                -- (a) The baseline this pane is for: a run finishes and its results appear by
+                -- themselves. Pinned so the supersession below cannot be mistaken for it breaking.
+                let
+                    projection =
+                        ServerDetail.exoextEmbedProjection
+                            [ { key = "exoext.v1.etag", value = "etag-1" } ]
+                            Nothing
+                            beforeExpiry
+                            (Just { targetId = "i-1", state = "done" })
+                            (Just liveScanBody)
+                            (ServerDetail.init "self")
+                in
+                Expect.equal
+                    ( Just liveScanFindingsJson, "https://vm.example/live-scan", Just "exo-cs-req-42" )
+                    ( projection.results |> Maybe.map (Encode.encode 0)
+                    , projection.embedUrl
+                    , projection.activeResultId
+                    )
+        , test "pressing View on another row closes the auto-opened live scan AT THE PRESS, not when the bridge answers" <|
+            \_ ->
+                -- The live bug: the getEmbed is in flight (~10s), and until it landed the finished
+                -- scan's findings and iframe stayed mounted under an "Opening…" row, so View read as
+                -- "won't close" — and a live embedUrl was on screen outside EmbedReady.
+                let
+                    projection =
+                        ServerDetail.exoextEmbedProjection
+                            [ { key = "exoext.v1.etag", value = "etag-1" } ]
+                            Nothing
+                            beforeExpiry
+                            (Just { targetId = "i-1", state = "done" })
+                            (Just liveScanBody)
+                            (modelPendingEmbed beforeExpiry)
+                in
+                Expect.equal
+                    ( ( Nothing, "", Nothing )
+                    , ( Card.EmbedLoading, Just "b1" )
+                    )
+                    ( ( projection.results, projection.embedUrl, projection.activeResultId )
+                    , ( projection.embedState, projection.pendingResultId )
+                    )
+        , test "when the embed result lands, the pane shows the picked scan — not the still-done live one" <|
+            \_ ->
+                -- (c) The far end of the same press. `clearResolvedPendingEmbed` has dropped the
+                -- pending marker, the run slot still reads `done`, and the history pick must win
+                -- both bindings. Not covered elsewhere: every other ok-embed test passes no
+                -- statusOverride, so none of them pit the two branches against each other.
+                let
+                    projection =
+                        ServerDetail.exoextEmbedProjection
+                            (embedResultMetadata (okEmbedBodyWithResultId "exo-cs-req-7"))
+                            (objectFor "exo-cs-req-7")
+                            beforeExpiry
+                            (Just { targetId = "i-1", state = "done" })
+                            (Just liveScanBody)
+                            (modelWithResultRef "etag-1" "results/exo-cs-req-7.json" """{"findings":[{"severity":"low"}]}""")
+                in
+                Expect.equal
+                    ( ( Just archivedFindingsJson, "https://vm.example/embed" )
+                    , ( Just "exo-cs-req-7", Card.EmbedReady )
+                    )
+                    ( ( projection.results |> Maybe.map (Encode.encode 0), projection.embedUrl )
+                    , ( projection.activeResultId, projection.embedState )
+                    )
         , test "the response's echoed resultId names the open session, with no host record at all (the reload case)" <|
             \_ ->
                 -- After a page reload the host's request record is gone. Only the echoed resultId
