@@ -714,6 +714,7 @@ sampleModel selection =
     , seq = 0
     , pending = Nothing
     , showDemoIframe = False
+    , showManifestErrorDetail = False
     }
 
 
@@ -1441,6 +1442,7 @@ rollbackScanRequestSuite =
             , seq = 4
             , pending = Nothing
             , showDemoIframe = False
+            , showManifestErrorDetail = False
             }
 
         -- Accepting the dialog closes it (renderer back to `init`) and, in the same step, runs

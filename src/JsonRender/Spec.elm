@@ -1,6 +1,8 @@
 module JsonRender.Spec exposing
     ( Spec
     , decoder
+    , ErrorKind(..)
+    , errorKind
     , UIElement
     , ComponentType(..)
     , componentType
@@ -45,6 +47,12 @@ A rejected manifest never produces a partial tree — the host shows an error st
 
 @docs Spec
 @docs decoder
+
+
+# Why a decode failed
+
+@docs ErrorKind
+@docs errorKind
 
 
 # Elements
@@ -348,6 +356,67 @@ componentType ct =
 
 
 
+-- WHY A DECODE FAILED
+
+
+{-| Why a manifest failed the fail-closed decode, as far as the decoder's own diagnostics can
+tell. A host shows a researcher one sentence, not a decoder dump, and this is what decides which
+sentence:
+
+  - `UnknownCatalogSurface` — the manifest named a component type or a key this catalog does not
+    have. The publisher is describing an interface some NEWER renderer would understand, so the
+    honest reading is version skew, not a broken manifest.
+  - `Malformed` — everything else: a missing required field, a wrong-shaped prop, a body that is
+    not even JSON. Nothing here suggests a newer renderer would fare better.
+
+This lives beside the `Decode.fail` arms it classifies, and reads the very strings those arms are
+built from ([`unknownComponentTypeMarker`](#errorKind) / the unsupported-key marker), so the two
+cannot drift apart: rewording a diagnostic moves the marker with it.
+
+-}
+type ErrorKind
+    = UnknownCatalogSurface
+    | Malformed
+
+
+{-| Classify a decode failure message (the `Err` from `JsonRender.decodeString`, which is
+`Decode.errorToString` output and so embeds the failing arm's own text).
+
+Substring matching is the only tool available — Elm decode errors are strings by the time they
+reach a host. `Decode.errorToString` also prints offending JSON, so a manifest containing one of
+these markers verbatim as DATA would be read as skew. That mis-picks which reassuring sentence a
+researcher sees and nothing else: both kinds refuse to render, which is the part that matters.
+
+-}
+errorKind : String -> ErrorKind
+errorKind message =
+    if List.any (\marker -> String.contains marker message) unknownCatalogSurfaceMarkers then
+        UnknownCatalogSurface
+
+    else
+        Malformed
+
+
+{-| The fragments the two off-catalog arms put in their messages. Both arms build their text from
+these constants, so this list is the definition of "the decoder said: newer catalog", not a guess
+about it.
+-}
+unknownCatalogSurfaceMarkers : List String
+unknownCatalogSurfaceMarkers =
+    [ unknownComponentTypeMarker, unsupportedKeyMarker ]
+
+
+unknownComponentTypeMarker : String
+unknownComponentTypeMarker =
+    "Unknown / off-catalog component type"
+
+
+unsupportedKeyMarker : String
+unsupportedKeyMarker =
+    "key(s) (fail-closed; not implemented)"
+
+
+
 -- DECODER
 
 
@@ -450,7 +519,9 @@ rejectUnknownKeys label allowed inner =
                                 Decode.fail
                                     ("Unsupported "
                                         ++ label
-                                        ++ " key(s) (fail-closed; not implemented): "
+                                        ++ " "
+                                        ++ unsupportedKeyMarker
+                                        ++ ": "
                                         ++ String.join ", " (List.map Tuple.first extra)
                                     )
 
@@ -473,7 +544,7 @@ elementBodyDecoder =
                             (Decode.maybe (Decode.field "repeat" repeatDecoder))
 
                     Nothing ->
-                        Decode.fail ("Unknown / off-catalog component type: `" ++ name ++ "`")
+                        Decode.fail (unknownComponentTypeMarker ++ ": `" ++ name ++ "`")
             )
 
 

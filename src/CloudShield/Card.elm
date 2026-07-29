@@ -37,10 +37,12 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import JsonRender
 import JsonRender.Render as Render
+import JsonRender.Spec as Spec
 import Maybe.Extra
 import Set exposing (Set)
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
+import Style.Widgets.Code as Code
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Time
@@ -84,6 +86,11 @@ type alias Model =
     -- unpinned host-chrome embed, distinct from the catalog's origin-pinned Iframe element.
     -- Off by default; toggled by a link, only when ViewConfig.demoIframeUrl is set.
     , showDemoIframe : Bool
+
+    -- whether the raw decoder diagnostic under a rejected manifest is expanded. Collapsed by
+    -- default: the researcher gets a sentence, and the wall of decoder prose is one click away
+    -- for whoever is actually debugging the publisher.
+    , showManifestErrorDetail : Bool
     }
 
 
@@ -91,6 +98,7 @@ type Msg
     = GotApprove
     | GotForget
     | GotToggleDemoIframe
+    | GotToggleManifestErrorDetail
     | GotRetryEmbed String
     | RendererMsg Render.Msg
 
@@ -127,6 +135,7 @@ init =
     , seq = 0
     , pending = Nothing
     , showDemoIframe = False
+    , showManifestErrorDetail = False
     }
 
 
@@ -145,6 +154,9 @@ update instances msg model =
 
         GotToggleDemoIframe ->
             ( { model | showDemoIframe = not model.showDemoIframe }, Nothing )
+
+        GotToggleManifestErrorDetail ->
+            ( { model | showManifestErrorDetail = not model.showManifestErrorDetail }, Nothing )
 
         GotRetryEmbed resultId ->
             -- The results-region "Retry" affordance re-fires getEmbed for the last-attempted result.
@@ -938,7 +950,7 @@ view palette zone config instances model =
         Element.column
             [ Element.width (Element.fill |> Element.maximum 1300), Element.spacing spacer.px8 ]
             [ provenanceMarker palette config.sourceName
-            , rendererView palette zone config.activeResultId config.pendingResultId config.erroredResultId config.expiredResultId config.requestBusy config.allowedIframeOrigins config.manifest config.history config.results config.embedUrl config.statusOverride instances model
+            , rendererView palette zone config.sourceName config.activeResultId config.pendingResultId config.erroredResultId config.expiredResultId config.requestBusy config.allowedIframeOrigins config.manifest config.history config.results config.embedUrl config.statusOverride instances model
             , embedStateView palette config.embedState config.erroredResultId
             , transportWarningView palette config.transportWarning
             , scanTimerView palette config.scanTimer
@@ -1133,6 +1145,7 @@ transportChip palette label =
 rendererView :
     ExoPalette
     -> Time.Zone
+    -> String
     -> Maybe String
     -> Maybe String
     -> Maybe String
@@ -1147,7 +1160,7 @@ rendererView :
     -> List Instance
     -> Model
     -> Element.Element Msg
-rendererView palette zone activeResultId pendingResultId erroredResultId expiredResultId requestBusy allowedIframeOrigins manifest history results embedUrl statusOverride instances model =
+rendererView palette zone sourceName activeResultId pendingResultId erroredResultId expiredResultId requestBusy allowedIframeOrigins manifest history results embedUrl statusOverride instances model =
     case manifest of
         ManifestReady manifestJson ->
             -- Decode per render is fine for the small card; the fail-closed decoder is the security
@@ -1176,7 +1189,7 @@ rendererView palette zone activeResultId pendingResultId erroredResultId expired
                         )
 
                 Err message ->
-                    Element.el [ Element.width Element.fill ] (Element.html (JsonRender.errorStub message))
+                    manifestErrorView palette sourceName message model.showManifestErrorDetail
 
         ManifestLoading ->
             -- The sentinel is present but the manifest body has not resolved yet: quiet host chrome
@@ -1204,6 +1217,86 @@ rendererView palette zone activeResultId pendingResultId erroredResultId expired
                     ]
                     (Text.body "Extension UI is unavailable.")
                 )
+
+
+{-| What the researcher sees when a manifest is REFUSED by the fail-closed decoder.
+
+The decoder's diagnostic is written for whoever is debugging the publisher: a JSON dump wrapped in
+decoder prose. Putting that on screen told a researcher nothing they could act on and read as the
+product breaking, so it is now two tiers. The plain-language sentence names the one thing that
+differs between the two failures a researcher can do anything about, and the raw diagnostic moves
+behind a collapsed "Technical details" toggle so it stays one click from whoever wants it.
+
+  - [`Spec.UnknownCatalogSurface`](JsonRender-Spec#ErrorKind) — the manifest asked for catalog
+    surface this build does not have, so this Exosphere is simply older than the extension.
+    Updating is a real, honest thing to suggest.
+  - [`Spec.Malformed`](JsonRender-Spec#ErrorKind) — nothing suggests a newer renderer would help,
+    so the message says the refusal is deliberate and points at the publisher.
+
+The toggle follows this file's own expand idiom (`demoIframePanel`): a `linkButton` over a `Bool`
+in the card model, not a `<details>` island. Exosphere ships no disclosure widget in
+`Style.Widgets`, and the surrounding card chrome is elm-ui, so this keeps one idiom in one file.
+
+-}
+manifestErrorView : ExoPalette -> String -> String -> Bool -> Element.Element Msg
+manifestErrorView palette sourceName message detailExpanded =
+    let
+        ( title, body ) =
+            case Spec.errorKind message of
+                Spec.UnknownCatalogSurface ->
+                    ( "This extension needs a newer Exosphere"
+                    , "The \""
+                        ++ sourceName
+                        ++ "\" VM published interface features this version of Exosphere doesn't support yet. Updating Exosphere may fix this."
+                    )
+
+                Spec.Malformed ->
+                    ( "This extension published an interface Exosphere can't render"
+                    , "Refusing to display it is a safety feature. The extension may have a bug; consider notifying its publisher."
+                    )
+    in
+    Element.column
+        [ Element.width Element.fill
+        , Element.spacing spacer.px8
+        , Element.padding spacer.px12
+        , Border.width 1
+        , Border.color (SH.toElementColor palette.neutral.border)
+        , Border.rounded 4
+        ]
+        [ Element.paragraph [ Font.bold ] [ Text.body title ]
+        , Element.paragraph
+            [ Text.fontSize Text.Small
+            , Font.color (SH.toElementColor palette.neutral.text.subdued)
+            ]
+            [ Text.body body ]
+        , linkButton palette
+            ((if detailExpanded then
+                "▾ "
+
+              else
+                "▸ "
+             )
+                ++ "Technical details"
+            )
+            GotToggleManifestErrorDetail
+        , if detailExpanded then
+            -- The raw decoder output, in the codebase's monospace-code idiom. Height-bounded and
+            -- scrollable so a long diagnostic cannot push the rest of the page away, and a
+            -- `paragraph` so it wraps: elm-ui puts `white-space: pre` on a bare `el`, which would
+            -- send one long decoder line off the side of the card.
+            Element.el
+                ([ Element.width Element.fill
+                 , Element.height (Element.shrink |> Element.maximum 220)
+                 , Element.scrollbarY
+                 , Element.padding spacer.px8
+                 ]
+                    ++ Code.codeAttrs palette
+                )
+                (Element.paragraph [ Text.fontSize Text.Small ] [ Element.text message ])
+
+          else
+            Element.none
+        ]
 
 
 {-| §5.2 provenance marker — host-drawn, naming the source instance and stating that the UI
