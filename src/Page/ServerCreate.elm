@@ -1,5 +1,6 @@
 module Page.ServerCreate exposing (Model, Msg(..), init, update, view)
 
+import Dict
 import Element
 import Element.Background as Background
 import Element.Border as Border
@@ -22,7 +23,6 @@ import Helpers.Units
 import Helpers.Validation as Validation
 import Helpers.ValidationResult
 import Html.Attributes
-import List.Extra
 import Maybe
 import OpenStack.Quotas as OSQuotas
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
@@ -837,30 +837,13 @@ view context project currentTime model =
                                             Nothing
                                     )
 
-                        resourceLimitResults =
-                            UnifiedLimits.evaluateResourceLimit unifiedLimitQuotas
-                                (requirementsByFlavor
-                                    |> List.Extra.find (\( flavorId, _ ) -> flavorId == f.id)
-                                    |> Maybe.map (\( _, reqs ) -> reqs)
-                                    |> Maybe.withDefault []
-                                )
-
-                        resourceLimitsExceeded =
-                            resourceLimitResults
-                                |> List.map
-                                    (\result ->
-                                        case result of
-                                            Err message ->
-                                                Just message
-
-                                            Ok _ ->
-                                                Nothing
-                                    )
-
                         messages =
-                            computeQuotaExceededMessage :: resourceLimitsExceeded |> List.filterMap identity
+                            requirementsByFlavor
+                                |> Dict.get f.id
+                                |> Maybe.withDefault []
+                                |> UnifiedLimits.flavorWarningMessages computeQuotaExceededMessage unifiedLimitQuotas
                     in
-                    if List.length messages > 0 then
+                    if not (List.isEmpty messages) then
                         Just <|
                             Element.column [ Element.spacing spacer.px8 ] <|
                                 List.map Text.body <|

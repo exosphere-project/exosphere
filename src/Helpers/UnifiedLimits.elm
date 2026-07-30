@@ -7,11 +7,12 @@ module Helpers.UnifiedLimits exposing
     , customResourceRequirementsByFlavor
     , customResourceRequirementsForFlavor
     , evaluateResourceLimit
+    , flavorWarningMessages
     , parseFlavorCustomResourceRequirements
     , quotasFromUnifiedLimits
     )
 
-import Dict
+import Dict exposing (Dict)
 import Helpers.String
 import List.Extra
 import OpenStack.Types as OSTypes exposing (QuotaItemLimit(..))
@@ -151,10 +152,11 @@ addOrAccumulate requirement requirements =
                 first :: addOrAccumulate requirement rest
 
 
-customResourceRequirementsByFlavor : List HelperTypes.CustomResource -> List OSTypes.Flavor -> List ( OSTypes.FlavorId, List CustomResourceRequirement )
+customResourceRequirementsByFlavor : List HelperTypes.CustomResource -> List OSTypes.Flavor -> Dict OSTypes.FlavorId (List CustomResourceRequirement)
 customResourceRequirementsByFlavor customResources flavors =
     flavors
         |> List.map (\f -> ( f.id, customResourceRequirementsForFlavor customResources f |> List.filterMap Result.toMaybe ))
+        |> Dict.fromList
 
 
 evaluateResourceLimit : List ResourceLimitQuota -> List CustomResourceRequirement -> List (Result String ())
@@ -190,6 +192,23 @@ evaluateResourceLimit quotas requirements =
                         )
                     |> Maybe.withDefault (Ok ())
             )
+
+
+flavorWarningMessages : Maybe String -> List ResourceLimitQuota -> List CustomResourceRequirement -> List String
+flavorWarningMessages maybeComputeQuotaWarning quotas requirements =
+    maybeComputeQuotaWarning
+        :: (evaluateResourceLimit quotas requirements
+                |> List.map
+                    (\result ->
+                        case result of
+                            Err message ->
+                                Just message
+
+                            Ok _ ->
+                                Nothing
+                    )
+           )
+        |> List.filterMap identity
 
 
 quotasFromUnifiedLimits : List OSTypes.RegisteredLimit -> List OSTypes.ProjectLimit -> List OSTypes.ProjectUsage -> List ResourceLimitQuota

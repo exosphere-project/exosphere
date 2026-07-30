@@ -1,5 +1,6 @@
 module Tests.Helpers.UnifiedLimits exposing (unifiedLimitsSuite)
 
+import Dict
 import Expect
 import Helpers.UnifiedLimits as UnifiedLimits
 import OpenStack.Types as OSTypes
@@ -193,6 +194,64 @@ unifiedLimitsSuite =
                             [ Ok { resource = customResourceA100, count = 4 }
                             , Ok { resource = customResourceNVMe, count = 2 }
                             , Err "unresolved"
+                            ]
+            , test "indexes resolved requirements by flavor ID" <|
+                \_ ->
+                    [ flavorWithAliasSpec "A100:1,NVMe:2" ]
+                        |> UnifiedLimits.customResourceRequirementsByFlavor
+                            [ customResourceA100
+                            , customResourceNVMe
+                            ]
+                        |> Dict.get "flavor-id"
+                        |> Expect.equal
+                            (Just
+                                [ { resource = customResourceA100, count = 1 }
+                                , { resource = customResourceNVMe, count = 2 }
+                                ]
+                            )
+            ]
+        , describe "flavorWarningMessages"
+            [ test "returns no warnings when the flavor fits its custom resource quotas" <|
+                \_ ->
+                    UnifiedLimits.flavorWarningMessages
+                        Nothing
+                        [ { resourceName = customResourceA100.resource
+                          , quota =
+                                { inUse = 1
+                                , limit = OSTypes.Limit 2
+                                }
+                          }
+                        ]
+                        [ { resource = customResourceA100, count = 1 } ]
+                        |> Expect.equal []
+            , test "returns friendly warnings for custom resource quotas the flavor would exceed" <|
+                \_ ->
+                    UnifiedLimits.flavorWarningMessages
+                        Nothing
+                        [ { resourceName = customResourceA100.resource
+                          , quota =
+                                { inUse = 2
+                                , limit = OSTypes.Limit 2
+                                }
+                          }
+                        ]
+                        [ { resource = customResourceA100, count = 1 } ]
+                        |> Expect.equal [ "A100: 3 required, 2/2 in use." ]
+            , test "preserves a compute quota warning before custom resource warnings" <|
+                \_ ->
+                    UnifiedLimits.flavorWarningMessages
+                        (Just "Compute quota exceeded.")
+                        [ { resourceName = customResourceNVMe.resource
+                          , quota =
+                                { inUse = 3
+                                , limit = OSTypes.Limit 4
+                                }
+                          }
+                        ]
+                        [ { resource = customResourceNVMe, count = 2 } ]
+                        |> Expect.equal
+                            [ "Compute quota exceeded."
+                            , "NVMe: 5 required, 3/4 in use."
                             ]
             ]
         ]

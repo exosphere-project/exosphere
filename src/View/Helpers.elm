@@ -1234,6 +1234,18 @@ flavorPicker context project restrictFlavorIds showDisabledFlavorsReason maybeQu
                 _ ->
                     RDPP.withDefault [] project.flavors
 
+        quotaExceededByFlavor =
+            flavorsToShow
+                |> List.filterMap
+                    (\flavor ->
+                        maybeQuotaExceeded flavor
+                            |> Maybe.map (\warning -> ( flavor.id, warning ))
+                    )
+                |> Dict.fromList
+
+        quotaExceededFor flavor =
+            Dict.get flavor.id quotaExceededByFlavor
+
         disabledFlavorTooltip flavor reason =
             ToggleTip.toggleTip context
                 flavorGroupToggleTipMsgMapper
@@ -1265,7 +1277,7 @@ flavorPicker context project restrictFlavorIds showDisabledFlavorsReason maybeQu
             else if isFlavorAllowed flavor then
                 let
                     isQuotaExceeded =
-                        case maybeQuotaExceeded flavor of
+                        case quotaExceededFor flavor of
                             Just _ ->
                                 True
 
@@ -1375,7 +1387,7 @@ flavorPicker context project restrictFlavorIds showDisabledFlavorsReason maybeQu
               , width = Element.shrink
               , view =
                     \r ->
-                        case maybeQuotaExceeded r of
+                        case quotaExceededFor r of
                             Just warning ->
                                 Element.row []
                                     [ let
