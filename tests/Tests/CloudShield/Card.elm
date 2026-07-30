@@ -949,7 +949,9 @@ transportSuite =
                     keys =
                         List.map .key items
                 in
-                Expect.equal [ "exoext.v1.req.seq", "exoext.v1.req.body.n", "exoext.v1.req.body.0" ] keys
+                -- The cancel channel is cleared by the same atomic write, so a stop aimed at the
+                -- previous run can never survive into this one.
+                Expect.equal [ "exoext.v1.req.seq", "exoext.v1.req.body.n", "exoext.v1.req.cancel", "exoext.v1.req.body.0" ] keys
         , test "chunkString splits at the size boundary" <|
             \_ ->
                 Expect.equal [ "abc", "de" ] (Transport.chunkString 3 "abcde")
@@ -965,7 +967,7 @@ transportSuite =
                     keys =
                         Transport.reqSlotMetadata 1 big |> List.map .key
                 in
-                Expect.equal [ "exoext.v1.req.seq", "exoext.v1.req.body.n", "exoext.v1.req.body.0", "exoext.v1.req.body.1" ] keys
+                Expect.equal [ "exoext.v1.req.seq", "exoext.v1.req.body.n", "exoext.v1.req.cancel", "exoext.v1.req.body.0", "exoext.v1.req.body.1" ] keys
         , test "readChunkedBody honors the count and ignores a stale orphan chunk" <|
             \_ ->
                 -- a later, shorter write left body.2 behind; the count (n=2) must win.
@@ -981,8 +983,12 @@ transportSuite =
                     )
         , test "runStatusFromMetadata reads seq + state" <|
             \_ ->
-                Expect.equal (Just { seq = 4, state = "running" })
-                    (Transport.runStatusFromMetadata (meta [ ( "exoext.v1.run.seq", "4" ), ( "exoext.v1.run.state", "running" ) ]))
+                -- The §4.3 descriptors are covered in Tests.Exoext.Transport; here only the two
+                -- required keys matter.
+                Expect.equal (Just ( 4, "running" ))
+                    (Transport.runStatusFromMetadata (meta [ ( "exoext.v1.run.seq", "4" ), ( "exoext.v1.run.state", "running" ) ])
+                        |> Maybe.map (\status -> ( status.seq, status.state ))
+                    )
         , test "runStatusFromMetadata is Nothing when state is missing" <|
             \_ ->
                 Expect.equal Nothing

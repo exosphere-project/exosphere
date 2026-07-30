@@ -6,8 +6,10 @@ module Tests.Exoext.Transport exposing
     , getEmbedBlockedSuite
     , historyRefreshKeySuite
     , indexSuite
+    , reqCancelSuite
     , resolveResultBodySuite
     , resultBodySuite
+    , runStatusSuite
     )
 
 import Exoext.Transport as Transport
@@ -36,6 +38,109 @@ capBodySuite =
         , test "resultCapBytes is 1 MB" <|
             \_ ->
                 Expect.equal (1024 * 1024) Transport.resultCapBytes
+        ]
+
+
+runStatusSuite : Test
+runStatusSuite =
+    let
+        requiredKeys =
+            [ ( "exoext.v1.run.seq", "7" ), ( "exoext.v1.run.state", "running" ) ]
+
+        descriptorKeys =
+            [ ( "exoext.v1.run.target", "i-1" )
+            , ( "exoext.v1.run.requestId", "exo-cs-req-7" )
+            , ( "exoext.v1.run.batchId", "exo-cs-batch-7" )
+            , ( "exoext.v1.run.phase", "cloning" )
+            , ( "exoext.v1.run.pct", "40" )
+            ]
+
+        descriptors status =
+            ( status.target, status.requestId, status.batchId )
+    in
+    describe "runStatusFromMetadata reads the §4.3 run slot, descriptors optional"
+        [ test "the two required keys alone decode, with every descriptor Nothing" <|
+            \_ ->
+                Expect.equal
+                    (Just ( ( 7, "running" ), ( Nothing, Nothing, Nothing ), ( Nothing, Nothing ) ))
+                    (Transport.runStatusFromMetadata (meta requiredKeys)
+                        |> Maybe.map (\s -> ( ( s.seq, s.state ), descriptors s, ( s.phase, s.pct ) ))
+                    )
+        , test "a publisher writing every descriptor decodes all of them" <|
+            \_ ->
+                Expect.equal
+                    (Just ( ( Just "i-1", Just "exo-cs-req-7", Just "exo-cs-batch-7" ), ( Just "cloning", Just 40 ) ))
+                    (Transport.runStatusFromMetadata (meta (requiredKeys ++ descriptorKeys))
+                        |> Maybe.map (\s -> ( descriptors s, ( s.phase, s.pct ) ))
+                    )
+        , test "a missing state fails the read even with descriptors present" <|
+            \_ ->
+                Expect.equal Nothing
+                    (Transport.runStatusFromMetadata (meta (( "exoext.v1.run.seq", "7" ) :: descriptorKeys)))
+        , test "an unparseable seq fails the read" <|
+            \_ ->
+                Expect.equal Nothing
+                    (Transport.runStatusFromMetadata (meta [ ( "exoext.v1.run.seq", "later" ), ( "exoext.v1.run.state", "running" ) ]))
+        , test "an empty descriptor value is Nothing, never an identity that matches nothing" <|
+            \_ ->
+                Expect.equal (Just ( Nothing, Nothing, Nothing ))
+                    (Transport.runStatusFromMetadata
+                        (meta
+                            (requiredKeys
+                                ++ [ ( "exoext.v1.run.target", "" )
+                                   , ( "exoext.v1.run.requestId", "" )
+                                   , ( "exoext.v1.run.batchId", "" )
+                                   ]
+                            )
+                        )
+                        |> Maybe.map descriptors
+                    )
+        , test "a stringified Python None is Nothing, not a phantom target id" <|
+            \_ ->
+                Expect.equal (Just ( Nothing, Nothing, Nothing ))
+                    (Transport.runStatusFromMetadata
+                        (meta
+                            (requiredKeys
+                                ++ [ ( "exoext.v1.run.target", "None" )
+                                   , ( "exoext.v1.run.requestId", "None" )
+                                   , ( "exoext.v1.run.batchId", "None" )
+                                   ]
+                            )
+                        )
+                        |> Maybe.map descriptors
+                    )
+        , test "pct outside 0-100 and a non-numeric pct both read as absent" <|
+            \_ ->
+                Expect.equal [ Just 0, Just 100, Nothing, Nothing, Nothing ]
+                    ([ "0", "100", "101", "-1", "half" ]
+                        |> List.map
+                            (\value ->
+                                Transport.runStatusFromMetadata (meta (( "exoext.v1.run.pct", value ) :: requiredKeys))
+                                    |> Maybe.andThen .pct
+                            )
+                    )
+        ]
+
+
+reqCancelSuite : Test
+reqCancelSuite =
+    describe "the exoext.v1.req.cancel channel"
+        [ test "a cancel names the requestId to stop, and touches nothing else" <|
+            \_ ->
+                Expect.equal [ { key = "exoext.v1.req.cancel", value = "exo-cs-req-7" } ]
+                    (Transport.reqCancelMetadata "exo-cs-req-7")
+        , test "cancelling nothing writes the cleared value, which names no request" <|
+            \_ ->
+                Expect.equal [ { key = "exoext.v1.req.cancel", value = "" } ]
+                    (Transport.reqCancelMetadata "")
+        , test "writing a request slot clears the channel, so a stale stop cannot kill the new run" <|
+            \_ ->
+                Expect.equal (Just "")
+                    (Transport.reqSlotMetadata 9 "{}"
+                        |> List.filter (\item -> item.key == Transport.reqCancelKey)
+                        |> List.head
+                        |> Maybe.map .value
+                    )
         ]
 
 

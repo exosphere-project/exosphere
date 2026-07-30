@@ -18,6 +18,8 @@ module Exoext.Transport exposing
     , indexObjectName
     , manifestCapBytes
     , readChunkedBody
+    , reqCancelKey
+    , reqCancelMetadata
     , reqSlotMetadata
     , resolveResultBody
     , resultBody
@@ -44,7 +46,12 @@ Wire layout (on the publishing extension VM's own metadata):
     request JSON chunked across `exoext.v1.req.body.0..N` (≤255 chars/value, §3.1 / D5).
   - **Status / result slot (VM → Exosphere):** `exoext.v1.run.seq` echoes the request seq;
     `exoext.v1.run.state` ∈ queued|running|done|error|cancelled|expired (§4.4); an optional
-    small result summary is chunked across `exoext.v1.res.body.0..N` (§4.2 shape).
+    small result summary is chunked across `exoext.v1.res.body.0..N` (§4.2 shape). The run slot
+    also carries the optional §4.3 descriptors that say WHICH run it is —
+    `exoext.v1.run.target` / `.requestId` / `.batchId` / `.phase` / `.pct` — see
+    [`RunStatus`](#RunStatus).
+  - **Cancel channel (Exosphere → VM):** `exoext.v1.req.cancel` names the requestId the user
+    asked to stop — see [`reqCancelMetadata`](#reqCancelMetadata).
 
 -}
 
@@ -123,6 +130,14 @@ deletes, so a later, shorter request would otherwise leave a stale trailing `bod
 a gapless reader would concatenate into corrupt JSON. The reader (`readChunkedBody`) honors the
 count and reads exactly `n` chunks, ignoring any orphan.
 
+Writing the slot also **clears the cancel channel** ([`reqCancelKey`](#reqCancelKey)). A cancel
+names one requestId, so a cancel left on the wire from a previous run would otherwise be sitting
+there when the publisher claims the NEXT request — and while today's ids differ per write, a host
+that stops a run and immediately starts another must not be one id collision away from killing the
+new one. Clearing belongs here rather than at each call site so no future request writer can forget
+it. Nova metadata POST cannot delete a key, so "cleared" is the empty string, which can never equal
+a real requestId.
+
 -}
 reqSlotMetadata : Int -> String -> List OSTypes.MetadataItem
 reqSlotMetadata seq requestJson =
@@ -132,11 +147,39 @@ reqSlotMetadata seq requestJson =
     in
     { key = "exoext.v1.req.seq", value = String.fromInt seq }
         :: { key = "exoext.v1.req.body.n", value = String.fromInt (List.length chunks) }
+        :: { key = reqCancelKey, value = "" }
         :: List.indexedMap
             (\i chunk ->
                 { key = "exoext.v1.req.body." ++ String.fromInt i, value = chunk }
             )
             chunks
+
+
+{-| The cancel channel key. The host writes the `requestId` (§4.1) it wants stopped here; the
+publisher treats a request whose id equals this value as cancelled, on top of the §7.1
+seq-mismatch supersede rule.
+
+It is a channel of its own rather than a seq bump because bumping `req.seq` is indistinguishable
+from writing a NEW request — the publisher cannot tell "stop this" from "do that instead".
+
+-}
+reqCancelKey : String
+reqCancelKey =
+    "exoext.v1.req.cancel"
+
+
+{-| The metadata item that asks the publisher to stop the run belonging to `requestId`. Written
+with one `requestSetServerMetadata` call, the same atomic single-POST idiom as
+[`reqSlotMetadata`](#reqSlotMetadata) — and deliberately WITHOUT touching the request slot, so a
+stop never reads as a new request.
+
+An empty `requestId` yields the cleared value, which names no request and is a publisher-side
+no-op — so a caller with nothing to cancel cannot accidentally arm the channel.
+
+-}
+reqCancelMetadata : String -> List OSTypes.MetadataItem
+reqCancelMetadata requestId =
+    [ { key = reqCancelKey, value = requestId } ]
 
 
 
@@ -145,15 +188,37 @@ reqSlotMetadata seq requestJson =
 
 {-| The coarse, UI-facing run status read back from the VM's metadata (§4.3 `state`), with
 the `seq` it corresponds to (§7.1 correlation).
+
+`seq` + `state` are the two required keys. Everything after them is the §4.3 descriptor set that
+says WHICH run the slot is reporting, and every one of them is optional — absent reads as
+`Nothing`. That is what makes the descriptors additive in both directions: an old publisher that
+writes only `seq`/`state` still decodes, and a new publisher's extra keys are simply ignored by an
+older reader.
+
+  - `target` — the instance id the run is scanning. It is the key that makes run RECOVERY possible:
+    without it a reader can only project a run whose request IT wrote this session, so a reload
+    mid-run leaves the card looking idle.
+  - `requestId` — the §4.1 request id of the run, i.e. the value a cancel has to name
+    ([`reqCancelMetadata`](#reqCancelMetadata)). Self-describing, so it survives a reload where the
+    host's own record of what it wrote does not.
+  - `batchId` — the §2.2 batch the run belongs to, absent for a lone request.
+  - `phase` / `pct` — optional coarse progress. Free-form token and 0-100 integer.
+
 -}
 type alias RunStatus =
     { seq : Int
     , state : String
+    , target : Maybe String
+    , requestId : Maybe String
+    , batchId : Maybe String
+    , phase : Maybe String
+    , pct : Maybe Int
     }
 
 
-{-| Read the §7.1 status slot from metadata: `exoext.v1.run.seq` + `exoext.v1.run.state`.
-`Nothing` unless both are present and `seq` parses.
+{-| Read the §7.1 status slot from metadata: `exoext.v1.run.seq` + `exoext.v1.run.state`, plus the
+optional §4.3 descriptors. `Nothing` unless the two required keys are present and `seq` parses; a
+missing descriptor is `Nothing` on the record and never fails the read.
 -}
 runStatusFromMetadata : List OSTypes.MetadataItem -> Maybe RunStatus
 runStatusFromMetadata metadata =
@@ -161,9 +226,62 @@ runStatusFromMetadata metadata =
         dict =
             toDict metadata
     in
-    Maybe.map2 RunStatus
+    Maybe.map2
+        (\seq state ->
+            { seq = seq
+            , state = state
+            , target = identifierValue "exoext.v1.run.target" dict
+            , requestId = identifierValue "exoext.v1.run.requestId" dict
+            , batchId = identifierValue "exoext.v1.run.batchId" dict
+            , phase = identifierValue "exoext.v1.run.phase" dict
+            , pct = percentValue "exoext.v1.run.pct" dict
+            }
+        )
         (Dict.get "exoext.v1.run.seq" dict |> Maybe.andThen String.toInt)
         (Dict.get "exoext.v1.run.state" dict)
+
+
+{-| A flat-metadata identifier value, read with the same discipline as
+[`identifierField`](#identifierField) reads one out of a JSON body: absent and `""` both mean "the
+publisher knows no value here", and neither may ever be adopted as an identity — an id that
+identifies nothing collides with every other one.
+
+Metadata values are plain strings, so it also folds `"None"`, which is what Python's `str(None)`
+puts on the wire if a publisher stringifies a missing value instead of omitting the key. That can
+never be a real UUID or request id, and letting it through would synthesize a run tracker pointing
+at a row that does not exist.
+
+-}
+identifierValue : String -> Dict String String -> Maybe String
+identifierValue key dict =
+    Dict.get key dict
+        |> Maybe.andThen emptyToNothing
+        |> Maybe.andThen
+            (\value ->
+                if value == "None" then
+                    Nothing
+
+                else
+                    Just value
+            )
+
+
+{-| A 0-100 percentage from flat metadata. Anything unparseable or out of range is `Nothing`
+rather than clamped: a progress number the publisher cannot state correctly is better absent than
+silently rewritten into something the UI presents as fact.
+-}
+percentValue : String -> Dict String String -> Maybe Int
+percentValue key dict =
+    Dict.get key dict
+        |> Maybe.andThen String.toInt
+        |> Maybe.andThen
+            (\pct ->
+                if pct >= 0 && pct <= 100 then
+                    Just pct
+
+                else
+                    Nothing
+            )
 
 
 {-| Reassemble the small result summary (§4.2) from `exoext.v1.res.body.*` chunks.
