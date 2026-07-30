@@ -1139,7 +1139,38 @@ cloudShieldBatchPersistenceSuite =
                     ((adopt [ storedBatch [ "i-2", "i-3" ] ] [ "i-3" ]).exoextBatch |> Maybe.map .remaining)
         , test "a record whose every target is gone is dropped whole, not adopted empty" <|
             \_ ->
-                Expect.equal Nothing (adopt [ storedBatch [ "i-2", "i-3" ] ] []).exoextBatch
+                let
+                    allGone =
+                        adopt [ storedBatch [ "i-2", "i-3" ] ] [ "i-9" ]
+                in
+                Expect.equal ( Nothing, Nothing )
+                    ( allGone.exoextBatch, allGone.exoextRestoredBatch )
+        , test "an instance list that has not arrived yet DEFERS the decision, it does not discard" <|
+            \_ ->
+                -- Entering this page fetches the publishing VM first and its siblings later, so the
+                -- earliest polls genuinely see a list of one. Reading that as "every stored target was
+                -- deleted" would throw the tail away in exactly the reload case this record exists for.
+                let
+                    tooEarly =
+                        adopt [ storedBatch [ "i-2", "i-3" ] ] []
+                in
+                Expect.equal
+                    ( Nothing, Just { batchId = Just "exo-cs-batch-1000", remaining = [ "i-2", "i-3" ], awaitingWrite = False } )
+                    ( tooEarly.exoextBatch, tooEarly.exoextRestoredBatch )
+        , test "a deferred record is HELD in storage, not forgotten on that poll" <|
+            \_ ->
+                -- The other half of the same hazard: a Forget while the tail is still pending would
+                -- delete it before anything could resume it.
+                Expect.equal SharedMsg.NoOp
+                    (ServerDetail.exoextBatchSharedMsg project (adopt [ storedBatch [ "i-2", "i-3" ] ] []))
+        , test "the deferred decision resolves once the sibling instances arrive" <|
+            \_ ->
+                Expect.equal
+                    (Just { batchId = Just "exo-cs-batch-1000", remaining = [ "i-2", "i-3" ], awaitingWrite = False })
+                    (adopt [ storedBatch [ "i-2", "i-3" ] ] []
+                        |> ServerDetail.adoptRestoredExoextBatch (projectWithTargets [ "i-2", "i-3" ] [])
+                        |> .exoextBatch
+                    )
         , test "adoption never displaces a batch this session is already draining" <|
             \_ ->
                 -- Same precedence rule as run recovery: the live one is the newer truth.

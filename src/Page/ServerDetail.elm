@@ -724,18 +724,25 @@ recoverExoextRun metadata model =
             { model | exoextCard = CloudShield.Card.settleScanState settled.subject settled.state model.exoextCard }
 
 
-{-| Second phase of adopting a stored batch tail: now that the project's instance list is real, keep
-only the targets that are still eligible and move the tail into `exoextBatch`.
+{-| Second phase of adopting a stored batch tail: keep the targets that are still eligible instances
+and move the tail into `exoextBatch`.
 
-Two guards, in this order:
+Three guards, in this order:
 
   - **Never displace a live batch.** Same precedence rule as run recovery: a batch this session is
     already draining is the newer truth, and a stored record can only fill a gap.
+  - **Wait for an instance list to compare against.** No eligible instances means the list has not
+    arrived, NOT that every target is gone. Entering this page fetches the publishing VM first and
+    its siblings later, so the earliest polls genuinely see a list of one — and reading that as "all
+    the stored targets have been deleted" would discard a live batch in exactly the reload case this
+    whole record exists for. The decision waits instead; `exoextBatchSharedMsg` holds the record
+    while it does. A project with no scannable instance at all never resolves, which costs one idle
+    stored record and cannot cost a scan, because there is nothing there to scan.
   - **Drop targets that are no longer eligible.** An instance deleted or shut down since the record
-    was written would otherwise get a request the publisher can only fail. If nothing survives, the
-    record is not a batch at all and is dropped whole.
+    was written would otherwise get a request the publisher can only fail. If nothing survives, this
+    is not a batch and the record goes.
 
-Either way `exoextRestoredBatch` clears, so this runs once per page entry and not once per poll.
+Once decided, `exoextRestoredBatch` clears, so this settles once per page entry rather than per poll.
 
 -}
 adoptRestoredExoextBatch : Project -> Model -> Model
@@ -745,19 +752,24 @@ adoptRestoredExoextBatch project model =
             let
                 eligible =
                     exoextInstances project model |> List.map .id
-
-                remaining =
-                    restored.remaining |> List.filter (\subject -> List.member subject eligible)
             in
-            { model
-                | exoextRestoredBatch = Nothing
-                , exoextBatch =
-                    if List.isEmpty remaining then
-                        Nothing
+            if List.isEmpty eligible then
+                model
 
-                    else
-                        Just { restored | remaining = remaining }
-            }
+            else
+                let
+                    remaining =
+                        restored.remaining |> List.filter (\subject -> List.member subject eligible)
+                in
+                { model
+                    | exoextRestoredBatch = Nothing
+                    , exoextBatch =
+                        if List.isEmpty remaining then
+                            Nothing
+
+                        else
+                            Just { restored | remaining = remaining }
+                }
 
         ( Just _, Just _ ) ->
             { model | exoextRestoredBatch = Nothing }
@@ -773,6 +785,11 @@ idempotent, re-emitting it is free.
 
 A batch with an empty `remaining` is exactly the "drained, or its run slot went terminal with nothing
 left" case, so it needs no separate condition.
+
+The one thing it must not do is delete a record it has not finished reading: a restored tail still
+waiting on the instance list (see [`adoptRestoredExoextBatch`](#adoptRestoredExoextBatch)) looks
+exactly like "no batch" from here, and forgetting it there would destroy the tail on the first poll
+after a reload — before anything had a chance to resume it.
 
 -}
 exoextBatchSharedMsg : Project -> Model -> SharedMsg.SharedMsg
@@ -792,7 +809,11 @@ exoextBatchSharedMsg project model =
                     }
 
         Nothing ->
-            SharedMsg.ForgetExtensionBatch model.serverUuid
+            if model.exoextRestoredBatch /= Nothing then
+                SharedMsg.NoOp
+
+            else
+                SharedMsg.ForgetExtensionBatch model.serverUuid
 
 
 {-| Whether an undrained batch tail is waiting on the current run. It is what tells
