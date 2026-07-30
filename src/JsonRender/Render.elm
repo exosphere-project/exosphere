@@ -378,10 +378,26 @@ badgeToken state =
 {-| Render a `Button`. A truthy `disabled` expression makes it inert three ways over: the native
 `disabled` attribute, a `jr-button--disabled` class for the host stylesheet, and **no press handler
 at all** — the last is the one that actually holds, since the others are only presentation.
+
+An **empty resolved `label` renders NOTHING**, the same rule [`renderIframe`](#renderIframe) applies
+to an empty `src`. The catalog has no `visible` prop (element-level visibility is deliberately
+refused), so resolving the label to `""` is how a manifest says "this action does not apply to this
+row" — a per-row `$cond` chain collapsing to the empty string. Emitting a button anyway produced an
+invisible control with a live press handler on every row the action did NOT apply to, which is a
+phantom clickable: the empty-label case is exactly the one where the press carries no id.
+
+The exclusion has to be structural, not a stylesheet rule. The badge equivalent IS CSS
+(`.jr-badge[data-state=""] { display: none }`) and that is fine, because a hidden badge is only
+unreadable — a hidden button is still clickable. There is also no icon support in this catalog, so a
+label-less button can never be a legitimate control being styled by other means.
+
 -}
 renderButton : Context -> UIElement -> Spec.ButtonProps -> Html Msg
 renderButton ctx element props =
     let
+        label =
+            Expr.resolveDisplay ctx props.label
+
         isDisabled =
             props.disabled |> Maybe.map (Expr.resolveBool ctx) |> Maybe.withDefault False
 
@@ -400,13 +416,17 @@ renderButton ctx element props =
             else
                 ""
     in
-    Html.button
-        (Attr.class ("jr-button" ++ disabledClass)
-            :: Attr.type_ "button"
-            :: Attr.disabled isDisabled
-            :: handler
-        )
-        [ Html.text (Expr.resolveDisplay ctx props.label) ]
+    if String.isEmpty label then
+        Html.text ""
+
+    else
+        Html.button
+            (Attr.class ("jr-button" ++ disabledClass)
+                :: Attr.type_ "button"
+                :: Attr.disabled isDisabled
+                :: handler
+            )
+            [ Html.text label ]
 
 
 pressEmit : Context -> UIElement -> Maybe Emit

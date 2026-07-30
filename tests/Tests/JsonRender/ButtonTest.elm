@@ -1,4 +1,4 @@
-module Tests.JsonRender.ButtonTest exposing (suite)
+module Tests.JsonRender.ButtonTest exposing (emptyLabelSuite, suite)
 
 {-| Focused coverage for the Button `disabled` prop.
 
@@ -132,4 +132,90 @@ suite =
 
                     Err _ ->
                         Expect.pass
+        ]
+
+
+{-| An empty resolved label renders no button at all.
+
+The catalog refuses an element-level `visible` prop, so collapsing the label to `""` is the only way
+a manifest can say "this action does not apply to this row". Emitting a `<button>` anyway put an
+invisible control with a live press handler on every row the action did not apply to — and the
+empty-label row is precisely the one whose press carries no id. Not a hypothetical: the history
+column's View action already resolves to `""` on a failed scan.
+
+-}
+emptyLabelSuite : Test
+emptyLabelSuite =
+    let
+        -- A label that is a per-row `$cond`, the shape every "not applicable here" control takes.
+        conditionalLabel =
+            """
+            { "root": "b"
+            , "elements":
+                { "b":
+                    { "type": "Button"
+                    , "props":
+                        { "label": { "$cond": { "$state": "/cancellable" }, "$then": "Cancel", "$else": "" }
+                        , "disabled": { "$state": "/requestBusy" }
+                        }
+                    , "on": { "press": { "action": "exoext.cancelRequest", "params": {} } }
+                    , "children": []
+                    }
+                }
+            }
+            """
+
+        state cancellable requestBusy =
+            Encode.object
+                [ ( "cancellable", Encode.bool cancellable )
+                , ( "requestBusy", Encode.bool requestBusy )
+                ]
+    in
+    describe "JsonRender.Render Button with an empty label"
+        [ test "an empty resolved label renders no button element at all" <|
+            \_ ->
+                render conditionalLabel (state False False)
+                    |> Query.hasNot [ Selector.tag "button" ]
+        , test "and therefore emits no press — the phantom-clickable fix" <|
+            \_ ->
+                -- `Query.find` failing IS the assertion: there is no node to click.
+                render conditionalLabel (state False False)
+                    |> Query.findAll [ Selector.tag "button" ]
+                    |> Query.count (Expect.equal 0)
+        , test "a non-empty label still renders and still emits" <|
+            \_ ->
+                render conditionalLabel (state True False)
+                    |> Query.find [ Selector.tag "button" ]
+                    |> Event.simulate Event.click
+                    |> Event.toResult
+                    |> Expect.ok
+        , test "a DISABLED non-empty button still renders — this rule does not swallow it" <|
+            \_ ->
+                -- Disabled means "here but unavailable" and must stay visible where the eye expects
+                -- it; empty-label means "not applicable" and goes away. Two different states.
+                render conditionalLabel (state True True)
+                    |> Query.has
+                        [ Selector.tag "button"
+                        , Selector.attribute (Html.Attributes.disabled True)
+                        , Selector.text "Cancel"
+                        ]
+        , test "a literal empty label is excluded too, not only a collapsed $cond" <|
+            \_ ->
+                let
+                    literal =
+                        """
+                        { "root": "b"
+                        , "elements":
+                            { "b":
+                                { "type": "Button"
+                                , "props": { "label": "" }
+                                , "on": { "press": { "action": "exoext.openSession", "params": {} } }
+                                , "children": []
+                                }
+                            }
+                        }
+                        """
+                in
+                render literal Encode.null
+                    |> Query.hasNot [ Selector.tag "button" ]
         ]
