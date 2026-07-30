@@ -17,6 +17,7 @@ import Style.Types as ST
 import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector
+import Tests.CloudShield.Fixtures exposing (cardViewConfig)
 import Time
 
 
@@ -41,25 +42,7 @@ Everything else is the quiet default: no history, no session, nothing in flight.
 -}
 configFor : String -> Card.ViewConfig
 configFor manifestJson =
-    { approved = True
-    , sourceName = "cloudshield-vm"
-    , manifest = Card.ManifestReady manifestJson
-    , transportLabel = Nothing
-    , scanTimer = Nothing
-    , transportWarning = Nothing
-    , statusOverride = Nothing
-    , results = Nothing
-    , history = { rows = [], loading = False, loaded = True }
-    , activeResultId = Nothing
-    , pendingResultId = Nothing
-    , erroredResultId = Nothing
-    , expiredResultId = Nothing
-    , requestBusy = False
-    , allowedIframeOrigins = []
-    , embedUrl = ""
-    , embedState = Card.EmbedIdle
-    , demoIframeUrl = Nothing
-    }
+    { cardViewConfig | manifest = Card.ManifestReady manifestJson }
 
 
 render : String -> Bool -> Query.Single Card.Msg

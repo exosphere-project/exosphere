@@ -18,6 +18,7 @@ module Exoext.Lifecycle exposing
     , verbWriteRequest
     , verbCancelRequest
     , verbOpenSession
+    , verbDismissSession
     , verbRefresh
     , VerbAlias
     , resolveVerb
@@ -82,6 +83,7 @@ Two things live here that used to be duplicated in `Page.ServerDetail` and `Clou
 @docs verbWriteRequest
 @docs verbCancelRequest
 @docs verbOpenSession
+@docs verbDismissSession
 @docs verbRefresh
 @docs VerbAlias
 @docs resolveVerb
@@ -502,7 +504,14 @@ verbWriteRequest =
     "exoext.writeRequest"
 
 
-{-| The generic verb that cancels the in-flight request. No manifest verb aliases to it yet.
+{-| The generic verb that stops a request the publisher has not finished (params:
+`{ requestId }` — the §4.1 id to stop, which the host projects per row as `cancelRequestId`).
+Always confirm-gated by the catalog's confirm rule: stopping discards work in progress.
+
+It names the request rather than just saying "stop": there is one request slot per publishing VM
+(§7.1) and the reader may be a reload behind, so an unnamed stop could land on a run the user never
+saw. A cancel for a request the publisher no longer has is a no-op by construction.
+
 -}
 verbCancelRequest : String
 verbCancelRequest =
@@ -515,6 +524,15 @@ Today's `cloudshield.getEmbed` aliases to it.
 verbOpenSession : String
 verbOpenSession =
     "exoext.openSession"
+
+
+{-| The generic verb that closes the open result session (no params). Host-local by definition: a
+session is a view, so dismissing one writes nothing to the wire, cancels no request, and discards no
+archived result — the same resource can be re-opened with [`verbOpenSession`](#verbOpenSession).
+-}
+verbDismissSession : String
+verbDismissSession =
+    "exoext.dismissSession"
 
 
 {-| The generic verb that refreshes the current session / view. No manifest verb aliases to it

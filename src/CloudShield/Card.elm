@@ -1,4 +1,4 @@
-module CloudShield.Card exposing (EmbedState(..), Instance, ManifestSource(..), Model, Msg, OutMsg(..), ViewConfig, dispatchVerb, init, projection, requestEmbed, resolveAction, resultIdOf, rollbackScanRequest, scanningRowLabel, settleScanState, transportChip, update, view)
+module CloudShield.Card exposing (EmbedState(..), Instance, ManifestSource(..), Model, Msg, OutMsg(..), ViewConfig, abandonScanState, cancelRequestIdOf, dispatchVerb, init, projection, requestEmbed, resolveAction, resultIdOf, rollbackScanRequest, scanningRowLabel, settleScanState, transportChip, update, view)
 
 {-| Host wiring for the CloudShield dynamic-UI card (Phase 1, browser side).
 
@@ -119,6 +119,14 @@ OpenStack Cmds; the parent owns the Nova metadata write (it has `Rest.Nova` + th
 type OutMsg
     = ScanRequested { seq : Int, targetIds : List String }
     | EmbedRequested { resultId : String, batchId : String }
+      -- `CancelRequested { requestId }` — a confirmed `exoext.cancelRequest` on a row with a
+      -- stoppable run. The parent writes the cancel channel (`exoext.v1.req.cancel`) naming that
+      -- request; the card holds no run-state knowledge, so which rows offer the action at all is
+      -- decided host-side and projected per row as `cancellable`.
+    | CancelRequested { requestId : String }
+      -- `SessionDismissed` — the researcher closed the open results session. Purely host-local
+      -- display state: nothing is written to the wire and no archived scan is touched.
+    | SessionDismissed
       -- The trust decisions. The card holds no approval state of its own; it asks the host to
       -- grant (persist an approval for the publishing instance) or forget (remove it). The host
       -- owns the persisted `exoext.approval.v1` record and stamps the wall-clock `approvedAt`.
@@ -201,15 +209,16 @@ actionAliases : List Lifecycle.VerbAlias
 actionAliases =
     [ { name = "cloudshield.startScan", verb = Lifecycle.verbWriteRequest, kind = "scan" }
     , { name = "cloudshield.getEmbed", verb = Lifecycle.verbOpenSession, kind = "" }
+    , { name = "cloudshield.cancelScan", verb = Lifecycle.verbCancelRequest, kind = "" }
     ]
 
 
 {-| Resolve a manifest action name to a generic [`Lifecycle.VerbAlias`](Exoext-Lifecycle#VerbAlias).
 Two ways in: the v1 [`actionAliases`](#actionAliases) table (the `cloudshield.*` names), and — for
-manifest v2 — a name that IS already a generic verb (`exoext.writeRequest` / `exoext.openSession`),
-accepted directly with its `kind` read from the emitted params. Anything else is `Nothing`
-(fail-closed). Keeping the alias table means a v1 manifest still dispatches against this host until
-the demo VM redeploys v2.
+manifest v2 and later — a name that IS already a generic verb (`exoext.writeRequest`,
+`exoext.openSession`, `exoext.cancelRequest`, `exoext.dismissSession`), accepted directly with its
+`kind` read from the emitted params. Anything else is `Nothing` (fail-closed). Keeping the alias
+table means a v1 manifest still dispatches against this host until the demo VM redeploys.
 -}
 resolveAction : String -> Encode.Value -> Maybe Lifecycle.VerbAlias
 resolveAction name params =
@@ -221,8 +230,8 @@ resolveAction name params =
             if name == Lifecycle.verbWriteRequest then
                 Just { name = name, verb = Lifecycle.verbWriteRequest, kind = kindOf params }
 
-            else if name == Lifecycle.verbOpenSession then
-                Just { name = name, verb = Lifecycle.verbOpenSession, kind = "" }
+            else if List.member name [ Lifecycle.verbOpenSession, Lifecycle.verbCancelRequest, Lifecycle.verbDismissSession ] then
+                Just { name = name, verb = name, kind = "" }
 
             else
                 Nothing
@@ -242,7 +251,8 @@ against this adapter's request/session handlers. `verbWriteRequest` frames + wri
 (targets resolved §5.4) — but only for `kind == "scan"`, the one request kind this adapter
 handles; any other (or missing) kind is a no-op, so a manifest cannot route an unknown request
 kind onto the scan path. `verbOpenSession` opens a result session for the pressed row's result.
-`Nothing` (an unaliased action) and any not-yet-wired verb are no-ops (fail-closed).
+`verbCancelRequest` asks the host to stop the named request. `verbDismissSession` closes the open
+session. `Nothing` (an unaliased action) and any not-yet-wired verb are no-ops (fail-closed).
 -}
 dispatchVerb : Maybe Lifecycle.VerbAlias -> Encode.Value -> Model -> ( Model, Maybe OutMsg )
 dispatchVerb maybeAlias params model =
@@ -253,6 +263,12 @@ dispatchVerb maybeAlias params model =
 
             else if alias.verb == Lifecycle.verbOpenSession then
                 requestEmbed (resultIdOf params) model
+
+            else if alias.verb == Lifecycle.verbCancelRequest then
+                requestCancel (cancelRequestIdOf params) model
+
+            else if alias.verb == Lifecycle.verbDismissSession then
+                ( model, Just SessionDismissed )
 
             else
                 ( model, Nothing )
@@ -314,6 +330,46 @@ requestEmbed maybeIds model =
 
         Nothing ->
             ( model, Nothing )
+
+
+{-| A confirmed cancel: ask the parent to stop the named request. The card optimistically changes
+NOTHING — no row state, no tracker. Stopping is the publisher's decision to honor (§7.1), and the
+run's own state is what reports it; a locally invented "cancelling" badge would either need a display
+string of its own (the manifest owns those) or would lie when the publisher had already finished.
+The visible acknowledgement is the row's Cancel action going away, which follows from the host
+dropping the run's `cancellable` flag the moment it writes the channel.
+
+The full target list a stopped batch had left to scan is dropped host-side, not here — the card does
+not own the batch.
+
+-}
+requestCancel : Maybe String -> Model -> ( Model, Maybe OutMsg )
+requestCancel maybeRequestId model =
+    case maybeRequestId of
+        Just requestId ->
+            ( model, Just (CancelRequested { requestId = requestId }) )
+
+        Nothing ->
+            ( model, Nothing )
+
+
+{-| Resolve a cancel press's `requestId` param — the §4.1 id of the run to stop, which the host
+projected onto that row as `cancelRequestId`. An absent or empty id is `Nothing` (fail-closed): a
+cancel that names no request would ride the wire as a value the publisher cannot match, and a row
+with no stoppable run must not be able to arm the channel at all.
+-}
+cancelRequestIdOf : Encode.Value -> Maybe String
+cancelRequestIdOf params =
+    Decode.decodeValue (Decode.field "requestId" Decode.string) params
+        |> Result.toMaybe
+        |> Maybe.andThen
+            (\requestId ->
+                if String.isEmpty requestId then
+                    Nothing
+
+                else
+                    Just requestId
+            )
 
 
 {-| Resolve the pressed history row's session ids from the renderer's already-resolved params.
@@ -397,6 +453,20 @@ settleScanState id state model =
     { model | scanState = Dict.insert id state model.scanState }
 
 
+{-| Drop the optimistic state of rows whose requests will now never be written — the targets left in
+a batch that was stopped. `requestScan` flips every selected row to `queued` up front so the press
+reads as accepted; if the batch is then abandoned, those rows have no run coming and no terminal
+state ever arrives to overwrite them, so they would sit on a spinning `queued` badge forever.
+
+Removing the key (rather than writing an "idle" state) returns each row to the absent-means-idle
+default, which is also what makes its Scan action pressable again.
+
+-}
+abandonScanState : List String -> Model -> Model
+abandonScanState ids model =
+    { model | scanState = List.foldl Dict.remove model.scanState ids }
+
+
 isActive : String -> Bool
 isActive state =
     state == "queued" || state == "running"
@@ -473,22 +543,22 @@ historyDisplayCap =
     20
 
 
+{-| The whole render state the manifest binds against, projected from the host's
+[`ViewConfig`](#ViewConfig). It takes the config wholesale rather than a dozen positional signals:
+every input here is already a config field, and each new per-row signal (WP8 added two) was one more
+`Nothing` in a row of interchangeable `Maybe String`s at every call site.
+-}
 projection :
     Time.Zone
-    -> Maybe String
-    -> Maybe String
-    -> Maybe String
-    -> Maybe String
-    -> Bool
-    -> { rows : List Transport.IndexEntry, loading : Bool, loaded : Bool }
-    -> Maybe Encode.Value
-    -> String
-    -> Maybe { targetId : String, state : String }
+    -> ViewConfig
     -> List Instance
     -> Model
     -> Encode.Value
-projection zone activeResultId pendingResultId erroredResultId expiredResultId requestBusy history results embedUrl statusOverride instances model =
+projection zone config instances model =
     let
+        history =
+            config.history
+
         total =
             List.length history.rows
 
@@ -522,16 +592,21 @@ projection zone activeResultId pendingResultId erroredResultId expiredResultId r
     in
     Encode.object
         [ ( "selectAll", Encode.bool model.selectAll )
-        , ( "results", Maybe.withDefault Encode.null results )
-        , ( "embedUrl", Encode.string embedUrl )
-        , ( "instances", Encode.list (instanceProjection statusOverride model) instances )
-        , ( "history", Encode.list (historyRow zone activeResultId pendingResultId erroredResultId expiredResultId) shown )
+        , ( "results", Maybe.withDefault Encode.null config.results )
+        , ( "embedUrl", Encode.string config.embedUrl )
+        , ( "instances", Encode.list (instanceProjection config model) instances )
+        , ( "history", Encode.list (historyRow zone config.activeResultId config.pendingResultId config.erroredResultId config.expiredResultId) shown )
         , ( "historyNote", Encode.string historyNote )
 
         -- Whether the host would SWALLOW an `exoext.openSession` press right now (the §7.1
         -- single-req-slot guard: a scan is active or its request is still unclaimed). The manifest
         -- binds it to the row action's `disabled`, so the guard is visible instead of silent.
-        , ( "requestBusy", Encode.bool requestBusy )
+        , ( "requestBusy", Encode.bool config.requestBusy )
+
+        -- Whether a result session is on screen right now, so the manifest can offer its close
+        -- affordance only when there is something to close (an `exoext.dismissSession` press with
+        -- no open session is a no-op, and a control that does nothing reads as broken).
+        , ( "sessionOpen", Encode.bool config.sessionOpen )
 
         -- Old display-string header keys (manifest v1). Kept alongside the new count/flag keys
         -- below so a v1 manifest still renders against this host until the demo VM redeploys v2.
@@ -747,11 +822,21 @@ findingsFromCounts counts =
         )
 
 
-instanceProjection : Maybe { targetId : String, state : String } -> Model -> Instance -> Encode.Value
-instanceProjection statusOverride model instance =
+{-| Project one scan-target row. Besides its display state, the row carries the two signals a Cancel
+action needs, both decided host-side from the live wire state:
+
+  - `cancellable` — this row has a run that can still be stopped. The manifest binds the Cancel
+    control's presence / `disabled` to it rather than re-deriving the answer from `scanState`
+    strings, which is display-composed (`"scanning · 1:07"`) and would be guesswork.
+  - `cancelRequestId` — the §4.1 request id that a stop has to name, `""` on every other row so a
+    press there cannot arm the cancel channel (`cancelRequestIdOf` rejects an empty id).
+
+-}
+instanceProjection : ViewConfig -> Model -> Instance -> Encode.Value
+instanceProjection config model instance =
     let
         scanState =
-            case statusOverride of
+            case config.statusOverride of
                 Just override ->
                     if override.targetId == instance.id then
                         override.state
@@ -761,12 +846,26 @@ instanceProjection statusOverride model instance =
 
                 Nothing ->
                     localScanState model instance.id
+
+        cancelRequestId =
+            case config.cancellableRun of
+                Just run ->
+                    if run.targetId == instance.id then
+                        run.requestId
+
+                    else
+                        ""
+
+                Nothing ->
+                    ""
     in
     Encode.object
         [ ( "id", Encode.string instance.id )
         , ( "name", Encode.string instance.name )
         , ( "selected", Encode.bool (Set.member instance.id model.selection) )
         , ( "scanState", Encode.string scanState )
+        , ( "cancellable", Encode.bool (cancelRequestId /= "") )
+        , ( "cancelRequestId", Encode.string cancelRequestId )
         ]
 
 
@@ -890,6 +989,17 @@ type alias ViewConfig =
     -- instead of the press vanishing with no feedback.
     , requestBusy : Bool
 
+    -- the ONE target row whose run can still be stopped, and the §4.1 request id a stop must name
+    -- (`ServerDetail.exoextCancellableRun`). §7.1 admits one request per publishing VM, so there is
+    -- at most one. Projected per row as `cancellable` / `cancelRequestId`; `Nothing` when no run is
+    -- stoppable, which also covers a run whose cancel this host has already written.
+    , cancellableRun : Maybe { targetId : String, requestId : String }
+
+    -- whether a result session is currently ON SCREEN (findings and/or a mounted iframe), so the
+    -- manifest can show its close affordance only when there is something to close. False once
+    -- dismissed, which is what makes the close control disappear along with the pane it closed.
+    , sessionOpen : Bool
+
     -- the iframe origin allowlist, derived host-side from the instance's own floating IPs.
     -- The renderer emits an `<iframe>` only for a `src` whose origin is an exact member of
     -- this list; it is the whole safety boundary for the catalog's origin-pinned Iframe.
@@ -950,7 +1060,7 @@ view palette zone config instances model =
         Element.column
             [ Element.width (Element.fill |> Element.maximum 1300), Element.spacing spacer.px8 ]
             [ provenanceMarker palette config.sourceName
-            , rendererView palette zone config.sourceName config.activeResultId config.pendingResultId config.erroredResultId config.expiredResultId config.requestBusy config.allowedIframeOrigins config.manifest config.history config.results config.embedUrl config.statusOverride instances model
+            , rendererView palette zone config instances model
             , embedStateView palette config.embedState config.erroredResultId
             , transportWarningView palette config.transportWarning
             , scanTimerView palette config.scanTimer
@@ -1145,23 +1255,12 @@ transportChip palette label =
 rendererView :
     ExoPalette
     -> Time.Zone
-    -> String
-    -> Maybe String
-    -> Maybe String
-    -> Maybe String
-    -> Maybe String
-    -> Bool
-    -> List String
-    -> ManifestSource
-    -> { rows : List Transport.IndexEntry, loading : Bool, loaded : Bool }
-    -> Maybe Encode.Value
-    -> String
-    -> Maybe { targetId : String, state : String }
+    -> ViewConfig
     -> List Instance
     -> Model
     -> Element.Element Msg
-rendererView palette zone sourceName activeResultId pendingResultId erroredResultId expiredResultId requestBusy allowedIframeOrigins manifest history results embedUrl statusOverride instances model =
-    case manifest of
+rendererView palette zone config instances model =
+    case config.manifest of
         ManifestReady manifestJson ->
             -- Decode per render is fine for the small card; the fail-closed decoder is the security
             -- gate (an off-catalog or oversized manifest yields the error stub, never a partial tree).
@@ -1175,7 +1274,7 @@ rendererView palette zone sourceName activeResultId pendingResultId erroredResul
                             (Html.div
                                 [ Html.Attributes.style "width" "100%"
                                 , Html.Attributes.attribute "data-exoext-history-loading"
-                                    (if history.loading && not history.loaded then
+                                    (if config.history.loading && not config.history.loaded then
                                         "true"
 
                                      else
@@ -1183,13 +1282,13 @@ rendererView palette zone sourceName activeResultId pendingResultId erroredResul
                                     )
                                 ]
                                 [ rendererStyle palette
-                                , Html.map RendererMsg (Render.view allowedIframeOrigins spec (projection zone activeResultId pendingResultId erroredResultId expiredResultId requestBusy history results embedUrl statusOverride instances model) model.renderer)
+                                , Html.map RendererMsg (Render.view config.allowedIframeOrigins spec (projection zone config instances model) model.renderer)
                                 ]
                             )
                         )
 
                 Err message ->
-                    manifestErrorView palette sourceName message model.showManifestErrorDetail
+                    manifestErrorView palette config.sourceName message model.showManifestErrorDetail
 
         ManifestLoading ->
             -- The sentinel is present but the manifest body has not resolved yet: quiet host chrome

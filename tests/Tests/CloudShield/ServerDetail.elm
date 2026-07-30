@@ -1,4 +1,4 @@
-module Tests.CloudShield.ServerDetail exposing (cloudShieldBatchSuite, cloudShieldEmbedProjectionSuite, cloudShieldPendingEmbedSuite, cloudShieldReadDecisionSuite, cloudShieldRecoverySuite, cloudShieldScanBlockedSuite, cloudShieldScanTimerSuite)
+module Tests.CloudShield.ServerDetail exposing (cloudShieldBatchSuite, cloudShieldCancelSuite, cloudShieldDismissSuite, cloudShieldEmbedProjectionSuite, cloudShieldPendingEmbedSuite, cloudShieldReadDecisionSuite, cloudShieldRecoverySuite, cloudShieldScanBlockedSuite, cloudShieldScanTimerSuite)
 
 import CloudShield.Card as Card
 import Dict
@@ -10,6 +10,7 @@ import Json.Encode as Encode
 import OpenStack.Types as OSTypes
 import Page.ServerDetail as ServerDetail
 import Test exposing (Test, describe, test)
+import Tests.CloudShield.Fixtures exposing (cardViewConfig)
 import Time
 import Types.HelperTypes as HelperTypes
 import Types.Interactivity as Interactivity
@@ -614,18 +615,17 @@ cloudShieldEmbedProjectionSuite =
 
                     rowStates_ =
                         Card.projection Time.utc
-                            projection.activeResultId
-                            projection.pendingResultId
-                            projection.erroredResultId
-                            projection.expiredResultId
-                            False
-                            { rows = [ sibling "exo-cs-req-6", sibling "exo-cs-req-7" ]
-                            , loading = False
-                            , loaded = True
+                            { cardViewConfig
+                                | history =
+                                    { rows = [ sibling "exo-cs-req-6", sibling "exo-cs-req-7" ]
+                                    , loading = False
+                                    , loaded = True
+                                    }
+                                , activeResultId = projection.activeResultId
+                                , pendingResultId = projection.pendingResultId
+                                , erroredResultId = projection.erroredResultId
+                                , expiredResultId = projection.expiredResultId
                             }
-                            Nothing
-                            ""
-                            Nothing
                             []
                             Card.init
                             |> Decode.decodeValue
@@ -1039,6 +1039,152 @@ cloudShieldRecoverySuite =
                     ( ServerDetail.exoextScanRequestPending (projectPublishing (runSlotFor 1700 "running" "i-9")) (recovered "running")
                     , ServerDetail.exoextScanRequestPending (projectPublishing (runSlotFor 1700 "done" "i-9")) (recovered "done")
                     )
+        ]
+
+
+cloudShieldCancelSuite : Test
+cloudShieldCancelSuite =
+    let
+        -- A three-target batch mid-drain: target 1's request is on the wire, targets 2 and 3 are
+        -- parked at their optimistic `queued` badges.
+        draining =
+            writeRequestAt 1700 { subject = "i-1", batchId = Nothing } modelAfterStartScan
+
+        runningRow =
+            Just { targetId = "i-1", state = "running" }
+    in
+    describe "ServerDetail cancel (the §I cancel channel)"
+        [ test "an active run offers its row a stop, naming the request id" <|
+            \_ ->
+                Expect.equal (Just { targetId = "i-1", requestId = "exo-cs-req-1700" })
+                    (ServerDetail.exoextCancellableRun (runSlotFor 1700 "running" "i-1") runningRow draining)
+        , test "every non-terminal state is stoppable and every terminal one is not" <|
+            \_ ->
+                Expect.equal [ True, True, True, False, False, False, False ]
+                    ([ "queued", "running", "scanning", "done", "error", "cancelled", "expired" ]
+                        |> List.map
+                            (\state ->
+                                ServerDetail.exoextCancellableRun (runSlotFor 1700 state "i-1")
+                                    (Just { targetId = "i-1", state = state })
+                                    draining
+                                    /= Nothing
+                            )
+                    )
+        , test "a publisher reporting no requestId falls back to the id this host minted for the seq" <|
+            \_ ->
+                Expect.equal (Just { targetId = "i-1", requestId = "exo-cs-req-1700" })
+                    (ServerDetail.exoextCancellableRun (runSlot 1700 "running") runningRow draining)
+        , test "a run this host cannot name at all is not stoppable" <|
+            \_ ->
+                -- No wire requestId and no tracker correlated to this seq: a stop would name nothing.
+                Expect.equal Nothing
+                    (ServerDetail.exoextCancellableRun (runSlot 9999 "running") Nothing draining)
+        , test "a run whose target cannot be attributed to a row is not stoppable either" <|
+            \_ ->
+                Expect.equal Nothing
+                    (ServerDetail.exoextCancellableRun (runSlot 1700 "running") Nothing draining)
+        , test "the stop ends the batch and clears the badges of targets that will never run" <|
+            \_ ->
+                let
+                    cancelled =
+                        ServerDetail.exoextCancelRequested "exo-cs-req-1700" draining
+                in
+                Expect.equal
+                    ( Just "exo-cs-req-1700", Nothing, [ Just "queued", Nothing, Nothing ] )
+                    ( cancelled.exoextCancelRequestId
+                    , cancelled.exoextBatch
+                    , [ "i-1", "i-2", "i-3" ] |> List.map (\id -> Dict.get id cancelled.exoextCard.scanState)
+                    )
+        , test "a stopped run withdraws its own Cancel control, with no host-owned label involved" <|
+            \_ ->
+                Expect.equal Nothing
+                    (ServerDetail.exoextCancellableRun (runSlotFor 1700 "running" "i-1")
+                        runningRow
+                        (ServerDetail.exoextCancelRequested "exo-cs-req-1700" draining)
+                    )
+        , test "the NEXT request restores the control, because that write clears the channel" <|
+            \_ ->
+                let
+                    restarted =
+                        ServerDetail.exoextCancelRequested "exo-cs-req-1700" draining
+                            |> writeRequestAt 2500 { subject = "i-1", batchId = Nothing }
+                in
+                Expect.equal ( Nothing, Just { targetId = "i-1", requestId = "exo-cs-req-2500" } )
+                    ( restarted.exoextCancelRequestId
+                    , ServerDetail.exoextCancellableRun (runSlotFor 2500 "running" "i-1") runningRow restarted
+                    )
+        , test "a stop for one request does not withdraw a DIFFERENT run's control" <|
+            \_ ->
+                Expect.equal (Just { targetId = "i-1", requestId = "exo-cs-req-1700" })
+                    (ServerDetail.exoextCancellableRun (runSlotFor 1700 "running" "i-1")
+                        runningRow
+                        (ServerDetail.exoextCancelRequested "exo-cs-req-9999" draining)
+                    )
+        ]
+
+
+cloudShieldDismissSuite : Test
+cloudShieldDismissSuite =
+    let
+        openSession model =
+            ServerDetail.exoextEmbedProjection
+                (embedResultMetadata (okEmbedBody expiresAtIso))
+                (objectFor "b1")
+                beforeExpiry
+                Nothing
+                Nothing
+                model
+
+        dismissed model =
+            { model | exoextSessionDismissed = True }
+    in
+    describe "ServerDetail dismiss (closing an open result session)"
+        [ test "an open session reports sessionOpen, so the manifest can offer a close" <|
+            \_ ->
+                Expect.equal True (openSession modelWithArchivedFindings).sessionOpen
+        , test "dismissing unmounts the pane: no findings, no iframe url, sessionOpen False" <|
+            \_ ->
+                -- Unmounted rather than hidden: an embed left mounted keeps retrying auth.
+                let
+                    projection =
+                        openSession (dismissed modelWithArchivedFindings)
+                in
+                Expect.equal ( Nothing, "", False )
+                    ( projection.results, projection.embedUrl, projection.sessionOpen )
+        , test "dismissing drops the now-viewing flag and nothing else about the row" <|
+            \_ ->
+                let
+                    projection =
+                        openSession (dismissed modelWithArchivedFindings)
+                in
+                Expect.equal ( Nothing, Card.EmbedIdle )
+                    ( projection.activeResultId, projection.embedState )
+        , test "asking for a session again clears the dismissal, so the same scan reopens" <|
+            \_ ->
+                let
+                    ( reopened, _, _ ) =
+                        ServerDetail.update
+                            (ServerDetail.ExoextWriteEmbedRequest { resultId = "b1", batchId = "b1" } (Time.millisToPosix 3000))
+                            project
+                            (dismissed modelWithArchivedFindings)
+                in
+                Expect.equal False reopened.exoextSessionDismissed
+        , test "starting a new scan clears it too — the new results supersede what was closed" <|
+            \_ ->
+                Expect.equal False
+                    (writeRequestAt 3000 { subject = "i-1", batchId = Nothing } (dismissed modelAfterStartScan)).exoextSessionDismissed
+        , test "a dismissal with nothing on screen leaves the empty state exactly as it was" <|
+            \_ ->
+                let
+                    idle model =
+                        ServerDetail.exoextEmbedProjection [] Nothing beforeExpiry Nothing Nothing model
+
+                    base =
+                        ServerDetail.init "self"
+                in
+                Expect.equal
+                    ( (idle base).sessionOpen, (idle base).embedState )
+                    ( (idle (dismissed base)).sessionOpen, (idle (dismissed base)).embedState )
         ]
 
 

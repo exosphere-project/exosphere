@@ -1,5 +1,6 @@
 module Tests.CloudShield.Card exposing
-    ( discoverySuite
+    ( cancelDismissVerbSuite
+    , discoverySuite
     , embedSuite
     , historySuite
     , historyViewParamsSuite
@@ -36,6 +37,7 @@ import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector
+import Tests.CloudShield.Fixtures exposing (cardViewConfig)
 import Time
 
 
@@ -582,21 +584,21 @@ manifestSuite =
             \_ ->
                 let
                     state =
-                        Card.projection Time.utc Nothing Nothing Nothing Nothing False (loadedHistory (historyEntries 3)) Nothing "" Nothing sampleInstances idleModel
+                        Card.projection Time.utc { sampleConfig | history = loadedHistory (historyEntries 3) } sampleInstances idleModel
                 in
                 Expect.equal "Scan history · 3" (displayOf "history-label" (Expr.rootContext [] state))
         , test "(b) the history header reads 'Scan history' before the first load resolves" <|
             \_ ->
                 let
                     state =
-                        Card.projection Time.utc Nothing Nothing Nothing Nothing False loadingHistory Nothing "" Nothing sampleInstances idleModel
+                        Card.projection Time.utc { sampleConfig | history = loadingHistory } sampleInstances idleModel
                 in
                 Expect.equal "Scan history" (displayOf "history-label" (Expr.rootContext [] state))
         , test "(b) the targets header reads 'Scan targets · N' from /targetsCount" <|
             \_ ->
                 let
                     state =
-                        Card.projection Time.utc Nothing Nothing Nothing Nothing False (loadedHistory []) Nothing "" Nothing sampleInstances idleModel
+                        Card.projection Time.utc sampleConfig sampleInstances idleModel
                 in
                 Expect.equal "Scan targets · 2" (displayOf "targets-label" (Expr.rootContext [] state))
         , test "(c) each state token yields the right badge text + data-state + action label" <|
@@ -751,6 +753,15 @@ loadingHistory =
     { rows = [], loading = True, loaded = False }
 
 
+{-| The host's `ViewConfig` in its quiet default (see `Tests.CloudShield.Fixtures`). Each projection
+test overrides only the fields it is actually about, so a test reads as the one situation it pins
+rather than a row of interchangeable `Nothing`s.
+-}
+sampleConfig : Card.ViewConfig
+sampleConfig =
+    cardViewConfig
+
+
 projectionSuite : Test
 projectionSuite =
     describe "CloudShield host projection (§1.2)"
@@ -758,7 +769,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing Nothing False (loadedHistory []) Nothing "" Nothing sampleInstances (sampleModel (Set.singleton "i-1"))
+                        Card.projection Time.utc sampleConfig sampleInstances (sampleModel (Set.singleton "i-1"))
                 in
                 Expect.equal ( Ok True, Ok False )
                     ( rowSelected 0 value, rowSelected 1 value )
@@ -766,7 +777,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing Nothing False (loadedHistory []) Nothing "" Nothing sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc sampleConfig sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal ( Ok "idle", Ok "queued" )
                     ( rowScanState 0 value, rowScanState 1 value )
@@ -777,7 +788,7 @@ projectionSuite =
                         Just { targetId = "i-1", state = "running" }
 
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing Nothing False (loadedHistory []) Nothing "" override sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc { sampleConfig | statusOverride = override } sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal ( Ok "running", Ok "queued" )
                     ( rowScanState 0 value, rowScanState 1 value )
@@ -785,7 +796,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing Nothing False (loadedHistory []) Nothing "https://1-2-3-4.sslip.io/app" Nothing sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc { sampleConfig | embedUrl = "https://1-2-3-4.sslip.io/app" } sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal (Ok "https://1-2-3-4.sslip.io/app")
                     (Decode.decodeValue (Decode.field "embedUrl" Decode.string) value
@@ -800,7 +811,7 @@ projectionSuite =
                         Just { targetId = "i-1", state = "scanning · 0:23" }
 
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing Nothing False (loadedHistory [ historyEntry "b-1" ]) Nothing "" override sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc { sampleConfig | history = loadedHistory [ historyEntry "b-1" ], statusOverride = override } sampleInstances (sampleModel Set.empty)
                 in
                 Expect.equal ( Ok "scanning · 0:23", Ok "queued" )
                     ( rowScanState 0 value, rowScanState 1 value )
@@ -808,7 +819,7 @@ projectionSuite =
             \_ ->
                 let
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing Nothing False loadingHistory Nothing "" Nothing sampleInstances (sampleModel Set.empty)
+                        Card.projection Time.utc { sampleConfig | history = loadingHistory } sampleInstances (sampleModel Set.empty)
 
                     stringField key =
                         Decode.decodeValue (Decode.field key Decode.string) value
@@ -820,11 +831,104 @@ projectionSuite =
             \_ ->
                 let
                     busyFlag requestBusy =
-                        Card.projection Time.utc Nothing Nothing Nothing Nothing requestBusy (loadedHistory []) Nothing "" Nothing sampleInstances idleModel
+                        Card.projection Time.utc { sampleConfig | requestBusy = requestBusy } sampleInstances idleModel
                             |> Decode.decodeValue (Decode.field "requestBusy" Decode.bool)
                             |> Result.mapError Decode.errorToString
                 in
                 Expect.equal ( Ok True, Ok False ) ( busyFlag True, busyFlag False )
+        , test "sessionOpen is projected top-level so a close affordance appears only with a session" <|
+            \_ ->
+                let
+                    openFlag sessionOpen =
+                        Card.projection Time.utc { sampleConfig | sessionOpen = sessionOpen } sampleInstances idleModel
+                            |> Decode.decodeValue (Decode.field "sessionOpen" Decode.bool)
+                            |> Result.mapError Decode.errorToString
+                in
+                Expect.equal ( Ok True, Ok False ) ( openFlag True, openFlag False )
+        , test "the stoppable run's row carries cancellable + its requestId; other rows carry neither" <|
+            \_ ->
+                let
+                    value =
+                        Card.projection Time.utc
+                            { sampleConfig | cancellableRun = Just { targetId = "i-1", requestId = "exo-cs-req-7" } }
+                            sampleInstances
+                            idleModel
+                in
+                Expect.equal
+                    ( ( Ok True, Ok "exo-cs-req-7" ), ( Ok False, Ok "" ) )
+                    ( ( rowCancellable 0 value, rowCancelRequestId 0 value )
+                    , ( rowCancellable 1 value, rowCancelRequestId 1 value )
+                    )
+        , test "with no stoppable run no row is cancellable, and none can name a request" <|
+            \_ ->
+                -- The empty id is what makes an errant press inert: `cancelRequestIdOf` rejects it.
+                let
+                    value =
+                        Card.projection Time.utc sampleConfig sampleInstances idleModel
+                in
+                Expect.equal ( Ok False, Ok "", Ok False )
+                    ( rowCancellable 0 value, rowCancelRequestId 0 value, rowCancellable 1 value )
+        ]
+
+
+rowCancellable : Int -> Decode.Value -> Result String Bool
+rowCancellable index value =
+    Decode.decodeValue
+        (Decode.field "instances" (Decode.index index (Decode.field "cancellable" Decode.bool)))
+        value
+        |> Result.mapError Decode.errorToString
+
+
+rowCancelRequestId : Int -> Decode.Value -> Result String String
+rowCancelRequestId index value =
+    Decode.decodeValue
+        (Decode.field "instances" (Decode.index index (Decode.field "cancelRequestId" Decode.string)))
+        value
+        |> Result.mapError Decode.errorToString
+
+
+{-| The two verbs WP8 added, at the dispatch boundary: what the manifest emits, what it resolves to,
+and what the card asks the host to do about it.
+-}
+cancelDismissVerbSuite : Test
+cancelDismissVerbSuite =
+    let
+        dispatch name params =
+            Card.dispatchVerb (Card.resolveAction name params) params idleModel |> Tuple.second
+
+        cancelParams requestId =
+            Encode.object [ ( "requestId", Encode.string requestId ) ]
+    in
+    describe "CloudShield cancel + dismiss verbs"
+        [ test "a cancel press asks the host to stop the named request" <|
+            \_ ->
+                Expect.equal (Just (Card.CancelRequested { requestId = "exo-cs-req-7" }))
+                    (dispatch Lifecycle.verbCancelRequest (cancelParams "exo-cs-req-7"))
+        , test "the v1 cloudshield.* alias reaches the same verb" <|
+            \_ ->
+                Expect.equal (Just Lifecycle.verbCancelRequest)
+                    (Card.resolveAction "cloudshield.cancelScan" Encode.null |> Maybe.map .verb)
+        , test "a cancel naming no request is swallowed (empty and absent alike)" <|
+            \_ ->
+                -- A non-cancellable row projects `cancelRequestId: ""`, so this is the press that
+                -- would otherwise arm the channel with a value the publisher can never match.
+                Expect.equal ( Nothing, Nothing )
+                    ( dispatch Lifecycle.verbCancelRequest (cancelParams "")
+                    , dispatch Lifecycle.verbCancelRequest (Encode.object [])
+                    )
+        , test "cancelRequestIdOf reads the id it will send, and rejects the empty one" <|
+            \_ ->
+                Expect.equal ( Just "exo-cs-req-7", Nothing )
+                    ( Card.cancelRequestIdOf (cancelParams "exo-cs-req-7")
+                    , Card.cancelRequestIdOf (cancelParams "")
+                    )
+        , test "a dismiss press asks the host to close the session, and needs no params" <|
+            \_ ->
+                Expect.equal (Just Card.SessionDismissed)
+                    (dispatch Lifecycle.verbDismissSession Encode.null)
+        , test "an off-verb action still resolves to nothing (fail-closed)" <|
+            \_ ->
+                Expect.equal Nothing (Card.resolveAction "exoext.deleteEverything" Encode.null)
         ]
 
 
@@ -1106,7 +1210,7 @@ historyEntries n =
 
 projectHistory : List Transport.IndexEntry -> Decode.Value
 projectHistory entries =
-    Card.projection Time.utc Nothing Nothing Nothing Nothing False (loadedHistory entries) Nothing "" Nothing sampleInstances idleModel
+    Card.projection Time.utc { sampleConfig | history = loadedHistory entries } sampleInstances idleModel
 
 
 {-| Project a single history row and read a string field from `/history/0`, given the active and
@@ -1122,7 +1226,15 @@ timed out) so the "Couldn't open" / "Retry" precedence can be exercised.
 -}
 historyRowFieldE : Maybe String -> Maybe String -> Maybe String -> Transport.IndexEntry -> String -> Result String String
 historyRowFieldE activeResultId pendingResultId erroredResultId entry field =
-    Card.projection Time.utc activeResultId pendingResultId erroredResultId Nothing False (loadedHistory [ entry ]) Nothing "" Nothing sampleInstances idleModel
+    Card.projection Time.utc
+        { sampleConfig
+            | history = loadedHistory [ entry ]
+            , activeResultId = activeResultId
+            , pendingResultId = pendingResultId
+            , erroredResultId = erroredResultId
+        }
+        sampleInstances
+        idleModel
         |> Decode.decodeValue (Decode.field "history" (Decode.index 0 (Decode.field field Decode.string)))
         |> Result.mapError Decode.errorToString
 
@@ -1133,7 +1245,14 @@ exercised.
 -}
 historyRowFieldX : Maybe String -> Maybe String -> Transport.IndexEntry -> String -> Result String String
 historyRowFieldX activeResultId expiredResultId entry field =
-    Card.projection Time.utc activeResultId Nothing Nothing expiredResultId False (loadedHistory [ entry ]) Nothing "" Nothing sampleInstances idleModel
+    Card.projection Time.utc
+        { sampleConfig
+            | history = loadedHistory [ entry ]
+            , activeResultId = activeResultId
+            , expiredResultId = expiredResultId
+        }
+        sampleInstances
+        idleModel
         |> Decode.decodeValue (Decode.field "history" (Decode.index 0 (Decode.field field Decode.string)))
         |> Result.mapError Decode.errorToString
 
@@ -1310,7 +1429,7 @@ historySuite =
             \_ ->
                 let
                     value =
-                        Card.projection Time.utc Nothing Nothing Nothing Nothing False (loadedHistory (historyEntries 3)) Nothing "" Nothing sampleInstances idleModel
+                        Card.projection Time.utc { sampleConfig | history = loadedHistory (historyEntries 3) } sampleInstances idleModel
 
                     stringField key =
                         Decode.decodeValue (Decode.field key Decode.string) value
@@ -1336,7 +1455,7 @@ historySuite =
                         [ siblingEntry "b-shared" "r-1", siblingEntry "b-shared" "r-2" ]
 
                     states =
-                        Card.projection Time.utc (Just "r-2") Nothing Nothing Nothing False (loadedHistory rows) Nothing "" Nothing sampleInstances idleModel
+                        Card.projection Time.utc { sampleConfig | history = loadedHistory rows, activeResultId = Just "r-2" } sampleInstances idleModel
                             |> Decode.decodeValue
                                 (Decode.field "history" (Decode.list (Decode.field "state" Decode.string)))
                             |> Result.mapError Decode.errorToString

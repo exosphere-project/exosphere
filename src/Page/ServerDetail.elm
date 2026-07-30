@@ -1,4 +1,4 @@
-module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextEmbedProjection, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextRequestsPending, exoextScanBlocked, exoextScanRequestPending, exoextScanTimer, exoextStatusOverride, init, recoverExoextRun, update, view)
+module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextCancelRequested, exoextCancellableRun, exoextEmbedProjection, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextRequestsPending, exoextScanBlocked, exoextScanRequestPending, exoextScanTimer, exoextStatusOverride, init, recoverExoextRun, update, view)
 
 import CloudShield.Card
 import DateFormat.Relative
@@ -126,6 +126,22 @@ type alias Model =
     -- owns the pacing: `advanceExoextBatch` pops one subject per settled run. `Nothing` when no
     -- batch is draining.
     , exoextBatch : Maybe Exoext.Lifecycle.Batch
+
+    -- the §4.1 requestId this session last asked the publisher to stop (written to
+    -- `exoext.v1.req.cancel`). Kept host-side for one reason: the run it names must stop offering
+    -- its Cancel control, which is the whole visible acknowledgement of the press. Cleared when the
+    -- next request is written, mirroring the wire, so it can never suppress a later run's control.
+    , exoextCancelRequestId : Maybe String
+
+    -- whether the researcher CLOSED the open result session. Purely local display state: the results
+    -- pane and its iframe are unmounted (unmounted, not hidden — a dead embed left mounted keeps
+    -- retrying auth), and nothing on the wire or in the archive is touched.
+    --
+    -- A plain flag is sufficient because the pane's content cannot change without a request: it is
+    -- cleared by every request write, so a dismissal can only ever suppress the session that was on
+    -- screen when it was pressed. Pressing View again (even on the same row) writes a request, which
+    -- is exactly the "the researcher wants it back" signal.
+    , exoextSessionDismissed : Bool
     }
 
 
@@ -177,6 +193,8 @@ init serverUuid =
     , exoextPendingEmbed = Nothing
     , exoextEmbedResultId = Nothing
     , exoextBatch = Nothing
+    , exoextCancelRequestId = Nothing
+    , exoextSessionDismissed = False
     }
 
 
@@ -256,7 +274,14 @@ update msg project model =
                         _ ->
                             cloudModel
 
-                ( batch, cmd, sharedMsg ) =
+                -- The card's own state is settled above; each outcome below decides what the HOST
+                -- state does about it. Every branch returns the whole model rather than one field,
+                -- because a stop touches three of them at once (the cancel marker, the batch, and
+                -- the abandoned rows' badges).
+                baseModel =
+                    { model | exoextCard = card }
+
+                ( updatedModel, cmd, sharedMsg ) =
                     case outMsg of
                         Just (CloudShield.Card.ScanRequested req) ->
                             -- §2.2/§4.1: N targets are N sibling requests, not one request with N
@@ -270,13 +295,13 @@ update msg project model =
                             -- is silently ignored, same convention as the getEmbed guard below.
                             case ( exoextScanBlocked project model, req.targetIds ) of
                                 ( True, _ ) ->
-                                    ( model.exoextBatch, Cmd.none, SharedMsg.NoOp )
+                                    ( baseModel, Cmd.none, SharedMsg.NoOp )
 
                                 ( False, [] ) ->
-                                    ( model.exoextBatch, Cmd.none, SharedMsg.NoOp )
+                                    ( baseModel, Cmd.none, SharedMsg.NoOp )
 
                                 ( False, firstId :: rest ) ->
-                                    ( Just { batchId = Nothing, remaining = rest, awaitingWrite = True }
+                                    ( { baseModel | exoextBatch = Just { batchId = Nothing, remaining = rest, awaitingWrite = True } }
                                     , Task.perform (ExoextWriteRequest { subject = firstId, batchId = Nothing }) Time.now
                                     , SharedMsg.NoOp
                                     )
@@ -288,24 +313,37 @@ update msg project model =
                             -- press when blocked (spec behavior). Otherwise stamp a genuine
                             -- wall-clock seq/`createdAt` (same as a scan request).
                             if exoextGetEmbedBlocked project model then
-                                ( model.exoextBatch, Cmd.none, SharedMsg.NoOp )
+                                ( baseModel, Cmd.none, SharedMsg.NoOp )
 
                             else
-                                ( model.exoextBatch, Task.perform (ExoextWriteEmbedRequest req) Time.now, SharedMsg.NoOp )
+                                ( baseModel, Task.perform (ExoextWriteEmbedRequest req) Time.now, SharedMsg.NoOp )
+
+                        Just (CloudShield.Card.CancelRequested req) ->
+                            ( exoextCancelRequested req.requestId baseModel
+                            , writeCancelRequestCmd project model req.requestId
+                            , SharedMsg.NoOp
+                            )
+
+                        Just CloudShield.Card.SessionDismissed ->
+                            -- Host-local, and deliberately so: no Cmd, no SharedMsg, nothing written.
+                            ( { baseModel | exoextSessionDismissed = True }
+                            , Cmd.none
+                            , SharedMsg.NoOp
+                            )
 
                         Just CloudShield.Card.ApprovalGranted ->
                             -- Stamp a genuine wall-clock `approvedAt`, same idiom as a scan request:
                             -- fetch `Time.now`, then build and persist the approval record.
-                            ( model.exoextBatch, Task.perform ExoextWriteApproval Time.now, SharedMsg.NoOp )
+                            ( baseModel, Task.perform ExoextWriteApproval Time.now, SharedMsg.NoOp )
 
                         Just CloudShield.Card.ApprovalForgotten ->
                             -- Forgetting needs no timestamp; drop the record for this instance.
-                            ( model.exoextBatch, Cmd.none, SharedMsg.ForgetExtensionApproval model.serverUuid )
+                            ( baseModel, Cmd.none, SharedMsg.ForgetExtensionApproval model.serverUuid )
 
                         Nothing ->
-                            ( model.exoextBatch, Cmd.none, SharedMsg.NoOp )
+                            ( baseModel, Cmd.none, SharedMsg.NoOp )
             in
-            ( { model | exoextCard = card, exoextBatch = batch }
+            ( updatedModel
             , cmd
             , sharedMsg
             )
@@ -351,6 +389,13 @@ update msg project model =
                 -- The decided-on write is being issued right here, so the §7.1 pre-write guard
                 -- lifts; from now on the seq correlation is what keeps the slot single-occupancy.
                 , exoextBatch = Maybe.map (\batch -> { batch | batchId = batchId, awaitingWrite = False }) model.exoextBatch
+
+                -- Mirror what the write itself does to the wire: `reqSlotMetadata` clears the cancel
+                -- channel, so the host's memory of that cancel has to go too, or the new run would
+                -- inherit a withdrawn Cancel control. A new scan's results also supersede whatever
+                -- the researcher had closed, so the pane is un-dismissed.
+                , exoextCancelRequestId = Nothing
+                , exoextSessionDismissed = False
               }
             , writeScanRequestCmd project model (exoextInstances project model) { seq = timeSeq, subject = req.subject, batchId = batchId } now
             , SharedMsg.NoOp
@@ -364,7 +409,7 @@ update msg project model =
             -- (both derived from the same `now`) so a matching result later clears it.
             let
                 requestId =
-                    "exo-cs-req-" ++ String.fromInt (Time.posixToMillis now)
+                    exoextRequestId (Time.posixToMillis now)
             in
             ( { model
                 | exoextPendingEmbed =
@@ -379,6 +424,14 @@ update msg project model =
                 -- Outlives the pending marker: the response clears that, and the resolved session
                 -- still has to know which archived result it is showing (see the field's comment).
                 , exoextEmbedResultId = Just { requestId = requestId, resultId = req.resultId }
+
+                -- Asking for a session is the researcher asking to SEE one, so any earlier dismissal
+                -- is spent. This is also what makes re-opening the very scan that was just closed
+                -- work, without the dismissal having to know which result it closed.
+                , exoextSessionDismissed = False
+
+                -- Same reasoning as the scan write: this write clears the cancel channel on the wire.
+                , exoextCancelRequestId = Nothing
               }
             , writeEmbedRequestCmd project model req now
             , SharedMsg.NoOp
@@ -1239,6 +1292,12 @@ exoextViewConfig approved project model currentTime server =
     -- Same predicate the `EmbedRequested` branch of `update` applies, read from the same live wire
     -- state — the button is greyed exactly when (and only when) a press would do nothing.
     , requestBusy = exoextGetEmbedBlocked project model
+
+    -- Which row can be stopped, and the request id a stop must name. Derived from the RAW
+    -- `statusOverride`, never the display-composed one: the decision is about the run's real state,
+    -- not about the string currently on its badge.
+    , cancellableRun = exoextCancellableRun metadata statusOverride model
+    , sessionOpen = embedProjection.sessionOpen
     , allowedIframeOrigins = allowedIframeOrigins
     , embedUrl = embedUrl
     , embedState = embedProjection.embedState
@@ -1272,6 +1331,87 @@ exoextStatusOverride metadata model =
 
         _ ->
             Nothing
+
+
+{-| The run states a stop can still do something about. A stop is only offered while the publisher
+has work left to abandon; on a terminal run the control would be a lie, and there is nothing on the
+wire for the publisher to act on.
+
+`"scanning"` is here because a publisher may report that instead of `"running"` for the phase where
+the clone is actually being scanned — the state vocabulary is the publisher's (§4.4), and the host
+must not decide that a run it does not recognize is finished.
+
+-}
+cancellableRunStates : List String
+cancellableRunStates =
+    [ "queued", "running", "scanning" ]
+
+
+{-| The one target row whose run can be stopped, and the §4.1 request id the stop must name.
+
+Both halves have to resolve or there is nothing to offer — a Cancel control that cannot name its
+request would write a value the publisher can never match. Each is taken from the wire first and from
+the host's own record second:
+
+  - the **target** comes from `run.target` (§4.3), else from the tracked request's subject when the
+    run slot correlates to it. The wire is preferred because it is also right after a reload.
+  - the **request id** comes from `run.requestId`, else from the id this host minted for that seq.
+    The fallback keeps Cancel working against a publisher that reports no request id, since the
+    minting is deterministic in the seq (see `exoextRequestId`).
+
+`Nothing` once this host has written a cancel for that request: the run is on its way out, and
+withdrawing the control is the acknowledgement that the press landed (the alternative would be a
+host-owned "cancelling" display string, and the manifest owns the strings).
+
+-}
+exoextCancellableRun :
+    List OSTypes.MetadataItem
+    -> Maybe { targetId : String, state : String }
+    -> Model
+    -> Maybe { targetId : String, requestId : String }
+exoextCancellableRun metadata statusOverride model =
+    Exoext.Transport.runStatusFromMetadata metadata
+        |> Maybe.andThen
+            (\status ->
+                let
+                    -- The tracked request, only when the run slot is reporting THAT run.
+                    correlated =
+                        model.exoextCard.pending
+                            |> Maybe.andThen
+                                (\pending ->
+                                    if pending.seq == status.seq then
+                                        Just pending
+
+                                    else
+                                        Nothing
+                                )
+
+                    targetId =
+                        Maybe.Extra.or status.target (statusOverride |> Maybe.map .targetId)
+
+                    requestId =
+                        Maybe.Extra.or status.requestId
+                            (correlated |> Maybe.map (\_ -> exoextRequestId status.seq))
+                in
+                if not (List.member status.state cancellableRunStates) then
+                    Nothing
+
+                else if model.exoextCancelRequestId /= Nothing && model.exoextCancelRequestId == requestId then
+                    Nothing
+
+                else
+                    Maybe.map2 (\target request -> { targetId = target, requestId = request }) targetId requestId
+            )
+
+
+{-| The §4.1 `requestId` this host writes for a request-slot seq. Deterministic in the seq (which is
+wall-clock millis), which is what lets a cancel name a run whose id the publisher never echoed back.
+One definition, used by the request writers and by `exoextCancellableRun`, so the two can never
+disagree about what a run is called.
+-}
+exoextRequestId : Int -> String
+exoextRequestId seq =
+    "exo-cs-req-" ++ String.fromInt seq
 
 
 {-| The scan-completion timer descriptor, derived purely from the tracked run's wall-clock start
@@ -1358,7 +1498,7 @@ exoextEmbedProjection :
     -> Maybe { targetId : String, state : String }
     -> Maybe String
     -> Model
-    -> { results : Maybe Encode.Value, embedUrl : String, embedState : CloudShield.Card.EmbedState, activeResultId : Maybe String, pendingResultId : Maybe String, erroredResultId : Maybe String, expiredResultId : Maybe String }
+    -> { results : Maybe Encode.Value, embedUrl : String, embedState : CloudShield.Card.EmbedState, activeResultId : Maybe String, pendingResultId : Maybe String, erroredResultId : Maybe String, expiredResultId : Maybe String, sessionOpen : Bool }
 exoextEmbedProjection metadata archivedResultObjectName currentTime statusOverride resultBody model =
     let
         rawEmbedResult =
@@ -1569,15 +1709,41 @@ exoextEmbedProjection metadata archivedResultObjectName currentTime statusOverri
 
                 _ ->
                     Nothing
+
+        -- Whether the results pane has anything on it. Not `embedState == EmbedReady`: a history pick
+        -- whose session has expired still shows its findings with the iframe unmounted, and that is
+        -- still a session on screen and still closeable.
+        paneShowsSession =
+            (results /= Nothing) || embedUrl /= ""
+
+        -- The researcher closed THIS session, so unmount the pane. Only the pane: `pendingResultId` /
+        -- `erroredResultId` / `expiredResultId` are per-row history state and survive a dismissal,
+        -- which never claims a scan did not happen. `activeResultId` does not survive: it is the
+        -- "now viewing" flag, and nothing is being viewed.
+        dismissed =
+            paneShowsSession && model.exoextSessionDismissed
     in
-    { results = results
-    , embedUrl = embedUrl
-    , embedState = embedState
-    , activeResultId = activeResultId
-    , pendingResultId = pendingResultId
-    , erroredResultId = erroredResultId
-    , expiredResultId = expiredResultId
-    }
+    if dismissed then
+        { results = Nothing
+        , embedUrl = ""
+        , embedState = CloudShield.Card.EmbedIdle
+        , activeResultId = Nothing
+        , pendingResultId = pendingResultId
+        , erroredResultId = erroredResultId
+        , expiredResultId = expiredResultId
+        , sessionOpen = False
+        }
+
+    else
+        { results = results
+        , embedUrl = embedUrl
+        , embedState = embedState
+        , activeResultId = activeResultId
+        , pendingResultId = pendingResultId
+        , erroredResultId = erroredResultId
+        , expiredResultId = expiredResultId
+        , sessionOpen = paneShowsSession
+        }
 
 
 {-| The user-facing text of an embed result's `error`. `EmbedResult.error` holds the error field
@@ -1733,7 +1899,7 @@ writeScanRequestCmd project model instances req now =
                 |> Maybe.withDefault req.subject
 
         scanRequest =
-            { requestId = "exo-cs-req-" ++ String.fromInt req.seq
+            { requestId = exoextRequestId req.seq
             , batchId = req.batchId
             , createdAt = ISO8601.toString (ISO8601.fromPosix now)
             , projectId = project.auth.project.uuid
@@ -1764,7 +1930,7 @@ writeEmbedRequestCmd project model req now =
             Time.posixToMillis now
 
         embedRequest =
-            { requestId = "exo-cs-req-" ++ String.fromInt timeSeq
+            { requestId = exoextRequestId timeSeq
             , batchId = req.batchId
             , resultId = req.resultId
             , createdAt = ISO8601.toString (ISO8601.fromPosix now)
@@ -1775,6 +1941,43 @@ writeEmbedRequestCmd project model req now =
                 (Exoext.Transport.embedRequestJson embedRequest)
     in
     Rest.Nova.requestSetServerMetadataItems project model.serverUuid items
+        |> Cmd.map SharedMsg
+
+
+{-| What a confirmed stop does to the host's own state, alongside writing the cancel channel.
+
+Three things, and the second is the judgment call:
+
+1.  Remember the request that was stopped, so the run withdraws its Cancel control.
+2.  **End the batch.** A researcher stopping a scan does not expect the next target to start on its
+    own a moment later, so a stop is taken as a stop of the whole batch, not just its current leg.
+3.  Drop the abandoned targets' optimistic `queued` badges. `requestScan` set those up front to make
+    the press read as accepted; with no request coming, no terminal state would ever replace them.
+
+-}
+exoextCancelRequested : String -> Model -> Model
+exoextCancelRequested requestId model =
+    { model
+        | exoextCancelRequestId = Just requestId
+        , exoextBatch = Nothing
+        , exoextCard =
+            CloudShield.Card.abandonScanState
+                (model.exoextBatch |> Maybe.map .remaining |> Maybe.withDefault [])
+                model.exoextCard
+    }
+
+
+{-| Ask the publisher to stop the run belonging to `requestId`, by writing the cancel channel
+(`exoext.v1.req.cancel`) on the publishing VM's own metadata.
+
+One atomic `requestSetServerMetadataItems`, the same idiom as a request write and for the same
+reason — but deliberately NOT through the request slot: a stop must never look like a new request.
+Nothing else is touched, so a cancel cannot disturb the run's own status keys or the result slot.
+
+-}
+writeCancelRequestCmd : Project -> Model -> String -> Cmd Msg
+writeCancelRequestCmd project model requestId =
+    Rest.Nova.requestSetServerMetadataItems project model.serverUuid (Exoext.Transport.reqCancelMetadata requestId)
         |> Cmd.map SharedMsg
 
 
