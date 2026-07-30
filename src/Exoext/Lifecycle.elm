@@ -378,6 +378,11 @@ The precedence is deliberate and total, in this order:
     request to settle before it can pop the next subject; without this the restored tail of a batch
     whose run had already finished at reload would never resume.
 
+The recovered request's `kind` is `"scan"` because the run slot is the RUN-correlated request channel
+and a run request is the only thing that appears in it — a session request (`getEmbed`) is correlated
+by requestId and never touches `run.state`. Like every run-correlated request's `kind`, it is inert:
+correlation is by `seq`.
+
 -}
 recoverRun :
     { tracked : Maybe PendingRequest
