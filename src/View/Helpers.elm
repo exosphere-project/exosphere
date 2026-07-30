@@ -1200,14 +1200,14 @@ flavorPicker :
     -> Project
     -> Maybe (List OSTypes.FlavorId)
     -> Maybe String
-    -> (OSTypes.Flavor -> Maybe String)
+    -> (OSTypes.Flavor -> Maybe (Element.Element msg))
     -> (PopoverId -> msg)
     -> PopoverId
     -> Maybe OSTypes.FlavorId
     -> Maybe OSTypes.FlavorId
     -> (OSTypes.FlavorId -> msg)
     -> Element.Element msg
-flavorPicker context project restrictFlavorIds showDisabledFlavorsReason quotaExceededWarning flavorGroupToggleTipMsgMapper flavorGroupToggleTipId maybeCurrentFlavorId selectedFlavorId changeMsg =
+flavorPicker context project restrictFlavorIds showDisabledFlavorsReason maybeQuotaExceeded flavorGroupToggleTipMsgMapper flavorGroupToggleTipId maybeCurrentFlavorId selectedFlavorId changeMsg =
     let
         { locale, palette } =
             context
@@ -1265,7 +1265,7 @@ flavorPicker context project restrictFlavorIds showDisabledFlavorsReason quotaEx
             else if isFlavorAllowed flavor then
                 let
                     isQuotaExceeded =
-                        case quotaExceededWarning flavor of
+                        case maybeQuotaExceeded flavor of
                             Just _ ->
                                 True
 
@@ -1375,11 +1375,10 @@ flavorPicker context project restrictFlavorIds showDisabledFlavorsReason quotaEx
               , width = Element.shrink
               , view =
                     \r ->
-                        case quotaExceededWarning r of
+                        case maybeQuotaExceeded r of
                             Just warning ->
                                 Element.row []
-                                    [ tagWarning palette ("exceeds " ++ context.localization.maxResourcesPerProject)
-                                    , let
+                                    [ let
                                         toggleTipId =
                                             Helpers.String.hyphenate
                                                 [ r.id
@@ -1389,8 +1388,9 @@ flavorPicker context project restrictFlavorIds showDisabledFlavorsReason quotaEx
                                       ToggleTip.warningToggleTip context
                                         flavorGroupToggleTipMsgMapper
                                         toggleTipId
-                                        (Element.text warning)
+                                        warning
                                         ST.PositionBottomRight
+                                    , tagWarning palette ("exceeds " ++ context.localization.maxResourcesPerProject)
                                     ]
 
                             Nothing ->
@@ -1441,7 +1441,7 @@ flavorPicker context project restrictFlavorIds showDisabledFlavorsReason quotaEx
 
             else
                 Element.column
-                    [ Element.spacing spacer.px8, Element.width Element.fill ]
+                    [ Element.spacing spacer.px8, Element.width Element.shrink ]
                     [ Element.row []
                         [ Element.el
                             [ context.palette.neutral.text.subdued

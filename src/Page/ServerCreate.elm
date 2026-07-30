@@ -17,10 +17,12 @@ import Helpers.List exposing (duplicatedValuesBy)
 import Helpers.Random as RandomHelper
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
+import Helpers.UnifiedLimits as UnifiedLimits
 import Helpers.Units
 import Helpers.Validation as Validation
 import Helpers.ValidationResult
 import Html.Attributes
+import List.Extra
 import Maybe
 import OpenStack.Quotas as OSQuotas
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
@@ -546,11 +548,14 @@ view context project currentTime model =
                         |> Maybe.map (\count -> count >= 1)
                         |> Maybe.withDefault False
 
+                flavors =
+                    RDPP.withDefault [] project.flavors
+
                 flavorAvailability : List Bool
                 flavorAvailability =
                     model.restrictFlavorIds
                         |> Maybe.map (List.filterMap (GetterSetters.flavorLookup project))
-                        |> Maybe.withDefault (RDPP.withDefault [] project.flavors)
+                        |> Maybe.withDefault flavors
                         |> List.map (canBeLaunched computeQuota)
 
                 hasAvailableResources =
@@ -785,22 +790,90 @@ view context project currentTime model =
                         Element.none
                 ]
             , Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Compute project)
-            , VH.flavorPicker context
+            , let
+                unifiedLimitQuotas =
+                    let
+                        --- Wait for all data to load to avoid incomplete limits.
+                        isUnifiedLimitDataLoaded =
+                            RDPP.gotData project.registeredLimits
+                                && RDPP.gotData project.projectLimits
+                                && RDPP.gotData project.projectUsages
+                    in
+                    if isUnifiedLimitDataLoaded then
+                        UnifiedLimits.quotasFromUnifiedLimits
+                            (RDPP.withDefault [] project.registeredLimits)
+                            (RDPP.withDefault [] project.projectLimits)
+                            (RDPP.withDefault [] project.projectUsages)
+
+                    else
+                        []
+
+                customResources =
+                    GetterSetters.getCustomResources project context
+
+                requirementsByFlavor =
+                    UnifiedLimits.customResourceRequirementsByFlavor customResources flavors
+              in
+              VH.flavorPicker context
                 project
                 model.restrictFlavorIds
                 Nothing
                 (\f ->
-                    -- FIXME: Determine whether to show a quota warning message.
-                    if f.vcpu < 10 then
-                        Nothing
+                    let
+                        computeQuotaExceededMessage =
+                            OSQuotas.computeQuotaFlavorAvailServers computeQuota f
+                                |> Maybe.andThen
+                                    (\launchableServers ->
+                                        if launchableServers < 1 then
+                                            -- TODO: Provide more granular detail from the compute quota.
+                                            Just <|
+                                                "This size would exceed your "
+                                                    ++ context.localization.unitOfTenancy
+                                                    ++ "'s "
+                                                    ++ context.localization.maxResourcesPerProject
+                                                    ++ "."
+
+                                        else
+                                            Nothing
+                                    )
+
+                        resourceLimitResults =
+                            UnifiedLimits.evaluateResourceLimit unifiedLimitQuotas
+                                (requirementsByFlavor
+                                    |> List.Extra.find (\( flavorId, _ ) -> flavorId == f.id)
+                                    |> Maybe.map (\( _, reqs ) -> reqs)
+                                    |> Maybe.withDefault []
+                                )
+
+                        resourceLimitsExceeded =
+                            resourceLimitResults
+                                |> List.map
+                                    (\result ->
+                                        case result of
+                                            Err message ->
+                                                Just message
+
+                                            Ok _ ->
+                                                Nothing
+                                    )
+
+                        messages =
+                            computeQuotaExceededMessage :: resourceLimitsExceeded |> List.filterMap identity
+                    in
+                    if List.length messages > 0 then
+                        Just <|
+                            Element.column [ Element.spacing spacer.px8 ] <|
+                                List.map Text.body <|
+                                    messages
 
                     else
-                        Just "Limit exceeded."
+                        Nothing
                 )
                 (\flavorGroupTipId -> SharedMsg <| SharedMsg.TogglePopover flavorGroupTipId)
                 (Helpers.String.hyphenate [ "serverCreateFlavorGroupTip", project.auth.project.uuid ])
                 Nothing
                 (Just flavor.id)
+                -- TODO: Prevent submission of the form if the flavour id is disabled.
                 GotFlavorId
             , volBackedPrompt project context model volumeQuota flavor
             , countPicker context model computeQuota volumeQuota flavor

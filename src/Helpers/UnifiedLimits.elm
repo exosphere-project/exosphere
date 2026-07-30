@@ -1,9 +1,12 @@
 module Helpers.UnifiedLimits exposing
     ( CustomResourceRequirement
     , ResourceAliasRequirement
+    , ResourceLimitQuota
     , aggregateCustomResourceRequirements
     , comparableStringForLimitResourceName
+    , customResourceRequirementsByFlavor
     , customResourceRequirementsForFlavor
+    , evaluateResourceLimit
     , parseFlavorCustomResourceRequirements
     , quotasFromUnifiedLimits
     )
@@ -11,7 +14,7 @@ module Helpers.UnifiedLimits exposing
 import Dict
 import Helpers.String
 import List.Extra
-import OpenStack.Types as OSTypes
+import OpenStack.Types as OSTypes exposing (QuotaItemLimit(..))
 import String.Extra
 import Types.HelperTypes as HelperTypes
 
@@ -25,6 +28,12 @@ type alias ResourceAliasRequirement =
 type alias CustomResourceRequirement =
     { resource : HelperTypes.CustomResource
     , count : Int
+    }
+
+
+type alias ResourceLimitQuota =
+    { resourceName : String
+    , quota : OSTypes.QuotaItem
     }
 
 
@@ -142,7 +151,48 @@ addOrAccumulate requirement requirements =
                 first :: addOrAccumulate requirement rest
 
 
-quotasFromUnifiedLimits : List OSTypes.RegisteredLimit -> List OSTypes.ProjectLimit -> List OSTypes.ProjectUsage -> List { resourceName : String, quota : OSTypes.QuotaItem }
+customResourceRequirementsByFlavor : List HelperTypes.CustomResource -> List OSTypes.Flavor -> List ( OSTypes.FlavorId, List CustomResourceRequirement )
+customResourceRequirementsByFlavor customResources flavors =
+    flavors
+        |> List.map (\f -> ( f.id, customResourceRequirementsForFlavor customResources f |> List.filterMap Result.toMaybe ))
+
+
+evaluateResourceLimit : List ResourceLimitQuota -> List CustomResourceRequirement -> List (Result String ())
+evaluateResourceLimit quotas requirements =
+    requirements
+        |> List.map
+            (\r ->
+                quotas
+                    |> List.Extra.find (\q -> q.resourceName == r.resource.resource)
+                    |> Maybe.map
+                        (\{ quota } ->
+                            case quota.limit of
+                                Unlimited ->
+                                    Ok ()
+
+                                Limit limit ->
+                                    if quota.inUse + r.count > limit then
+                                        Err
+                                            (String.concat
+                                                [ r.resource.friendlyName
+                                                , ": "
+                                                , String.fromInt (quota.inUse + r.count)
+                                                , " required, "
+                                                , String.fromInt quota.inUse
+                                                , "/"
+                                                , String.fromInt limit
+                                                , " in use."
+                                                ]
+                                            )
+
+                                    else
+                                        Ok ()
+                        )
+                    |> Maybe.withDefault (Ok ())
+            )
+
+
+quotasFromUnifiedLimits : List OSTypes.RegisteredLimit -> List OSTypes.ProjectLimit -> List OSTypes.ProjectUsage -> List ResourceLimitQuota
 quotasFromUnifiedLimits registeredLimits projectLimits projectUsages =
     let
         -- Edge case: If there are multiple registered limits for the same resource, prefer the regional one.
