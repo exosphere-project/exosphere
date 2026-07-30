@@ -1,6 +1,7 @@
 module Tests.LocalStorage exposing
     ( endpointsDecoderMigrationSuite
     , extensionApprovalsMigrationSuite
+    , extensionBatchesMigrationSuite
     )
 
 import Expect
@@ -100,6 +101,57 @@ extensionApprovalsMigrationSuite =
                 case Decode.decodeString LocalStorage.storedStateDecoder json of
                     Ok storedState ->
                         Expect.equal [ "vm-1" ] (List.map .instanceUuid storedState.extensionApprovals)
+
+                    Err e ->
+                        Expect.fail ("expected Ok storedState, got Err: " ++ Decode.errorToString e)
+        ]
+
+
+extensionBatchesMigrationSuite : Test
+extensionBatchesMigrationSuite =
+    describe "storedStateDecoder tolerates the extension-batches migration"
+        [ test "a version-9 blob without exoextBatches decodes with extensionBatches == []" <|
+            \_ ->
+                -- Every already-persisted blob is this shape, so it has to read as "no batch
+                -- to resume" rather than failing the whole stored state.
+                case Decode.decodeString LocalStorage.storedStateDecoder """{ "9": { "projects": [] } }""" of
+                    Ok storedState ->
+                        Expect.equal [] storedState.extensionBatches
+
+                    Err e ->
+                        Expect.fail ("expected Ok storedState, got Err: " ++ Decode.errorToString e)
+        , test "a blob WITH exoextBatches decodes the stored tail, in order" <|
+            \_ ->
+                let
+                    json =
+                        """
+                        { "9":
+                            { "projects": []
+                            , "exoextBatches":
+                                [ { "cloudUrl": "https://keystone.example/v3"
+                                  , "projectUuid": "proj-1"
+                                  , "instanceUuid": "vm-1"
+                                  , "batchId": "exo-cs-batch-1000"
+                                  , "remaining": ["i-2", "i-3"]
+                                  }
+                                ]
+                            }
+                        }
+                        """
+                in
+                case Decode.decodeString LocalStorage.storedStateDecoder json of
+                    Ok storedState ->
+                        Expect.equal [ ( "vm-1", [ "i-2", "i-3" ] ) ]
+                            (List.map (\b -> ( b.instanceUuid, b.remaining )) storedState.extensionBatches)
+
+                    Err e ->
+                        Expect.fail ("expected Ok storedState, got Err: " ++ Decode.errorToString e)
+        , test "the approvals and batches stores are independent — neither breaks the other" <|
+            \_ ->
+                case Decode.decodeString LocalStorage.storedStateDecoder """{ "9": { "projects": [], "exoextBatches": [ { "instanceUuid": "vm-1", "remaining": ["i-2"] } ] } }""" of
+                    Ok storedState ->
+                        Expect.equal ( 0, 1 )
+                            ( List.length storedState.extensionApprovals, List.length storedState.extensionBatches )
 
                     Err e ->
                         Expect.fail ("expected Ok storedState, got Err: " ++ Decode.errorToString e)

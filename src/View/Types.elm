@@ -16,6 +16,7 @@ import Set
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Types.ExtensionApproval exposing (ExtensionApproval)
+import Types.ExtensionBatch exposing (ExtensionBatch)
 import Types.HelperTypes exposing (CloudSpecificConfig, KeystoneHostname, Localization, ProjectIdentifier, WindowSize)
 import Types.SharedMsg exposing (SharedMsg)
 import Url
@@ -30,6 +31,7 @@ type alias Context =
     , experimentalFeaturesEnabled : Bool
     , appVersionUpdateNotificationsEnabled : Bool
     , extensionApprovals : List ExtensionApproval
+    , extensionBatches : List ExtensionBatch
     , baseUrl : Url.Url
     , urlPathPrefix : Maybe String
     , navigationKey : Browser.Navigation.Key

@@ -13,6 +13,7 @@ import OpenStack.Types as OSTypes
 import Set exposing (Set)
 import Style.Types
 import Types.ExtensionApproval exposing (ExtensionApproval)
+import Types.ExtensionBatch exposing (ExtensionBatch)
 import Types.Project
 import Types.Server exposing (ServerExoActions)
 import UUID
@@ -70,4 +71,5 @@ type alias StoredState =
     , appVersionUpdateNotificationsEnabled : Maybe Bool
     , dismissedBanners : Set String
     , extensionApprovals : List ExtensionApproval
+    , extensionBatches : List ExtensionBatch
     }

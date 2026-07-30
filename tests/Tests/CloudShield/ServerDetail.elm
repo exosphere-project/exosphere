@@ -1,4 +1,4 @@
-module Tests.CloudShield.ServerDetail exposing (cloudShieldBatchSuite, cloudShieldCancelSuite, cloudShieldDismissSuite, cloudShieldEmbedProjectionSuite, cloudShieldPendingEmbedSuite, cloudShieldReadDecisionSuite, cloudShieldRecoverySuite, cloudShieldScanBlockedSuite, cloudShieldScanTimerSuite)
+module Tests.CloudShield.ServerDetail exposing (cloudShieldBatchPersistenceSuite, cloudShieldBatchSuite, cloudShieldCancelSuite, cloudShieldDismissSuite, cloudShieldEmbedProjectionSuite, cloudShieldPendingEmbedSuite, cloudShieldReadDecisionSuite, cloudShieldRecoverySuite, cloudShieldScanBlockedSuite, cloudShieldScanTimerSuite)
 
 import CloudShield.Card as Card
 import Dict
@@ -12,10 +12,12 @@ import Page.ServerDetail as ServerDetail
 import Test exposing (Test, describe, test)
 import Tests.CloudShield.Fixtures exposing (cardViewConfig)
 import Time
+import Types.ExtensionBatch exposing (ExtensionBatch)
 import Types.HelperTypes as HelperTypes
 import Types.Interactivity as Interactivity
 import Types.Project exposing (Project, ProjectSecret(..))
 import Types.Server exposing (Server, ServerOrigin(..))
+import Types.SharedMsg as SharedMsg
 
 
 receivedAt : Time.Posix
@@ -1039,6 +1041,139 @@ cloudShieldRecoverySuite =
                     ( ServerDetail.exoextScanRequestPending (projectPublishing (runSlotFor 1700 "running" "i-9")) (recovered "running")
                     , ServerDetail.exoextScanRequestPending (projectPublishing (runSlotFor 1700 "done" "i-9")) (recovered "done")
                     )
+        ]
+
+
+{-| A project publishing `metadata` on the viewed VM, plus ACTIVE scan targets with the given ids —
+what `exoextInstances` sees, and therefore what the eligibility half of the batch stale check reads.
+-}
+projectWithTargets : List String -> List OSTypes.MetadataItem -> Project
+projectWithTargets targetIds metadata =
+    let
+        target id =
+            let
+                base =
+                    serverPublishing []
+
+                osProps =
+                    base.osProps
+            in
+            { base | osProps = { osProps | uuid = id, name = id } }
+    in
+    { project
+        | servers =
+            RDPP.RemoteDataPlusPlus
+                (RDPP.DoHave (serverPublishing metadata :: List.map target targetIds) receivedAt)
+                (RDPP.NotLoading Nothing)
+    }
+
+
+{-| A stored batch record as an earlier session left it, keyed to the fixture project + instance.
+-}
+storedBatch : List String -> ExtensionBatch
+storedBatch remaining =
+    { cloudUrl = "https://openstack.example/keystone/v3"
+    , projectUuid = "project-uuid"
+    , instanceUuid = "self"
+    , batchId = "exo-cs-batch-1000"
+    , remaining = remaining
+    }
+
+
+cloudShieldBatchPersistenceSuite : Test
+cloudShieldBatchPersistenceSuite =
+    let
+        -- A three-target batch mid-drain: target 1's request is on the wire, 2 and 3 are parked.
+        draining =
+            writeRequestAt 1000 { subject = "i-1", batchId = Nothing } modelAfterStartScan
+
+        -- A fresh page for the same instance, as a reload leaves it.
+        afterReload =
+            ServerDetail.init "self"
+
+        adopt records targets =
+            afterReload
+                |> ServerDetail.adoptStoredExoextBatch project records
+                |> ServerDetail.adoptRestoredExoextBatch (projectWithTargets targets [])
+
+        oneTarget =
+            storedBatch [ "i-2" ]
+    in
+    describe "ServerDetail batch-tail persistence (exoext.batch.v1)"
+        [ test "a draining batch is stored with its shared id and undrained tail" <|
+            \_ ->
+                Expect.equal
+                    (SharedMsg.RecordExtensionBatch (storedBatch [ "i-2", "i-3" ]))
+                    (ServerDetail.exoextBatchSharedMsg project draining)
+        , test "a drained batch drops the record, and so does having no batch at all" <|
+            \_ ->
+                Expect.equal
+                    ( SharedMsg.ForgetExtensionBatch "self", SharedMsg.ForgetExtensionBatch "self" )
+                    ( ServerDetail.exoextBatchSharedMsg project { draining | exoextBatch = Just { batchId = Just "b", remaining = [], awaitingWrite = False } }
+                    , ServerDetail.exoextBatchSharedMsg project afterReload
+                    )
+        , test "a stopped batch drops the record too — a stop must not leave resumable work behind" <|
+            \_ ->
+                Expect.equal (SharedMsg.ForgetExtensionBatch "self")
+                    (ServerDetail.exoextBatchSharedMsg project (ServerDetail.exoextCancelRequested "exo-cs-req-1000" draining))
+        , test "a stored tail round-trips back into a live batch, ready to drain" <|
+            \_ ->
+                -- `awaitingWrite` comes back False by construction: it guards a window inside one
+                -- session, and after a reload nothing is in flight.
+                Expect.equal
+                    (Just { batchId = Just "exo-cs-batch-1000", remaining = [ "i-2", "i-3" ], awaitingWrite = False })
+                    (adopt [ storedBatch [ "i-2", "i-3" ] ] [ "i-2", "i-3" ]).exoextBatch
+        , test "a record for another instance is ignored" <|
+            \_ ->
+                Expect.equal Nothing
+                    (adopt [ { oneTarget | instanceUuid = "some-other-vm" } ] [ "i-2" ]).exoextBatch
+        , test "a record for another project, or another cloud, is ignored" <|
+            \_ ->
+                Expect.equal ( Nothing, Nothing )
+                    ( (adopt [ { oneTarget | projectUuid = "other-project" } ] [ "i-2" ]).exoextBatch
+                    , (adopt [ { oneTarget | cloudUrl = "https://elsewhere.example/v3" } ] [ "i-2" ]).exoextBatch
+                    )
+        , test "targets that are no longer eligible instances are dropped from the tail" <|
+            \_ ->
+                Expect.equal (Just [ "i-3" ])
+                    ((adopt [ storedBatch [ "i-2", "i-3" ] ] [ "i-3" ]).exoextBatch |> Maybe.map .remaining)
+        , test "a record whose every target is gone is dropped whole, not adopted empty" <|
+            \_ ->
+                Expect.equal Nothing (adopt [ storedBatch [ "i-2", "i-3" ] ] []).exoextBatch
+        , test "adoption never displaces a batch this session is already draining" <|
+            \_ ->
+                -- Same precedence rule as run recovery: the live one is the newer truth.
+                let
+                    adopted =
+                        draining
+                            |> ServerDetail.adoptStoredExoextBatch project [ storedBatch [ "i-9" ] ]
+                            |> ServerDetail.adoptRestoredExoextBatch (projectWithTargets [ "i-9" ] [])
+                in
+                Expect.equal ( draining.exoextBatch, Nothing )
+                    ( adopted.exoextBatch, adopted.exoextRestoredBatch )
+        , test "a restored tail resumes through the existing drain path, keeping the shared id" <|
+            \_ ->
+                -- The whole point of persisting it. The interrupted run had already finished by the
+                -- time the page came back, so recovery has to hand the drain a tracker to settle.
+                let
+                    metadata =
+                        runSlotFor 1000 "done" "i-1"
+
+                    resumed =
+                        adopt [ storedBatch [ "i-2", "i-3" ] ] [ "i-2", "i-3" ]
+                            |> ServerDetail.recoverExoextRun metadata
+                            |> ServerDetail.advanceExoextBatch metadata
+                            |> Tuple.first
+                in
+                Expect.equal
+                    ( Just { batchId = Just "exo-cs-batch-1000", remaining = [ "i-3" ], awaitingWrite = True }
+                    , Just "done"
+                    )
+                    ( resumed.exoextBatch, Dict.get "i-1" resumed.exoextCard.scanState )
+        , test "with no stored record for this instance nothing is adopted and nothing changes" <|
+            \_ ->
+                Expect.equal ( Nothing, Nothing )
+                    ( (adopt [] [ "i-2" ]).exoextBatch, (adopt [] [ "i-2" ]).exoextRestoredBatch )
         ]
 
 

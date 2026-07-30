@@ -86,6 +86,7 @@ import Time
 import Types.Banner exposing (bannerId)
 import Types.Error as Error exposing (AppError, ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.ExtensionApproval as ExtensionApproval
+import Types.ExtensionBatch as ExtensionBatch
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes exposing (UnscopedProviderProject)
 import Types.Interactivity as Interactivity exposing (InteractionLevel(..))
@@ -1323,6 +1324,14 @@ processSharedMsg sharedMsg outerModel =
 
         ForgetExtensionApproval instanceUuid ->
             ( { sharedModel | viewContext = { viewContext | extensionApprovals = ExtensionApproval.forget instanceUuid viewContext.extensionApprovals } }, Cmd.none )
+                |> mapToOuterModel outerModel
+
+        RecordExtensionBatch batch ->
+            ( { sharedModel | viewContext = { viewContext | extensionBatches = ExtensionBatch.record batch viewContext.extensionBatches } }, Cmd.none )
+                |> mapToOuterModel outerModel
+
+        ForgetExtensionBatch instanceUuid ->
+            ( { sharedModel | viewContext = { viewContext | extensionBatches = ExtensionBatch.forget instanceUuid viewContext.extensionBatches } }, Cmd.none )
                 |> mapToOuterModel outerModel
 
         TogglePopover popoverId ->

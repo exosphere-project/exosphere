@@ -23,6 +23,7 @@ import Types.AppVersion exposing (AppVersion)
 import Types.Banner as BannerTypes
 import Types.Error exposing (ErrorContext, HttpErrorWithBody, Toast)
 import Types.ExtensionApproval exposing (ExtensionApproval)
+import Types.ExtensionBatch exposing (ExtensionBatch)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
 import Types.Interactivity exposing (InteractionLevel)
@@ -71,6 +72,12 @@ type SharedMsg
       -- localStorage write, like the other user preferences.
     | GrantExtensionApproval ExtensionApproval
     | ForgetExtensionApproval String
+      -- Store an extension request batch's undrained tail (replace by instanceUuid), or drop one.
+      -- Persisted on `viewContext.extensionBatches` via the same every-update localStorage write.
+      -- Unlike an approval this is not a user preference but resumable work: the requests a batch has
+      -- not written yet live nowhere else, so a reload without them abandons those targets.
+    | RecordExtensionBatch ExtensionBatch
+    | ForgetExtensionBatch String
     | TogglePopover PopoverId
     | NetworkConnection Bool
     | ReceiveWebLock ( String, Bool )

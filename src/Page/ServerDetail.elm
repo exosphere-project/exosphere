@@ -1,4 +1,4 @@
-module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextCancelRequested, exoextCancellableRun, exoextEmbedProjection, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextRequestsPending, exoextScanBlocked, exoextScanRequestPending, exoextScanTimer, exoextStatusOverride, init, recoverExoextRun, update, view)
+module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, adoptRestoredExoextBatch, adoptStoredExoextBatch, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextBatchSharedMsg, exoextCancelRequested, exoextCancellableRun, exoextEmbedProjection, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextRequestsPending, exoextScanBlocked, exoextScanRequestPending, exoextScanTimer, exoextStatusOverride, init, recoverExoextRun, update, view)
 
 import CloudShield.Card
 import DateFormat.Relative
@@ -54,6 +54,7 @@ import Task
 import Time
 import Types.Error exposing (HttpErrorWithBody)
 import Types.ExtensionApproval as ExtensionApproval exposing (ExtensionApproval)
+import Types.ExtensionBatch as ExtensionBatch exposing (ExtensionBatch)
 import Types.Guacamole exposing (ServerGuacamoleStatus(..))
 import Types.HelperTypes exposing (FloatingIpOption(..), ProjectIdentifier, ServerResourceQtys, UserAppProxyHostname)
 import Types.Interaction as ITypes
@@ -142,6 +143,17 @@ type alias Model =
     -- screen when it was pressed. Pressing View again (even on the same row) writes a request, which
     -- is exactly the "the researcher wants it back" signal.
     , exoextSessionDismissed : Bool
+
+    -- a batch tail read out of localStorage at page entry (`adoptStoredExoextBatch`), waiting to be
+    -- adopted into `exoextBatch`.
+    --
+    -- Adoption is two-phase because the halves of the stale-record check become answerable at
+    -- different moments. The IDENTITY half (this cloud, this project, this instance) is answerable at
+    -- page entry, and is settled there. Whether the stored targets are still ELIGIBLE instances is
+    -- not: the project's server list is still being fetched then, so every target would look
+    -- ineligible and a perfectly live batch would be discarded. That half waits for the discovery
+    -- sync, the first moment the instance list is real. `Nothing` once adopted or rejected.
+    , exoextRestoredBatch : Maybe Exoext.Lifecycle.Batch
     }
 
 
@@ -195,7 +207,48 @@ init serverUuid =
     , exoextBatch = Nothing
     , exoextCancelRequestId = Nothing
     , exoextSessionDismissed = False
+    , exoextRestoredBatch = Nothing
     }
+
+
+{-| Take up a batch tail persisted by an earlier session, called at page entry where the shared
+model's stored records are in hand (`State.ViewState`).
+
+Only the identity half of the stale check happens here — see `exoextRestoredBatch` for why the
+eligibility half cannot. `awaitingWrite` is deliberately reconstructed as False rather than stored:
+it guards a window between two messages inside one session, and after a reload nothing is in flight.
+
+-}
+adoptStoredExoextBatch : Project -> List ExtensionBatch -> Model -> Model
+adoptStoredExoextBatch project batches model =
+    { model
+        | exoextRestoredBatch =
+            ExtensionBatch.find
+                { cloudUrl = project.endpoints.keystone
+                , projectUuid = project.auth.project.uuid
+                , instanceUuid = model.serverUuid
+                }
+                batches
+                |> Maybe.map
+                    (\stored ->
+                        { batchId = emptyToNothing stored.batchId
+                        , remaining = stored.remaining
+                        , awaitingWrite = False
+                        }
+                    )
+    }
+
+
+{-| An identifier that identifies nothing reads as absent. The stored `batchId` is `""` for a lone
+request, matching the null the wire carries there.
+-}
+emptyToNothing : String -> Maybe String
+emptyToNothing value =
+    if String.isEmpty value then
+        Nothing
+
+    else
+        Just value
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -233,11 +286,7 @@ update msg project model =
             )
 
         GotExoextSync ->
-            let
-                ( newModel, cmd ) =
-                    syncExoextReads project model
-            in
-            ( newModel, cmd, SharedMsg.NoOp )
+            syncExoextReads project model
 
         GotExoextManifestObject receivedTime etag result ->
             ( receiveExoextManifest project receivedTime etag result model, Cmd.none, SharedMsg.NoOp )
@@ -301,9 +350,13 @@ update msg project model =
                                     ( baseModel, Cmd.none, SharedMsg.NoOp )
 
                                 ( False, firstId :: rest ) ->
-                                    ( { baseModel | exoextBatch = Just { batchId = Nothing, remaining = rest, awaitingWrite = True } }
+                                    let
+                                        started =
+                                            { baseModel | exoextBatch = Just { batchId = Nothing, remaining = rest, awaitingWrite = True } }
+                                    in
+                                    ( started
                                     , Task.perform (ExoextWriteRequest { subject = firstId, batchId = Nothing }) Time.now
-                                    , SharedMsg.NoOp
+                                    , exoextBatchSharedMsg project started
                                     )
 
                         Just (CloudShield.Card.EmbedRequested req) ->
@@ -319,9 +372,13 @@ update msg project model =
                                 ( baseModel, Task.perform (ExoextWriteEmbedRequest req) Time.now, SharedMsg.NoOp )
 
                         Just (CloudShield.Card.CancelRequested req) ->
-                            ( exoextCancelRequested req.requestId baseModel
+                            let
+                                cancelled =
+                                    exoextCancelRequested req.requestId baseModel
+                            in
+                            ( cancelled
                             , writeCancelRequestCmd project model req.requestId
-                            , SharedMsg.NoOp
+                            , exoextBatchSharedMsg project cancelled
                             )
 
                         Just CloudShield.Card.SessionDismissed ->
@@ -382,23 +439,29 @@ update msg project model =
                     { oldCloud
                         | pending = Maybe.map (\p -> { p | seq = timeSeq, subject = req.subject }) oldCloud.pending
                     }
+
+                written =
+                    { model
+                        | exoextCard = syncedCloud
+
+                        -- The decided-on write is being issued right here, so the §7.1 pre-write
+                        -- guard lifts; from now on the seq correlation is what keeps the slot
+                        -- single-occupancy.
+                        , exoextBatch = Maybe.map (\batch -> { batch | batchId = batchId, awaitingWrite = False }) model.exoextBatch
+
+                        -- Mirror what the write itself does to the wire: `reqSlotMetadata` clears the
+                        -- cancel channel, so the host's memory of that cancel has to go too, or the
+                        -- new run would inherit a withdrawn Cancel control. A new scan's results also
+                        -- supersede whatever the researcher had closed, so the pane is un-dismissed.
+                        , exoextCancelRequestId = Nothing
+                        , exoextSessionDismissed = False
+                    }
             in
-            ( { model
-                | exoextCard = syncedCloud
-
-                -- The decided-on write is being issued right here, so the §7.1 pre-write guard
-                -- lifts; from now on the seq correlation is what keeps the slot single-occupancy.
-                , exoextBatch = Maybe.map (\batch -> { batch | batchId = batchId, awaitingWrite = False }) model.exoextBatch
-
-                -- Mirror what the write itself does to the wire: `reqSlotMetadata` clears the cancel
-                -- channel, so the host's memory of that cancel has to go too, or the new run would
-                -- inherit a withdrawn Cancel control. A new scan's results also supersede whatever
-                -- the researcher had closed, so the pane is un-dismissed.
-                , exoextCancelRequestId = Nothing
-                , exoextSessionDismissed = False
-              }
+            -- This is where a batch's shared id is minted, so it is also where the stored record
+            -- first learns it: a tail restored without it would resume as unrelated lone requests.
+            ( written
             , writeScanRequestCmd project model (exoextInstances project model) { seq = timeSeq, subject = req.subject, batchId = batchId } now
-            , SharedMsg.NoOp
+            , exoextBatchSharedMsg project written
             )
 
         ExoextWriteEmbedRequest req now ->
@@ -563,7 +626,7 @@ buildExoextApproval project model now =
             )
 
 
-syncExoextReads : Project -> Model -> ( Model, Cmd Msg )
+syncExoextReads : Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 syncExoextReads project model =
     case GetterSetters.serverLookup project model.serverUuid of
         Just server ->
@@ -579,11 +642,17 @@ syncExoextReads project model =
                             clearResolvedPendingEmbed metadata model.exoextPendingEmbed
                     }
 
-                -- Adopt whatever the wire says about a run this session did not write, BEFORE the
-                -- batch step below reads the tracked request: a recovered tracker is what lets the
-                -- rest of the sync path treat a reload mid-run like any other run.
+                -- Three steps that must run in this order, because each feeds the next.
+                --
+                -- 1. Take up a stored batch tail (the instance list is real by now, which is what
+                --    the eligibility half of its stale check was waiting for), so that
+                -- 2. run recovery can see whether a tail is waiting on the run it is adopting —
+                --    that is what decides whether a FINISHED run still needs a tracker; so that
+                -- 3. the batch step below has both the tail and the tracker it needs to continue.
                 recoveredModel =
-                    recoverExoextRun metadata syncedModel
+                    syncedModel
+                        |> adoptRestoredExoextBatch project
+                        |> recoverExoextRun metadata
 
                 ( readModel, readCmd ) =
                     case Exoext.Discovery.readSentinel metadata of
@@ -608,10 +677,12 @@ syncExoextReads project model =
                 ( batchModel, batchCmd ) =
                     advanceExoextBatch metadata readModel
             in
-            ( batchModel, Cmd.batch [ readCmd, batchCmd ] )
+            -- A poll can adopt, pop or drain the tail, so it is also where the stored record is
+            -- brought back in line with it.
+            ( batchModel, Cmd.batch [ readCmd, batchCmd ], exoextBatchSharedMsg project batchModel )
 
         Nothing ->
-            ( model, Cmd.none )
+            ( model, Cmd.none, SharedMsg.NoOp )
 
 
 {-| Adopt a run the wire reports but this browser session never wrote — the reload-mid-scan fix.
@@ -657,6 +728,77 @@ recoverExoextRun metadata model =
 
         Exoext.Lifecycle.RecoverSettled settled ->
             { model | exoextCard = CloudShield.Card.settleScanState settled.subject settled.state model.exoextCard }
+
+
+{-| Second phase of adopting a stored batch tail: now that the project's instance list is real, keep
+only the targets that are still eligible and move the tail into `exoextBatch`.
+
+Two guards, in this order:
+
+  - **Never displace a live batch.** Same precedence rule as run recovery: a batch this session is
+    already draining is the newer truth, and a stored record can only fill a gap.
+  - **Drop targets that are no longer eligible.** An instance deleted or shut down since the record
+    was written would otherwise get a request the publisher can only fail. If nothing survives, the
+    record is not a batch at all and is dropped whole.
+
+Either way `exoextRestoredBatch` clears, so this runs once per page entry and not once per poll.
+
+-}
+adoptRestoredExoextBatch : Project -> Model -> Model
+adoptRestoredExoextBatch project model =
+    case ( model.exoextRestoredBatch, model.exoextBatch ) of
+        ( Just restored, Nothing ) ->
+            let
+                eligible =
+                    exoextInstances project model |> List.map .id
+
+                remaining =
+                    restored.remaining |> List.filter (\subject -> List.member subject eligible)
+            in
+            { model
+                | exoextRestoredBatch = Nothing
+                , exoextBatch =
+                    if List.isEmpty remaining then
+                        Nothing
+
+                    else
+                        Just { restored | remaining = remaining }
+            }
+
+        ( Just _, Just _ ) ->
+            { model | exoextRestoredBatch = Nothing }
+
+        ( Nothing, _ ) ->
+            model
+
+
+{-| The persistence decision for the current batch, derived from state rather than from a diff: a
+tail with work left is worth storing, and anything else is worth forgetting. Emitted by every
+`update` branch that can change the batch, so the record cannot drift from the model — and being
+idempotent, re-emitting it is free.
+
+A batch with an empty `remaining` is exactly the "drained, or its run slot went terminal with nothing
+left" case, so it needs no separate condition.
+
+-}
+exoextBatchSharedMsg : Project -> Model -> SharedMsg.SharedMsg
+exoextBatchSharedMsg project model =
+    case model.exoextBatch of
+        Just batch ->
+            if List.isEmpty batch.remaining then
+                SharedMsg.ForgetExtensionBatch model.serverUuid
+
+            else
+                SharedMsg.RecordExtensionBatch
+                    { cloudUrl = project.endpoints.keystone
+                    , projectUuid = project.auth.project.uuid
+                    , instanceUuid = model.serverUuid
+                    , batchId = batch.batchId |> Maybe.withDefault ""
+                    , remaining = batch.remaining
+                    }
+
+        Nothing ->
+            SharedMsg.ForgetExtensionBatch model.serverUuid
 
 
 {-| Whether an undrained batch tail is waiting on the current run. It is what tells
