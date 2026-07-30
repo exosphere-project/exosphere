@@ -10,6 +10,8 @@ module Exoext.Lifecycle exposing
     , isTerminalRunState
     , correlatedRunState
     , requestStillPending
+    , RunRecovery(..)
+    , recoverRun
     , Batch
     , BatchStep(..)
     , advanceBatch
@@ -64,6 +66,8 @@ Two things live here that used to be duplicated in `Page.ServerDetail` and `Clou
 @docs isTerminalRunState
 @docs correlatedRunState
 @docs requestStillPending
+@docs RunRecovery
+@docs recoverRun
 
 
 # Request batches
@@ -321,6 +325,91 @@ requestStillPending pending metadata =
 
         Nothing ->
             False
+
+
+
+-- RUN RECOVERY
+
+
+{-| What a reader should adopt from the §4.3 run slot when it is tracking nothing itself — the
+answer to "the page was reloaded mid-run, now what?".
+
+  - `NoRecovery` — adopt nothing. Either the reader already tracks a request (its own tracker is
+    always the truth, see [`recoverRun`](#recoverRun)) or the wire says nothing adoptable.
+  - `RecoverPending request` — adopt `request` as the tracked request. It is a real §4.3 run the
+    reader simply did not write, so every projection keyed on a tracked request (the row's live
+    state, the elapsed timer, the fast poll, the batch pacing) engages exactly as it would for a
+    request this session issued.
+  - `RecoverSettled { subject, state }` — the run is over. There is nothing to track and nothing to
+    poll for, only a finished per-subject state to commit so the row shows what happened instead of
+    reverting to idle.
+
+-}
+type RunRecovery
+    = NoRecovery
+    | RecoverPending PendingRequest
+    | RecoverSettled { subject : String, state : String }
+
+
+{-| Decide what to adopt from the §4.3 run slot. This is the whole fix for "reload during a run and
+the card reads idle": a reader can only project a run it can NAME, and before the run slot carried
+`run.target` the only name available was the reader's own session-local record of what it wrote.
+
+The precedence is deliberate and total, in this order:
+
+1.  **A tracked request always wins.** `tracked` being `Just` ⇒ `NoRecovery`, unconditionally.
+    Recovery only ever fills a gap; it must never overwrite a live tracker. The two disagree
+    routinely and harmlessly — a request written moments ago is not yet echoed by the run slot, and
+    a batch's continuation deliberately runs ahead of it — and in every one of those cases the
+    reader's own record is the newer truth. Overwriting it would rewind the tracker to the previous
+    run and strand the batch.
+2.  **The wire must name a run.** No status slot, or a status slot with no `target`, ⇒
+    `NoRecovery`: a run that cannot be attributed to a row is not adoptable, and guessing a row is
+    worse than showing none.
+3.  **A live run becomes a tracked request** (`RecoverPending`). `since` is taken from the run's own
+    `seq`, which the host writes as wall-clock millis — the moment the request was actually written,
+    which is both truthful and stable across reloads (unlike "now", which would restart the
+    elapsed clock on every reload).
+4.  **A finished run settles** (`RecoverSettled`) — with ONE exception: when `tailPending` says an
+    undrained batch tail is waiting on this run, a finished run is adopted as a tracked request
+    instead. Draining the tail is driven by [`advanceBatch`](#advanceBatch), which needs a tracked
+    request to settle before it can pop the next subject; without this the restored tail of a batch
+    whose run had already finished at reload would never resume.
+
+-}
+recoverRun :
+    { tracked : Maybe PendingRequest
+    , tailPending : Bool
+    , metadata : List OSTypes.MetadataItem
+    }
+    -> RunRecovery
+recoverRun { tracked, tailPending, metadata } =
+    case tracked of
+        Just _ ->
+            NoRecovery
+
+        Nothing ->
+            case Exoext.Transport.runStatusFromMetadata metadata of
+                Nothing ->
+                    NoRecovery
+
+                Just status ->
+                    case status.target of
+                        Nothing ->
+                            NoRecovery
+
+                        Just target ->
+                            if isTerminalRunState status.state && not tailPending then
+                                RecoverSettled { subject = target, state = status.state }
+
+                            else
+                                RecoverPending
+                                    { seq = status.seq
+                                    , requestId = status.requestId |> Maybe.withDefault ""
+                                    , kind = "scan"
+                                    , subject = target
+                                    , since = Time.millisToPosix status.seq
+                                    }
 
 
 

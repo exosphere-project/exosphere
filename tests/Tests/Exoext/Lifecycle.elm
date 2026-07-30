@@ -69,6 +69,17 @@ runSlot seq state =
     ]
 
 
+{-| The same §7.1 status slot, plus the §4.3 descriptors that name WHICH run it is — what a
+WP8-or-later publisher writes, and the whole input recovery works from.
+-}
+runSlotFor : Int -> String -> List { key : String, value : String }
+runSlotFor seq state =
+    runSlot seq state
+        ++ [ { key = "exoext.v1.run.target", value = "i-9" }
+           , { key = "exoext.v1.run.requestId", value = "exo-cs-req-" ++ String.fromInt seq }
+           ]
+
+
 suite : Test
 suite =
     describe "Exoext.Lifecycle"
@@ -218,6 +229,97 @@ suite =
                     -- "queued", so this poll must not fire a second continuation.
                     Lifecycle.advanceBatch (Just (pendingWithSeq 8)) (Just (batchOf [ "i-3" ])) (runSlot 7 "done")
                         |> Expect.equal Lifecycle.BatchWaiting
+            ]
+        , describe "recoverRun (adopting a run this session never wrote)"
+            [ test "a live run naming its target becomes a tracked request, dated by its own seq" <|
+                \_ ->
+                    -- `since` is the run's seq, i.e. wall-clock millis of the write, so the elapsed
+                    -- clock survives a reload instead of restarting from it.
+                    Lifecycle.recoverRun
+                        { tracked = Nothing, tailPending = False, metadata = runSlotFor 1700 "running" }
+                        |> Expect.equal
+                            (Lifecycle.RecoverPending
+                                { seq = 1700
+                                , requestId = "exo-cs-req-1700"
+                                , kind = "scan"
+                                , subject = "i-9"
+                                , since = Time.millisToPosix 1700
+                                }
+                            )
+            , test "a live run is recovered for every non-terminal state" <|
+                \_ ->
+                    [ "queued", "running", "scanning" ]
+                        |> List.map
+                            (\state ->
+                                Lifecycle.recoverRun
+                                    { tracked = Nothing, tailPending = False, metadata = runSlotFor 1700 state }
+                                    /= Lifecycle.NoRecovery
+                            )
+                        |> Expect.equal [ True, True, True ]
+            , test "a LIVE tracked request is never overwritten, even by a run slot naming another row" <|
+                \_ ->
+                    -- The precedence rule. The tracker is the reader's own newer truth (a request
+                    -- just written is not echoed yet); adopting the wire here would rewind it.
+                    Lifecycle.recoverRun
+                        { tracked = Just (pendingWithSeq 9000), tailPending = False, metadata = runSlotFor 1700 "running" }
+                        |> Expect.equal Lifecycle.NoRecovery
+            , test "a tracked request whose own run already settled is still not overwritten" <|
+                \_ ->
+                    Lifecycle.recoverRun
+                        { tracked = Just (pendingWithSeq 1700), tailPending = False, metadata = runSlotFor 1700 "done" }
+                        |> Expect.equal Lifecycle.NoRecovery
+            , test "no run slot at all recovers nothing" <|
+                \_ ->
+                    Lifecycle.recoverRun { tracked = Nothing, tailPending = False, metadata = [] }
+                        |> Expect.equal Lifecycle.NoRecovery
+            , test "a run with no target recovers nothing — an unattributable run is not adoptable" <|
+                \_ ->
+                    Lifecycle.recoverRun
+                        { tracked = Nothing, tailPending = False, metadata = runSlot 1700 "running" }
+                        |> Expect.equal Lifecycle.NoRecovery
+            , test "a finished run settles its subject instead of inventing a tracker" <|
+                \_ ->
+                    [ "done", "error", "cancelled", "expired" ]
+                        |> List.map
+                            (\state ->
+                                Lifecycle.recoverRun
+                                    { tracked = Nothing, tailPending = False, metadata = runSlotFor 1700 state }
+                            )
+                        |> Expect.equal
+                            ([ "done", "error", "cancelled", "expired" ]
+                                |> List.map (\state -> Lifecycle.RecoverSettled { subject = "i-9", state = state })
+                            )
+            , test "a finished run WITH an undrained tail is tracked, so the batch can resume" <|
+                \_ ->
+                    Lifecycle.recoverRun
+                        { tracked = Nothing, tailPending = True, metadata = runSlotFor 1700 "done" }
+                        |> Expect.equal
+                            (Lifecycle.RecoverPending
+                                { seq = 1700
+                                , requestId = "exo-cs-req-1700"
+                                , kind = "scan"
+                                , subject = "i-9"
+                                , since = Time.millisToPosix 1700
+                                }
+                            )
+            , test "a publisher that omits run.requestId still recovers, with an empty requestId" <|
+                \_ ->
+                    -- A scan correlates by seq, so the id is inert for tracking; it only matters to
+                    -- a cancel, which falls back to the host's own minting.
+                    Lifecycle.recoverRun
+                        { tracked = Nothing
+                        , tailPending = False
+                        , metadata = runSlot 1700 "running" ++ [ { key = "exoext.v1.run.target", value = "i-9" } ]
+                        }
+                        |> Expect.equal
+                            (Lifecycle.RecoverPending
+                                { seq = 1700
+                                , requestId = ""
+                                , kind = "scan"
+                                , subject = "i-9"
+                                , since = Time.millisToPosix 1700
+                                }
+                            )
             ]
         , describe "declarative verbs"
             [ test "resolveVerb maps an aliased action name to its generic verb + kind" <|

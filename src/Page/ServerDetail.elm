@@ -1,4 +1,4 @@
-module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextEmbedProjection, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextRequestsPending, exoextScanBlocked, exoextScanRequestPending, exoextScanTimer, init, update, view)
+module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextEmbedProjection, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextRequestsPending, exoextScanBlocked, exoextScanRequestPending, exoextScanTimer, exoextStatusOverride, init, recoverExoextRun, update, view)
 
 import CloudShield.Card
 import DateFormat.Relative
@@ -526,6 +526,12 @@ syncExoextReads project model =
                             clearResolvedPendingEmbed metadata model.exoextPendingEmbed
                     }
 
+                -- Adopt whatever the wire says about a run this session did not write, BEFORE the
+                -- batch step below reads the tracked request: a recovered tracker is what lets the
+                -- rest of the sync path treat a reload mid-run like any other run.
+                recoveredModel =
+                    recoverExoextRun metadata syncedModel
+
                 ( readModel, readCmd ) =
                     case Exoext.Discovery.readSentinel metadata of
                         Just ({ store } as sentinel) ->
@@ -536,13 +542,13 @@ syncExoextReads project model =
                                 in
                                 syncExoextIndex project sentinel (Exoext.Transport.historyRefreshKey metadata) <|
                                     syncExoextResultRef project sentinel etag metadata <|
-                                        syncExoextManifest project sentinel etag syncedModel
+                                        syncExoextManifest project sentinel etag recoveredModel
 
                             else
-                                ( syncedModel, Cmd.none )
+                                ( recoveredModel, Cmd.none )
 
                         Nothing ->
-                            ( syncedModel, Cmd.none )
+                            ( recoveredModel, Cmd.none )
 
                 -- A fresh poll is the only moment the wire can report a run settling, so it is
                 -- also the batch's continuation trigger.
@@ -553,6 +559,66 @@ syncExoextReads project model =
 
         Nothing ->
             ( model, Cmd.none )
+
+
+{-| Adopt a run the wire reports but this browser session never wrote — the reload-mid-scan fix.
+
+Reloading the page throws away every session-local tracker, so before the run slot carried
+`run.target` (§4.3) the host had no way to say which row a live run belonged to and the card read
+`idle` while a scan was plainly running. With the target on the wire the decision is
+[`Exoext.Lifecycle.recoverRun`](Exoext-Lifecycle#recoverRun); this is just its application to the
+page model, so the precedence rule lives in one generic place:
+
+  - `RecoverPending` sets `exoextCard.pending`, which is all the existing projections need — the
+    row's live state (`statusOverride`), the elapsed timer, the 5 s fast poll and the batch pacing
+    are every one of them keyed on the tracked request, and none of them care who wrote it.
+  - `RecoverSettled` commits the finished run's state into the card's durable per-row `scanState`
+    instead. A finished run is history: inventing a tracker for it would restart the completion
+    timer and re-open the results pane on every reload, so only the badge is restored.
+  - `NoRecovery` leaves the model exactly as it was. Notably this is the case whenever a tracker is
+    already set, so a live scan can never be rewound by a lagging run slot.
+
+A recovered run does NOT pre-fill the row's optimistic `scanState`, so the card's own dedup does not
+see it and its Scan button stays pressable. `exoextScanBlocked` is the guard that catches such a
+press (and rolls the card back), which is where a duplicate request has always been stopped.
+
+-}
+recoverExoextRun : List OSTypes.MetadataItem -> Model -> Model
+recoverExoextRun metadata model =
+    case
+        Exoext.Lifecycle.recoverRun
+            { tracked = model.exoextCard.pending
+            , tailPending = exoextTailPending model
+            , metadata = metadata
+            }
+    of
+        Exoext.Lifecycle.NoRecovery ->
+            model
+
+        Exoext.Lifecycle.RecoverPending request ->
+            let
+                card =
+                    model.exoextCard
+            in
+            { model | exoextCard = { card | pending = Just request } }
+
+        Exoext.Lifecycle.RecoverSettled settled ->
+            { model | exoextCard = CloudShield.Card.settleScanState settled.subject settled.state model.exoextCard }
+
+
+{-| Whether an undrained batch tail is waiting on the current run. It is what tells
+[`recoverExoextRun`](#recoverExoextRun) that a FINISHED run still has to be adopted as a tracked
+request: `advanceExoextBatch` pops the next subject only by settling a tracked request, so a batch
+whose run had already finished by the time the page reloaded would otherwise never resume.
+-}
+exoextTailPending : Model -> Bool
+exoextTailPending model =
+    case model.exoextBatch of
+        Just batch ->
+            not (List.isEmpty batch.remaining)
+
+        Nothing ->
+            False
 
 
 {-| Pace a §7.1 batch through the single request slot, one subject per settled run. Commit the
@@ -1077,16 +1143,7 @@ exoextViewConfig approved project model currentTime server =
                     ( CloudShield.Card.ManifestUnavailable, Nothing )
 
         statusOverride =
-            case ( Exoext.Transport.runStatusFromMetadata metadata, model.exoextCard.pending ) of
-                ( Just status, Just pending ) ->
-                    if status.seq == pending.seq then
-                        Just { targetId = pending.subject, state = status.state }
-
-                    else
-                        Nothing
-
-                _ ->
-                    Nothing
+            exoextStatusOverride metadata model
 
         resultBody =
             Exoext.Transport.resultBodyFromMetadata metadata
@@ -1191,6 +1248,30 @@ exoextViewConfig approved project model currentTime server =
     -- iframe; `Nothing` hides the panel and its toggle entirely.
     , demoIframeUrl = Nothing
     }
+
+
+{-| The live run projected onto its own row: the tracked request says WHICH row, the §7.1 status
+slot says what state to draw, and the `seq` correlation is what ties the two together. `Nothing`
+when nothing is tracked or the slot reports a different run, in which case the row falls back to the
+card's durable `scanState`.
+
+The tracked request may be one this session wrote or one adopted from the wire
+([`recoverExoextRun`](#recoverExoextRun)) — this function cannot tell, and that is the point: a
+recovered run projects through exactly the same path as a locally-issued one.
+
+-}
+exoextStatusOverride : List OSTypes.MetadataItem -> Model -> Maybe { targetId : String, state : String }
+exoextStatusOverride metadata model =
+    case ( Exoext.Transport.runStatusFromMetadata metadata, model.exoextCard.pending ) of
+        ( Just status, Just pending ) ->
+            if status.seq == pending.seq then
+                Just { targetId = pending.subject, state = status.state }
+
+            else
+                Nothing
+
+        _ ->
+            Nothing
 
 
 {-| The scan-completion timer descriptor, derived purely from the tracked run's wall-clock start

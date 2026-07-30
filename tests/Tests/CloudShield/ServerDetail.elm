@@ -1,4 +1,4 @@
-module Tests.CloudShield.ServerDetail exposing (cloudShieldBatchSuite, cloudShieldEmbedProjectionSuite, cloudShieldPendingEmbedSuite, cloudShieldReadDecisionSuite, cloudShieldScanBlockedSuite, cloudShieldScanTimerSuite)
+module Tests.CloudShield.ServerDetail exposing (cloudShieldBatchSuite, cloudShieldEmbedProjectionSuite, cloudShieldPendingEmbedSuite, cloudShieldReadDecisionSuite, cloudShieldRecoverySuite, cloudShieldScanBlockedSuite, cloudShieldScanTimerSuite)
 
 import CloudShield.Card as Card
 import Dict
@@ -941,6 +941,104 @@ cloudShieldBatchSuite =
                             |> writeRequestAt 1000 { subject = "i-1", batchId = Nothing }
                 in
                 Expect.equal (Just { batchId = Nothing, remaining = [], awaitingWrite = False }) lone.exoextBatch
+        ]
+
+
+{-| The §7.1 status slot as a WP8-or-later publisher writes it: the required seq/state plus the
+§4.3 descriptors that name the run's target and request.
+-}
+runSlotFor : Int -> String -> String -> List { key : String, value : String }
+runSlotFor seq state target =
+    runSlot seq state
+        ++ [ { key = "exoext.v1.run.target", value = target }
+           , { key = "exoext.v1.run.requestId", value = "exo-cs-req-" ++ String.fromInt seq }
+           ]
+
+
+cloudShieldRecoverySuite : Test
+cloudShieldRecoverySuite =
+    let
+        -- A page just reloaded: nothing tracked, no batch, no durable row states.
+        afterReload =
+            ServerDetail.init "self"
+
+        -- What the reader ends up drawing: the tracked subject/seq and the row the live run
+        -- projects onto.
+        projected metadata model =
+            ( model.exoextCard.pending |> Maybe.map (\p -> ( p.subject, p.seq ))
+            , ServerDetail.exoextStatusOverride metadata model
+            )
+    in
+    describe "ServerDetail run recovery (reload mid-run)"
+        [ test "a live run on the wire is adopted and projects onto ITS row, not the tracked-nothing idle state" <|
+            \_ ->
+                let
+                    metadata =
+                        runSlotFor 1700 "running" "i-9"
+                in
+                Expect.equal
+                    ( Just ( "i-9", 1700 ), Just { targetId = "i-9", state = "running" } )
+                    (projected metadata (ServerDetail.recoverExoextRun metadata afterReload))
+        , test "without recovery the same wire state projects nothing (the bug being fixed)" <|
+            \_ ->
+                Expect.equal ( Nothing, Nothing )
+                    (projected (runSlotFor 1700 "running" "i-9") afterReload)
+        , test "a live session-local tracker survives recovery untouched, and keeps its own row" <|
+            \_ ->
+                -- The precedence guard at the host level: this session wrote i-1 at seq 5000 and the
+                -- run slot still echoes the PREVIOUS run on another row. Recovery must not rewind
+                -- the tracker to i-9, or the live scan's correlation is lost.
+                let
+                    metadata =
+                        runSlotFor 1700 "running" "i-9"
+
+                    live =
+                        writeRequestAt 5000 { subject = "i-1", batchId = Nothing } modelAfterStartScan
+                in
+                Expect.equal
+                    ( Just ( "i-1", 5000 ), Nothing )
+                    (projected metadata (ServerDetail.recoverExoextRun metadata live))
+        , test "a finished run restores the row's badge without inventing a tracker" <|
+            \_ ->
+                -- No tracker means no completion timer restart and no re-opened results pane; the
+                -- durable per-row state is all a finished run leaves behind.
+                let
+                    recovered =
+                        ServerDetail.recoverExoextRun (runSlotFor 1700 "done" "i-9") afterReload
+                in
+                Expect.equal ( Nothing, Just "done" )
+                    ( recovered.exoextCard.pending, Dict.get "i-9" recovered.exoextCard.scanState )
+        , test "a publisher that names no target changes nothing at all" <|
+            \_ ->
+                let
+                    recovered =
+                        ServerDetail.recoverExoextRun (runSlot 1700 "running") afterReload
+                in
+                Expect.equal ( Nothing, Dict.empty )
+                    ( recovered.exoextCard.pending, recovered.exoextCard.scanState )
+        , test "recovery is idempotent across polls" <|
+            \_ ->
+                let
+                    metadata =
+                        runSlotFor 1700 "running" "i-9"
+
+                    once =
+                        ServerDetail.recoverExoextRun metadata afterReload
+
+                    twice =
+                        ServerDetail.recoverExoextRun metadata once
+                in
+                Expect.equal (projected metadata once) (projected metadata twice)
+        , test "a recovered run keeps the fast poll alive until the wire says it is over" <|
+            \_ ->
+                let
+                    recovered state =
+                        ServerDetail.recoverExoextRun (runSlotFor 1700 state "i-9") afterReload
+                in
+                Expect.equal ( True, False )
+                    ( ServerDetail.exoextScanRequestPending (projectPublishing (runSlotFor 1700 "running" "i-9")) (recovered "running")
+                    , ServerDetail.exoextScanRequestPending (projectPublishing (runSlotFor 1700 "done" "i-9")) (recovered "done")
+                    )
         ]
 
 
