@@ -993,7 +993,11 @@ type alias ViewConfig =
     -- (`ServerDetail.exoextCancellableRun`). §7.1 admits one request per publishing VM, so there is
     -- at most one. Projected per row as `cancellable` / `cancelRequestId`; `Nothing` when no run is
     -- stoppable, which also covers a run whose cancel this host has already written.
-    , cancellableRun : Maybe { targetId : String, requestId : String }
+    , cancellableRun :
+        Maybe
+            { targetId : String
+            , requestId : String
+            }
 
     -- whether a result session is currently ON SCREEN (findings and/or a mounted iframe), so the
     -- manifest can show its close affordance only when there is something to close. False once

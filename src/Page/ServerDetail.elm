@@ -329,81 +329,75 @@ update msg project model =
                 -- the abandoned rows' badges).
                 baseModel =
                     { model | exoextCard = card }
-
-                ( updatedModel, cmd, sharedMsg ) =
-                    case outMsg of
-                        Just (CloudShield.Card.ScanRequested req) ->
-                            -- §2.2/§4.1: N targets are N sibling requests, not one request with N
-                            -- targets, and §7.1 admits one at a time — so write the head now and
-                            -- park the tail for `advanceExoextBatch` to drain. The shared `batchId`
-                            -- is minted on that first write (below), when the wall-clock seq exists.
-                            -- Fetch the real wall-clock time so the §4.1 `createdAt` is genuine
-                            -- (the agent's §4.4 expiry guard compares it to REQUEST_TTL; a
-                            -- placeholder epoch would be treated as expired and never run).
-                            -- A press that would disturb an in-flight request or a draining batch
-                            -- is silently ignored, same convention as the getEmbed guard below.
-                            case ( exoextScanBlocked project model, req.targetIds ) of
-                                ( True, _ ) ->
-                                    ( baseModel, Cmd.none, SharedMsg.NoOp )
-
-                                ( False, [] ) ->
-                                    ( baseModel, Cmd.none, SharedMsg.NoOp )
-
-                                ( False, firstId :: rest ) ->
-                                    let
-                                        started =
-                                            { baseModel | exoextBatch = Just { batchId = Nothing, remaining = rest, awaitingWrite = True } }
-                                    in
-                                    ( started
-                                    , Task.perform (ExoextWriteRequest { subject = firstId, batchId = Nothing }) Time.now
-                                    , exoextBatchSharedMsg project started
-                                    )
-
-                        Just (CloudShield.Card.EmbedRequested req) ->
-                            -- §7.1 single-req-slot guard, from the live wire state: don't write a
-                            -- getEmbed while a scan is active or its request is still unclaimed —
-                            -- the seq bump would cancel that scan bridge-side. Silently ignore the
-                            -- press when blocked (spec behavior). Otherwise stamp a genuine
-                            -- wall-clock seq/`createdAt` (same as a scan request).
-                            if exoextGetEmbedBlocked project model then
-                                ( baseModel, Cmd.none, SharedMsg.NoOp )
-
-                            else
-                                ( baseModel, Task.perform (ExoextWriteEmbedRequest req) Time.now, SharedMsg.NoOp )
-
-                        Just (CloudShield.Card.CancelRequested req) ->
-                            let
-                                cancelled =
-                                    exoextCancelRequested req.requestId baseModel
-                            in
-                            ( cancelled
-                            , writeCancelRequestCmd project model req.requestId
-                            , exoextBatchSharedMsg project cancelled
-                            )
-
-                        Just CloudShield.Card.SessionDismissed ->
-                            -- Host-local, and deliberately so: no Cmd, no SharedMsg, nothing written.
-                            ( { baseModel | exoextSessionDismissed = True }
-                            , Cmd.none
-                            , SharedMsg.NoOp
-                            )
-
-                        Just CloudShield.Card.ApprovalGranted ->
-                            -- Stamp a genuine wall-clock `approvedAt`, same idiom as a scan request:
-                            -- fetch `Time.now`, then build and persist the approval record.
-                            ( baseModel, Task.perform ExoextWriteApproval Time.now, SharedMsg.NoOp )
-
-                        Just CloudShield.Card.ApprovalForgotten ->
-                            -- Forgetting needs no timestamp; drop the record for this instance.
-                            ( baseModel, Cmd.none, SharedMsg.ForgetExtensionApproval model.serverUuid )
-
-                        Nothing ->
-                            ( baseModel, Cmd.none, SharedMsg.NoOp )
             in
-            ( updatedModel
-            , cmd
-            , sharedMsg
-            )
+            case outMsg of
+                Just (CloudShield.Card.ScanRequested req) ->
+                    -- §2.2/§4.1: N targets are N sibling requests, not one request with N
+                    -- targets, and §7.1 admits one at a time — so write the head now and
+                    -- park the tail for `advanceExoextBatch` to drain. The shared `batchId`
+                    -- is minted on that first write (below), when the wall-clock seq exists.
+                    -- Fetch the real wall-clock time so the §4.1 `createdAt` is genuine
+                    -- (the agent's §4.4 expiry guard compares it to REQUEST_TTL; a
+                    -- placeholder epoch would be treated as expired and never run).
+                    -- A press that would disturb an in-flight request or a draining batch
+                    -- is silently ignored, same convention as the getEmbed guard below.
+                    case ( exoextScanBlocked project model, req.targetIds ) of
+                        ( True, _ ) ->
+                            ( baseModel, Cmd.none, SharedMsg.NoOp )
+
+                        ( False, [] ) ->
+                            ( baseModel, Cmd.none, SharedMsg.NoOp )
+
+                        ( False, firstId :: rest ) ->
+                            let
+                                started =
+                                    { baseModel | exoextBatch = Just { batchId = Nothing, remaining = rest, awaitingWrite = True } }
+                            in
+                            ( started
+                            , Task.perform (ExoextWriteRequest { subject = firstId, batchId = Nothing }) Time.now
+                            , exoextBatchSharedMsg project started
+                            )
+
+                Just (CloudShield.Card.EmbedRequested req) ->
+                    -- §7.1 single-req-slot guard, from the live wire state: don't write a
+                    -- getEmbed while a scan is active or its request is still unclaimed —
+                    -- the seq bump would cancel that scan bridge-side. Silently ignore the
+                    -- press when blocked (spec behavior). Otherwise stamp a genuine
+                    -- wall-clock seq/`createdAt` (same as a scan request).
+                    if exoextGetEmbedBlocked project model then
+                        ( baseModel, Cmd.none, SharedMsg.NoOp )
+
+                    else
+                        ( baseModel, Task.perform (ExoextWriteEmbedRequest req) Time.now, SharedMsg.NoOp )
+
+                Just (CloudShield.Card.CancelRequested req) ->
+                    let
+                        cancelled =
+                            exoextCancelRequested req.requestId baseModel
+                    in
+                    ( cancelled
+                    , writeCancelRequestCmd project model req.requestId
+                    , exoextBatchSharedMsg project cancelled
+                    )
+
+                Just CloudShield.Card.SessionDismissed ->
+                    -- Host-local, and deliberately so: no Cmd, no SharedMsg, nothing written.
+                    ( { baseModel | exoextSessionDismissed = True }
+                    , Cmd.none
+                    , SharedMsg.NoOp
+                    )
+
+                Just CloudShield.Card.ApprovalGranted ->
+                    -- Stamp a genuine wall-clock `approvedAt`, same idiom as a scan request:
+                    -- fetch `Time.now`, then build and persist the approval record.
+                    ( baseModel, Task.perform ExoextWriteApproval Time.now, SharedMsg.NoOp )
+
+                Just CloudShield.Card.ApprovalForgotten ->
+                    -- Forgetting needs no timestamp; drop the record for this instance.
+                    ( baseModel, Cmd.none, SharedMsg.ForgetExtensionApproval model.serverUuid )
+
+                Nothing ->
+                    ( baseModel, Cmd.none, SharedMsg.NoOp )
 
         ExoextWriteRequest req now ->
             let
@@ -1515,34 +1509,40 @@ exoextCancellableRun metadata statusOverride model =
     Exoext.Transport.runStatusFromMetadata metadata
         |> Maybe.andThen
             (\status ->
-                let
-                    -- The tracked request, only when the run slot is reporting THAT run.
-                    correlated =
-                        model.exoextCard.pending
-                            |> Maybe.andThen
-                                (\pending ->
-                                    if pending.seq == status.seq then
-                                        Just pending
-
-                                    else
-                                        Nothing
-                                )
-
-                    targetId =
-                        Maybe.Extra.or status.target (statusOverride |> Maybe.map .targetId)
-
-                    requestId =
-                        Maybe.Extra.or status.requestId
-                            (correlated |> Maybe.map (\_ -> exoextRequestId status.seq))
-                in
                 if not (List.member status.state cancellableRunStates) then
                     Nothing
 
-                else if model.exoextCancelRequestId /= Nothing && model.exoextCancelRequestId == requestId then
-                    Nothing
-
                 else
-                    Maybe.map2 (\target request -> { targetId = target, requestId = request }) targetId requestId
+                    let
+                        -- The tracked request, only when the run slot is reporting THAT run.
+                        correlated =
+                            model.exoextCard.pending
+                                |> Maybe.andThen
+                                    (\pending ->
+                                        if pending.seq == status.seq then
+                                            Just pending
+
+                                        else
+                                            Nothing
+                                    )
+
+                        targetId =
+                            Maybe.Extra.or status.target (statusOverride |> Maybe.map .targetId)
+
+                        requestId =
+                            Maybe.Extra.or status.requestId
+                                (correlated |> Maybe.map (\_ -> exoextRequestId status.seq))
+                    in
+                    case ( targetId, requestId ) of
+                        ( Just target, Just request ) ->
+                            if model.exoextCancelRequestId == Just request then
+                                Nothing
+
+                            else
+                                Just { targetId = target, requestId = request }
+
+                        _ ->
+                            Nothing
             )
 
 
@@ -1858,34 +1858,34 @@ exoextEmbedProjection metadata archivedResultObjectName currentTime statusOverri
         paneShowsSession =
             (results /= Nothing) || embedUrl /= ""
 
-        -- The researcher closed THIS session, so unmount the pane. Only the pane: `pendingResultId` /
-        -- `erroredResultId` / `expiredResultId` are per-row history state and survive a dismissal,
-        -- which never claims a scan did not happen. `activeResultId` does not survive: it is the
-        -- "now viewing" flag, and nothing is being viewed.
-        dismissed =
-            paneShowsSession && model.exoextSessionDismissed
+        showing =
+            { results = results
+            , embedUrl = embedUrl
+            , embedState = embedState
+            , activeResultId = activeResultId
+            , pendingResultId = pendingResultId
+            , erroredResultId = erroredResultId
+            , expiredResultId = expiredResultId
+            , sessionOpen = paneShowsSession
+            }
     in
-    if dismissed then
-        { results = Nothing
-        , embedUrl = ""
-        , embedState = CloudShield.Card.EmbedIdle
-        , activeResultId = Nothing
-        , pendingResultId = pendingResultId
-        , erroredResultId = erroredResultId
-        , expiredResultId = expiredResultId
-        , sessionOpen = False
+    if paneShowsSession && model.exoextSessionDismissed then
+        -- The researcher closed this session, so blank the PANE fields and nothing else. The iframe
+        -- goes by way of an empty `embedUrl`, which unmounts it rather than hiding it — a live embed
+        -- left mounted keeps retrying auth. `activeResultId` goes because it is the "now viewing"
+        -- flag and nothing is being viewed; `pendingResultId` / `erroredResultId` /
+        -- `expiredResultId` stay, because they are per-row history and closing a pane never claims a
+        -- scan did not happen.
+        { showing
+            | results = Nothing
+            , embedUrl = ""
+            , embedState = CloudShield.Card.EmbedIdle
+            , activeResultId = Nothing
+            , sessionOpen = False
         }
 
     else
-        { results = results
-        , embedUrl = embedUrl
-        , embedState = embedState
-        , activeResultId = activeResultId
-        , pendingResultId = pendingResultId
-        , erroredResultId = erroredResultId
-        , expiredResultId = expiredResultId
-        , sessionOpen = paneShowsSession
-        }
+        showing
 
 
 {-| The user-facing text of an embed result's `error`. `EmbedResult.error` holds the error field

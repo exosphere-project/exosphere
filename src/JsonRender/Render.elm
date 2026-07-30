@@ -397,29 +397,30 @@ renderButton ctx element props =
     let
         label =
             Expr.resolveDisplay ctx props.label
-
-        isDisabled =
-            props.disabled |> Maybe.map (Expr.resolveBool ctx) |> Maybe.withDefault False
-
-        handler =
-            case ( isDisabled, pressEmit ctx element ) of
-                ( False, Just emit ) ->
-                    [ Events.onClick (Pressed emit) ]
-
-                _ ->
-                    []
-
-        disabledClass =
-            if isDisabled then
-                " jr-button--disabled"
-
-            else
-                ""
     in
     if String.isEmpty label then
         Html.text ""
 
     else
+        let
+            isDisabled =
+                props.disabled |> Maybe.map (Expr.resolveBool ctx) |> Maybe.withDefault False
+
+            handler =
+                case ( isDisabled, pressEmit ctx element ) of
+                    ( False, Just emit ) ->
+                        [ Events.onClick (Pressed emit) ]
+
+                    _ ->
+                        []
+
+            disabledClass =
+                if isDisabled then
+                    " jr-button--disabled"
+
+                else
+                    ""
+        in
         Html.button
             (Attr.class ("jr-button" ++ disabledClass)
                 :: Attr.type_ "button"

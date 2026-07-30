@@ -136,11 +136,12 @@ mutationSuite =
                 let
                     popped =
                         { sample | remaining = [ "i-3" ] }
+
+                    stored =
+                        ExtensionBatch.record popped [ sample ]
                 in
                 Expect.equal ( 1, Just [ "i-3" ] )
-                    (ExtensionBatch.record popped [ sample ]
-                        |> (\batches -> ( List.length batches, List.head batches |> Maybe.map .remaining ))
-                    )
+                    ( List.length stored, List.head stored |> Maybe.map .remaining )
         , test "record does not disturb another instance's tail" <|
             \_ ->
                 let
