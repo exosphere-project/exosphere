@@ -831,21 +831,46 @@ action needs, both decided host-side from the live wire state:
   - `cancelRequestId` — the §4.1 request id that a stop has to name, `""` on every other row so a
     press there cannot arm the cancel channel (`cancelRequestIdOf` rejects an empty id).
 
+The row's display state has three sources, and the precedence between them is a statement about
+time: the wire says what is happening NOW, the batch tail says what is about to happen, and the
+card's own `scanState` says what already happened.
+
+1.  **The live run wins** (`statusOverride`, which the host projects onto exactly the tracked
+    request's row). It is the only one of the three read from the wire this poll.
+2.  **Then the undrained tail** (`queuedTargets`): a target whose request has not been written yet
+    is `queued`, whoever decided that — this session or the batch record a reload restored. This
+    beats `scanState` deliberately: a target that is in the tail AND carries a terminal state from
+    an earlier run is about to be scanned again, so `queued` is the truthful badge and its finished
+    run is in the history panel either way.
+3.  **Then the card's durable state**, which is `settleScanState`'s record of runs this session
+    watched finish, defaulting to `idle`.
+
 -}
 instanceProjection : ViewConfig -> Model -> Instance -> Encode.Value
 instanceProjection config model instance =
     let
+        liveState =
+            config.statusOverride
+                |> Maybe.andThen
+                    (\override ->
+                        if override.targetId == instance.id then
+                            Just override.state
+
+                        else
+                            Nothing
+                    )
+
         scanState =
-            case config.statusOverride of
-                Just override ->
-                    if override.targetId == instance.id then
-                        override.state
+            case liveState of
+                Just state ->
+                    state
+
+                Nothing ->
+                    if List.member instance.id config.queuedTargets then
+                        "queued"
 
                     else
                         localScanState model instance.id
-
-                Nothing ->
-                    localScanState model instance.id
 
         cancelRequestId =
             case config.cancellableRun of
@@ -941,6 +966,13 @@ type alias ViewConfig =
             { targetId : String
             , state : String
             }
+
+    -- the ids of targets whose request the host has decided on but not yet written: the undrained
+    -- tail of the batch being paced through the single §7.1 request slot. They read `queued`, which
+    -- is what a session that started the batch shows optimistically anyway — the difference is that
+    -- this survives a reload, because the tail is durable and the optimistic state is not. Empty
+    -- when no batch is draining.
+    , queuedTargets : List String
 
     -- the §4.2 result's `findings[]` array (host-parsed from the polled result object),
     -- bound into the `FindingsTable` at `/results`. `Nothing` until a run is `done`.

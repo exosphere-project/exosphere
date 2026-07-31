@@ -1,4 +1,4 @@
-module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, adoptRestoredExoextBatch, adoptStoredExoextBatch, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextBatchSharedMsg, exoextCancelRequested, exoextCancellableRun, exoextEmbedProjection, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextRequestsPending, exoextScanBlocked, exoextScanRequestPending, exoextScanTimer, exoextStatusOverride, init, recoverExoextRun, update, view)
+module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, adoptRestoredExoextBatch, adoptStoredExoextBatch, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextBatchSharedMsg, exoextCancelRequested, exoextCancellableRun, exoextEmbedProjection, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextRequestsPending, exoextScanBlocked, exoextScanRequestPending, exoextScanTimer, exoextStatusOverride, exoextViewConfig, init, recoverExoextRun, update, view)
 
 import CloudShield.Card
 import DateFormat.Relative
@@ -1423,6 +1423,13 @@ exoextViewConfig approved project model currentTime server =
     , transportWarning = exoextTransportWarning project model metadata maybeSentinel resultBody
     , scanTimer = scanTimer
     , statusOverride = displayStatusOverride
+
+    -- The targets still waiting for their turn at the single §7.1 request slot. Projecting them
+    -- keeps a batch looking the way it did before a reload: the tail is durable (`exoext.batch.v1`)
+    -- and resumes on its own, but the optimistic `queued` badges the card set when the batch started
+    -- are session-local, so without this a restored batch's untouched targets read as idle while
+    -- they are demonstrably still coming.
+    , queuedTargets = model.exoextBatch |> Maybe.map .remaining |> Maybe.withDefault []
     , results = results
     , history =
         case maybeSentinel of

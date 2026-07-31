@@ -1216,6 +1216,38 @@ cloudShieldBatchPersistenceSuite =
                     , Just "done"
                     )
                     ( resumed.exoextBatch, Dict.get "i-1" resumed.exoextCard.scanState )
+        , test "a restored tail shows its members as queued again, with the live row still live" <|
+            \_ ->
+                -- What the researcher sees one poll after reloading mid-batch: i-1 is on the wire and
+                -- counting, i-2 and i-3 have not been written yet and are still coming. Their
+                -- optimistic badges died with the session; the tail is what puts them back.
+                let
+                    metadata =
+                        runSlotFor 1700 "running" "i-1"
+
+                    projectHere =
+                        projectWithTargets [ "i-1", "i-2", "i-3" ] metadata
+
+                    restored =
+                        afterReload
+                            |> ServerDetail.adoptStoredExoextBatch project [ storedBatch [ "i-2", "i-3" ] ]
+                            |> ServerDetail.adoptRestoredExoextBatch projectHere
+                            |> ServerDetail.recoverExoextRun metadata
+
+                    rendered =
+                        Card.projection Time.utc
+                            (ServerDetail.exoextViewConfig True projectHere restored (Time.millisToPosix 1700) (serverPublishing metadata))
+                            ([ ( "i-1", "alpha" ), ( "i-2", "beta" ), ( "i-3", "gamma" ) ]
+                                |> List.map (\( id, name ) -> { id = id, name = name, status = "ACTIVE" })
+                            )
+                            restored.exoextCard
+                in
+                Expect.equal (Ok [ "scanning · 0:00", "queued", "queued" ])
+                    (Decode.decodeValue
+                        (Decode.field "instances" (Decode.list (Decode.field "scanState" Decode.string)))
+                        rendered
+                        |> Result.mapError Decode.errorToString
+                    )
         , test "with no stored record for this instance nothing is adopted and nothing changes" <|
             \_ ->
                 Expect.equal ( Nothing, Nothing )

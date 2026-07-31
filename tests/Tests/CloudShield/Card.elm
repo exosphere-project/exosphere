@@ -792,6 +792,64 @@ projectionSuite =
                 in
                 Expect.equal ( Ok "running", Ok "queued" )
                     ( rowScanState 0 value, rowScanState 1 value )
+        , test "a target in the undrained tail reads queued, so a restored batch looks unchanged" <|
+            \_ ->
+                -- After a reload the card's optimistic badges are gone (idleModel), but the batch
+                -- record survived: its untouched targets are still coming and must say so.
+                let
+                    value =
+                        Card.projection Time.utc
+                            { sampleConfig | queuedTargets = [ "i-2" ] }
+                            sampleInstances
+                            idleModel
+                in
+                Expect.equal ( Ok "idle", Ok "queued" )
+                    ( rowScanState 0 value, rowScanState 1 value )
+        , test "the live run still wins on its own row while the rest of the tail reads queued" <|
+            \_ ->
+                -- The precedence that matters on a restored batch: the wire says what is happening
+                -- now, the tail only says what is about to happen.
+                let
+                    value =
+                        Card.projection Time.utc
+                            { sampleConfig
+                                | statusOverride = Just { targetId = "i-1", state = "scanning · 0:12" }
+                                , queuedTargets = [ "i-2" ]
+                            }
+                            sampleInstances
+                            idleModel
+                in
+                Expect.equal ( Ok "scanning · 0:12", Ok "queued" )
+                    ( rowScanState 0 value, rowScanState 1 value )
+        , test "a live run wins even over its own row being in the tail" <|
+            \_ ->
+                Expect.equal (Ok "running")
+                    (rowScanState 0
+                        (Card.projection Time.utc
+                            { sampleConfig
+                                | statusOverride = Just { targetId = "i-1", state = "running" }
+                                , queuedTargets = [ "i-1" ]
+                            }
+                            sampleInstances
+                            idleModel
+                        )
+                    )
+        , test "a settled row that is queued again reads queued; one that is not keeps its state" <|
+            \_ ->
+                -- i-1 finished earlier this session AND is in the tail: it is about to be scanned
+                -- again, so the tail wins. i-2 finished and is not in the tail, so it stays done.
+                let
+                    settled =
+                        { idleModel | scanState = Dict.fromList [ ( "i-1", "done" ), ( "i-2", "done" ) ] }
+
+                    value =
+                        Card.projection Time.utc
+                            { sampleConfig | queuedTargets = [ "i-1" ] }
+                            sampleInstances
+                            settled
+                in
+                Expect.equal ( Ok "queued", Ok "done" )
+                    ( rowScanState 0 value, rowScanState 1 value )
         , test "embedUrl is projected to the top-level /embedUrl render-state key" <|
             \_ ->
                 let

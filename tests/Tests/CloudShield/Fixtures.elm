@@ -24,6 +24,7 @@ cardViewConfig =
     , scanTimer = Nothing
     , transportWarning = Nothing
     , statusOverride = Nothing
+    , queuedTargets = []
     , results = Nothing
     , history = { rows = [], loading = False, loaded = True }
     , activeResultId = Nothing
