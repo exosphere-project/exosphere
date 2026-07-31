@@ -629,8 +629,8 @@ The host computes every per-row visual signal here, so the renderer stays a pure
 no conditionals (host-renderer-interface.md §1.2):
 
   - `completedAt` — humanized local timestamp ("Jul 20, 2026 · 10:52 PM"), not raw ISO.
-  - `subLabel` — the target + short batch id ("alpha · #84a1c6"), or "failed · no findings" for
-    an errored scan.
+  - `subLabel` — the target + short batch id ("alpha · #84a1c6"), on every row including a failed
+    one (the batch id is dropped when the scan had none).
   - `findings` — a findings-shaped array synthesized from the aggregate counts, bound into the
     row's `FindingsTable` so history pills match the live `/results` pills.
   - `rowState` — the one active/failed/loading hook the stylesheet keys on: "Opening…" for the
@@ -713,9 +713,16 @@ historyRow zone activeResultId pendingResultId erroredResultId expiredResultId e
                 Err _ ->
                     entry.completedAt
 
+        -- Every row names its target, a failed one included: "which instance failed?" is the first
+        -- question a failure raises, and the row used to answer it with a host-owned "failed · no
+        -- findings" that said neither. That the scan failed is already carried by `state` /
+        -- `rowState` (the badge) and by the row's empty findings, so dropping the words loses
+        -- nothing and takes one more display string out of the host. The short batch id is appended
+        -- only when there is one: §4.1 leaves `batchId` null for a single-target scan, and a bare
+        -- "#" is noise.
         subLabel =
-            if isError then
-                "failed · no findings"
+            if entry.batchId == "" then
+                entry.targetName
 
             else
                 entry.targetName ++ " · #" ++ String.left 6 entry.batchId

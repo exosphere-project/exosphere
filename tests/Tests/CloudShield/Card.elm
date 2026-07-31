@@ -1421,12 +1421,24 @@ historySuite =
                     ( historyRowField (Just "b-1") (Just "b-1") (historyEntry "b-1") "rowState"
                     , historyRowField (Just "b-1") (Just "b-1") (historyEntry "b-1") "actionLabel"
                     )
-        , test "a failed scan is muted: failed state, nothing to view, no findings" <|
+        , test "a failed scan is muted but still NAMES its target, like every other row" <|
             \_ ->
-                Expect.equal ( Ok "failed", Ok "", Ok "failed · no findings" )
+                -- "which instance failed?" is the first question a failure raises, and the badge
+                -- (rowState / state) already says that it failed.
+                Expect.equal ( Ok "failed", Ok "", Ok "alpha · #b-err" )
                     ( historyRowField Nothing Nothing erroredEntry "rowState"
                     , historyRowField Nothing Nothing erroredEntry "actionLabel"
                     , historyRowField Nothing Nothing erroredEntry "subLabel"
+                    )
+        , test "a scan with no batch id (§4.1 single-target) drops the id rather than showing a bare #" <|
+            \_ ->
+                let
+                    doneEntry =
+                        historyEntry "b-1"
+                in
+                Expect.equal ( Ok "alpha", Ok "alpha" )
+                    ( historyRowField Nothing Nothing { erroredEntry | batchId = "" } "subLabel"
+                    , historyRowField Nothing Nothing { doneEntry | batchId = "" } "subLabel"
                     )
         , test "an errored batch never reads as active even if it is the active batchId" <|
             \_ ->
