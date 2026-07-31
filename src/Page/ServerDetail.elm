@@ -690,11 +690,12 @@ page model, so the precedence rule lives in one generic place:
   - `RecoverPending` sets `exoextCard.pending`, which is all the existing projections need — the
     row's live state (`statusOverride`), the elapsed timer, the 5 s fast poll and the batch pacing
     are every one of them keyed on the tracked request, and none of them care who wrote it.
-  - `RecoverSettled` commits the finished run's state into the card's durable per-row `scanState`
-    instead. A finished run is history: inventing a tracker for it would restart the completion
-    timer and re-open the results pane on every reload, so only the badge is restored.
   - `NoRecovery` leaves the model exactly as it was. Notably this is the case whenever a tracker is
-    already set, so a live scan can never be rewound by a lagging run slot.
+    already set, so a live scan can never be rewound by a lagging run slot — and also whenever the
+    wire's run is already terminal with no batch tail waiting on it, because the §7.1 run slot is a
+    LAST-run record rather than a current-run one. Committing that into the card's durable per-row
+    state is what made a finished scan read as `done` on every page load ever after; the completed
+    scan belongs in the history panel, where it carries the timestamp that says when it happened.
 
 A recovered run does NOT pre-fill the row's optimistic `scanState`, so the card's own dedup does not
 see it and its Scan button stays pressable. `exoextScanBlocked` is the guard that catches such a
@@ -719,9 +720,6 @@ recoverExoextRun metadata model =
                     model.exoextCard
             in
             { model | exoextCard = { card | pending = Just request } }
-
-        Exoext.Lifecycle.RecoverSettled settled ->
-            { model | exoextCard = CloudShield.Card.settleScanState settled.subject settled.state model.exoextCard }
 
 
 {-| Second phase of adopting a stored batch tail: keep the targets that are still eligible instances

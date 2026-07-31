@@ -337,20 +337,17 @@ requestStillPending pending metadata =
 answer to "the page was reloaded mid-run, now what?".
 
   - `NoRecovery` — adopt nothing. Either the reader already tracks a request (its own tracker is
-    always the truth, see [`recoverRun`](#recoverRun)) or the wire says nothing adoptable.
+    always the truth, see [`recoverRun`](#recoverRun)), or the wire says nothing adoptable, or the
+    run the wire names is already over (a finished run is not something that is happening).
   - `RecoverPending request` — adopt `request` as the tracked request. It is a real §4.3 run the
     reader simply did not write, so every projection keyed on a tracked request (the row's live
     state, the elapsed timer, the fast poll, the batch pacing) engages exactly as it would for a
     request this session issued.
-  - `RecoverSettled { subject, state }` — the run is over. There is nothing to track and nothing to
-    poll for, only a finished per-subject state to commit so the row shows what happened instead of
-    reverting to idle.
 
 -}
 type RunRecovery
     = NoRecovery
     | RecoverPending PendingRequest
-    | RecoverSettled { subject : String, state : String }
 
 
 {-| Decide what to adopt from the §4.3 run slot. This is the whole fix for "reload during a run and
@@ -372,11 +369,24 @@ The precedence is deliberate and total, in this order:
     `seq`, which the host writes as wall-clock millis — the moment the request was actually written,
     which is both truthful and stable across reloads (unlike "now", which would restart the
     elapsed clock on every reload).
-4.  **A finished run settles** (`RecoverSettled`) — with ONE exception: when `tailPending` says an
-    undrained batch tail is waiting on this run, a finished run is adopted as a tracked request
-    instead. Draining the tail is driven by [`advanceBatch`](#advanceBatch), which needs a tracked
-    request to settle before it can pop the next subject; without this the restored tail of a batch
-    whose run had already finished at reload would never resume.
+4.  **A finished run is adopted only when a tail is waiting on it.** The §7.1 run slot is
+    overwritten in place and never cleared, so it is a record of the LAST run, not of a CURRENT one.
+    A reader that adopts a terminal run therefore re-adopts the same finished run on every later
+    page load, forever — which is exactly how a completed scan came to read as still-finishing-now
+    on a page the user opened days later. A finished run is history, and history belongs to the
+    archived-result view (which carries its timestamp), so `tailPending == False` ⇒ `NoRecovery`.
+    The ONE exception is `tailPending == True`: an undrained batch tail is waiting on this run, and
+    draining it is driven by [`advanceBatch`](#advanceBatch), which needs a tracked request to
+    settle before it can pop the next subject. Without that, the restored tail of a batch whose run
+    had already finished at reload would never resume. Adopting a terminal run is correct there
+    because it is not being adopted as a display state at all — it is being adopted as the token
+    that lets the batch take its next step.
+
+The deliberate consequence: WITHIN one session a finished row still shows its terminal state,
+because the reader itself observed that run and committed it (the host's own per-subject record).
+ACROSS a reload it does not, because the reader only trusts the wire for what is happening NOW and
+the wire cannot distinguish "just finished" from "finished last week". That asymmetry is intended:
+session-local knowledge is dated by construction, and a run slot is not.
 
 The recovered request's `kind` is `"scan"` because the run slot is the RUN-correlated request channel
 and a run request is the only thing that appears in it — a session request (`getEmbed`) is correlated
@@ -407,7 +417,8 @@ recoverRun { tracked, tailPending, metadata } =
 
                         Just target ->
                             if isTerminalRunState status.state && not tailPending then
-                                RecoverSettled { subject = target, state = status.state }
+                                -- A last-run record with nothing waiting on it: not adoptable.
+                                NoRecovery
 
                             else
                                 RecoverPending

@@ -1000,16 +1000,31 @@ cloudShieldRecoverySuite =
                 Expect.equal
                     ( Just ( "i-1", 5000 ), Nothing )
                     (projected metadata (ServerDetail.recoverExoextRun metadata live))
-        , test "a finished run restores the row's badge without inventing a tracker" <|
+        , test "a finished run leaves the row alone: no tracker, and no durable badge either" <|
             \_ ->
-                -- No tracker means no completion timer restart and no re-opened results pane; the
-                -- durable per-row state is all a finished run leaves behind.
+                -- The stale-`done` fix. The run slot is never cleared, so a finished run sits there
+                -- indefinitely; committing it would re-mark the row `done` on every page load from
+                -- now to forever. The finished scan shows in the history panel, dated.
                 let
                     recovered =
                         ServerDetail.recoverExoextRun (runSlotFor 1700 "done" "i-9") afterReload
                 in
-                Expect.equal ( Nothing, Just "done" )
+                Expect.equal ( Nothing, Nothing )
                     ( recovered.exoextCard.pending, Dict.get "i-9" recovered.exoextCard.scanState )
+        , test "reloading again does not resurrect it either — a finished run is never adopted" <|
+            \_ ->
+                -- Each reload is a fresh `init`, so the only thing that could bring `done` back is
+                -- recovery itself; running it over every terminal state proves none of them do.
+                Expect.equal []
+                    ([ "done", "error", "cancelled", "expired" ]
+                        |> List.filterMap
+                            (\state ->
+                                ServerDetail.recoverExoextRun (runSlotFor 1700 state "i-9") afterReload
+                                    |> .exoextCard
+                                    |> .scanState
+                                    |> Dict.get "i-9"
+                            )
+                    )
         , test "a publisher that names no target changes nothing at all" <|
             \_ ->
                 let

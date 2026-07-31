@@ -277,8 +277,12 @@ suite =
                     Lifecycle.recoverRun
                         { tracked = Nothing, tailPending = False, metadata = runSlot 1700 "running" }
                         |> Expect.equal Lifecycle.NoRecovery
-            , test "a finished run settles its subject instead of inventing a tracker" <|
+            , test "a finished run with nothing waiting on it recovers NOTHING" <|
                 \_ ->
+                    -- The run slot is overwritten in place and never cleared, so a terminal run is a
+                    -- record of the LAST run, not of a current one. Adopting one means re-adopting
+                    -- the same finished run on every later page load, which is exactly how a scan
+                    -- that finished once came to read as just-finished forever.
                     [ "done", "error", "cancelled", "expired" ]
                         |> List.map
                             (\state ->
@@ -287,7 +291,7 @@ suite =
                             )
                         |> Expect.equal
                             ([ "done", "error", "cancelled", "expired" ]
-                                |> List.map (\state -> Lifecycle.RecoverSettled { subject = "i-9", state = state })
+                                |> List.map (\_ -> Lifecycle.NoRecovery)
                             )
             , test "a finished run WITH an undrained tail is tracked, so the batch can resume" <|
                 \_ ->
