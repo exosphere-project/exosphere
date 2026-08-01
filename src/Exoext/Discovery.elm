@@ -6,6 +6,7 @@ module Exoext.Discovery exposing
     , manifestObjectLocation
     , readSentinel
     , storeFromString
+    , transientKey
     )
 
 {-| Exoext extension discovery (Phase 0 spec §3.1 / §3.3, POC slice §7).
@@ -159,18 +160,41 @@ manifestObjectLocation sentinel =
 -- ELIGIBILITY ($instances projection source, §2.4)
 
 
-{-| The §2.4 host-applied eligibility filter: include only ACTIVE instances and exclude the
-publishing instance itself (`selfUuid`). Reachability is a VM-side runtime check, not a list
+{-| The metadata key a publisher stamps on an instance it created as its own machinery, value
+`"true"`. The host reads it and nothing else about such an instance.
+
+Deliberately contentless: the host does not know, and must not learn, WHAT the publisher spun the
+instance up for. All it is told is "this one is mine, and it is temporary" — which is exactly enough
+to keep it out of a list of things the researcher can act on, and no more. A key that named the
+publisher's internal concept would put that concept in the host, where every future publisher would
+then have to speak it.
+
+-}
+transientKey : String
+transientKey =
+    "exoext.v1.transient"
+
+
+{-| The §2.4 host-applied eligibility filter: include only ACTIVE instances, exclude the publishing
+instance itself (`selfUuid`), and exclude any instance the publisher marked as its own transient
+machinery ([`transientKey`](#transientKey)). Reachability is a VM-side runtime check, not a list
 filter, so it is intentionally not applied here.
+
+The transient exclusion needs each instance's own metadata, which is why the input carries it. It
+cannot be inferred from anything else the host has: such an instance is a real, ACTIVE server in the
+researcher's project, indistinguishable from a scannable one by status, and naming it by convention
+(a name prefix) would make the host guess at the publisher's naming rather than read its statement.
+
 -}
 eligibleInstances :
     String
-    -> List { id : String, name : String, status : OSTypes.ServerStatus }
+    -> List { id : String, name : String, status : OSTypes.ServerStatus, metadata : List OSTypes.MetadataItem }
     -> List { id : String, name : String, status : String }
 eligibleInstances selfUuid servers =
     servers
         |> List.filter (\s -> s.status == OSTypes.ServerActive)
         |> List.filter (\s -> s.id /= selfUuid)
+        |> List.filter (\s -> Dict.get transientKey (toDict s.metadata) /= Just "true")
         |> List.map
             (\s ->
                 { id = s.id

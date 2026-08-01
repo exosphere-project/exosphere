@@ -512,10 +512,16 @@ update msg project model =
             ( model, Cmd.none, SharedMsg.NoOp )
 
 
-{-| The §2.4 `$instances` projection: the project's real servers, eligibility-filtered
-(ACTIVE-only, excluding the publishing instance itself). Computed identically in `update` and
-`view` so the renderer's row indices stay stable. The VM never supplies this list — it comes
-from Exosphere's own server data, so it cannot inject fake or out-of-project rows.
+{-| The §2.4 `$instances` projection: the project's real servers, eligibility-filtered (ACTIVE-only,
+excluding the publishing instance itself and anything the publisher marked as its own transient
+machinery). Computed identically in `update` and `view` so the renderer's row indices stay stable.
+The VM never supplies this list — it comes from Exosphere's own server data, so it cannot inject fake
+or out-of-project rows.
+
+Each server's own Nova metadata rides along because eligibility now reads one key off it
+(`Exoext.Discovery.transientKey`); the filter stays in `Exoext.Discovery` rather than being applied
+here, so all of §2.4 keeps living in one place.
+
 -}
 exoextInstances : Project -> Model -> List CloudShield.Card.Instance
 exoextInstances project model =
@@ -526,6 +532,7 @@ exoextInstances project model =
                 { id = s.osProps.uuid
                 , name = s.osProps.name
                 , status = s.osProps.details.openstackStatus
+                , metadata = s.osProps.details.metadata
                 }
             )
         |> Exoext.Discovery.eligibleInstances model.serverUuid

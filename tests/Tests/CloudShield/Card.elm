@@ -1066,14 +1066,53 @@ discoverySuite =
             \_ ->
                 let
                     servers =
-                        [ { id = "self", name = "cloudshield-vm", status = OSTypes.ServerActive }
-                        , { id = "i-1", name = "alpha", status = OSTypes.ServerActive }
-                        , { id = "i-2", name = "building", status = OSTypes.ServerBuild }
+                        [ candidate "self" "cloudshield-vm" OSTypes.ServerActive []
+                        , candidate "i-1" "alpha" OSTypes.ServerActive []
+                        , candidate "i-2" "building" OSTypes.ServerBuild []
                         ]
                 in
                 Expect.equal [ { id = "i-1", name = "alpha", status = "Active" } ]
                     (Discovery.eligibleInstances "self" servers)
+        , test "eligibleInstances excludes an instance the publisher marked as its own machinery" <|
+            \_ ->
+                -- Bug 6. The marked instance is ACTIVE and not self, so every other eligibility rule
+                -- admits it; only the publisher's own statement about it keeps it off the list.
+                let
+                    servers =
+                        [ candidate "i-1" "alpha" OSTypes.ServerActive []
+                        , candidate "i-9" "machinery" OSTypes.ServerActive [ ( Discovery.transientKey, "true" ) ]
+                        ]
+                in
+                Expect.equal [ { id = "i-1", name = "alpha", status = "Active" } ]
+                    (Discovery.eligibleInstances "self" servers)
+        , test "only the exact `true` excludes: any other value leaves the instance scannable" <|
+            \_ ->
+                -- Fail-OPEN here on purpose, and it is the safe direction: the cost of admitting an
+                -- instance is a row the researcher can ignore, while the cost of dropping one on a
+                -- value the host merely failed to recognize is a machine that silently cannot be
+                -- scanned at all.
+                Expect.equal [ "i-1", "i-2", "i-3" ]
+                    ([ candidate "i-1" "alpha" OSTypes.ServerActive [ ( Discovery.transientKey, "false" ) ]
+                     , candidate "i-2" "beta" OSTypes.ServerActive [ ( Discovery.transientKey, "" ) ]
+                     , candidate "i-3" "gamma" OSTypes.ServerActive [ ( "unrelated.key", "true" ) ]
+                     ]
+                        |> Discovery.eligibleInstances "self"
+                        |> List.map .id
+                    )
         ]
+
+
+{-| One server as `eligibleInstances` takes it: identity, status, and its own Nova metadata (which
+the §2.4 filter now reads one key off).
+-}
+candidate :
+    String
+    -> String
+    -> OSTypes.ServerStatus
+    -> List ( String, String )
+    -> { id : String, name : String, status : OSTypes.ServerStatus, metadata : List OSTypes.MetadataItem }
+candidate id name status metadata =
+    { id = id, name = name, status = status, metadata = meta metadata }
 
 
 
