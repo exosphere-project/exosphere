@@ -1,4 +1,4 @@
-module Tests.JsonRender.BadgeTest exposing (suite)
+module Tests.JsonRender.BadgeTest exposing (badgeToneSuite, suite)
 
 {-| Focused coverage for the Badge `variant` prop (vendored port of the elm-json-render
 `feat/expr-map` addition).
@@ -99,4 +99,33 @@ suite =
 
                     Err _ ->
                         Expect.pass
+        ]
+
+
+{-| `badgeTone`, the value → tone-class mapping the host stylesheet keys its badge colors on.
+
+Asserted on the function rather than on the rendered class attribute because
+`Test.Html.Selector.class` matches the `className` PROPERTY, which elm-test-rs does not reproduce —
+every class-based selector fails here even against markup that plainly carries the class (verified).
+`data-state` is a real attribute and is asserted above; the tone class is not reachable that way.
+
+-}
+badgeToneSuite : Test
+badgeToneSuite =
+    describe "JsonRender.Render badgeTone"
+        [ test "the in-flight states all tone as info, ellipsis or not" <|
+            \_ ->
+                -- `stopping` is in flight like queued/running/scanning, and the neutral tone it used
+                -- to fall through to read as already-over — the one thing that state must not say,
+                -- since the stop control has withdrawn and the badge is the only feedback left. The
+                -- ellipsis is punctuation on the display word, so the tone must not depend on the
+                -- publisher's typography.
+                Expect.equal [ "info", "info", "info", "info", "info" ]
+                    ([ "queued", "running", "scanning · 0:15", "stopping", "stopping…" ]
+                        |> List.map Render.badgeTone
+                    )
+        , test "the settled states keep their own tones, so the ellipsis rule changed nothing else" <|
+            \_ ->
+                Expect.equal [ "neutral", "success", "danger", "neutral" ]
+                    ([ "idle", "done", "error", "cancelled" ] |> List.map Render.badgeTone)
         ]

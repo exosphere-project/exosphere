@@ -1769,9 +1769,15 @@ rendererStyle palette =
                 , ".jr-checkbox input { accent-color: " ++ primary ++ "; }"
                 , ".jr-badge { padding: 1px 9px; border-radius: 999px; font-size: 0.8em; border: 1px solid transparent; }"
 
-                -- In-progress badges (queued/running) get a small spinning ring before the label
-                -- so an active scan reads as moving. `currentColor` inherits the badge tone color.
-                , ".jr-badge[data-state^=\"queued\"]::before, .jr-badge[data-state^=\"running\"]::before, .jr-badge[data-state^=\"scanning\"]::before { content: \"\"; display: inline-block; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: jr-badge-spin 0.7s linear infinite; }"
+                -- In-progress badges (queued/running/scanning/stopping) get a small spinning ring
+                -- before the label so an active scan reads as moving. `currentColor` inherits the
+                -- badge tone color. `stopping` belongs here for a reason the others do not have: it
+                -- is the ONLY feedback a stop press gets, because the stop control withdraws with
+                -- the press. Drawn still, the row would read as already stopped while the publisher
+                -- is in fact still winding the run down, and a still-running row that looks finished
+                -- is what gets pressed a second time. Prefix selectors, so a state carrying a
+                -- display suffix (`scanning · 0:15`) or an ellipsis (`stopping…`) still matches.
+                , ".jr-badge[data-state^=\"queued\"]::before, .jr-badge[data-state^=\"running\"]::before, .jr-badge[data-state^=\"scanning\"]::before, .jr-badge[data-state^=\"stopping\"]::before { content: \"\"; display: inline-block; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: jr-badge-spin 0.7s linear infinite; }"
                 , "@keyframes jr-badge-spin { to { transform: rotate(360deg); } }"
                 , ".jr-badge--neutral { background: " ++ frontBg ++ "; color: " ++ muted ++ "; border-color: " ++ border ++ "; }"
                 , ".jr-badge--info { background: " ++ infoBg ++ "; color: " ++ infoText ++ "; border-color: " ++ infoBorder ++ "; }"

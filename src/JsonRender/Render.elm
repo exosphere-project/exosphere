@@ -3,6 +3,7 @@ module JsonRender.Render exposing
     , Msg, update
     , Effect(..)
     , view
+    , badgeTone
     )
 
 {-| Render a validated [`Spec`](JsonRender-Spec#Spec) to `Html`, driven by host-owned
@@ -36,6 +37,11 @@ tree is **XSS-safe by construction**.
 # View
 
 @docs view
+
+
+# Styling hooks
+
+@docs badgeTone
 
 -}
 
@@ -357,6 +363,12 @@ badgeTone state =
         "scanning" ->
             "info"
 
+        "stopping" ->
+            -- In flight like the three above, and toned the same on purpose: a run that has been
+            -- asked to stop has NOT stopped yet, and the neutral tone this used to fall through to
+            -- read as already-over — which is the one thing this state must not say.
+            "info"
+
         "done" ->
             "success"
 
@@ -367,12 +379,27 @@ badgeTone state =
             "neutral"
 
 
-{-| The leading token of a badge value: everything before the first space. So `"scanning · 0:15"`
-tones as `"scanning"` while a plain `"done"` is unchanged.
+{-| The leading token of a badge value: everything before the first space, minus a trailing
+ellipsis. So `"scanning · 0:15"` tones as `"scanning"` and `"stopping…"` tones as `"stopping"`,
+while a plain `"done"` is unchanged.
+
+The ellipsis is dropped because it is punctuation on the display word, not part of the state: a
+manifest that writes an in-flight state as `"stopping…"` means the same state as one that writes
+`"stopping"`, and toning the two differently would make the tone table depend on the publisher's
+typography.
+
 -}
 badgeToken : String -> String
 badgeToken state =
-    state |> String.split " " |> List.head |> Maybe.withDefault state
+    let
+        leading =
+            state |> String.split " " |> List.head |> Maybe.withDefault state
+    in
+    if String.endsWith "…" leading then
+        String.dropRight 1 leading
+
+    else
+        leading
 
 
 {-| Render a `Button`. A truthy `disabled` expression makes it inert three ways over: the native
