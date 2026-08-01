@@ -903,7 +903,27 @@ projectionSuite =
                             |> Result.mapError Decode.errorToString
                 in
                 Expect.equal ( Ok True, Ok False ) ( openFlag True, openFlag False )
-        , test "the stoppable run's row carries cancellable + its requestId; other rows carry neither" <|
+        , test "scanBusy is projected top-level, separately from requestBusy" <|
+            \_ ->
+                -- §I keeps the two guards distinct: `requestBusy` greys the View controls,
+                -- `scanBusy` the Scan ones. Setting either must not move the other.
+                let
+                    flags config =
+                        Card.projection Time.utc config sampleInstances idleModel
+                            |> Decode.decodeValue
+                                (Decode.map2 Tuple.pair
+                                    (Decode.field "scanBusy" Decode.bool)
+                                    (Decode.field "requestBusy" Decode.bool)
+                                )
+                            |> Result.mapError Decode.errorToString
+                in
+                Expect.equal
+                    ( Ok ( True, False ), Ok ( False, True ), Ok ( False, False ) )
+                    ( flags { sampleConfig | scanBusy = True }
+                    , flags { sampleConfig | requestBusy = True }
+                    , flags sampleConfig
+                    )
+        , test "the stoppable run's row carries cancellable + its requestId + its target; other rows carry none" <|
             \_ ->
                 let
                     value =
@@ -913,20 +933,90 @@ projectionSuite =
                             idleModel
                 in
                 Expect.equal
-                    ( ( Ok True, Ok "exo-cs-req-7" ), ( Ok False, Ok "" ) )
-                    ( ( rowCancellable 0 value, rowCancelRequestId 0 value )
-                    , ( rowCancellable 1 value, rowCancelRequestId 1 value )
+                    ( ( Ok True, Ok "exo-cs-req-7", Ok "i-1" ), ( Ok False, Ok "", Ok "" ) )
+                    ( ( rowCancellable 0 value, rowCancelRequestId 0 value, rowCancelTargetId 0 value )
+                    , ( rowCancellable 1 value, rowCancelRequestId 1 value, rowCancelTargetId 1 value )
                     )
         , test "with no stoppable run no row is cancellable, and none can name a request" <|
             \_ ->
-                -- The empty id is what makes an errant press inert: `cancelRequestIdOf` rejects it.
+                -- The empty ids are what make an errant press inert: `cancelTargetOf` rejects a
+                -- press that names neither a request nor a target.
                 let
                     value =
                         Card.projection Time.utc sampleConfig sampleInstances idleModel
                 in
-                Expect.equal ( Ok False, Ok "", Ok False )
-                    ( rowCancellable 0 value, rowCancelRequestId 0 value, rowCancellable 1 value )
+                Expect.equal ( Ok False, Ok "", Ok "" )
+                    ( rowCancellable 0 value, rowCancelRequestId 0 value, rowCancelTargetId 0 value )
+        , test "a target parked in the undrained tail is stoppable by TARGET, having no request yet" <|
+            \_ ->
+                -- Bug 1: the queued row has nothing on the wire to name, so `cancelRequestId` stays
+                -- empty and `cancelTargetId` is the whole identity of the press.
+                let
+                    value =
+                        Card.projection Time.utc
+                            { sampleConfig | queuedTargets = [ "i-2" ] }
+                            sampleInstances
+                            idleModel
+                in
+                Expect.equal
+                    ( ( Ok True, Ok "", Ok "i-2" ), Ok False )
+                    ( ( rowCancellable 1 value, rowCancelRequestId 1 value, rowCancelTargetId 1 value )
+                    , rowCancellable 0 value
+                    )
+        , test "a stopping row reads the stopping token and offers no second press" <|
+            \_ ->
+                -- Bugs 2+3 at the projection: the host says `stopping` and the manifest owns the
+                -- word. The stop control goes because the host withdraws `cancellableRun`, which is
+                -- what a stopping run looks like from here.
+                let
+                    value =
+                        Card.projection Time.utc
+                            { sampleConfig
+                                | statusOverride = Just { targetId = "i-1", state = "scanning · 0:54" }
+                                , stoppingTargetId = Just "i-1"
+                            }
+                            sampleInstances
+                            idleModel
+                in
+                Expect.equal ( Ok "stopping", Ok False, Ok "" )
+                    ( rowScanState 0 value, rowCancellable 0 value, rowCancelTargetId 0 value )
+        , test "stopping outranks the live wire state, the tail, and the durable state alike" <|
+            \_ ->
+                -- The full precedence chain, exercised on one row that qualifies for every level at
+                -- once: a live run, a place in the tail, and a committed terminal state.
+                let
+                    stateOf config =
+                        Card.projection Time.utc config sampleInstances (settledModel "i-1" "done")
+                            |> rowScanState 0
+
+                    live =
+                        { sampleConfig
+                            | statusOverride = Just { targetId = "i-1", state = "running" }
+                            , queuedTargets = [ "i-1" ]
+                        }
+                in
+                Expect.equal ( Ok "stopping", Ok "running" )
+                    ( stateOf { live | stoppingTargetId = Just "i-1" }, stateOf live )
+        , test "stopping applies to its own row only" <|
+            \_ ->
+                let
+                    value =
+                        Card.projection Time.utc
+                            { sampleConfig | stoppingTargetId = Just "i-1" }
+                            sampleInstances
+                            (settledModel "i-2" "done")
+                in
+                Expect.equal ( Ok "stopping", Ok "done" )
+                    ( rowScanState 0 value, rowScanState 1 value )
         ]
+
+
+{-| The card with one row's terminal run committed to its durable `scanState` — the bottom of the
+row-state precedence chain.
+-}
+settledModel : String -> String -> Card.Model
+settledModel id state =
+    Card.settleScanState id state idleModel
 
 
 rowCancellable : Int -> Decode.Value -> Result String Bool
@@ -939,8 +1029,18 @@ rowCancellable index value =
 
 rowCancelRequestId : Int -> Decode.Value -> Result String String
 rowCancelRequestId index value =
+    rowStringField "cancelRequestId" index value
+
+
+rowCancelTargetId : Int -> Decode.Value -> Result String String
+rowCancelTargetId index value =
+    rowStringField "cancelTargetId" index value
+
+
+rowStringField : String -> Int -> Decode.Value -> Result String String
+rowStringField key index value =
     Decode.decodeValue
-        (Decode.field "instances" (Decode.index index (Decode.field "cancelRequestId" Decode.string)))
+        (Decode.field "instances" (Decode.index index (Decode.field key Decode.string)))
         value
         |> Result.mapError Decode.errorToString
 
@@ -956,29 +1056,50 @@ cancelDismissVerbSuite =
 
         cancelParams requestId =
             Encode.object [ ( "requestId", Encode.string requestId ) ]
+
+        stopParams requestId targetId =
+            Encode.object
+                [ ( "requestId", Encode.string requestId )
+                , ( "targetId", Encode.string targetId )
+                ]
     in
     describe "CloudShield cancel + dismiss verbs"
         [ test "a cancel press asks the host to stop the named request" <|
             \_ ->
-                Expect.equal (Just (Card.CancelRequested { requestId = "exo-cs-req-7" }))
-                    (dispatch Lifecycle.verbCancelRequest (cancelParams "exo-cs-req-7"))
+                Expect.equal (Just (Card.CancelRequested { requestId = "exo-cs-req-7", targetId = "i-1" }))
+                    (dispatch Lifecycle.verbCancelRequest (stopParams "exo-cs-req-7" "i-1"))
         , test "the v1 cloudshield.* alias reaches the same verb" <|
             \_ ->
                 Expect.equal (Just Lifecycle.verbCancelRequest)
                     (Card.resolveAction "cloudshield.cancelScan" Encode.null |> Maybe.map .verb)
-        , test "a cancel naming no request is swallowed (empty and absent alike)" <|
+        , test "a cancel naming nothing at all is swallowed (both ids empty, and absent alike)" <|
             \_ ->
-                -- A non-cancellable row projects `cancelRequestId: ""`, so this is the press that
-                -- would otherwise arm the channel with a value the publisher can never match.
+                -- A non-stoppable row projects BOTH ids empty, so this is the press that would
+                -- otherwise reach the host with nothing it could attribute the press to.
                 Expect.equal ( Nothing, Nothing )
-                    ( dispatch Lifecycle.verbCancelRequest (cancelParams "")
+                    ( dispatch Lifecycle.verbCancelRequest (stopParams "" "")
                     , dispatch Lifecycle.verbCancelRequest (Encode.object [])
                     )
-        , test "cancelRequestIdOf reads the id it will send, and rejects the empty one" <|
+        , test "a press naming only a target still dispatches: that is a queued row's stop" <|
             \_ ->
-                Expect.equal ( Just "exo-cs-req-7", Nothing )
-                    ( Card.cancelRequestIdOf (cancelParams "exo-cs-req-7")
-                    , Card.cancelRequestIdOf (cancelParams "")
+                -- Bug 1. An empty `requestId` is meaningful, not malformed — it says "no request on
+                -- the wire yet". Only the host owns the batch, so only the host can route it.
+                Expect.equal (Just (Card.CancelRequested { requestId = "", targetId = "i-2" }))
+                    (dispatch Lifecycle.verbCancelRequest (stopParams "" "i-2"))
+        , test "the frozen v4 manifest, which emits only requestId, still dispatches" <|
+            \_ ->
+                Expect.equal (Just (Card.CancelRequested { requestId = "exo-cs-req-7", targetId = "" }))
+                    (dispatch Lifecycle.verbCancelRequest (cancelParams "exo-cs-req-7"))
+        , test "cancelTargetOf reads both ids, and rejects only the press that names neither" <|
+            \_ ->
+                Expect.equal
+                    ( Just { requestId = "exo-cs-req-7", targetId = "i-1" }
+                    , Just { requestId = "", targetId = "i-2" }
+                    , Nothing
+                    )
+                    ( Card.cancelTargetOf (stopParams "exo-cs-req-7" "i-1")
+                    , Card.cancelTargetOf (stopParams "" "i-2")
+                    , Card.cancelTargetOf (stopParams "" "")
                     )
         , test "a dismiss press asks the host to close the session, and needs no params" <|
             \_ ->

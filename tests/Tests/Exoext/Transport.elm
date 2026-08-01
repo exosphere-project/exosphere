@@ -141,6 +141,21 @@ reqCancelSuite =
                         |> List.head
                         |> Maybe.map .value
                     )
+        , test "the channel reads back, which is what makes a pending stop survive a reload" <|
+            \_ ->
+                Expect.equal (Just "exo-cs-req-7")
+                    (Transport.reqCancelFromMetadata (Transport.reqCancelMetadata "exo-cs-req-7"))
+        , test "the cleared, absent and stringified-None channels all name no request" <|
+            \_ ->
+                -- None of the three can equal a real requestId, so none can make a live run look
+                -- stopped. The cleared value is the one a superseding request write leaves behind.
+                Expect.equal [ Nothing, Nothing, Nothing ]
+                    ([ Transport.reqCancelMetadata ""
+                     , []
+                     , meta [ ( "exoext.v1.req.cancel", "None" ) ]
+                     ]
+                        |> List.map Transport.reqCancelFromMetadata
+                    )
         ]
 
 

@@ -1,4 +1,4 @@
-module CloudShield.Card exposing (EmbedState(..), Instance, ManifestSource(..), Model, Msg, OutMsg(..), ViewConfig, abandonScanState, cancelRequestIdOf, dispatchVerb, init, projection, requestEmbed, resolveAction, resultIdOf, rollbackScanRequest, scanningRowLabel, settleScanState, transportChip, update, view)
+module CloudShield.Card exposing (EmbedState(..), Instance, ManifestSource(..), Model, Msg, OutMsg(..), ViewConfig, abandonScanState, cancelTargetOf, dispatchVerb, init, projection, requestEmbed, resolveAction, resultIdOf, rollbackScanRequest, scanningRowLabel, settleScanState, transportChip, update, view)
 
 {-| Host wiring for the CloudShield dynamic-UI card (Phase 1, browser side).
 
@@ -119,11 +119,14 @@ OpenStack Cmds; the parent owns the Nova metadata write (it has `Rest.Nova` + th
 type OutMsg
     = ScanRequested { seq : Int, targetIds : List String }
     | EmbedRequested { resultId : String, batchId : String }
-      -- `CancelRequested { requestId }` — a confirmed `exoext.cancelRequest` on a row with a
-      -- stoppable run. The parent writes the cancel channel (`exoext.v1.req.cancel`) naming that
-      -- request; the card holds no run-state knowledge, so which rows offer the action at all is
-      -- decided host-side and projected per row as `cancellable`.
-    | CancelRequested { requestId : String }
+      -- `CancelRequested { requestId, targetId }` — a confirmed `exoext.cancelRequest` on a row the
+      -- host marked stoppable. BOTH ids ride along because the two stoppable cases are stopped in
+      -- different ways: a run on the wire is stopped by writing the cancel channel
+      -- (`exoext.v1.req.cancel`) with its `requestId`, while a target still queued behind the single
+      -- §7.1 request slot has no request to name and is stopped by taking it out of the tail
+      -- host-side. The card decides neither — it holds no run-state and no batch knowledge — it just
+      -- carries what the row was projected with; see `cancelTargetOf`.
+    | CancelRequested { requestId : String, targetId : String }
       -- `SessionDismissed` — the researcher closed the open results session. Purely host-local
       -- display state: nothing is written to the wire and no archived scan is touched.
     | SessionDismissed
@@ -265,7 +268,7 @@ dispatchVerb maybeAlias params model =
                 requestEmbed (resultIdOf params) model
 
             else if alias.verb == Lifecycle.verbCancelRequest then
-                requestCancel (cancelRequestIdOf params) model
+                requestCancel (cancelTargetOf params) model
 
             else if alias.verb == Lifecycle.verbDismissSession then
                 ( model, Just SessionDismissed )
@@ -332,44 +335,58 @@ requestEmbed maybeIds model =
             ( model, Nothing )
 
 
-{-| A confirmed cancel: ask the parent to stop the named request. The card optimistically changes
-NOTHING — no row state, no tracker. Stopping is the publisher's decision to honor (§7.1), and the
-run's own state is what reports it; a locally invented "cancelling" badge would either need a display
-string of its own (the manifest owns those) or would lie when the publisher had already finished.
-The visible acknowledgement is the row's Cancel action going away, which follows from the host
-dropping the run's `cancellable` flag the moment it writes the channel.
+{-| A confirmed stop: ask the parent to stop what the pressed row named. The card optimistically
+changes NOTHING — no row state, no tracker. Stopping is the publisher's decision to honor (§7.1), and
+the run's own state is what reports it; a locally invented badge would either need a display string
+of its own (the manifest owns those) or would lie when the publisher had already finished. The
+acknowledgement the researcher sees is the host's, from the wire: the row's `"stopping"` state token,
+and the stop control withdrawing with it.
 
 The full target list a stopped batch had left to scan is dropped host-side, not here — the card does
 not own the batch.
 
 -}
-requestCancel : Maybe String -> Model -> ( Model, Maybe OutMsg )
-requestCancel maybeRequestId model =
-    case maybeRequestId of
-        Just requestId ->
-            ( model, Just (CancelRequested { requestId = requestId }) )
+requestCancel : Maybe { requestId : String, targetId : String } -> Model -> ( Model, Maybe OutMsg )
+requestCancel maybeTarget model =
+    case maybeTarget of
+        Just target ->
+            ( model, Just (CancelRequested target) )
 
         Nothing ->
             ( model, Nothing )
 
 
-{-| Resolve a cancel press's `requestId` param — the §4.1 id of the run to stop, which the host
-projected onto that row as `cancelRequestId`. An absent or empty id is `Nothing` (fail-closed): a
-cancel that names no request would ride the wire as a value the publisher cannot match, and a row
-with no stoppable run must not be able to arm the channel at all.
--}
-cancelRequestIdOf : Encode.Value -> Maybe String
-cancelRequestIdOf params =
-    Decode.decodeValue (Decode.field "requestId" Decode.string) params
-        |> Result.toMaybe
-        |> Maybe.andThen
-            (\requestId ->
-                if String.isEmpty requestId then
-                    Nothing
+{-| Resolve a stop press's params: `requestId` — the §4.1 id of the run to stop, projected onto the
+row as `cancelRequestId` — and `targetId`, the instance the press is about, projected as
+`cancelTargetId`. Each defaults to `""` when absent, so a manifest that emits only one of them still
+dispatches (the frozen v4 manifest emits only `requestId`).
 
-                else
-                    Just requestId
-            )
+`Nothing` only when NEITHER is present, which is fail-closed on the one thing that matters: a press
+that names nothing at all is a press the host could not attribute to any run or any row, so it must
+not reach the dispatcher. Beyond that the emptiness of each id is MEANINGFUL rather than invalid, and
+the host reads it as such — an empty `requestId` with a real `targetId` is exactly a queued target,
+which has no request on the wire yet and is stopped by leaving the queue rather than by writing the
+cancel channel. Only the host knows which of the two a press is, because only the host owns the batch.
+
+-}
+cancelTargetOf : Encode.Value -> Maybe { requestId : String, targetId : String }
+cancelTargetOf params =
+    let
+        stringParam key =
+            Decode.decodeValue (Decode.field key Decode.string) params
+                |> Result.withDefault ""
+
+        requestId =
+            stringParam "requestId"
+
+        targetId =
+            stringParam "targetId"
+    in
+    if String.isEmpty requestId && String.isEmpty targetId then
+        Nothing
+
+    else
+        Just { requestId = requestId, targetId = targetId }
 
 
 {-| Resolve the pressed history row's session ids from the renderer's already-resolved params.
@@ -603,6 +620,11 @@ projection zone config instances model =
         -- binds it to the row action's `disabled`, so the guard is visible instead of silent.
         , ( "requestBusy", Encode.bool config.requestBusy )
 
+        -- The same idea for the scan side: whether the host would swallow an `exoext.writeRequest`
+        -- press right now. A separate key because it is a separate guard on separate controls —
+        -- see `ViewConfig.scanBusy`.
+        , ( "scanBusy", Encode.bool config.scanBusy )
+
         -- Whether a result session is on screen right now, so the manifest can offer its close
         -- affordance only when there is something to close (an `exoext.dismissSession` press with
         -- no open session is a no-op, and a control that does nothing reads as broken).
@@ -829,55 +851,65 @@ findingsFromCounts counts =
         )
 
 
-{-| Project one scan-target row. Besides its display state, the row carries the two signals a Cancel
-action needs, both decided host-side from the live wire state:
+{-| Project one scan-target row. Besides its display state, the row carries the three signals a stop
+action needs, all decided host-side from the live wire state:
 
-  - `cancellable` — this row has a run that can still be stopped. The manifest binds the Cancel
-    control's presence / `disabled` to it rather than re-deriving the answer from `scanState`
-    strings, which is display-composed (`"scanning · 1:07"`) and would be guesswork.
-  - `cancelRequestId` — the §4.1 request id that a stop has to name, `""` on every other row so a
-    press there cannot arm the cancel channel (`cancelRequestIdOf` rejects an empty id).
+  - `cancellable` — this row can be stopped. The manifest binds the stop control's presence /
+    `disabled` to it rather than re-deriving the answer from `scanState` strings, which is
+    display-composed (`"scanning · 1:07"`) and would be guesswork.
+  - `cancelRequestId` — the §4.1 request id that a stop has to name, `""` on every row without a run
+    on the wire (`cancelTargetOf` treats an empty id as "no request", which is what routes a queued
+    row's press to the tail-removal path instead of the cancel channel).
+  - `cancelTargetId` — the instance the press is ABOUT. It exists because a target still sitting in
+    the batch tail has no request on the wire to name, and is therefore unnameable by
+    `cancelRequestId` alone: that is the whole reason a queued row could not be stopped at all.
+    `""` on a row that cannot be stopped, the same fail-closed idiom.
 
-The row's display state has three sources, and the precedence between them is a statement about
-time: the wire says what is happening NOW, the batch tail says what is about to happen, and the
-card's own `scanState` says what already happened.
+The row's display state has four sources, and the precedence between them is a statement about time:
+a pending stop refines what the wire says, the wire says what is happening NOW, the batch tail says
+what is about to happen, and the card's own `scanState` says what already happened.
 
-1.  **The live run wins** (`statusOverride`, which the host projects onto exactly the tracked
-    request's row). It is the only one of the three read from the wire this poll.
-2.  **Then the undrained tail** (`queuedTargets`): a target whose request has not been written yet
+1.  **A pending stop wins** (`stoppingTargetId`). It is not a competing state but a REFINEMENT of the
+    live one: the publisher is still running the run the wire describes, and has additionally been
+    asked to abandon it. It outranks the live state because that is the more specific fact, and
+    because leaving the live state on top is precisely the bug — the row kept reading
+    `scanning · 0:54` through a stop the user had already pressed, so the user pressed it again.
+2.  **Then the live run** (`statusOverride`, which the host projects onto exactly the tracked
+    request's row). It is the only one of these read from the wire this poll.
+3.  **Then the undrained tail** (`queuedTargets`): a target whose request has not been written yet
     is `queued`, whoever decided that — this session or the batch record a reload restored. This
     beats `scanState` deliberately: a target that is in the tail AND carries a terminal state from
     an earlier run is about to be scanned again, so `queued` is the truthful badge and its finished
     run is in the history panel either way.
-3.  **Then the card's durable state**, which is `settleScanState`'s record of runs this session
+4.  **Then the card's durable state**, which is `settleScanState`'s record of runs this session
     watched finish, defaulting to `idle`.
 
 -}
 instanceProjection : ViewConfig -> Model -> Instance -> Encode.Value
 instanceProjection config model instance =
     let
-        liveState =
-            config.statusOverride
-                |> Maybe.andThen
-                    (\override ->
-                        if override.targetId == instance.id then
-                            Just override.state
+        stopping =
+            config.stoppingTargetId == Just instance.id
 
-                        else
-                            Nothing
-                    )
+        -- This row is in the undrained batch tail: its request is decided but unwritten.
+        queuedInTail =
+            List.member instance.id config.queuedTargets
 
         scanState =
-            case liveState of
-                Just state ->
-                    state
+            if stopping then
+                "stopping"
 
-                Nothing ->
-                    if List.member instance.id config.queuedTargets then
-                        "queued"
+            else
+                case liveStateOf config instance of
+                    Just state ->
+                        state
 
-                    else
-                        localScanState model instance.id
+                    Nothing ->
+                        if queuedInTail then
+                            "queued"
+
+                        else
+                            localScanState model instance.id
 
         cancelRequestId =
             case config.cancellableRun of
@@ -890,15 +922,48 @@ instanceProjection config model instance =
 
                 Nothing ->
                     ""
+
+        -- Stoppable either because a live run on this row can still be abandoned, or because the row
+        -- is waiting its turn at the single §7.1 request slot and can simply be taken out of the
+        -- queue. A `stopping` row is neither: the host drops it from `cancellableRun` the moment the
+        -- stop is pending, and a tail member never has a run to stop in the first place.
+        cancellable =
+            cancelRequestId /= "" || queuedInTail
     in
     Encode.object
         [ ( "id", Encode.string instance.id )
         , ( "name", Encode.string instance.name )
         , ( "selected", Encode.bool (Set.member instance.id model.selection) )
         , ( "scanState", Encode.string scanState )
-        , ( "cancellable", Encode.bool (cancelRequestId /= "") )
+        , ( "cancellable", Encode.bool cancellable )
         , ( "cancelRequestId", Encode.string cancelRequestId )
+        , ( "cancelTargetId"
+          , Encode.string
+                (if cancellable then
+                    instance.id
+
+                 else
+                    ""
+                )
+          )
         ]
+
+
+{-| The live run's state as it applies to ONE row: the host projects `statusOverride` onto exactly
+the tracked request's target, so every other row reads `Nothing` and falls through to the rest of the
+precedence chain in [`instanceProjection`](#instanceProjection).
+-}
+liveStateOf : ViewConfig -> Instance -> Maybe String
+liveStateOf config instance =
+    config.statusOverride
+        |> Maybe.andThen
+            (\override ->
+                if override.targetId == instance.id then
+                    Just override.state
+
+                else
+                    Nothing
+            )
 
 
 localScanState : Model -> String -> String
@@ -1028,6 +1093,14 @@ type alias ViewConfig =
     -- instead of the press vanishing with no feedback.
     , requestBusy : Bool
 
+    -- whether the host would SWALLOW an `exoext.writeRequest` (scan) press right now — the OTHER
+    -- §7.1 guard (`ServerDetail.exoextScanBlocked`: a tracked run that has not settled, or a batch
+    -- still draining). Projected to `/scanBusy` so the Scan controls grey instead of the press
+    -- disappearing. Kept distinct from `requestBusy` above, which is the View guard: the two are
+    -- true at different moments, so one flag driving both controls would grey a working button and
+    -- leave a dead one live.
+    , scanBusy : Bool
+
     -- the ONE target row whose run can still be stopped, and the §4.1 request id a stop must name
     -- (`ServerDetail.exoextCancellableRun`). §7.1 admits one request per publishing VM, so there is
     -- at most one. Projected per row as `cancellable` / `cancelRequestId`; `Nothing` when no run is
@@ -1037,6 +1110,13 @@ type alias ViewConfig =
             { targetId : String
             , requestId : String
             }
+
+    -- the row whose stop has been asked for and not yet answered
+    -- (`ServerDetail.exoextStoppingTarget`, derived from the wire's cancel channel so it survives a
+    -- reload). Projected as that row's `scanState` token `"stopping"`, which the manifest turns into
+    -- a word; the host states only that the run is between the press and the publisher's answer.
+    -- `Nothing` when no stop is outstanding.
+    , stoppingTargetId : Maybe String
 
     -- whether a result session is currently ON SCREEN (findings and/or a mounted iframe), so the
     -- manifest can show its close affordance only when there is something to close. False once

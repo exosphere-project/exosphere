@@ -18,6 +18,7 @@ module Exoext.Transport exposing
     , indexObjectName
     , manifestCapBytes
     , readChunkedBody
+    , reqCancelFromMetadata
     , reqCancelKey
     , reqCancelMetadata
     , reqSlotMetadata
@@ -51,7 +52,9 @@ Wire layout (on the publishing extension VM's own metadata):
     `exoext.v1.run.target` / `.requestId` / `.batchId` / `.phase` / `.pct` — see
     [`RunStatus`](#RunStatus).
   - **Cancel channel (Exosphere → VM):** `exoext.v1.req.cancel` names the requestId the user
-    asked to stop — see [`reqCancelMetadata`](#reqCancelMetadata).
+    asked to stop — see [`reqCancelMetadata`](#reqCancelMetadata). It is also read back
+    ([`reqCancelFromMetadata`](#reqCancelFromMetadata)): the host wrote it, so the wire — not the
+    browser session — is where "a stop is pending for this run" durably lives.
 
 -}
 
@@ -180,6 +183,26 @@ no-op — so a caller with nothing to cancel cannot accidentally arm the channel
 reqCancelMetadata : String -> List OSTypes.MetadataItem
 reqCancelMetadata requestId =
     [ { key = reqCancelKey, value = requestId } ]
+
+
+{-| Read the cancel channel BACK off the wire: the `requestId` (§4.1) a stop was asked for, or
+`Nothing` when the channel names no request.
+
+The channel is written by the host and read by the publisher, so reading it back looks redundant —
+it is not. It is the only DURABLE record that a stop was asked for: the host's own memory of what it
+wrote is session-local and a reload throws it away, after which a run that is already on its way out
+reads as untouched and offers its stop again. The wire outlives the session, so the answer taken from
+here survives a reload (`ServerDetail.exoextRunControl`).
+
+"Names no request" is deliberately the same three ways [`identifierValue`](#identifierValue) reads
+every other id: absent (no stop was ever asked for), `""` (the cleared value
+[`reqSlotMetadata`](#reqSlotMetadata) writes when a new request supersedes the channel), and
+`"None"`. None of them can equal a real requestId, so none of them can make a live run look stopped.
+
+-}
+reqCancelFromMetadata : List OSTypes.MetadataItem -> Maybe String
+reqCancelFromMetadata metadata =
+    identifierValue reqCancelKey (toDict metadata)
 
 
 

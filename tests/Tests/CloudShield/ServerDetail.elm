@@ -1,4 +1,4 @@
-module Tests.CloudShield.ServerDetail exposing (cloudShieldBatchPersistenceSuite, cloudShieldBatchSuite, cloudShieldCancelSuite, cloudShieldDismissSuite, cloudShieldEmbedProjectionSuite, cloudShieldPendingEmbedSuite, cloudShieldReadDecisionSuite, cloudShieldRecoverySuite, cloudShieldScanBlockedSuite, cloudShieldScanTimerSuite)
+module Tests.CloudShield.ServerDetail exposing (cloudShieldBatchPersistenceSuite, cloudShieldBatchSuite, cloudShieldBusyProjectionSuite, cloudShieldCancelSuite, cloudShieldDismissSuite, cloudShieldEmbedProjectionSuite, cloudShieldPendingEmbedSuite, cloudShieldReadDecisionSuite, cloudShieldRecoverySuite, cloudShieldScanBlockedSuite, cloudShieldScanTimerSuite, cloudShieldStoppingSuite, cloudShieldTailStopSuite)
 
 import CloudShield.Card as Card
 import Dict
@@ -1398,6 +1398,94 @@ cloudShieldDismissSuite =
                 Expect.equal
                     ( (idle base).sessionOpen, (idle base).embedState )
                     ( (idle (dismissed base)).sessionOpen, (idle (dismissed base)).embedState )
+        , test "dismissing retires the in-flight request, so no row is left reading Opening" <|
+            \_ ->
+                -- Bug 5. The pending marker is cleared only by a matching wire result, so closing the
+                -- pane used to leave the row advertising an arrival nothing would then display.
+                let
+                    pending =
+                        modelPendingEmbed (Time.millisToPosix 0)
+
+                    rowState model =
+                        (ServerDetail.exoextEmbedProjection [] Nothing (Time.millisToPosix 1000) Nothing Nothing model).pendingResultId
+                in
+                Expect.equal ( Just "b1", Nothing, Nothing )
+                    ( rowState pending
+                    , rowState (ServerDetail.exoextDismissSession pending)
+                    , (ServerDetail.exoextDismissSession pending).exoextPendingEmbed
+                    )
+        , test "dismissing keeps the record of WHICH result the res slot holds" <|
+            \_ ->
+                -- `exoextEmbedResultId` outlives the request by design: it is what tells two §2.2
+                -- siblings apart. Clearing it would degrade the per-row states to the shared batchId.
+                let
+                    recording =
+                        modelRecording "exo-cs-req-100" "b1-run-2"
+                in
+                Expect.equal (Just { requestId = "exo-cs-req-100", resultId = "b1-run-2" })
+                    (ServerDetail.exoextDismissSession recording).exoextEmbedResultId
+        , test "dismissing with no request in flight only records the dismissal" <|
+            \_ ->
+                let
+                    dismissedBase =
+                        ServerDetail.exoextDismissSession (ServerDetail.init "self")
+                in
+                Expect.equal ( True, Nothing )
+                    ( dismissedBase.exoextSessionDismissed, dismissedBase.exoextPendingEmbed )
+        , test "a View after a dismissal still opens: the request re-arms both fields" <|
+            \_ ->
+                let
+                    ( reopened, _, _ ) =
+                        ServerDetail.update
+                            (ServerDetail.ExoextWriteEmbedRequest { resultId = "b1", batchId = "b1" } (Time.millisToPosix 3000))
+                            project
+                            (ServerDetail.exoextDismissSession (modelPendingEmbed (Time.millisToPosix 0)))
+                in
+                Expect.equal
+                    ( False, Just "b1", Just "exo-cs-req-3000" )
+                    ( reopened.exoextSessionDismissed
+                    , reopened.exoextPendingEmbed |> Maybe.map .subject
+                    , reopened.exoextPendingEmbed |> Maybe.map .requestId
+                    )
+        ]
+
+
+{-| The two §7.1 guards as the manifest sees them, through the whole host path: `exoextViewConfig`
+projected by `CloudShield.Card.projection`. This is the wiring test — that `/scanBusy` is genuinely
+`exoextScanBlocked` (the predicate that gates a SCAN press) and not the View guard beside it.
+-}
+cloudShieldBusyProjectionSuite : Test
+cloudShieldBusyProjectionSuite =
+    let
+        busyFlags metadata model =
+            Card.projection Time.utc
+                (ServerDetail.exoextViewConfig True (projectPublishing metadata) model (Time.millisToPosix 0) (serverPublishing metadata))
+                []
+                model.exoextCard
+                |> Decode.decodeValue
+                    (Decode.map2 Tuple.pair
+                        (Decode.field "scanBusy" Decode.bool)
+                        (Decode.field "requestBusy" Decode.bool)
+                    )
+                |> Result.mapError Decode.errorToString
+
+        draining =
+            writeRequestAt 1700 { subject = "i-1", batchId = Nothing } modelAfterStartScan
+    in
+    describe "ServerDetail /scanBusy (WP10 bug 4)"
+        [ test "a live run makes both guards busy" <|
+            \_ ->
+                Expect.equal (Ok ( True, True )) (busyFlags (runSlot 1700 "running") draining)
+        , test "between two siblings only the SCAN guard is busy, which is why it is its own flag" <|
+            \_ ->
+                -- The case that would be wrong if the manifest bound its Scan controls to
+                -- `requestBusy`: the tracked run reads terminal, so the View guard has lifted, but
+                -- the batch still has targets parked and a Scan press would strand them.
+                Expect.equal (Ok ( True, False )) (busyFlags (runSlot 1700 "done") draining)
+        , test "an idle card is busy on neither" <|
+            \_ ->
+                Expect.equal (Ok ( False, False ))
+                    (busyFlags (runSlot 1700 "done") (ServerDetail.init "self"))
         ]
 
 
@@ -1462,4 +1550,245 @@ cloudShieldPendingEmbedSuite =
                         (embedResultMetadata (okEmbedBody expiresAtIso))
                         pending
                     )
+        ]
+
+
+{-| The §7.1 cancel channel as the VM would see it after this host wrote a stop for `requestId`.
+-}
+cancelSlot : String -> List OSTypes.MetadataItem
+cancelSlot requestId =
+    [ { key = "exoext.v1.req.cancel", value = requestId } ]
+
+
+cloudShieldStoppingSuite : Test
+cloudShieldStoppingSuite =
+    let
+        -- The three-target batch of `cloudShieldCancelSuite`, mid-drain on target 1.
+        draining =
+            writeRequestAt 1700 { subject = "i-1", batchId = Nothing } modelAfterStartScan
+
+        runningRow =
+            Just { targetId = "i-1", state = "running" }
+
+        -- A page that has just reloaded: no tracker, no batch, no durable row state. Everything the
+        -- reader knows about the run has to come off the wire.
+        afterReload =
+            ServerDetail.init "self"
+
+        liveRun =
+            runSlotFor 1700 "running" "i-1"
+    in
+    describe "ServerDetail stopping (the wire-derived state, WP10 bugs 2+3)"
+        [ test "a cancel on the wire makes the run it names stopping" <|
+            \_ ->
+                Expect.equal (Just "i-1")
+                    (ServerDetail.exoextStoppingTarget (liveRun ++ cancelSlot "exo-cs-req-1700") runningRow draining)
+        , test "a stopping run survives a reload: no session state, and the wire still says so" <|
+            \_ ->
+                -- The whole of bug 3. Every session-local record is gone, and the answer is
+                -- unchanged, because the host wrote the channel it is now reading.
+                Expect.equal ( Just "i-1", Nothing )
+                    ( ServerDetail.exoextStoppingTarget (liveRun ++ cancelSlot "exo-cs-req-1700") Nothing afterReload
+                    , ServerDetail.exoextCancellableRun (liveRun ++ cancelSlot "exo-cs-req-1700") Nothing afterReload
+                    )
+        , test "the same reload with no cancel on the wire reads as a plain live run" <|
+            \_ ->
+                Expect.equal ( Nothing, Just { targetId = "i-1", requestId = "exo-cs-req-1700" } )
+                    ( ServerDetail.exoextStoppingTarget liveRun Nothing afterReload
+                    , ServerDetail.exoextCancellableRun liveRun Nothing afterReload
+                    )
+        , test "a stopping run is not cancellable: a second press could only be a no-op" <|
+            \_ ->
+                Expect.equal Nothing
+                    (ServerDetail.exoextCancellableRun (liveRun ++ cancelSlot "exo-cs-req-1700") runningRow draining)
+        , test "the press is acknowledged before the write lands, from this session's own record" <|
+            \_ ->
+                -- The gap the session-local record covers: the cancel write is an HTTP round-trip and
+                -- the wire says nothing until the NEXT poll. Without this the row would keep reading
+                -- `scanning` for seconds after a press that plainly landed.
+                Expect.equal ( Just "i-1", Nothing )
+                    (( ServerDetail.exoextStoppingTarget liveRun runningRow
+                     , ServerDetail.exoextCancellableRun liveRun runningRow
+                     )
+                        |> Tuple.mapBoth
+                            (\f -> f (ServerDetail.exoextCancelRequested "exo-cs-req-1700" draining))
+                            (\f -> f (ServerDetail.exoextCancelRequested "exo-cs-req-1700" draining))
+                    )
+        , test "a cancel naming a DIFFERENT request leaves this run alone" <|
+            \_ ->
+                Expect.equal ( Nothing, Just { targetId = "i-1", requestId = "exo-cs-req-1700" } )
+                    ( ServerDetail.exoextStoppingTarget (liveRun ++ cancelSlot "exo-cs-req-9999") runningRow draining
+                    , ServerDetail.exoextCancellableRun (liveRun ++ cancelSlot "exo-cs-req-9999") runningRow draining
+                    )
+        , test "the cleared channel names nothing, so a superseded stop cannot linger" <|
+            \_ ->
+                -- `reqSlotMetadata` clears the channel by writing `""`, which is how the NEXT
+                -- request retires a stop. An empty value must never match a real request id.
+                Expect.equal Nothing
+                    (ServerDetail.exoextStoppingTarget (runSlotFor 1700 "running" "i-1" ++ cancelSlot "") Nothing afterReload)
+        , test "a terminal run is never stopping, however the stop was recorded" <|
+            \_ ->
+                -- It has stopped, or it finished first. Either way its own terminal state is the
+                -- truthful badge and `stopping` would be a run that is still going.
+                Expect.equal []
+                    ([ "done", "error", "cancelled", "expired" ]
+                        |> List.filterMap
+                            (\state ->
+                                let
+                                    metadata =
+                                        runSlotFor 1700 state "i-1" ++ cancelSlot "exo-cs-req-1700"
+                                in
+                                ServerDetail.exoextStoppingTarget metadata
+                                    (Just { targetId = "i-1", state = state })
+                                    (ServerDetail.exoextCancelRequested "exo-cs-req-1700" draining)
+                            )
+                    )
+        , test "a state this host does not recognize is still stoppable-in-progress" <|
+            \_ ->
+                -- `cancellableRunStates` is about what a stop can be OFFERED for and names only
+                -- states this host knows; whether a stop is PENDING is a fact about the wire.
+                Expect.equal ( Just "i-1", Nothing )
+                    ( ServerDetail.exoextStoppingTarget (runSlotFor 1700 "snapshotting" "i-1" ++ cancelSlot "exo-cs-req-1700") Nothing afterReload
+                    , ServerDetail.exoextCancellableRun (runSlotFor 1700 "snapshotting" "i-1") Nothing afterReload
+                    )
+        , test "the NEXT request clears the channel, so a restarted run is stoppable again" <|
+            \_ ->
+                let
+                    restarted =
+                        ServerDetail.exoextCancelRequested "exo-cs-req-1700" draining
+                            |> writeRequestAt 2500 { subject = "i-1", batchId = Nothing }
+
+                    -- The wire as `reqSlotMetadata` leaves it: the new run, and a cleared channel.
+                    metadata =
+                        runSlotFor 2500 "running" "i-1" ++ cancelSlot ""
+                in
+                Expect.equal ( Nothing, Just { targetId = "i-1", requestId = "exo-cs-req-2500" } )
+                    ( ServerDetail.exoextStoppingTarget metadata (Just { targetId = "i-1", state = "running" }) restarted
+                    , ServerDetail.exoextCancellableRun metadata (Just { targetId = "i-1", state = "running" }) restarted
+                    )
+        , test "a run the host cannot name is neither stoppable nor stopping" <|
+            \_ ->
+                Expect.equal ( Nothing, Nothing )
+                    ( ServerDetail.exoextStoppingTarget (runSlot 1700 "running" ++ cancelSlot "exo-cs-req-1700") Nothing afterReload
+                    , ServerDetail.exoextRunControl (runSlot 1700 "running") Nothing afterReload
+                    )
+        ]
+
+
+cloudShieldTailStopSuite : Test
+cloudShieldTailStopSuite =
+    let
+        -- Target 1's request is on the wire; targets 2 and 3 are parked at their optimistic badges.
+        draining =
+            writeRequestAt 1700 { subject = "i-1", batchId = Nothing } modelAfterStartScan
+
+        stop req model =
+            let
+                ( updated, _, _ ) =
+                    ServerDetail.exoextStopRequested project req model
+            in
+            updated
+
+        -- What a reviewer would read off the batch and the rows after a stop.
+        tailAndRows model =
+            ( model.exoextBatch |> Maybe.map .remaining
+            , [ "i-1", "i-2", "i-3" ] |> List.map (\id -> Dict.get id model.exoextCard.scanState)
+            )
+    in
+    describe "ServerDetail stopping a QUEUED target (WP10 bug 1)"
+        [ test "a queued target leaves the tail and drops its badge, and nothing else moves" <|
+            \_ ->
+                let
+                    stopped =
+                        stop { requestId = "", targetId = "i-2" } draining
+                in
+                Expect.equal
+                    ( ( Just [ "i-3" ], [ Just "queued", Nothing, Just "queued" ] )
+                    , ( Nothing, draining.exoextCard.pending )
+                    )
+                    ( tailAndRows stopped
+                    , ( stopped.exoextCancelRequestId, stopped.exoextCard.pending )
+                    )
+        , test "the live run is untouched: still tracked, still stoppable, no cancel written" <|
+            \_ ->
+                -- The property that matters most here. The cancel channel names ONE request and the
+                -- only request on the wire is the live run's, so writing one for a queued row would
+                -- kill a different target's scan.
+                let
+                    stopped =
+                        stop { requestId = "", targetId = "i-2" } draining
+
+                    metadata =
+                        runSlotFor 1700 "running" "i-1"
+                in
+                Expect.equal
+                    ( Just { targetId = "i-1", requestId = "exo-cs-req-1700" }, Nothing )
+                    ( ServerDetail.exoextCancellableRun metadata (Just { targetId = "i-1", state = "running" }) stopped
+                    , ServerDetail.exoextStoppingTarget metadata (Just { targetId = "i-1", state = "running" }) stopped
+                    )
+        , test "removing the last tail member leaves the batch as a drained one does" <|
+            \_ ->
+                let
+                    emptied =
+                        draining
+                            |> stop { requestId = "", targetId = "i-2" }
+                            |> stop { requestId = "", targetId = "i-3" }
+                in
+                Expect.equal ( Nothing, [ Just "queued", Nothing, Nothing ] )
+                    (tailAndRows emptied)
+        , test "a batch emptied by stops no longer blocks a fresh scan, exactly like a drained one" <|
+            \_ ->
+                -- The observable consequence of "same state as a drained batch": `exoextScanBlocked`
+                -- keys on the tail, so a batch left behind as an empty record would wedge Scan.
+                let
+                    emptied =
+                        draining
+                            |> stop { requestId = "", targetId = "i-2" }
+                            |> stop { requestId = "", targetId = "i-3" }
+                in
+                Expect.equal False
+                    (ServerDetail.exoextScanBlocked (projectPublishing (runSlot 1700 "done")) emptied)
+        , test "a decided-but-unwritten continuation keeps its §7.1 guard when the tail empties" <|
+            \_ ->
+                -- `awaitingWrite` covers the window between deciding on a subject and issuing its
+                -- write. Dropping the record there would open exactly the window it exists to close.
+                let
+                    emptied =
+                        { draining | exoextBatch = Just { batchId = Nothing, remaining = [ "i-3" ], awaitingWrite = True } }
+                            |> stop { requestId = "", targetId = "i-3" }
+                in
+                Expect.equal
+                    ( Just { batchId = Nothing, remaining = [], awaitingWrite = True }, True )
+                    ( emptied.exoextBatch
+                    , ServerDetail.exoextScanBlocked (projectPublishing (runSlot 1700 "done")) emptied
+                    )
+        , test "a target the tail is not holding changes nothing at all" <|
+            \_ ->
+                let
+                    unchanged =
+                        stop { requestId = "", targetId = "i-9" } draining
+                in
+                Expect.equal ( draining.exoextBatch, draining.exoextCard.scanState )
+                    ( unchanged.exoextBatch, unchanged.exoextCard.scanState )
+        , test "a named request still takes the wire path: cancel recorded, whole batch ended" <|
+            \_ ->
+                -- The other branch, unchanged by WP10: stopping a live run stops the batch with it.
+                let
+                    stopped =
+                        stop { requestId = "exo-cs-req-1700", targetId = "i-1" } draining
+                in
+                Expect.equal
+                    ( Just "exo-cs-req-1700", Nothing, [ Just "queued", Nothing, Nothing ] )
+                    ( stopped.exoextCancelRequestId
+                    , stopped.exoextBatch
+                    , [ "i-1", "i-2", "i-3" ] |> List.map (\id -> Dict.get id stopped.exoextCard.scanState)
+                    )
+        , test "exoextDropFromTail with no batch at all is a no-op" <|
+            \_ ->
+                let
+                    dropped =
+                        ServerDetail.exoextDropFromTail "i-2" (ServerDetail.init "self")
+                in
+                Expect.equal ( Nothing, Dict.empty )
+                    ( dropped.exoextBatch, dropped.exoextCard.scanState )
         ]

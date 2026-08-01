@@ -1,4 +1,4 @@
-module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, adoptRestoredExoextBatch, adoptStoredExoextBatch, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextBatchSharedMsg, exoextCancelRequested, exoextCancellableRun, exoextEmbedProjection, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextRequestsPending, exoextScanBlocked, exoextScanRequestPending, exoextScanTimer, exoextStatusOverride, exoextViewConfig, init, recoverExoextRun, update, view)
+module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, adoptRestoredExoextBatch, adoptStoredExoextBatch, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextBatchSharedMsg, exoextCancelRequested, exoextCancellableRun, exoextDismissSession, exoextDropFromTail, exoextEmbedProjection, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextRequestsPending, exoextRunControl, exoextScanBlocked, exoextScanRequestPending, exoextScanTimer, exoextStatusOverride, exoextStopRequested, exoextStoppingTarget, exoextViewConfig, init, recoverExoextRun, update, view)
 
 import CloudShield.Card
 import DateFormat.Relative
@@ -371,21 +371,11 @@ update msg project model =
                         ( baseModel, Task.perform (ExoextWriteEmbedRequest req) Time.now, SharedMsg.NoOp )
 
                 Just (CloudShield.Card.CancelRequested req) ->
-                    let
-                        cancelled =
-                            exoextCancelRequested req.requestId baseModel
-                    in
-                    ( cancelled
-                    , writeCancelRequestCmd project model req.requestId
-                    , exoextBatchSharedMsg project cancelled
-                    )
+                    exoextStopRequested project req baseModel
 
                 Just CloudShield.Card.SessionDismissed ->
                     -- Host-local, and deliberately so: no Cmd, no SharedMsg, nothing written.
-                    ( { baseModel | exoextSessionDismissed = True }
-                    , Cmd.none
-                    , SharedMsg.NoOp
-                    )
+                    ( exoextDismissSession baseModel, Cmd.none, SharedMsg.NoOp )
 
                 Just CloudShield.Card.ApprovalGranted ->
                     -- Stamp a genuine wall-clock `approvedAt`, same idiom as a scan request:
@@ -1462,10 +1452,21 @@ exoextViewConfig approved project model currentTime server =
     -- state — the button is greyed exactly when (and only when) a press would do nothing.
     , requestBusy = exoextGetEmbedBlocked project model
 
+    -- The other §7.1 guard, and deliberately a SEPARATE signal: `requestBusy` protects a scan from a
+    -- View press, this one is when a Scan press would itself be swallowed (`exoextScanBlocked` — a
+    -- run still going, or a batch still draining). The two are true at overlapping but different
+    -- times, and binding one control to the other's guard would grey a button that works and leave
+    -- one that does not.
+    , scanBusy = exoextScanBlocked project model
+
     -- Which row can be stopped, and the request id a stop must name. Derived from the RAW
     -- `statusOverride`, never the display-composed one: the decision is about the run's real state,
     -- not about the string currently on its badge.
     , cancellableRun = exoextCancellableRun metadata statusOverride model
+
+    -- The row whose stop has been asked for but not yet answered, projected as a state token (the
+    -- manifest owns the word). Same raw-`statusOverride` discipline and the same reason.
+    , stoppingTargetId = exoextStoppingTarget metadata statusOverride model
     , sessionOpen = embedProjection.sessionOpen
     , allowedIframeOrigins = allowedIframeOrigins
     , embedUrl = embedUrl
@@ -1516,21 +1517,93 @@ cancellableRunStates =
     [ "queued", "running", "scanning" ]
 
 
-{-| The one target row whose run can be stopped, and the §4.1 request id the stop must name.
+{-| The run the §7.1 status slot is reporting, resolved to everything the stop affordances need:
+WHICH row it is on, what the publisher calls it, what state it is in, and whether a stop is already
+pending for it. One resolution, three consumers (`exoextCancellableRun`, `exoextStoppingTarget`, and
+the `stopping`/`cancellable` row projection through them), so they can never disagree about which run
+is on screen.
 
-Both halves have to resolve or there is nothing to offer — a Cancel control that cannot name its
-request would write a value the publisher can never match. Each is taken from the wire first and from
-the host's own record second:
+Identity has to resolve on both halves or there is nothing to offer — a stop control that cannot name
+its request would write a value the publisher can never match. Each half is taken from the wire first
+and from the host's own record second:
 
   - the **target** comes from `run.target` (§4.3), else from the tracked request's subject when the
     run slot correlates to it. The wire is preferred because it is also right after a reload.
   - the **request id** comes from `run.requestId`, else from the id this host minted for that seq.
-    The fallback keeps Cancel working against a publisher that reports no request id, since the
+    The fallback keeps a stop working against a publisher that reports no request id, since the
     minting is deterministic in the seq (see `exoextRequestId`).
 
-`Nothing` once this host has written a cancel for that request: the run is on its way out, and
-withdrawing the control is the acknowledgement that the press landed (the alternative would be a
-host-owned "cancelling" display string, and the manifest owns the strings).
+`stopping` is the WP10 fix for "the stop did nothing visible". It is armed by either of two sources,
+and both are needed:
+
+1.  **The wire** (`Exoext.Lifecycle.runStopping`) — the cancel channel on the publishing VM's own
+    metadata names this run. This is the durable half: the host wrote that channel, so it is still
+    there after a reload, which is precisely the case the session-local record cannot cover.
+2.  **This session's own record** (`exoextCancelRequestId`) — set the instant the press is dispatched.
+    This is the immediate half: the wire write is an HTTP round-trip and only becomes visible on the
+    NEXT server poll, so between the press and that poll the wire still says nothing at all. Without
+    this the row would keep reading `scanning` for seconds after a press that plainly landed, which
+    is the bug in miniature.
+
+Both are gated on the run being non-terminal, which is what retires the state: a `done`/`cancelled`
+run is not stopping, it has stopped, and its own terminal state is the truthful badge.
+
+-}
+exoextRunControl :
+    List OSTypes.MetadataItem
+    -> Maybe { targetId : String, state : String }
+    -> Model
+    -> Maybe { targetId : String, requestId : String, state : String, stopping : Bool }
+exoextRunControl metadata statusOverride model =
+    Exoext.Transport.runStatusFromMetadata metadata
+        |> Maybe.andThen
+            (\status ->
+                let
+                    -- The tracked request, only when the run slot is reporting THAT run.
+                    correlated =
+                        model.exoextCard.pending
+                            |> Maybe.andThen
+                                (\pending ->
+                                    if pending.seq == status.seq then
+                                        Just pending
+
+                                    else
+                                        Nothing
+                                )
+
+                    targetId =
+                        Maybe.Extra.or status.target (statusOverride |> Maybe.map .targetId)
+
+                    requestId =
+                        Maybe.Extra.or status.requestId
+                            (correlated |> Maybe.map (\_ -> exoextRequestId status.seq))
+                in
+                Maybe.map2
+                    (\target request ->
+                        { targetId = target
+                        , requestId = request
+                        , state = status.state
+                        , stopping =
+                            Exoext.Lifecycle.runStopping { requestId = request, state = status.state } metadata
+                                || ((model.exoextCancelRequestId == Just request)
+                                        && not (Exoext.Lifecycle.isTerminalRunState status.state)
+                                   )
+                        }
+                    )
+                    targetId
+                    requestId
+            )
+
+
+{-| The one target row whose run can be stopped, and the §4.1 request id the stop must name
+(`exoextRunControl` resolves both).
+
+`Nothing` in two cases. On a terminal / unrecognized run state, because a stop would be a lie and
+there is nothing on the wire for the publisher to act on. And on a run that is already `stopping`:
+a second press names the same request the channel already carries, so it can only be a no-op, and the
+row says so with its `stopping` state rather than with a control that does nothing. That the control
+also withdraws is now the SECOND acknowledgement of a press, no longer the only one — which is what
+let the state token replace the host-owned "cancelling" display string this comment used to rule out.
 
 -}
 exoextCancellableRun :
@@ -1539,43 +1612,41 @@ exoextCancellableRun :
     -> Model
     -> Maybe { targetId : String, requestId : String }
 exoextCancellableRun metadata statusOverride model =
-    Exoext.Transport.runStatusFromMetadata metadata
+    exoextRunControl metadata statusOverride model
         |> Maybe.andThen
-            (\status ->
-                if not (List.member status.state cancellableRunStates) then
-                    Nothing
+            (\run ->
+                if List.member run.state cancellableRunStates && not run.stopping then
+                    Just { targetId = run.targetId, requestId = run.requestId }
 
                 else
-                    let
-                        -- The tracked request, only when the run slot is reporting THAT run.
-                        correlated =
-                            model.exoextCard.pending
-                                |> Maybe.andThen
-                                    (\pending ->
-                                        if pending.seq == status.seq then
-                                            Just pending
+                    Nothing
+            )
 
-                                        else
-                                            Nothing
-                                    )
 
-                        targetId =
-                            Maybe.Extra.or status.target (statusOverride |> Maybe.map .targetId)
+{-| The row whose run is stopping, projected as `ViewConfig.stoppingTargetId` and from there as that
+row's `"stopping"` state token. The host projects the TOKEN and nothing else: the manifest owns the
+word the researcher reads, exactly as it owns `queued` / `scanning` / `done`.
 
-                        requestId =
-                            Maybe.Extra.or status.requestId
-                                (correlated |> Maybe.map (\_ -> exoextRequestId status.seq))
-                    in
-                    case ( targetId, requestId ) of
-                        ( Just target, Just request ) ->
-                            if model.exoextCancelRequestId == Just request then
-                                Nothing
+Deliberately NOT filtered by `cancellableRunStates`. That list is about what a stop can still
+usefully be OFFERED for, and it names only the states this host recognizes; whether a stop is
+PENDING is a fact about the wire, and a publisher reporting some state of its own that this host has
+never heard of is still a publisher that has been asked to stop.
 
-                            else
-                                Just { targetId = target, requestId = request }
+-}
+exoextStoppingTarget :
+    List OSTypes.MetadataItem
+    -> Maybe { targetId : String, state : String }
+    -> Model
+    -> Maybe String
+exoextStoppingTarget metadata statusOverride model =
+    exoextRunControl metadata statusOverride model
+        |> Maybe.andThen
+            (\run ->
+                if run.stopping then
+                    Just run.targetId
 
-                        _ ->
-                            Nothing
+                else
+                    Nothing
             )
 
 
@@ -2117,6 +2188,122 @@ writeEmbedRequestCmd project model req now =
     in
     Rest.Nova.requestSetServerMetadataItems project model.serverUuid items
         |> Cmd.map SharedMsg
+
+
+{-| What closing the results pane does to the host's own state. Nothing is written to the wire, no
+request is cancelled and no archived result is touched — a session is a view, and the same one can be
+re-opened.
+
+Two fields, and the second is the WP10 fix. Closing the pane also has to retire the request that was
+going to FILL it: `exoextPendingEmbed` is what the history row reads as "Opening…", and only a
+matching wire result clears it. A researcher who closes the pane while one is in flight has said they
+no longer want what it would show, so leaving the marker set left the row advertising an arrival that
+nothing would then display — indefinitely, since the pane it would have opened is closed. Dropping it
+also lets the fast poll settle (`exoextRequestsPending`).
+
+`exoextEmbedResultId` deliberately does NOT go with it. It is not the in-flight marker but the record
+of WHICH archived result a res-slot embed result names, and it outlives the request by design (see
+the field's own comment). A dismissal leaves that result standing on the wire, along with the per-row
+expired / errored states derived from it; clearing the record would degrade those to the §2.2
+`batchId`, which siblings share, and flag every sibling row of the batch at once.
+
+-}
+exoextDismissSession : Model -> Model
+exoextDismissSession model =
+    { model
+        | exoextSessionDismissed = True
+        , exoextPendingEmbed = Nothing
+    }
+
+
+{-| Route a confirmed stop. There are two ways to stop a target and the host is the only party that
+can tell them apart, because only the host owns the batch:
+
+  - **A run on the wire** (`requestId` non-empty) — write the cancel channel naming it, exactly as
+    before. Only the publisher can abandon work it has already started.
+  - **A target still in the undrained tail** (empty `requestId`, and a `targetId` the batch is still
+    holding) — nothing has been written for it and nothing ever will be, so the stop is simply to
+    take it out of the queue. Host-local by construction: no wire write, no cancel channel, and
+    above all nothing that touches the run currently in flight. Writing a cancel here would be
+    actively wrong — the channel names ONE request and the only request on the wire is the live
+    run's, so a queued row's stop would kill a different target's scan.
+
+Anything else is a no-op: an empty `requestId` with a `targetId` the batch is not holding names
+nothing this host can act on (a stale row from before the tail drained, say), and the correct answer
+to a press the host cannot attribute is to do nothing at all.
+
+-}
+exoextStopRequested : Project -> { requestId : String, targetId : String } -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+exoextStopRequested project req model =
+    if not (String.isEmpty req.requestId) then
+        let
+            cancelled =
+                exoextCancelRequested req.requestId model
+        in
+        ( cancelled
+        , writeCancelRequestCmd project model req.requestId
+        , exoextBatchSharedMsg project cancelled
+        )
+
+    else if exoextTailHolds req.targetId model then
+        let
+            dropped =
+                exoextDropFromTail req.targetId model
+        in
+        ( dropped, Cmd.none, exoextBatchSharedMsg project dropped )
+
+    else
+        ( model, Cmd.none, SharedMsg.NoOp )
+
+
+{-| Whether the undrained batch tail is still holding this target, i.e. whether removing it is a
+thing this host can actually do.
+-}
+exoextTailHolds : String -> Model -> Bool
+exoextTailHolds targetId model =
+    model.exoextBatch
+        |> Maybe.map (\batch -> List.member targetId batch.remaining)
+        |> Maybe.withDefault False
+
+
+{-| Take one target out of the undrained tail, the whole of a queued row's stop.
+
+Two things, and the second is what makes the row look stopped: the target leaves `remaining` so no
+request is ever written for it, and its optimistic `queued` badge is dropped (`abandonScanState`)
+so it reverts to the absent-means-idle default that also makes its Scan action pressable again. The
+same pair `exoextCancelRequested` applies to a whole abandoned tail, applied to one member.
+
+Removing the LAST member leaves the batch exactly as a drained one: `exoextBatch` cleared, which is
+what `advanceExoextBatch` does when it runs out of subjects, and what `exoextBatchSharedMsg` then
+turns into a forgotten stored record. The one exception is a decided-but-unwritten continuation
+(`awaitingWrite`): that flag is the §7.1 pre-write guard, and dropping the record while a write is
+on its way would open exactly the window it exists to close, so the emptied record is kept until the
+write lands and the normal drain retires it.
+
+Nothing here touches the live run, its tracker, or the cancel channel. A researcher removing a queued
+target has said nothing about the scan that is actually running.
+
+-}
+exoextDropFromTail : String -> Model -> Model
+exoextDropFromTail targetId model =
+    case model.exoextBatch of
+        Just batch ->
+            let
+                remaining =
+                    List.filter (\subject -> subject /= targetId) batch.remaining
+            in
+            { model
+                | exoextBatch =
+                    if List.isEmpty remaining && not batch.awaitingWrite then
+                        Nothing
+
+                    else
+                        Just { batch | remaining = remaining }
+                , exoextCard = CloudShield.Card.abandonScanState [ targetId ] model.exoextCard
+            }
+
+        Nothing ->
+            model
 
 
 {-| What a confirmed stop does to the host's own state, alongside writing the cancel channel.

@@ -12,6 +12,11 @@ import Test exposing (Test, describe, test)
 import Time
 
 
+meta : List ( String, String ) -> List { key : String, value : String }
+meta pairs =
+    List.map (\( k, v ) -> { key = k, value = v }) pairs
+
+
 timeoutMillis : Int
 timeoutMillis =
     30 * 1000
@@ -340,6 +345,40 @@ suite =
                 \_ ->
                     Lifecycle.resolveVerb aliases "cloudshield.deleteEverything"
                         |> Expect.equal Nothing
+            ]
+        , describe "runStopping (a stop asked for and not yet answered)"
+            [ test "the cancel channel naming this run, on a non-terminal run, is stopping" <|
+                \_ ->
+                    Lifecycle.runStopping { requestId = "req-1", state = "running" }
+                        (meta [ ( "exoext.v1.req.cancel", "req-1" ) ])
+                        |> Expect.equal True
+            , test "a channel naming a different run is not this run stopping" <|
+                \_ ->
+                    Lifecycle.runStopping { requestId = "req-1", state = "running" }
+                        (meta [ ( "exoext.v1.req.cancel", "req-2" ) ])
+                        |> Expect.equal False
+            , test "an empty channel is not a stop, whatever the run is called" <|
+                \_ ->
+                    -- The cleared value a superseding request write leaves behind. Matching it
+                    -- against a run whose id the host could not resolve (also "") would invent one.
+                    Lifecycle.runStopping { requestId = "", state = "running" }
+                        (meta [ ( "exoext.v1.req.cancel", "" ) ])
+                        |> Expect.equal False
+            , test "no cancel channel at all is not stopping" <|
+                \_ ->
+                    Lifecycle.runStopping { requestId = "req-1", state = "running" } []
+                        |> Expect.equal False
+            , test "every terminal state is past stopping, cancelled included" <|
+                \_ ->
+                    -- `cancelled` is the one a reader might expect to be stopping: it is the state a
+                    -- stop LEADS to, and by the time it is on the wire the stop is answered.
+                    Lifecycle.terminalRunStates
+                        |> List.filter
+                            (\state ->
+                                Lifecycle.runStopping { requestId = "req-1", state = state }
+                                    (meta [ ( "exoext.v1.req.cancel", "req-1" ) ])
+                            )
+                        |> Expect.equal []
             ]
         ]
 

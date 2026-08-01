@@ -9,6 +9,7 @@ module Exoext.Lifecycle exposing
     , terminalRunStates
     , isTerminalRunState
     , correlatedRunState
+    , runStopping
     , requestStillPending
     , RunRecovery(..)
     , recoverRun
@@ -66,6 +67,7 @@ Two things live here that used to be duplicated in `Page.ServerDetail` and `Clou
 @docs terminalRunStates
 @docs isTerminalRunState
 @docs correlatedRunState
+@docs runStopping
 @docs requestStillPending
 @docs RunRecovery
 @docs recoverRun
@@ -313,6 +315,31 @@ correlatedRunState seq metadata =
                     Nothing
             )
         |> Maybe.withDefault "queued"
+
+
+{-| Whether a run is **stopping**: a stop has been asked for and the publisher has not answered it
+yet. Two conditions, and both are read off the §7.1 wire rather than off session state:
+
+1.  the cancel channel ([`Exoext.Transport.reqCancelFromMetadata`](Exoext-Transport#reqCancelFromMetadata))
+    names THIS run's `requestId` (§4.3 `run.requestId`, or the id the host minted for the run's seq);
+2.  the run has not reached a terminal state (§4.4). A terminal run is never stopping — it has
+    already stopped, or it finished before the stop arrived, and either way there is nothing left
+    in flight to report.
+
+This is a distinct state token, not a display string: the host projects `"stopping"` and the manifest
+owns the word. It exists because withdrawing the stop control was the ONLY acknowledgement a press
+got, which leaves the row reading its previous state (`scanning · 0:54`) for as long as the publisher
+takes to reach a phase boundary — long enough that researchers press stop again.
+
+Deriving it from the wire rather than from the press is what makes it survive a reload: the host
+wrote the channel, so the channel is the durable record of the press, and a reader that comes back
+mid-stop sees the same thing the reader that pressed does.
+
+-}
+runStopping : { requestId : String, state : String } -> List OSTypes.MetadataItem -> Bool
+runStopping run metadata =
+    (Exoext.Transport.reqCancelFromMetadata metadata == Just run.requestId)
+        && not (isTerminalRunState run.state)
 
 
 {-| Whether a tracked run-correlated request is still pending — present and not yet terminal.
