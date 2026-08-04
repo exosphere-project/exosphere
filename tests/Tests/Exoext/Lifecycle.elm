@@ -3,7 +3,8 @@ module Tests.Exoext.Lifecycle exposing (suite)
 {-| Focused coverage for the generic `Exoext.Lifecycle` request/response + session model: the
 `sessionState` derivation (opening / open / stale / failed / idle, with the expiry boundary,
 the 30s timeout, and Opening superseding a prior Open), session freshness, run-status
-correlation, the §7.1 batch pacing step, and the declarative verb alias table.
+correlation, run staleness (the safety valve on a run left non-terminal forever), the §7.1 batch
+pacing step, and the declarative verb alias table.
 -}
 
 import Exoext.Lifecycle as Lifecycle
@@ -20,6 +21,22 @@ meta pairs =
 timeoutMillis : Int
 timeoutMillis =
     30 * 1000
+
+
+{-| The client clock as the run-status fixtures see it. Every fixture run `seq` is a small number
+below it, so no fixture run is anywhere near `staleRunAfterMillis` old — staleness is exercised
+deliberately, in its own describe, and never falls out of another test by accident.
+-}
+pollTime : Time.Posix
+pollTime =
+    Time.millisToPosix 10000
+
+
+{-| The clock as it reads when a run written at wall-clock `seq` is `ageMillis` old.
+-}
+clockAfter : Int -> Int -> Time.Posix
+clockAfter seq ageMillis =
+    Time.millisToPosix (seq + ageMillis)
 
 
 {-| A session request pending for `subject` "b1", written at wall-clock `sinceMillis`.
@@ -186,6 +203,55 @@ suite =
                     Lifecycle.requestStillPending Nothing (runSlot 7 "running")
                         |> Expect.equal False
             ]
+        , describe "runStale (the safety valve on a run left non-terminal forever)"
+            [ test "the threshold is six hours" <|
+                \_ ->
+                    -- Pinned deliberately. Every other case here is stated relative to the constant
+                    -- so a retune does not make them vacuous; this one asserts the number the doc
+                    -- comment argues for, so a retune has to be a decision rather than a typo.
+                    Lifecycle.staleRunAfterMillis
+                        |> Expect.equal (6 * 60 * 60 * 1000)
+            , test "a run that started moments ago is not stale, whatever non-terminal state it is in" <|
+                \_ ->
+                    -- The regression guard that matters most: a healthy run must never be called
+                    -- dead, because the host's answer to a dead run is to stop displaying it and
+                    -- let the user supersede it.
+                    [ "queued", "running", "scanning" ]
+                        |> List.map (\state -> Lifecycle.runStale (clockAfter 1700 1000) { seq = 1700, state = state })
+                        |> Expect.equal [ False, False, False ]
+            , test "a healthy long scan, well past the reference 45-minute deadline, is still not stale" <|
+                \_ ->
+                    -- The threshold has to clear a publisher tuned far more generously than the
+                    -- §4.4 reference, since the host does not know any publisher's timeouts.
+                    Lifecycle.runStale (clockAfter 1700 (90 * 60 * 1000)) { seq = 1700, state = "running" }
+                        |> Expect.equal False
+            , test "a non-terminal run older than the threshold is stale" <|
+                \_ ->
+                    Lifecycle.runStale (clockAfter 1700 (Lifecycle.staleRunAfterMillis + 60 * 1000))
+                        { seq = 1700, state = "running" }
+                        |> Expect.equal True
+            , test "the boundary is exclusive in both directions: exactly at the threshold is live, one ms past is stale" <|
+                \_ ->
+                    ( Lifecycle.runStale (clockAfter 1700 Lifecycle.staleRunAfterMillis) { seq = 1700, state = "running" }
+                    , Lifecycle.runStale (clockAfter 1700 (Lifecycle.staleRunAfterMillis + 1)) { seq = 1700, state = "running" }
+                    )
+                        |> Expect.equal ( False, True )
+            , test "a terminal run is never stale, however old — it is a settled record, not a live run" <|
+                \_ ->
+                    -- Ageing terminal runs out would break the one place an old terminal run is
+                    -- load-bearing: an undrained batch tail adopting it in `recoverRun`.
+                    [ "done", "error", "cancelled", "expired" ]
+                        |> List.map
+                            (\state ->
+                                Lifecycle.runStale (clockAfter 1700 (100 * Lifecycle.staleRunAfterMillis))
+                                    { seq = 1700, state = state }
+                            )
+                        |> Expect.equal [ False, False, False, False ]
+            , test "a run whose seq is ahead of the client clock is not stale — clock skew must not condemn a run" <|
+                \_ ->
+                    Lifecycle.runStale (Time.millisToPosix 0) { seq = 1700, state = "running" }
+                        |> Expect.equal False
+            ]
         , describe "advanceBatch"
             [ test "no tracked request waits" <|
                 \_ ->
@@ -241,7 +307,7 @@ suite =
                     -- `since` is the run's seq, i.e. wall-clock millis of the write, so the elapsed
                     -- clock survives a reload instead of restarting from it.
                     Lifecycle.recoverRun
-                        { tracked = Nothing, tailPending = False, metadata = runSlotFor 1700 "running" }
+                        { now = pollTime, tracked = Nothing, tailPending = False, metadata = runSlotFor 1700 "running" }
                         |> Expect.equal
                             (Lifecycle.RecoverPending
                                 { seq = 1700
@@ -257,7 +323,7 @@ suite =
                         |> List.map
                             (\state ->
                                 Lifecycle.recoverRun
-                                    { tracked = Nothing, tailPending = False, metadata = runSlotFor 1700 state }
+                                    { now = pollTime, tracked = Nothing, tailPending = False, metadata = runSlotFor 1700 state }
                                     /= Lifecycle.NoRecovery
                             )
                         |> Expect.equal [ True, True, True ]
@@ -266,21 +332,21 @@ suite =
                     -- The precedence rule. The tracker is the reader's own newer truth (a request
                     -- just written is not echoed yet); adopting the wire here would rewind it.
                     Lifecycle.recoverRun
-                        { tracked = Just (pendingWithSeq 9000), tailPending = False, metadata = runSlotFor 1700 "running" }
+                        { now = pollTime, tracked = Just (pendingWithSeq 9000), tailPending = False, metadata = runSlotFor 1700 "running" }
                         |> Expect.equal Lifecycle.NoRecovery
             , test "a tracked request whose own run already settled is still not overwritten" <|
                 \_ ->
                     Lifecycle.recoverRun
-                        { tracked = Just (pendingWithSeq 1700), tailPending = False, metadata = runSlotFor 1700 "done" }
+                        { now = pollTime, tracked = Just (pendingWithSeq 1700), tailPending = False, metadata = runSlotFor 1700 "done" }
                         |> Expect.equal Lifecycle.NoRecovery
             , test "no run slot at all recovers nothing" <|
                 \_ ->
-                    Lifecycle.recoverRun { tracked = Nothing, tailPending = False, metadata = [] }
+                    Lifecycle.recoverRun { now = pollTime, tracked = Nothing, tailPending = False, metadata = [] }
                         |> Expect.equal Lifecycle.NoRecovery
             , test "a run with no target recovers nothing — an unattributable run is not adoptable" <|
                 \_ ->
                     Lifecycle.recoverRun
-                        { tracked = Nothing, tailPending = False, metadata = runSlot 1700 "running" }
+                        { now = pollTime, tracked = Nothing, tailPending = False, metadata = runSlot 1700 "running" }
                         |> Expect.equal Lifecycle.NoRecovery
             , test "a finished run with nothing waiting on it recovers NOTHING" <|
                 \_ ->
@@ -292,7 +358,7 @@ suite =
                         |> List.map
                             (\state ->
                                 Lifecycle.recoverRun
-                                    { tracked = Nothing, tailPending = False, metadata = runSlotFor 1700 state }
+                                    { now = pollTime, tracked = Nothing, tailPending = False, metadata = runSlotFor 1700 state }
                             )
                         |> Expect.equal
                             ([ "done", "error", "cancelled", "expired" ]
@@ -301,7 +367,61 @@ suite =
             , test "a finished run WITH an undrained tail is tracked, so the batch can resume" <|
                 \_ ->
                     Lifecycle.recoverRun
-                        { tracked = Nothing, tailPending = True, metadata = runSlotFor 1700 "done" }
+                        { now = pollTime, tracked = Nothing, tailPending = True, metadata = runSlotFor 1700 "done" }
+                        |> Expect.equal
+                            (Lifecycle.RecoverPending
+                                { seq = 1700
+                                , requestId = "exo-cs-req-1700"
+                                , kind = "scan"
+                                , subject = "i-9"
+                                , since = Time.millisToPosix 1700
+                                }
+                            )
+            , test "a STALE live run is not adopted — an abandoned run must not resurrect as a tracked request" <|
+                \_ ->
+                    -- The reload half of the safety valve. A publisher restarted mid-run leaves
+                    -- `run.state` non-terminal forever; adopting it would re-arm the block on every
+                    -- page load, which is the trap this exists to open.
+                    [ "queued", "running", "scanning" ]
+                        |> List.map
+                            (\state ->
+                                Lifecycle.recoverRun
+                                    { now = clockAfter 1700 (Lifecycle.staleRunAfterMillis + 1)
+                                    , tracked = Nothing
+                                    , tailPending = False
+                                    , metadata = runSlotFor 1700 state
+                                    }
+                            )
+                        |> Expect.equal [ Lifecycle.NoRecovery, Lifecycle.NoRecovery, Lifecycle.NoRecovery ]
+            , test "recovery's staleness boundary matches runStale: at the threshold it still adopts, one ms past it does not" <|
+                \_ ->
+                    ( Lifecycle.recoverRun
+                        { now = clockAfter 1700 Lifecycle.staleRunAfterMillis
+                        , tracked = Nothing
+                        , tailPending = False
+                        , metadata = runSlotFor 1700 "running"
+                        }
+                        /= Lifecycle.NoRecovery
+                    , Lifecycle.recoverRun
+                        { now = clockAfter 1700 (Lifecycle.staleRunAfterMillis + 1)
+                        , tracked = Nothing
+                        , tailPending = False
+                        , metadata = runSlotFor 1700 "running"
+                        }
+                        /= Lifecycle.NoRecovery
+                    )
+                        |> Expect.equal ( True, False )
+            , test "an ancient TERMINAL run with an undrained tail is still adopted — staleness must not strand a batch" <|
+                \_ ->
+                    -- Adopting a terminal run is not about believing it; it is the token
+                    -- `advanceBatch` needs to pop the next subject. Staleness applies only to runs
+                    -- claiming to be live, so this path is untouched.
+                    Lifecycle.recoverRun
+                        { now = clockAfter 1700 (100 * Lifecycle.staleRunAfterMillis)
+                        , tracked = Nothing
+                        , tailPending = True
+                        , metadata = runSlotFor 1700 "done"
+                        }
                         |> Expect.equal
                             (Lifecycle.RecoverPending
                                 { seq = 1700
@@ -316,7 +436,8 @@ suite =
                     -- A scan correlates by seq, so the id is inert for tracking; it only matters to
                     -- a cancel, which falls back to the host's own minting.
                     Lifecycle.recoverRun
-                        { tracked = Nothing
+                        { now = pollTime
+                        , tracked = Nothing
                         , tailPending = False
                         , metadata = runSlot 1700 "running" ++ [ { key = "exoext.v1.run.target", value = "i-9" } ]
                         }

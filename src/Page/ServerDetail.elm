@@ -1,4 +1,4 @@
-module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, adoptRestoredExoextBatch, adoptStoredExoextBatch, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextBatchSharedMsg, exoextCancelRequested, exoextCancellableRun, exoextDismissSession, exoextDropFromTail, exoextEmbedProjection, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextRequestsPending, exoextRunControl, exoextScanBlocked, exoextScanRequestPending, exoextScanTimer, exoextStatusOverride, exoextStopRequested, exoextStoppingTarget, exoextViewConfig, init, recoverExoextRun, update, view)
+module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, adoptRestoredExoextBatch, adoptStoredExoextBatch, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextAbandonStaleRun, exoextBatchSharedMsg, exoextCancelRequested, exoextCancellableRun, exoextDismissSession, exoextDropFromTail, exoextEmbedProjection, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextRequestsPending, exoextRunControl, exoextScanBlocked, exoextScanRequestPending, exoextScanTimer, exoextStatusOverride, exoextStopRequested, exoextStoppingTarget, exoextViewConfig, init, recoverExoextRun, update, view)
 
 import CloudShield.Card
 import DateFormat.Relative
@@ -174,7 +174,10 @@ type Msg
     | GotRetainFloatingIpsWhenDeleting Bool
     | GotDeleteFloatingIpsWhenShelving Bool
     | GotSetServerName String
-    | GotExoextSync
+      -- Carries the shared client clock, because the read sync is the one place the host judges
+      -- whether the §7.1 run slot is still believable (`exoextAbandonStaleRun`), and that is a
+      -- question about elapsed time rather than about metadata.
+    | GotExoextSync Time.Posix
     | GotExoextManifestObject Time.Posix String (Result HttpErrorWithBody String)
     | GotExoextResultObject Time.Posix String String (Result HttpErrorWithBody String)
     | GotExoextIndexObject Time.Posix String (Result HttpErrorWithBody String)
@@ -285,8 +288,8 @@ update msg project model =
                     SharedMsg.RequestSetServerName validName
             )
 
-        GotExoextSync ->
-            syncExoextReads project model
+        GotExoextSync now ->
+            syncExoextReads now project model
 
         GotExoextManifestObject receivedTime etag result ->
             ( receiveExoextManifest project receivedTime etag result model, Cmd.none, SharedMsg.NoOp )
@@ -617,8 +620,8 @@ buildExoextApproval project model now =
             )
 
 
-syncExoextReads : Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-syncExoextReads project model =
+syncExoextReads : Time.Posix -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+syncExoextReads now project model =
     case GetterSetters.serverLookup project model.serverUuid of
         Just server ->
             let
@@ -633,17 +636,22 @@ syncExoextReads project model =
                             clearResolvedPendingEmbed metadata model.exoextPendingEmbed
                     }
 
-                -- Three steps that must run in this order, because each feeds the next.
+                -- Four steps that must run in this order, because each feeds the next.
                 --
                 -- 1. Take up a stored batch tail (the instance list is real by now, which is what
                 --    the eligibility half of its stale check was waiting for), so that
                 -- 2. run recovery can see whether a tail is waiting on the run it is adopting —
                 --    that is what decides whether a FINISHED run still needs a tracker; so that
-                -- 3. the batch step below has both the tail and the tracker it needs to continue.
+                -- 3. the safety valve sees the batch AND the tracker that a stale run is holding
+                --    hostage, which is what lets it release both at once. It comes last of the
+                --    three deliberately: releasing before adoption would let the very next poll
+                --    restore the tail it just dropped. So that
+                -- 4. the batch step below has both the tail and the tracker it needs to continue.
                 recoveredModel =
                     syncedModel
                         |> adoptRestoredExoextBatch project
-                        |> recoverExoextRun metadata
+                        |> recoverExoextRun now metadata
+                        |> exoextAbandonStaleRun now metadata
 
                 ( readModel, readCmd ) =
                     case Exoext.Discovery.readSentinel metadata of
@@ -693,17 +701,20 @@ page model, so the precedence rule lives in one generic place:
     LAST-run record rather than a current-run one. Committing that into the card's durable per-row
     state is what made a finished scan read as `done` on every page load ever after; the completed
     scan belongs in the history panel, where it carries the timestamp that says when it happened.
+    It is ALSO the case for a non-terminal run that is
+    [stale](Exoext-Lifecycle#staleRunAfterMillis), which is why `now` is threaded in here.
 
 A recovered run does NOT pre-fill the row's optimistic `scanState`, so the card's own dedup does not
 see it and its Scan button stays pressable. `exoextScanBlocked` is the guard that catches such a
 press (and rolls the card back), which is where a duplicate request has always been stopped.
 
 -}
-recoverExoextRun : List OSTypes.MetadataItem -> Model -> Model
-recoverExoextRun metadata model =
+recoverExoextRun : Time.Posix -> List OSTypes.MetadataItem -> Model -> Model
+recoverExoextRun now metadata model =
     case
         Exoext.Lifecycle.recoverRun
-            { tracked = model.exoextCard.pending
+            { now = now
+            , tracked = model.exoextCard.pending
             , tailPending = exoextTailPending model
             , metadata = metadata
             }
@@ -717,6 +728,77 @@ recoverExoextRun metadata model =
                     model.exoextCard
             in
             { model | exoextCard = { card | pending = Just request } }
+
+
+{-| The safety valve: let go of a §7.1 run the wire has left non-terminal for implausibly long
+([`Exoext.Lifecycle.runStale`](Exoext-Lifecycle#runStale) — that is where the threshold and the
+contract argument live).
+
+It exists because two correct behaviors compose into a trap. A publisher whose daemon is restarted
+mid-run never settles `exoext.v1.run.state`, so the host reads a scan that is live forever; and the
+host correctly withholds every Scan affordance while a run is in flight (`exoextScanBlocked`, and
+`/scanBusy` through it). The researcher is then left with a row that says scanning, no way to start
+a new scan, and no way to clear the old one. The publisher-side bug is fixed on its own side; this
+is the host's defense in depth, because the host cannot assume every publisher is healthy.
+
+Three things go at once, because releasing any subset leaves the trap half-shut:
+
+  - **the tracked request**, which is what `exoextScanBlocked`, `exoextStatusOverride`, the elapsed
+    timer, and the 5 s fast poll are all keyed on. Dropping it is what makes the row read `idle` and
+    the Scan controls live again, and it is why no consumer needed a staleness check of its own.
+  - **the batch**, stored record included. A tail waiting behind the wedged run is the OTHER half of
+    `exoextScanBlocked`, so leaving it would keep the press blocked with the tracker already gone.
+    The tail is dropped rather than resumed on purpose: its head died at an unknown hour, and
+    silently starting scans on an unattended page would spend the researcher's snapshot quota on
+    work they are no longer watching. Re-selecting the targets is one press; an unwatched batch is
+    not undoable.
+  - **the optimistic row states** of the abandoned subjects, via `abandonScanState` — the same
+    treatment a stopped batch's targets get. Those rows have no run coming and no terminal state
+    will ever arrive to overwrite them, so without this they would sit on a spinning `queued` badge.
+    Removing the key returns them to the absent-means-idle default, so a stale run reads as idle /
+    absent and introduces no new visible state and no new display string.
+
+The guard is that the host is not tracking some NEWER run: a tracked request whose seq differs from
+the run slot's is a request written after the stale one, and it owns the batch. `Nothing` tracked
+passes the guard, which is the post-reload case — recovery has already declined to adopt the stale
+run, so there is nothing left to match against and the only thing to release is a restored tail.
+
+Nothing is written to the wire here. Going stale withdraws the host's belief in a run; it does not
+cancel it, supersede it, or touch the request slot.
+
+-}
+exoextAbandonStaleRun : Time.Posix -> List OSTypes.MetadataItem -> Model -> Model
+exoextAbandonStaleRun now metadata model =
+    case Exoext.Transport.runStatusFromMetadata metadata of
+        Nothing ->
+            model
+
+        Just status ->
+            let
+                -- Not tracking a DIFFERENT (newer) run than the one the slot reports.
+                tracksThisRun =
+                    model.exoextCard.pending
+                        |> Maybe.map (\pending -> pending.seq == status.seq)
+                        |> Maybe.withDefault True
+            in
+            if tracksThisRun && Exoext.Lifecycle.runStale now { seq = status.seq, state = status.state } then
+                let
+                    abandoned =
+                        (model.exoextCard.pending |> Maybe.map (\pending -> [ pending.subject ]) |> Maybe.withDefault [])
+                            ++ (model.exoextBatch |> Maybe.map .remaining |> Maybe.withDefault [])
+                            ++ (model.exoextRestoredBatch |> Maybe.map .remaining |> Maybe.withDefault [])
+
+                    card =
+                        model.exoextCard
+                in
+                { model
+                    | exoextCard = CloudShield.Card.abandonScanState abandoned { card | pending = Nothing }
+                    , exoextBatch = Nothing
+                    , exoextRestoredBatch = Nothing
+                }
+
+            else
+                model
 
 
 {-| Second phase of adopting a stored batch tail: keep the targets that are still eligible instances
@@ -1462,11 +1544,11 @@ exoextViewConfig approved project model currentTime server =
     -- Which row can be stopped, and the request id a stop must name. Derived from the RAW
     -- `statusOverride`, never the display-composed one: the decision is about the run's real state,
     -- not about the string currently on its badge.
-    , cancellableRun = exoextCancellableRun metadata statusOverride model
+    , cancellableRun = exoextCancellableRun currentTime metadata statusOverride model
 
     -- The row whose stop has been asked for but not yet answered, projected as a state token (the
     -- manifest owns the word). Same raw-`statusOverride` discipline and the same reason.
-    , stoppingTargetId = exoextStoppingTarget metadata statusOverride model
+    , stoppingTargetId = exoextStoppingTarget currentTime metadata statusOverride model
     , sessionOpen = embedProjection.sessionOpen
     , allowedIframeOrigins = allowedIframeOrigins
     , embedUrl = embedUrl
@@ -1548,14 +1630,25 @@ and both are needed:
 Both are gated on the run being non-terminal, which is what retires the state: a `done`/`cancelled`
 run is not stopping, it has stopped, and its own terminal state is the truthful badge.
 
+A [stale](Exoext-Lifecycle#runStale) run resolves to `Nothing`, and this is the OTHER half of the
+safety valve rather than a detail. `exoextAbandonStaleRun` releases the tracker, but the run slot's
+own §4.3 descriptors need no tracker to resolve a target and a request id — so without this gate a
+run the host has stopped believing would keep a live Stop control on a row that otherwise reads
+idle, and a press on it would arm `stopping` against a publisher that answers nothing, wedging the
+row in a second, worse state. A control nobody is listening to is not an escape hatch; starting a
+fresh scan is, and that is what the valve restores.
+
 -}
 exoextRunControl :
-    List OSTypes.MetadataItem
+    Time.Posix
+    -> List OSTypes.MetadataItem
     -> Maybe { targetId : String, state : String }
     -> Model
     -> Maybe { targetId : String, requestId : String, state : String, stopping : Bool }
-exoextRunControl metadata statusOverride model =
+exoextRunControl now metadata statusOverride model =
     Exoext.Transport.runStatusFromMetadata metadata
+        |> Maybe.Extra.filter
+            (\status -> not (Exoext.Lifecycle.runStale now { seq = status.seq, state = status.state }))
         |> Maybe.andThen
             (\status ->
                 let
@@ -1607,12 +1700,13 @@ let the state token replace the host-owned "cancelling" display string this comm
 
 -}
 exoextCancellableRun :
-    List OSTypes.MetadataItem
+    Time.Posix
+    -> List OSTypes.MetadataItem
     -> Maybe { targetId : String, state : String }
     -> Model
     -> Maybe { targetId : String, requestId : String }
-exoextCancellableRun metadata statusOverride model =
-    exoextRunControl metadata statusOverride model
+exoextCancellableRun now metadata statusOverride model =
+    exoextRunControl now metadata statusOverride model
         |> Maybe.andThen
             (\run ->
                 if List.member run.state cancellableRunStates && not run.stopping then
@@ -1634,12 +1728,13 @@ never heard of is still a publisher that has been asked to stop.
 
 -}
 exoextStoppingTarget :
-    List OSTypes.MetadataItem
+    Time.Posix
+    -> List OSTypes.MetadataItem
     -> Maybe { targetId : String, state : String }
     -> Model
     -> Maybe String
-exoextStoppingTarget metadata statusOverride model =
-    exoextRunControl metadata statusOverride model
+exoextStoppingTarget now metadata statusOverride model =
+    exoextRunControl now metadata statusOverride model
         |> Maybe.andThen
             (\run ->
                 if run.stopping then

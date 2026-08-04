@@ -11,6 +11,8 @@ module Exoext.Lifecycle exposing
     , correlatedRunState
     , runStopping
     , requestStillPending
+    , staleRunAfterMillis
+    , runStale
     , RunRecovery(..)
     , recoverRun
     , Batch
@@ -69,6 +71,8 @@ Two things live here that used to be duplicated in `Page.ServerDetail` and `Clou
 @docs correlatedRunState
 @docs runStopping
 @docs requestStillPending
+@docs staleRunAfterMillis
+@docs runStale
 @docs RunRecovery
 @docs recoverRun
 
@@ -357,6 +361,89 @@ requestStillPending pending metadata =
 
 
 
+-- STALE RUNS
+
+
+{-| How long a NON-terminal §7.1 run may sit on the wire before the host stops believing it: six
+hours, in millis. Past this the run is STALE ([`runStale`](#runStale)) and the host treats it as
+absent rather than as live.
+
+**Why the host needs a bound at all.** The run slot is written by the publisher and settled by the
+publisher, and nothing in the contract obliges a publisher to survive its own restart. One that
+dies mid-run leaves `run.state` non-terminal forever, and a host that believes the wire without
+qualification then reports a scan that will never finish AND withholds every Scan affordance,
+because a run is correctly in flight as far as it can tell. Two individually correct behaviors
+compose into a trap with no move left in it. That is the shape a defensive bound exists for: the
+host cannot assume every publisher is healthy, and it must never be the reason a researcher is
+stuck.
+
+**Why six hours.** The host does not know any given publisher's timeouts and must not pretend it
+does, so the number is derived from the REFERENCE publisher's documented bounds and then given a
+wide margin. §4.4 sets `SCAN_DEADLINE` at 45 min (a run past it is aborted to `error`) and
+`REQUEST_TTL` at 60 min (a request past it is ignored and marked `expired`). Six hours is ~8x the
+deadline and 6x the TTL, so a publisher an operator tuned several times more generously than the
+reference — a very large disk, a slow scanner — still settles its runs well inside it. It is also
+short enough that a run wedged in the morning is not still blocking the researcher the next day.
+
+**Which direction to be wrong in.** The two errors are not symmetric, and the constant is sized so
+that only the cheap one is reachable.
+
+  - Too GENEROUS costs waiting. The trap stays shut longer, on a page that is otherwise fully
+    usable: results, history and every other control still work, only NEW scans are held. The cost
+    is bounded, it is recoverable (a wedged run stays wedged, so the valve opens later), and it
+    degrades to exactly today's behavior.
+  - Too EAGER costs work. The host would call a genuinely running scan dead, drop it from the
+    display, and invite the researcher to start a replacement — whose request supersedes a scan
+    that was minutes from finishing, discarding the work and spending the clone/snapshot quota
+    twice. Worse, it would do this preferentially on the slowest, largest targets, i.e. the ones
+    least distinguishable from a failure and most expensive to redo. A safety valve that
+    manufactures that regression is worse than the trap it was added for.
+
+-}
+staleRunAfterMillis : Int
+staleRunAfterMillis =
+    6 * 60 * 60 * 1000
+
+
+{-| Whether a §7.1 run has been non-terminal for implausibly long — see
+[`staleRunAfterMillis`](#staleRunAfterMillis) for the bound and the reasoning behind it.
+
+The age needs no new wire field. The host mints a request's `req.seq` as the wall-clock millis at
+which it wrote that request (`Page.ServerDetail`'s `ExoextWriteRequest` handler, and the
+`exoextRequestId` minted from it), and §7.1 has the publisher echo that value back as `run.seq`.
+So the slot already carries the moment the run began, and `now - seq` is the run's age.
+
+Only a NON-terminal run can be stale. A `done`/`error`/`cancelled`/`expired` slot is a settled
+record of the LAST run and is allowed to be arbitrarily old — ageing terminal runs out would break
+the one place an old terminal run is still load-bearing, an undrained batch tail adopting it in
+[`recoverRun`](#recoverRun).
+
+**Why dropping a stale run is safe under the contract.** Not because the host may cancel whenever
+it likes — §7.1 is narrower than that. §7.1 has the host bump `req.seq` to cancel _before_ the
+publisher has claimed the slot, and otherwise says the host "won't reuse the slot until the run is
+terminal"; §4.4 adds that a `running` run is not interruptible in v1. So "a seq mismatch supersedes
+anything" is NOT the rule, and this code does not rest on it.
+
+What makes a stale run different is §4.4's own guards, which are the publisher's obligations rather
+than the host's: a request older than `REQUEST_TTL` must be ignored and marked `expired`, and a run
+past `SCAN_DEADLINE` must be aborted, cleaned up and written `error`. Both are terminal. A run many
+multiples of those bounds old is therefore one the publisher's OWN rules say cannot still be live.
+The host is not overriding a live run; it is declining to believe a slot the contract says should
+have settled long ago.
+
+That framing is also why staleness writes nothing. It only stops the host blocking, handing the
+decision back to the researcher. If they then start a new scan, the resulting seq bump lands on a
+publisher that is either gone (nothing to supersede) or back — holding a request `staleRunAfterMillis`
+old, which §4.4 requires it to treat as `expired` regardless of what the host did.
+
+-}
+runStale : Time.Posix -> { seq : Int, state : String } -> Bool
+runStale now run =
+    not (isTerminalRunState run.state)
+        && (Time.posixToMillis now - run.seq > staleRunAfterMillis)
+
+
+
 -- RUN RECOVERY
 
 
@@ -396,7 +483,14 @@ The precedence is deliberate and total, in this order:
     `seq`, which the host writes as wall-clock millis — the moment the request was actually written,
     which is both truthful and stable across reloads (unlike "now", which would restart the
     elapsed clock on every reload).
-4.  **A finished run is adopted only when a tail is waiting on it.** The §7.1 run slot is
+4.  **Unless that "live" run is [stale](#runStale)**, in which case `NoRecovery`. This is the reload
+    half of the safety valve, and it has to be here rather than downstream: adopting a run and then
+    discarding it would still let it exist as a tracked request for an instant, and a run the host
+    has decided is not live must never be resurrected into the tracker at all. Note the ordering
+    against rule 5 — staleness applies only to the non-terminal branch, so an old terminal run with
+    a tail waiting on it is still adopted, because that adoption is about draining the batch and
+    not about believing the run.
+5.  **A finished run is adopted only when a tail is waiting on it.** The §7.1 run slot is
     overwritten in place and never cleared, so it is a record of the LAST run, not of a CURRENT one.
     A reader that adopts a terminal run therefore re-adopts the same finished run on every later
     page load, forever — which is exactly how a completed scan came to read as still-finishing-now
@@ -422,12 +516,13 @@ correlation is by `seq`.
 
 -}
 recoverRun :
-    { tracked : Maybe PendingRequest
+    { now : Time.Posix
+    , tracked : Maybe PendingRequest
     , tailPending : Bool
     , metadata : List OSTypes.MetadataItem
     }
     -> RunRecovery
-recoverRun { tracked, tailPending, metadata } =
+recoverRun { now, tracked, tailPending, metadata } =
     case tracked of
         Just _ ->
             NoRecovery
@@ -445,6 +540,11 @@ recoverRun { tracked, tailPending, metadata } =
                         Just target ->
                             if isTerminalRunState status.state && not tailPending then
                                 -- A last-run record with nothing waiting on it: not adoptable.
+                                NoRecovery
+
+                            else if runStale now { seq = status.seq, state = status.state } then
+                                -- Non-terminal but implausibly old (§4.4 TTL/deadline say it
+                                -- cannot still be running): not live, so not adoptable either.
                                 NoRecovery
 
                             else

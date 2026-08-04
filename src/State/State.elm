@@ -1925,7 +1925,7 @@ processProjectSpecificMsg outerModel project msg =
                     Rest.Nova.receiveServers sharedModel project servers
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
-                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerDetailMsg Page.ServerDetail.GotExoextSync))
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerDetailMsg (Page.ServerDetail.GotExoextSync sharedModel.clientCurrentTime)))
 
                 Err e ->
                     let
@@ -1969,7 +1969,7 @@ processProjectSpecificMsg outerModel project msg =
                     ( newerSharedModel, newCmd )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
-                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerDetailMsg Page.ServerDetail.GotExoextSync))
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerDetailMsg (Page.ServerDetail.GotExoextSync sharedModel.clientCurrentTime)))
 
                 Err httpErrorWithBody ->
                     let

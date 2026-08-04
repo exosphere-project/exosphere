@@ -1,7 +1,8 @@
-module Tests.CloudShield.ServerDetail exposing (cloudShieldBatchPersistenceSuite, cloudShieldBatchSuite, cloudShieldBusyProjectionSuite, cloudShieldCancelSuite, cloudShieldDismissSuite, cloudShieldEmbedProjectionSuite, cloudShieldPendingEmbedSuite, cloudShieldReadDecisionSuite, cloudShieldRecoverySuite, cloudShieldScanBlockedSuite, cloudShieldScanTimerSuite, cloudShieldStoppingSuite, cloudShieldTailStopSuite)
+module Tests.CloudShield.ServerDetail exposing (cloudShieldBatchPersistenceSuite, cloudShieldBatchSuite, cloudShieldBusyProjectionSuite, cloudShieldCancelSuite, cloudShieldDismissSuite, cloudShieldEmbedProjectionSuite, cloudShieldPendingEmbedSuite, cloudShieldReadDecisionSuite, cloudShieldRecoverySuite, cloudShieldScanBlockedSuite, cloudShieldScanTimerSuite, cloudShieldStaleRunSuite, cloudShieldStoppingSuite, cloudShieldTailStopSuite)
 
 import CloudShield.Card as Card
 import Dict
+import Exoext.Lifecycle as Lifecycle
 import Expect
 import Helpers.RemoteDataPlusPlus as RDPP
 import ISO8601
@@ -23,6 +24,15 @@ import Types.SharedMsg as SharedMsg
 receivedAt : Time.Posix
 receivedAt =
     Time.millisToPosix 0
+
+
+{-| The client clock a poll reads. Every fixture run `seq` in this module is a small number below
+it, so no fixture run is anywhere near `Exoext.Lifecycle.staleRunAfterMillis` old — the safety valve
+is exercised deliberately in `cloudShieldStaleRunSuite` and never fires by accident elsewhere.
+-}
+pollTime : Time.Posix
+pollTime =
+    Time.millisToPosix 10000
 
 
 modelWithManifest : String -> String -> ServerDetail.Model
@@ -980,7 +990,7 @@ cloudShieldRecoverySuite =
                 in
                 Expect.equal
                     ( Just ( "i-9", 1700 ), Just { targetId = "i-9", state = "running" } )
-                    (projected metadata (ServerDetail.recoverExoextRun metadata afterReload))
+                    (projected metadata (ServerDetail.recoverExoextRun pollTime metadata afterReload))
         , test "without recovery the same wire state projects nothing (the bug being fixed)" <|
             \_ ->
                 Expect.equal ( Nothing, Nothing )
@@ -999,7 +1009,7 @@ cloudShieldRecoverySuite =
                 in
                 Expect.equal
                     ( Just ( "i-1", 5000 ), Nothing )
-                    (projected metadata (ServerDetail.recoverExoextRun metadata live))
+                    (projected metadata (ServerDetail.recoverExoextRun pollTime metadata live))
         , test "a finished run leaves the row alone: no tracker, and no durable badge either" <|
             \_ ->
                 -- The stale-`done` fix. The run slot is never cleared, so a finished run sits there
@@ -1007,7 +1017,7 @@ cloudShieldRecoverySuite =
                 -- now to forever. The finished scan shows in the history panel, dated.
                 let
                     recovered =
-                        ServerDetail.recoverExoextRun (runSlotFor 1700 "done" "i-9") afterReload
+                        ServerDetail.recoverExoextRun pollTime (runSlotFor 1700 "done" "i-9") afterReload
                 in
                 Expect.equal ( Nothing, Nothing )
                     ( recovered.exoextCard.pending, Dict.get "i-9" recovered.exoextCard.scanState )
@@ -1019,7 +1029,7 @@ cloudShieldRecoverySuite =
                     ([ "done", "error", "cancelled", "expired" ]
                         |> List.filterMap
                             (\state ->
-                                ServerDetail.recoverExoextRun (runSlotFor 1700 state "i-9") afterReload
+                                ServerDetail.recoverExoextRun pollTime (runSlotFor 1700 state "i-9") afterReload
                                     |> .exoextCard
                                     |> .scanState
                                     |> Dict.get "i-9"
@@ -1029,7 +1039,7 @@ cloudShieldRecoverySuite =
             \_ ->
                 let
                     recovered =
-                        ServerDetail.recoverExoextRun (runSlot 1700 "running") afterReload
+                        ServerDetail.recoverExoextRun pollTime (runSlot 1700 "running") afterReload
                 in
                 Expect.equal ( Nothing, Dict.empty )
                     ( recovered.exoextCard.pending, recovered.exoextCard.scanState )
@@ -1040,22 +1050,199 @@ cloudShieldRecoverySuite =
                         runSlotFor 1700 "running" "i-9"
 
                     once =
-                        ServerDetail.recoverExoextRun metadata afterReload
+                        ServerDetail.recoverExoextRun pollTime metadata afterReload
 
                     twice =
-                        ServerDetail.recoverExoextRun metadata once
+                        ServerDetail.recoverExoextRun pollTime metadata once
                 in
                 Expect.equal (projected metadata once) (projected metadata twice)
         , test "a recovered run keeps the fast poll alive until the wire says it is over" <|
             \_ ->
                 let
                     recovered state =
-                        ServerDetail.recoverExoextRun (runSlotFor 1700 state "i-9") afterReload
+                        ServerDetail.recoverExoextRun pollTime (runSlotFor 1700 state "i-9") afterReload
                 in
                 Expect.equal ( True, False )
                     ( ServerDetail.exoextScanRequestPending (projectPublishing (runSlotFor 1700 "running" "i-9")) (recovered "running")
                     , ServerDetail.exoextScanRequestPending (projectPublishing (runSlotFor 1700 "done" "i-9")) (recovered "done")
                     )
+        ]
+
+
+{-| The whole host path a poll takes: `GotExoextSync` against a project publishing `metadata`,
+carrying the client clock. This is how the safety valve actually fires in the app, so it is what the
+stale-run suite drives rather than calling the pieces directly.
+-}
+polledAt : Time.Posix -> List OSTypes.MetadataItem -> ServerDetail.Model -> ServerDetail.Model
+polledAt now metadata model =
+    let
+        ( updated, _, _ ) =
+            ServerDetail.update (ServerDetail.GotExoextSync now) (projectPublishing metadata) model
+    in
+    updated
+
+
+{-| The clock as it reads when a run written at wall-clock `seq` is `ageMillis` old.
+-}
+clockAfter : Int -> Int -> Time.Posix
+clockAfter seq ageMillis =
+    Time.millisToPosix (seq + ageMillis)
+
+
+{-| The defense-in-depth valve for a publisher that dies mid-run and never settles §7.1's
+`run.state`. The host then reads a scan that is live forever, and — correctly — greys every Scan
+affordance while a run is in flight, leaving the researcher with no way to start a new scan and no
+way to clear the old one. Two correct behaviors composing into a trap.
+
+The suite is written around the boundary rather than around a magic number: every case is stated in
+terms of `Exoext.Lifecycle.staleRunAfterMillis`, so retuning the threshold cannot silently turn a
+test vacuous.
+
+-}
+cloudShieldStaleRunSuite : Test
+cloudShieldStaleRunSuite =
+    let
+        -- A publisher stuck mid-run on target 1, with targets 2 and 3 still parked in the tail.
+        wedgedRun =
+            runSlotFor 1700 "running" "i-1"
+
+        wedged =
+            writeRequestAt 1700 { subject = "i-1", batchId = Nothing } modelAfterStartScan
+
+        -- A reader that came to the page fresh, with nothing of its own to go on.
+        afterReload =
+            ServerDetail.init "self"
+
+        fresh =
+            clockAfter 1700 (90 * 60 * 1000)
+
+        stale =
+            clockAfter 1700 (Lifecycle.staleRunAfterMillis + 1)
+
+        -- What the researcher can actually do and see: may they start a scan, is a run still
+        -- tracked, is a batch still draining, and what badge does target 1 carry.
+        outcome metadata model =
+            { blocked = ServerDetail.exoextScanBlocked (projectPublishing metadata) model
+            , tracked = model.exoextCard.pending |> Maybe.map (\p -> ( p.subject, p.seq ))
+            , batch = model.exoextBatch |> Maybe.map .remaining
+            , rowState = Dict.get "i-1" model.exoextCard.scanState
+            , liveRow = ServerDetail.exoextStatusOverride metadata model
+            }
+
+        scanBusy metadata model =
+            Card.projection Time.utc
+                (ServerDetail.exoextViewConfig True (projectPublishing metadata) model (Time.millisToPosix 0) (serverPublishing metadata))
+                []
+                model.exoextCard
+                |> Decode.decodeValue (Decode.field "scanBusy" Decode.bool)
+                |> Result.mapError Decode.errorToString
+    in
+    describe "ServerDetail stale-run safety valve"
+        [ test "REGRESSION: a run that is merely slow still blocks, still tracks, and still shows its live row" <|
+            \_ ->
+                -- 90 minutes in — twice the reference §4.4 deadline — and the host must still be
+                -- treating this as a scan in progress. Calling it dead here would invite a
+                -- replacement scan that supersedes real work.
+                Expect.equal
+                    { blocked = True
+                    , tracked = Just ( "i-1", 1700 )
+                    , batch = Just [ "i-2", "i-3" ]
+                    , rowState = Just "queued"
+                    , liveRow = Just { targetId = "i-1", state = "running" }
+                    }
+                    (outcome wedgedRun (polledAt fresh wedgedRun wedged))
+        , test "REGRESSION: a fresh run is still adopted after a reload, and blocks from there" <|
+            \_ ->
+                let
+                    recovered =
+                        polledAt fresh wedgedRun afterReload
+                in
+                Expect.equal ( Just ( "i-1", 1700 ), True )
+                    ( recovered.exoextCard.pending |> Maybe.map (\p -> ( p.subject, p.seq ))
+                    , ServerDetail.exoextScanBlocked (projectPublishing wedgedRun) recovered
+                    )
+        , test "a stale run releases the tracker, the tail and the row badges, and unblocks a new scan" <|
+            \_ ->
+                -- All of it at once, because releasing any subset leaves the trap half-shut: the
+                -- tracker alone still blocks through the batch clause, the batch alone still shows
+                -- a scanning row.
+                Expect.equal
+                    { blocked = False
+                    , tracked = Nothing
+                    , batch = Nothing
+                    , rowState = Nothing
+                    , liveRow = Nothing
+                    }
+                    (outcome wedgedRun (polledAt stale wedgedRun wedged))
+        , test "a stale run is NOT adopted by recovery — reloading the page must not re-arm the block" <|
+            \_ ->
+                Expect.equal
+                    { blocked = False
+                    , tracked = Nothing
+                    , batch = Nothing
+                    , rowState = Nothing
+                    , liveRow = Nothing
+                    }
+                    (outcome wedgedRun (polledAt stale wedgedRun afterReload))
+        , test "the boundary in both directions: at the threshold the run still blocks, one ms past it does not" <|
+            \_ ->
+                Expect.equal ( True, False )
+                    ( ServerDetail.exoextScanBlocked (projectPublishing wedgedRun)
+                        (polledAt (clockAfter 1700 Lifecycle.staleRunAfterMillis) wedgedRun wedged)
+                    , ServerDetail.exoextScanBlocked (projectPublishing wedgedRun)
+                        (polledAt (clockAfter 1700 (Lifecycle.staleRunAfterMillis + 1)) wedgedRun wedged)
+                    )
+        , test "the manifest sees it: /scanBusy lifts once the run goes stale" <|
+            \_ ->
+                Expect.equal ( Ok True, Ok False )
+                    ( scanBusy wedgedRun (polledAt fresh wedgedRun wedged)
+                    , scanBusy wedgedRun (polledAt stale wedgedRun wedged)
+                    )
+        , test "a stale run offers no Stop control — a control nobody is listening to is not an escape hatch" <|
+            \_ ->
+                -- The §4.3 descriptors resolve a target and a request id with no tracker at all, so
+                -- withdrawing the tracker is not by itself enough to withdraw the control. Pressing
+                -- it would arm `stopping` against a publisher that answers nothing.
+                Expect.equal ( Just { targetId = "i-1", requestId = "exo-cs-req-1700" }, Nothing )
+                    ( ServerDetail.exoextCancellableRun fresh wedgedRun Nothing afterReload
+                    , ServerDetail.exoextCancellableRun stale wedgedRun Nothing afterReload
+                    )
+        , test "an ancient TERMINAL run is untouched: its batch settles and continues as always" <|
+            \_ ->
+                -- Staleness applies only to a run claiming to be live. A terminal run is a settled
+                -- record, and an undrained tail still adopts it to take its next step.
+                let
+                    continued =
+                        polledAt (clockAfter 1700 (100 * Lifecycle.staleRunAfterMillis))
+                            (runSlotFor 1700 "done" "i-1")
+                            wedged
+                in
+                Expect.equal ( Just "done", Just [ "i-3" ], True )
+                    ( Dict.get "i-1" continued.exoextCard.scanState
+                    , continued.exoextBatch |> Maybe.map .remaining
+                    , continued.exoextBatch |> Maybe.map .awaitingWrite |> Maybe.withDefault False
+                    )
+        , test "a NEWER tracked run is never released by an older stale slot" <|
+            \_ ->
+                -- The wire lags the tracker by a poll routinely. A request written after the stale
+                -- one owns the batch, and the guard is the seq: only the run the slot names is let
+                -- go of.
+                let
+                    polled =
+                        writeRequestAt 9000 { subject = "i-1", batchId = Nothing } wedged
+                            |> polledAt (clockAfter 1700 (Lifecycle.staleRunAfterMillis + 1)) wedgedRun
+                in
+                Expect.equal ( Just ( "i-1", 9000 ), True )
+                    ( polled.exoextCard.pending |> Maybe.map (\p -> ( p.subject, p.seq ))
+                    , ServerDetail.exoextScanBlocked (projectPublishing wedgedRun) polled
+                    )
+        , test "releasing a stale run also forgets the stored batch record, so a reload does not restore it" <|
+            \_ ->
+                let
+                    ( _, _, sharedMsg ) =
+                        ServerDetail.update (ServerDetail.GotExoextSync stale) (projectPublishing wedgedRun) wedged
+                in
+                Expect.equal (SharedMsg.ForgetExtensionBatch "self") sharedMsg
         ]
 
 
@@ -1207,7 +1394,7 @@ cloudShieldBatchPersistenceSuite =
 
                     resumed =
                         adopt [ storedBatch [ "i-2", "i-3" ] ] [ "i-2", "i-3" ]
-                            |> ServerDetail.recoverExoextRun metadata
+                            |> ServerDetail.recoverExoextRun pollTime metadata
                             |> ServerDetail.advanceExoextBatch metadata
                             |> Tuple.first
                 in
@@ -1232,7 +1419,7 @@ cloudShieldBatchPersistenceSuite =
                         afterReload
                             |> ServerDetail.adoptStoredExoextBatch project [ storedBatch [ "i-2", "i-3" ] ]
                             |> ServerDetail.adoptRestoredExoextBatch projectHere
-                            |> ServerDetail.recoverExoextRun metadata
+                            |> ServerDetail.recoverExoextRun pollTime metadata
 
                     rendered =
                         Card.projection Time.utc
@@ -1270,14 +1457,15 @@ cloudShieldCancelSuite =
         [ test "an active run offers its row a stop, naming the request id" <|
             \_ ->
                 Expect.equal (Just { targetId = "i-1", requestId = "exo-cs-req-1700" })
-                    (ServerDetail.exoextCancellableRun (runSlotFor 1700 "running" "i-1") runningRow draining)
+                    (ServerDetail.exoextCancellableRun pollTime (runSlotFor 1700 "running" "i-1") runningRow draining)
         , test "every non-terminal state is stoppable and every terminal one is not" <|
             \_ ->
                 Expect.equal [ True, True, True, False, False, False, False ]
                     ([ "queued", "running", "scanning", "done", "error", "cancelled", "expired" ]
                         |> List.map
                             (\state ->
-                                ServerDetail.exoextCancellableRun (runSlotFor 1700 state "i-1")
+                                ServerDetail.exoextCancellableRun pollTime
+                                    (runSlotFor 1700 state "i-1")
                                     (Just { targetId = "i-1", state = state })
                                     draining
                                     /= Nothing
@@ -1286,16 +1474,16 @@ cloudShieldCancelSuite =
         , test "a publisher reporting no requestId falls back to the id this host minted for the seq" <|
             \_ ->
                 Expect.equal (Just { targetId = "i-1", requestId = "exo-cs-req-1700" })
-                    (ServerDetail.exoextCancellableRun (runSlot 1700 "running") runningRow draining)
+                    (ServerDetail.exoextCancellableRun pollTime (runSlot 1700 "running") runningRow draining)
         , test "a run this host cannot name at all is not stoppable" <|
             \_ ->
                 -- No wire requestId and no tracker correlated to this seq: a stop would name nothing.
                 Expect.equal Nothing
-                    (ServerDetail.exoextCancellableRun (runSlot 9999 "running") Nothing draining)
+                    (ServerDetail.exoextCancellableRun pollTime (runSlot 9999 "running") Nothing draining)
         , test "a run whose target cannot be attributed to a row is not stoppable either" <|
             \_ ->
                 Expect.equal Nothing
-                    (ServerDetail.exoextCancellableRun (runSlot 1700 "running") Nothing draining)
+                    (ServerDetail.exoextCancellableRun pollTime (runSlot 1700 "running") Nothing draining)
         , test "the stop ends the batch and clears the badges of targets that will never run" <|
             \_ ->
                 let
@@ -1311,7 +1499,8 @@ cloudShieldCancelSuite =
         , test "a stopped run withdraws its own Cancel control, with no host-owned label involved" <|
             \_ ->
                 Expect.equal Nothing
-                    (ServerDetail.exoextCancellableRun (runSlotFor 1700 "running" "i-1")
+                    (ServerDetail.exoextCancellableRun pollTime
+                        (runSlotFor 1700 "running" "i-1")
                         runningRow
                         (ServerDetail.exoextCancelRequested "exo-cs-req-1700" draining)
                     )
@@ -1324,12 +1513,13 @@ cloudShieldCancelSuite =
                 in
                 Expect.equal ( Nothing, Just { targetId = "i-1", requestId = "exo-cs-req-2500" } )
                     ( restarted.exoextCancelRequestId
-                    , ServerDetail.exoextCancellableRun (runSlotFor 2500 "running" "i-1") runningRow restarted
+                    , ServerDetail.exoextCancellableRun pollTime (runSlotFor 2500 "running" "i-1") runningRow restarted
                     )
         , test "a stop for one request does not withdraw a DIFFERENT run's control" <|
             \_ ->
                 Expect.equal (Just { targetId = "i-1", requestId = "exo-cs-req-1700" })
-                    (ServerDetail.exoextCancellableRun (runSlotFor 1700 "running" "i-1")
+                    (ServerDetail.exoextCancellableRun pollTime
+                        (runSlotFor 1700 "running" "i-1")
                         runningRow
                         (ServerDetail.exoextCancelRequested "exo-cs-req-9999" draining)
                     )
@@ -1582,33 +1772,33 @@ cloudShieldStoppingSuite =
         [ test "a cancel on the wire makes the run it names stopping" <|
             \_ ->
                 Expect.equal (Just "i-1")
-                    (ServerDetail.exoextStoppingTarget (liveRun ++ cancelSlot "exo-cs-req-1700") runningRow draining)
+                    (ServerDetail.exoextStoppingTarget pollTime (liveRun ++ cancelSlot "exo-cs-req-1700") runningRow draining)
         , test "a stopping run survives a reload: no session state, and the wire still says so" <|
             \_ ->
                 -- The whole of bug 3. Every session-local record is gone, and the answer is
                 -- unchanged, because the host wrote the channel it is now reading.
                 Expect.equal ( Just "i-1", Nothing )
-                    ( ServerDetail.exoextStoppingTarget (liveRun ++ cancelSlot "exo-cs-req-1700") Nothing afterReload
-                    , ServerDetail.exoextCancellableRun (liveRun ++ cancelSlot "exo-cs-req-1700") Nothing afterReload
+                    ( ServerDetail.exoextStoppingTarget pollTime (liveRun ++ cancelSlot "exo-cs-req-1700") Nothing afterReload
+                    , ServerDetail.exoextCancellableRun pollTime (liveRun ++ cancelSlot "exo-cs-req-1700") Nothing afterReload
                     )
         , test "the same reload with no cancel on the wire reads as a plain live run" <|
             \_ ->
                 Expect.equal ( Nothing, Just { targetId = "i-1", requestId = "exo-cs-req-1700" } )
-                    ( ServerDetail.exoextStoppingTarget liveRun Nothing afterReload
-                    , ServerDetail.exoextCancellableRun liveRun Nothing afterReload
+                    ( ServerDetail.exoextStoppingTarget pollTime liveRun Nothing afterReload
+                    , ServerDetail.exoextCancellableRun pollTime liveRun Nothing afterReload
                     )
         , test "a stopping run is not cancellable: a second press could only be a no-op" <|
             \_ ->
                 Expect.equal Nothing
-                    (ServerDetail.exoextCancellableRun (liveRun ++ cancelSlot "exo-cs-req-1700") runningRow draining)
+                    (ServerDetail.exoextCancellableRun pollTime (liveRun ++ cancelSlot "exo-cs-req-1700") runningRow draining)
         , test "the press is acknowledged before the write lands, from this session's own record" <|
             \_ ->
                 -- The gap the session-local record covers: the cancel write is an HTTP round-trip and
                 -- the wire says nothing until the NEXT poll. Without this the row would keep reading
                 -- `scanning` for seconds after a press that plainly landed.
                 Expect.equal ( Just "i-1", Nothing )
-                    (( ServerDetail.exoextStoppingTarget liveRun runningRow
-                     , ServerDetail.exoextCancellableRun liveRun runningRow
+                    (( ServerDetail.exoextStoppingTarget pollTime liveRun runningRow
+                     , ServerDetail.exoextCancellableRun pollTime liveRun runningRow
                      )
                         |> Tuple.mapBoth
                             (\f -> f (ServerDetail.exoextCancelRequested "exo-cs-req-1700" draining))
@@ -1617,15 +1807,15 @@ cloudShieldStoppingSuite =
         , test "a cancel naming a DIFFERENT request leaves this run alone" <|
             \_ ->
                 Expect.equal ( Nothing, Just { targetId = "i-1", requestId = "exo-cs-req-1700" } )
-                    ( ServerDetail.exoextStoppingTarget (liveRun ++ cancelSlot "exo-cs-req-9999") runningRow draining
-                    , ServerDetail.exoextCancellableRun (liveRun ++ cancelSlot "exo-cs-req-9999") runningRow draining
+                    ( ServerDetail.exoextStoppingTarget pollTime (liveRun ++ cancelSlot "exo-cs-req-9999") runningRow draining
+                    , ServerDetail.exoextCancellableRun pollTime (liveRun ++ cancelSlot "exo-cs-req-9999") runningRow draining
                     )
         , test "the cleared channel names nothing, so a superseded stop cannot linger" <|
             \_ ->
                 -- `reqSlotMetadata` clears the channel by writing `""`, which is how the NEXT
                 -- request retires a stop. An empty value must never match a real request id.
                 Expect.equal Nothing
-                    (ServerDetail.exoextStoppingTarget (runSlotFor 1700 "running" "i-1" ++ cancelSlot "") Nothing afterReload)
+                    (ServerDetail.exoextStoppingTarget pollTime (runSlotFor 1700 "running" "i-1" ++ cancelSlot "") Nothing afterReload)
         , test "a terminal run is never stopping, however the stop was recorded" <|
             \_ ->
                 -- It has stopped, or it finished first. Either way its own terminal state is the
@@ -1638,7 +1828,8 @@ cloudShieldStoppingSuite =
                                     metadata =
                                         runSlotFor 1700 state "i-1" ++ cancelSlot "exo-cs-req-1700"
                                 in
-                                ServerDetail.exoextStoppingTarget metadata
+                                ServerDetail.exoextStoppingTarget pollTime
+                                    metadata
                                     (Just { targetId = "i-1", state = state })
                                     (ServerDetail.exoextCancelRequested "exo-cs-req-1700" draining)
                             )
@@ -1648,8 +1839,8 @@ cloudShieldStoppingSuite =
                 -- `cancellableRunStates` is about what a stop can be OFFERED for and names only
                 -- states this host knows; whether a stop is PENDING is a fact about the wire.
                 Expect.equal ( Just "i-1", Nothing )
-                    ( ServerDetail.exoextStoppingTarget (runSlotFor 1700 "snapshotting" "i-1" ++ cancelSlot "exo-cs-req-1700") Nothing afterReload
-                    , ServerDetail.exoextCancellableRun (runSlotFor 1700 "snapshotting" "i-1") Nothing afterReload
+                    ( ServerDetail.exoextStoppingTarget pollTime (runSlotFor 1700 "snapshotting" "i-1" ++ cancelSlot "exo-cs-req-1700") Nothing afterReload
+                    , ServerDetail.exoextCancellableRun pollTime (runSlotFor 1700 "snapshotting" "i-1") Nothing afterReload
                     )
         , test "the NEXT request clears the channel, so a restarted run is stoppable again" <|
             \_ ->
@@ -1663,14 +1854,14 @@ cloudShieldStoppingSuite =
                         runSlotFor 2500 "running" "i-1" ++ cancelSlot ""
                 in
                 Expect.equal ( Nothing, Just { targetId = "i-1", requestId = "exo-cs-req-2500" } )
-                    ( ServerDetail.exoextStoppingTarget metadata (Just { targetId = "i-1", state = "running" }) restarted
-                    , ServerDetail.exoextCancellableRun metadata (Just { targetId = "i-1", state = "running" }) restarted
+                    ( ServerDetail.exoextStoppingTarget pollTime metadata (Just { targetId = "i-1", state = "running" }) restarted
+                    , ServerDetail.exoextCancellableRun pollTime metadata (Just { targetId = "i-1", state = "running" }) restarted
                     )
         , test "a run the host cannot name is neither stoppable nor stopping" <|
             \_ ->
                 Expect.equal ( Nothing, Nothing )
-                    ( ServerDetail.exoextStoppingTarget (runSlot 1700 "running" ++ cancelSlot "exo-cs-req-1700") Nothing afterReload
-                    , ServerDetail.exoextRunControl (runSlot 1700 "running") Nothing afterReload
+                    ( ServerDetail.exoextStoppingTarget pollTime (runSlot 1700 "running" ++ cancelSlot "exo-cs-req-1700") Nothing afterReload
+                    , ServerDetail.exoextRunControl pollTime (runSlot 1700 "running") Nothing afterReload
                     )
         ]
 
@@ -1723,8 +1914,8 @@ cloudShieldTailStopSuite =
                 in
                 Expect.equal
                     ( Just { targetId = "i-1", requestId = "exo-cs-req-1700" }, Nothing )
-                    ( ServerDetail.exoextCancellableRun metadata (Just { targetId = "i-1", state = "running" }) stopped
-                    , ServerDetail.exoextStoppingTarget metadata (Just { targetId = "i-1", state = "running" }) stopped
+                    ( ServerDetail.exoextCancellableRun pollTime metadata (Just { targetId = "i-1", state = "running" }) stopped
+                    , ServerDetail.exoextStoppingTarget pollTime metadata (Just { targetId = "i-1", state = "running" }) stopped
                     )
         , test "removing the last tail member leaves the batch as a drained one does" <|
             \_ ->
