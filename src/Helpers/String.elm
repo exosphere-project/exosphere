@@ -9,6 +9,7 @@ module Helpers.String exposing
     , pluralizeCount
     , removeEmptiness
     , toTitleCase
+    , utf8ByteLength
     )
 
 import List.Extra
@@ -138,6 +139,36 @@ normalizeLineEndings : String -> String
 normalizeLineEndings =
     String.replace "\u{000D}\n" "\n"
         >> String.replace "\u{000D}" "\n"
+
+
+{-| The number of bytes a string occupies when encoded as UTF-8.
+
+Swift limits names by encoded bytes, not characters, so `String.length` (UTF-16 code units) is the
+wrong measure. `String.foldl` folds whole code points, so astral characters count as 4 bytes.
+
+-}
+utf8ByteLength : String -> Int
+utf8ByteLength string =
+    let
+        byteWidth : Char -> Int
+        byteWidth char =
+            let
+                code =
+                    Char.toCode char
+            in
+            if code < 0x80 then
+                1
+
+            else if code < 0x0800 then
+                2
+
+            else if code < 0x00010000 then
+                3
+
+            else
+                4
+    in
+    String.foldl (\char acc -> acc + byteWidth char) 0 string
 
 
 {-| Remove extraneous whitespace & prefer `Nothing` to `Just ""`.

@@ -7,8 +7,10 @@ module Types.SharedMsg exposing
 
 import Browser
 import Browser.Events
+import Bytes exposing (Bytes)
 import Http
 import OpenStack.DnsRecordSet
+import OpenStack.ObjectStorage
 import OpenStack.SecurityGroupRule as SecurityGroupRule
 import OpenStack.ServerActions as ServerActions
 import OpenStack.Types as OSTypes
@@ -131,6 +133,8 @@ type ProjectSpecificMsgConstructor
     | ReceiveShareExportLocations ( OSTypes.ShareUuid, List OSTypes.ExportLocation )
     | ReceiveShares (List OSTypes.Share)
     | ReceiveShareTypes (List OSTypes.ShareType)
+    | ReceiveUploadObject ErrorContext Int OpenStack.ObjectStorage.ContainerName (Maybe OpenStack.ObjectStorage.Prefix) (Result HttpErrorWithBody ())
+    | ReceiveDownloadObject ErrorContext OpenStack.ObjectStorage.ObjectName (Result HttpErrorWithBody Bytes)
     | ReceiveDeleteShare OSTypes.ShareUuid
     | ReceiveShareQuota ErrorContext (Result HttpErrorWithBody OSTypes.ShareQuota)
     | ReceiveCreateVolume

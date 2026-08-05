@@ -1,5 +1,6 @@
 module Rest.Helpers exposing
     ( encodeHttpErrorWithBody
+    , expectBytesWithErrorBody
     , expectJsonWithErrorBody
     , expectStringWithErrorBody
     , expectVoidWithErrorBody
@@ -13,6 +14,8 @@ module Rest.Helpers exposing
     , resultToProjectMsgErrorBody
     )
 
+import Bytes exposing (Bytes)
+import Bytes.Decode
 import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
@@ -211,6 +214,37 @@ expectVoidWithErrorBody toMsg =
     Http.expectStringResponse toMsg <|
         httpResponseStringToResult
             (\_ -> Ok ())
+
+
+{-| Expect a **binary** response body (an object's bytes), preserving them for `File.Download.bytes`.
+On a non-2xx status the error body is decoded to a String best-effort (so the standard error toast can
+show it); a body that is not valid UTF-8 falls back to "".
+-}
+expectBytesWithErrorBody : (Result HttpErrorWithBody Bytes -> msg) -> Http.Expect msg
+expectBytesWithErrorBody toMsg =
+    Http.expectBytesResponse toMsg <|
+        \response ->
+            case response of
+                Http.BadUrl_ url ->
+                    Err <| HttpErrorWithBody (Http.BadUrl url) ""
+
+                Http.Timeout_ ->
+                    Err <| HttpErrorWithBody Http.Timeout ""
+
+                Http.NetworkError_ ->
+                    Err <| HttpErrorWithBody Http.NetworkError ""
+
+                Http.BadStatus_ metadata body ->
+                    Err <| HttpErrorWithBody (Http.BadStatus metadata.statusCode) (bytesToStringBestEffort body)
+
+                Http.GoodStatus_ _ body ->
+                    Ok body
+
+
+bytesToStringBestEffort : Bytes -> String
+bytesToStringBestEffort bytes =
+    Bytes.Decode.decode (Bytes.Decode.string (Bytes.width bytes)) bytes
+        |> Maybe.withDefault ""
 
 
 expectJsonWithErrorBody : (Result HttpErrorWithBody a -> msg) -> Decode.Decoder a -> Http.Expect msg

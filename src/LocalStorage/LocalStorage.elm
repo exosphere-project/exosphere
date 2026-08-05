@@ -1,5 +1,6 @@
 module LocalStorage.LocalStorage exposing
-    ( generateStoredState
+    ( endpointsDecoder
+    , generateStoredState
     , hydrateModelFromStoredState
     , storedStateDecoder
     )
@@ -132,6 +133,7 @@ hydrateProjectFromStoredProject storedProject =
     , shareAccessRules = Dict.empty
     , shareExportLocations = Dict.empty
     , shareTypes = RDPP.empty
+    , objectStorageUploads = []
     , autoAllocatedNetworkUuid = RDPP.empty
     , dnsRecordSets = RDPP.empty
     , floatingIps = RDPP.empty
@@ -310,6 +312,7 @@ encodeExoEndpoints endpoints =
                 |> Maybe.withDefault Encode.null
           )
         , ( "designate", endpoints.designate |> Maybe.map Encode.string |> Maybe.withDefault Encode.null )
+        , ( "swift", endpoints.swift |> Maybe.map Encode.string |> Maybe.withDefault Encode.null )
         ]
 
 
@@ -602,6 +605,10 @@ endpointsDecoder =
             Nothing
         |> Pipeline.optional "designate"
             -- This decodes earlier stored projects which do not have the designate field in encoded endpoints
+            (Decode.nullable Decode.string)
+            Nothing
+        |> Pipeline.optional "swift"
+            -- This decodes earlier stored projects which do not have the swift (object-store) field in encoded endpoints
             (Decode.nullable Decode.string)
             Nothing
 

@@ -3,6 +3,7 @@ module Types.Project exposing (Endpoints, Project, ProjectName, ProjectSecret(..
 import Dict exposing (Dict)
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.DnsRecordSet
+import OpenStack.ObjectStorage as ObjectStorage
 import OpenStack.Types as OSTypes
 import OpenStack.VolumeSnapshots exposing (VolumeSnapshot)
 import Types.Error exposing (HttpErrorWithBody)
@@ -38,6 +39,11 @@ type alias Project =
     , shareAccessRules : Dict OSTypes.ShareUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.AccessRule))
     , shareExportLocations : Dict OSTypes.ShareUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ExportLocation))
     , shareTypes : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ShareType)
+
+    -- Transient (never persisted) browser-side upload queue with honest per-file queue-state status.
+    -- Lives here (not page-local) because upload results arrive as SharedMsg in State.State; precedent
+    -- for transient action state on Project: serverVolumeActions / serverActionRequestQueue above.
+    , objectStorageUploads : List ObjectStorage.Upload
     , flavors : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Flavor)
     , keypairs : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Keypair)
     , volumes : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Volume)
@@ -79,6 +85,7 @@ type alias Endpoints =
     , placement : Maybe HelperTypes.Url
     , jetstream2Accounting : Maybe HelperTypes.Url
     , designate : Maybe HelperTypes.Url
+    , swift : Maybe HelperTypes.Url
     }
 
 

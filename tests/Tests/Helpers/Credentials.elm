@@ -33,6 +33,7 @@ project secret =
         , placement = Nothing
         , jetstream2Accounting = Nothing
         , designate = Nothing
+        , swift = Nothing
         }
     , description = Nothing
     , images = RDPP.empty
@@ -47,6 +48,7 @@ project secret =
     , shareAccessRules = Dict.empty
     , shareExportLocations = Dict.empty
     , shareTypes = RDPP.empty
+    , objectStorageUploads = []
     , flavors = RDPP.empty
     , keypairs = RDPP.empty
     , volumes = RDPP.empty

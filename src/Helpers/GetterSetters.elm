@@ -67,6 +67,7 @@ module Helpers.GetterSetters exposing
     , projectSetShareExportLocationsLoading
     , projectSetShareTypesLoading
     , projectSetSharesLoading
+    , projectSetUploadStatusById
     , projectSetVolumeSnapshotsLoading
     , projectSetVolumesLoading
     , projectUpdateKeypair
@@ -114,6 +115,7 @@ import Helpers.String exposing (toTitleCase)
 import Helpers.Url as UrlHelpers
 import List.Extra
 import OpenStack.DnsRecordSet
+import OpenStack.ObjectStorage as ObjectStorage
 import OpenStack.SecurityGroupRule as SecurityGroupRule
 import OpenStack.Types as OSTypes
 import OpenStack.VolumeSnapshots as VS
@@ -1136,6 +1138,16 @@ projectSetSharesLoading project =
 projectSetShareTypesLoading : Project -> Project
 projectSetShareTypesLoading project =
     { project | shareTypes = RDPP.setLoading project.shareTypes }
+
+
+{-| Update the status of the queued upload whose unique `id` matches.
+-}
+projectSetUploadStatusById : Int -> ObjectStorage.UploadStatus -> Project -> Project
+projectSetUploadStatusById id status project =
+    { project
+        | objectStorageUploads =
+            ObjectStorage.setUploadStatusById id status project.objectStorageUploads
+    }
 
 
 projectSetShareAccessRulesLoading : OSTypes.ShareUuid -> Project -> Project
