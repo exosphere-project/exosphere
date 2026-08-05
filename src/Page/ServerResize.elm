@@ -1,6 +1,7 @@
 module Page.ServerResize exposing (Model, Msg, init, update, view)
 
 import Element
+import Helpers.FlavorLimits as FlavorLimits
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
@@ -10,6 +11,7 @@ import Route
 import Style.Widgets.Button as Button
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
+import Style.Widgets.Validation exposing (invalidMessage)
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
 import Types.SharedModel exposing (SharedModel)
@@ -72,7 +74,7 @@ view context project model =
 
 
 view_ : View.Types.Context -> Project -> Model -> OSTypes.ComputeQuota -> Element.Element Msg
-view_ context project model _ =
+view_ context project model computeQuota =
     let
         restrictFlavorIds =
             GetterSetters.serverLookup project model.serverUuid
@@ -102,6 +104,22 @@ view_ context project model _ =
 
         currentFlavorId =
             GetterSetters.serverLookup project model.serverUuid |> Maybe.map (\server -> server.osProps.details.flavorId)
+
+        flavorLimitEvaluation =
+            FlavorLimits.evaluate
+                { computeQuota = computeQuota
+                , customResources = GetterSetters.getCustomResources project context
+                , flavors = RDPP.withDefault [] project.flavors
+                , localization = context.localization
+                , registeredLimits = RDPP.toMaybe project.registeredLimits
+                , projectLimits = RDPP.toMaybe project.projectLimits
+                , projectUsages = RDPP.toMaybe project.projectUsages
+                }
+
+        selectedFlavorExceedsLimits =
+            model.flavorId
+                |> Maybe.map (\flavorId -> FlavorLimits.exceedsLimit flavorId flavorLimitEvaluation)
+                |> Maybe.withDefault False
     in
     Element.column VH.formContainer
         [ Text.heading context.palette
@@ -126,22 +144,26 @@ view_ context project model _ =
                 project
                 restrictFlavorIds
                 (Just ("This flavor has a root disk smaller than your current " ++ context.localization.virtualComputer))
-                (\_ ->
-                    -- FIXME: Determine whether to show a quota warning message.
-                    Nothing
-                )
+                flavorLimitEvaluation
                 (\flavorGroupTipId -> SharedMsg <| SharedMsg.TogglePopover flavorGroupTipId)
                 (Helpers.String.hyphenate [ "serverResizeFlavorGroupTip", project.auth.project.uuid ])
                 currentFlavorId
                 model.flavorId
                 GotFlavorId
-            , Element.row [ Element.width Element.fill ]
-                [ Element.el [ Element.alignRight ]
+            , Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
+                [ Element.el [ Element.width Element.fill ] <|
+                    if selectedFlavorExceedsLimits then
+                        invalidMessage context.palette <|
+                            FlavorLimits.invalidSelectionMessage context.localization
+
+                    else
+                        Element.none
+                , Element.el [ Element.alignRight ]
                     (Button.primary
                         context.palette
                         { text = "Resize"
                         , onPress =
-                            if model.flavorId == currentFlavorId then
+                            if model.flavorId == currentFlavorId || selectedFlavorExceedsLimits then
                                 Nothing
 
                             else

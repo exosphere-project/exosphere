@@ -1,6 +1,5 @@
 module Page.ServerCreate exposing (Model, Msg(..), init, update, view)
 
-import Dict
 import Element
 import Element.Background as Background
 import Element.Border as Border
@@ -10,6 +9,7 @@ import Element.Input as Input
 import FeatherIcons as Icons
 import FormatNumber
 import FormatNumber.Locales exposing (Decimals(..))
+import Helpers.FlavorLimits as FlavorLimits
 import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters exposing (isDefaultSecurityGroup)
 import Helpers.Helpers as Helpers
@@ -18,7 +18,6 @@ import Helpers.List exposing (duplicatedValuesBy)
 import Helpers.Random as RandomHelper
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
-import Helpers.UnifiedLimits as UnifiedLimits
 import Helpers.Units
 import Helpers.Validation as Validation
 import Helpers.ValidationResult
@@ -556,73 +555,19 @@ view context project currentTime model =
                         |> Maybe.map (List.filterMap (GetterSetters.flavorLookup project))
                         |> Maybe.withDefault flavors
 
-                unifiedLimitQuotas =
-                    let
-                        -- Wait for all data to load to avoid incomplete limits.
-                        isUnifiedLimitDataLoaded =
-                            RDPP.gotData project.registeredLimits
-                                && RDPP.gotData project.projectLimits
-                                && RDPP.gotData project.projectUsages
-                    in
-                    if isUnifiedLimitDataLoaded then
-                        UnifiedLimits.quotasFromUnifiedLimits
-                            (RDPP.withDefault [] project.registeredLimits)
-                            (RDPP.withDefault [] project.projectLimits)
-                            (RDPP.withDefault [] project.projectUsages)
-
-                    else
-                        []
-
-                customResources =
-                    GetterSetters.getCustomResources project context
-
-                requirementsByFlavor =
-                    UnifiedLimits.customResourceRequirementsByFlavor customResources flavorsToShow
-
-                computeQuotaExceededMessageFor candidateFlavor =
-                    OSQuotas.computeQuotaFlavorAvailServers computeQuota candidateFlavor
-                        |> Maybe.andThen
-                            (\launchableServers ->
-                                if launchableServers < 1 then
-                                    -- TODO: Provide more granular detail from the compute quota.
-                                    Just <|
-                                        "This "
-                                            ++ context.localization.virtualComputerHardwareConfig
-                                            ++ " would exceed your "
-                                            ++ context.localization.unitOfTenancy
-                                            ++ "'s "
-                                            ++ context.localization.maxResourcesPerProject
-                                            ++ "."
-
-                                else
-                                    Nothing
-                            )
-
-                limitWarningMessagesByFlavor =
-                    flavorsToShow
-                        |> List.map
-                            (\candidateFlavor ->
-                                ( candidateFlavor.id
-                                , requirementsByFlavor
-                                    |> Dict.get candidateFlavor.id
-                                    |> Maybe.withDefault []
-                                    |> UnifiedLimits.flavorWarningMessages
-                                        (computeQuotaExceededMessageFor candidateFlavor)
-                                        unifiedLimitQuotas
-                                )
-                            )
-                        |> Dict.fromList
-
-                limitWarningMessagesFor candidateFlavor =
-                    limitWarningMessagesByFlavor
-                        |> Dict.get candidateFlavor.id
-                        |> Maybe.withDefault []
-
-                selectedFlavorLimitWarnings =
-                    limitWarningMessagesFor flavor
+                flavorLimitEvaluation =
+                    FlavorLimits.evaluate
+                        { computeQuota = computeQuota
+                        , customResources = GetterSetters.getCustomResources project context
+                        , flavors = flavorsToShow
+                        , localization = context.localization
+                        , registeredLimits = RDPP.toMaybe project.registeredLimits
+                        , projectLimits = RDPP.toMaybe project.projectLimits
+                        , projectUsages = RDPP.toMaybe project.projectUsages
+                        }
 
                 selectedFlavorExceedsLimits =
-                    not (List.isEmpty selectedFlavorLimitWarnings)
+                    FlavorLimits.exceedsLimit flavor.id flavorLimitEvaluation
 
                 flavorAvailability : List Bool
                 flavorAvailability =
@@ -744,9 +689,7 @@ view context project currentTime model =
 
                     else if selectedFlavorExceedsLimits then
                         invalidMessage context.palette <|
-                            "Please select a valid "
-                                ++ context.localization.virtualComputerHardwareConfig
-                                ++ "."
+                            FlavorLimits.invalidSelectionMessage context.localization
 
                     else
                         case maybeInvalidFormFields of
@@ -879,43 +822,16 @@ view context project currentTime model =
                         Element.none
                 ]
             , Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Compute project)
-            , Element.column
-                [ Element.spacing spacer.px8 ]
-                [ VH.flavorPicker context
-                    project
-                    model.restrictFlavorIds
-                    Nothing
-                    (\candidateFlavor ->
-                        case limitWarningMessagesFor candidateFlavor of
-                            [] ->
-                                Nothing
-
-                            messages ->
-                                Just <|
-                                    Element.column [ Element.spacing spacer.px8 ] <|
-                                        List.map Text.body messages
-                    )
-                    (\flavorGroupTipId -> SharedMsg <| SharedMsg.TogglePopover flavorGroupTipId)
-                    (Helpers.String.hyphenate [ "serverCreateFlavorGroupTip", project.auth.project.uuid ])
-                    Nothing
-                    (Just flavor.id)
-                    GotFlavorId
-                , if selectedFlavorExceedsLimits then
-                    invalidMessage context.palette <|
-                        String.join " "
-                            [ "Please select"
-                            , Helpers.String.indefiniteArticle context.localization.virtualComputerHardwareConfig
-                            , context.localization.virtualComputerHardwareConfig
-                            , "that does not exceed your"
-                            , context.localization.unitOfTenancy ++ "'s"
-                            , context.localization.maxResourcesPerProject
-                                |> Helpers.String.pluralize
-                                |> (\limits -> limits ++ ".")
-                            ]
-
-                  else
-                    Element.none
-                ]
+            , VH.flavorPicker context
+                project
+                model.restrictFlavorIds
+                Nothing
+                flavorLimitEvaluation
+                (\flavorGroupTipId -> SharedMsg <| SharedMsg.TogglePopover flavorGroupTipId)
+                (Helpers.String.hyphenate [ "serverCreateFlavorGroupTip", project.auth.project.uuid ])
+                Nothing
+                (Just flavor.id)
+                GotFlavorId
             , volBackedPrompt project context model volumeQuota flavor
             , countPicker context model computeQuota volumeQuota flavor
             , desktopEnvironmentPicker context project model

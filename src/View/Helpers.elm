@@ -86,6 +86,7 @@ import FeatherIcons as Icons
 import FormatNumber
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Connectivity
+import Helpers.FlavorLimits as FlavorLimits
 import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters exposing (LoadingProgress(..))
 import Helpers.Helpers as Helpers
@@ -129,6 +130,7 @@ import Style.Widgets.StatusBadge as StatusBadge exposing (StatusBadgeSize)
 import Style.Widgets.Tag exposing (tagWarning)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip as ToggleTip
+import Style.Widgets.Validation exposing (invalidMessage)
 import Time
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Types.HelperTypes exposing (Localization)
@@ -1200,14 +1202,14 @@ flavorPicker :
     -> Project
     -> Maybe (List OSTypes.FlavorId)
     -> Maybe String
-    -> (OSTypes.Flavor -> Maybe (Element.Element msg))
+    -> FlavorLimits.Evaluation
     -> (PopoverId -> msg)
     -> PopoverId
     -> Maybe OSTypes.FlavorId
     -> Maybe OSTypes.FlavorId
     -> (OSTypes.FlavorId -> msg)
     -> Element.Element msg
-flavorPicker context project restrictFlavorIds showDisabledFlavorsReason maybeQuotaExceeded flavorGroupToggleTipMsgMapper flavorGroupToggleTipId maybeCurrentFlavorId selectedFlavorId changeMsg =
+flavorPicker context project restrictFlavorIds showDisabledFlavorsReason flavorLimits flavorGroupToggleTipMsgMapper flavorGroupToggleTipId maybeCurrentFlavorId selectedFlavorId changeMsg =
     let
         { locale, palette } =
             context
@@ -1233,18 +1235,6 @@ flavorPicker context project restrictFlavorIds showDisabledFlavorsReason maybeQu
 
                 _ ->
                     RDPP.withDefault [] project.flavors
-
-        quotaExceededByFlavor =
-            flavorsToShow
-                |> List.filterMap
-                    (\flavor ->
-                        maybeQuotaExceeded flavor
-                            |> Maybe.map (\warning -> ( flavor.id, warning ))
-                    )
-                |> Dict.fromList
-
-        quotaExceededFor flavor =
-            Dict.get flavor.id quotaExceededByFlavor
 
         disabledFlavorTooltip flavor reason =
             ToggleTip.toggleTip context
@@ -1277,12 +1267,7 @@ flavorPicker context project restrictFlavorIds showDisabledFlavorsReason maybeQu
             else if isFlavorAllowed flavor then
                 let
                     isQuotaExceeded =
-                        case quotaExceededFor flavor of
-                            Just _ ->
-                                True
-
-                            Nothing ->
-                                False
+                        FlavorLimits.exceedsLimit flavor.id flavorLimits
                 in
                 Element.Input.radio
                     (Element.centerX
@@ -1387,8 +1372,11 @@ flavorPicker context project restrictFlavorIds showDisabledFlavorsReason maybeQu
               , width = Element.shrink
               , view =
                     \r ->
-                        case quotaExceededFor r of
-                            Just warning ->
+                        case FlavorLimits.warningMessagesFor r.id flavorLimits of
+                            [] ->
+                                Element.none
+
+                            messages ->
                                 Element.row []
                                     [ let
                                         toggleTipId =
@@ -1400,13 +1388,12 @@ flavorPicker context project restrictFlavorIds showDisabledFlavorsReason maybeQu
                                       ToggleTip.warningToggleTip context
                                         flavorGroupToggleTipMsgMapper
                                         toggleTipId
-                                        warning
+                                        (Element.column [ Element.spacing spacer.px8 ] <|
+                                            List.map Text.body messages
+                                        )
                                         ST.PositionBottomRight
                                     , tagWarning palette ("exceeds " ++ context.localization.maxResourcesPerProject)
                                     ]
-
-                            Nothing ->
-                                Element.none
               }
             ]
 
@@ -1502,6 +1489,17 @@ flavorPicker context project restrictFlavorIds showDisabledFlavorsReason maybeQu
                 Element.column
                     [ Element.spacing spacer.px12 ]
                     (flavorGroups |> List.map (renderFlavorGroup (GetterSetters.sortedFlavors flavorsToShow)))
+        , case selectedFlavorId of
+            Just flavorId ->
+                if FlavorLimits.exceedsLimit flavorId flavorLimits then
+                    invalidMessage context.palette <|
+                        FlavorLimits.selectionGuidanceMessage context.localization
+
+                else
+                    Element.none
+
+            Nothing ->
+                Element.none
         , Element.paragraph [ Text.fontSize Text.Tiny ] [ Element.text zeroRootDiskExplainText ]
         ]
 
