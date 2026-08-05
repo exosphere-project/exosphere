@@ -551,11 +551,82 @@ view context project currentTime model =
                 flavors =
                     RDPP.withDefault [] project.flavors
 
-                flavorAvailability : List Bool
-                flavorAvailability =
+                flavorsToShow =
                     model.restrictFlavorIds
                         |> Maybe.map (List.filterMap (GetterSetters.flavorLookup project))
                         |> Maybe.withDefault flavors
+
+                unifiedLimitQuotas =
+                    let
+                        -- Wait for all data to load to avoid incomplete limits.
+                        isUnifiedLimitDataLoaded =
+                            RDPP.gotData project.registeredLimits
+                                && RDPP.gotData project.projectLimits
+                                && RDPP.gotData project.projectUsages
+                    in
+                    if isUnifiedLimitDataLoaded then
+                        UnifiedLimits.quotasFromUnifiedLimits
+                            (RDPP.withDefault [] project.registeredLimits)
+                            (RDPP.withDefault [] project.projectLimits)
+                            (RDPP.withDefault [] project.projectUsages)
+
+                    else
+                        []
+
+                customResources =
+                    GetterSetters.getCustomResources project context
+
+                requirementsByFlavor =
+                    UnifiedLimits.customResourceRequirementsByFlavor customResources flavorsToShow
+
+                computeQuotaExceededMessageFor candidateFlavor =
+                    OSQuotas.computeQuotaFlavorAvailServers computeQuota candidateFlavor
+                        |> Maybe.andThen
+                            (\launchableServers ->
+                                if launchableServers < 1 then
+                                    -- TODO: Provide more granular detail from the compute quota.
+                                    Just <|
+                                        "This "
+                                            ++ context.localization.virtualComputerHardwareConfig
+                                            ++ " would exceed your "
+                                            ++ context.localization.unitOfTenancy
+                                            ++ "'s "
+                                            ++ context.localization.maxResourcesPerProject
+                                            ++ "."
+
+                                else
+                                    Nothing
+                            )
+
+                limitWarningMessagesByFlavor =
+                    flavorsToShow
+                        |> List.map
+                            (\candidateFlavor ->
+                                ( candidateFlavor.id
+                                , requirementsByFlavor
+                                    |> Dict.get candidateFlavor.id
+                                    |> Maybe.withDefault []
+                                    |> UnifiedLimits.flavorWarningMessages
+                                        (computeQuotaExceededMessageFor candidateFlavor)
+                                        unifiedLimitQuotas
+                                )
+                            )
+                        |> Dict.fromList
+
+                limitWarningMessagesFor candidateFlavor =
+                    limitWarningMessagesByFlavor
+                        |> Dict.get candidateFlavor.id
+                        |> Maybe.withDefault []
+
+                selectedFlavorLimitWarnings =
+                    limitWarningMessagesFor flavor
+
+                selectedFlavorExceedsLimits =
+                    not (List.isEmpty selectedFlavorLimitWarnings)
+
+                flavorAvailability : List Bool
+                flavorAvailability =
+                    flavorsToShow
                         |> List.map (canBeLaunched computeQuota)
 
                 hasAvailableResources =
@@ -573,7 +644,11 @@ view context project currentTime model =
                     model.workflowInputRepository == "" && model.workflowInputIsValid == Just False
 
                 invalidInputs =
-                    invalidVolSizeTextInput || invalidWorkflowTextInput || not hasAvailableResources || (compareDiskSize project model |> Helpers.ValidationResult.isInvalid)
+                    invalidVolSizeTextInput
+                        || invalidWorkflowTextInput
+                        || selectedFlavorExceedsLimits
+                        || not hasAvailableResources
+                        || (compareDiskSize project model |> Helpers.ValidationResult.isInvalid)
 
                 ( createOnPress, maybeInvalidFormFields ) =
                     case ( invalidNameReasons, invalidInputs ) of
@@ -621,10 +696,18 @@ view context project currentTime model =
                                     else
                                         []
 
+                                invalidFlavorField =
+                                    if selectedFlavorExceedsLimits then
+                                        [ context.localization.virtualComputerHardwareConfig ]
+
+                                    else
+                                        []
+
                                 invalidFormFields =
                                     invalidNameFormField
                                         ++ invalidVolSizeField
                                         ++ invalidWorkflowField
+                                        ++ invalidFlavorField
                             in
                             ( Nothing, Just invalidFormFields )
 
@@ -658,6 +741,12 @@ view context project currentTime model =
                                     ]
                         in
                         invalidMessage context.palette invalidFormHint
+
+                    else if selectedFlavorExceedsLimits then
+                        invalidMessage context.palette <|
+                            "Please select a valid "
+                                ++ context.localization.virtualComputerHardwareConfig
+                                ++ "."
 
                     else
                         case maybeInvalidFormFields of
@@ -790,74 +879,43 @@ view context project currentTime model =
                         Element.none
                 ]
             , Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Compute project)
-            , let
-                unifiedLimitQuotas =
-                    let
-                        --- Wait for all data to load to avoid incomplete limits.
-                        isUnifiedLimitDataLoaded =
-                            RDPP.gotData project.registeredLimits
-                                && RDPP.gotData project.projectLimits
-                                && RDPP.gotData project.projectUsages
-                    in
-                    if isUnifiedLimitDataLoaded then
-                        UnifiedLimits.quotasFromUnifiedLimits
-                            (RDPP.withDefault [] project.registeredLimits)
-                            (RDPP.withDefault [] project.projectLimits)
-                            (RDPP.withDefault [] project.projectUsages)
+            , Element.column
+                [ Element.spacing spacer.px8 ]
+                [ VH.flavorPicker context
+                    project
+                    model.restrictFlavorIds
+                    Nothing
+                    (\candidateFlavor ->
+                        case limitWarningMessagesFor candidateFlavor of
+                            [] ->
+                                Nothing
 
-                    else
-                        []
+                            messages ->
+                                Just <|
+                                    Element.column [ Element.spacing spacer.px8 ] <|
+                                        List.map Text.body messages
+                    )
+                    (\flavorGroupTipId -> SharedMsg <| SharedMsg.TogglePopover flavorGroupTipId)
+                    (Helpers.String.hyphenate [ "serverCreateFlavorGroupTip", project.auth.project.uuid ])
+                    Nothing
+                    (Just flavor.id)
+                    GotFlavorId
+                , if selectedFlavorExceedsLimits then
+                    invalidMessage context.palette <|
+                        String.join " "
+                            [ "Please select"
+                            , Helpers.String.indefiniteArticle context.localization.virtualComputerHardwareConfig
+                            , context.localization.virtualComputerHardwareConfig
+                            , "that does not exceed your"
+                            , context.localization.unitOfTenancy ++ "'s"
+                            , context.localization.maxResourcesPerProject
+                                |> Helpers.String.pluralize
+                                |> (\limits -> limits ++ ".")
+                            ]
 
-                customResources =
-                    GetterSetters.getCustomResources project context
-
-                requirementsByFlavor =
-                    UnifiedLimits.customResourceRequirementsByFlavor customResources flavors
-              in
-              VH.flavorPicker context
-                project
-                model.restrictFlavorIds
-                Nothing
-                (\f ->
-                    let
-                        computeQuotaExceededMessage =
-                            OSQuotas.computeQuotaFlavorAvailServers computeQuota f
-                                |> Maybe.andThen
-                                    (\launchableServers ->
-                                        if launchableServers < 1 then
-                                            -- TODO: Provide more granular detail from the compute quota.
-                                            Just <|
-                                                "This size would exceed your "
-                                                    ++ context.localization.unitOfTenancy
-                                                    ++ "'s "
-                                                    ++ context.localization.maxResourcesPerProject
-                                                    ++ "."
-
-                                        else
-                                            Nothing
-                                    )
-
-                        messages =
-                            requirementsByFlavor
-                                |> Dict.get f.id
-                                |> Maybe.withDefault []
-                                |> UnifiedLimits.flavorWarningMessages computeQuotaExceededMessage unifiedLimitQuotas
-                    in
-                    if not (List.isEmpty messages) then
-                        Just <|
-                            Element.column [ Element.spacing spacer.px8 ] <|
-                                List.map Text.body <|
-                                    messages
-
-                    else
-                        Nothing
-                )
-                (\flavorGroupTipId -> SharedMsg <| SharedMsg.TogglePopover flavorGroupTipId)
-                (Helpers.String.hyphenate [ "serverCreateFlavorGroupTip", project.auth.project.uuid ])
-                Nothing
-                (Just flavor.id)
-                -- TODO: Prevent submission of the form if the flavour id is disabled.
-                GotFlavorId
+                  else
+                    Element.none
+                ]
             , volBackedPrompt project context model volumeQuota flavor
             , countPicker context model computeQuota volumeQuota flavor
             , desktopEnvironmentPicker context project model

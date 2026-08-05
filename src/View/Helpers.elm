@@ -1502,8 +1502,6 @@ flavorPicker context project restrictFlavorIds showDisabledFlavorsReason maybeQu
                 Element.column
                     [ Element.spacing spacer.px12 ]
                     (flavorGroups |> List.map (renderFlavorGroup (GetterSetters.sortedFlavors flavorsToShow)))
-
-        -- TODO: Show error feedback if a disabled flavour has been selected.
         , Element.paragraph [ Text.fontSize Text.Tiny ] [ Element.text zeroRootDiskExplainText ]
         ]
 
