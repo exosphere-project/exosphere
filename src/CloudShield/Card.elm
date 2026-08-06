@@ -1777,7 +1777,16 @@ rendererStyle palette =
                 -- is in fact still winding the run down, and a still-running row that looks finished
                 -- is what gets pressed a second time. Prefix selectors, so a state carrying a
                 -- display suffix (`scanning · 0:15`) or an ellipsis (`stopping…`) still matches.
-                , ".jr-badge[data-state^=\"queued\"]::before, .jr-badge[data-state^=\"running\"]::before, .jr-badge[data-state^=\"scanning\"]::before, .jr-badge[data-state^=\"stopping\"]::before { content: \"\"; display: inline-block; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: jr-badge-spin 0.7s linear infinite; }"
+                --
+                -- `flex: none` is what keeps the ring ROUND. Every round box in this stylesheet is a
+                -- fixed-size pseudo-element sitting inside a badge or row that is itself a flex
+                -- container, so it is a flex ITEM: its default `flex-shrink: 1` lets the main axis
+                -- (here the width) be compressed when the line runs out of room, while the cross
+                -- axis keeps its declared size, and a circle compressed on one axis is an oval.
+                -- Nothing about `border-radius: 50%` prevents that — 50% of an oval is an oval.
+                -- `.jr-findings__dot` already carries this for the same reason; the rings did not,
+                -- and they are the elements the researcher watches while a scan runs.
+                , ".jr-badge[data-state^=\"queued\"]::before, .jr-badge[data-state^=\"running\"]::before, .jr-badge[data-state^=\"scanning\"]::before, .jr-badge[data-state^=\"stopping\"]::before { content: \"\"; display: inline-block; flex: none; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: jr-badge-spin 0.7s linear infinite; }"
                 , "@keyframes jr-badge-spin { to { transform: rotate(360deg); } }"
                 , ".jr-badge--neutral { background: " ++ frontBg ++ "; color: " ++ muted ++ "; border-color: " ++ border ++ "; }"
                 , ".jr-badge--info { background: " ++ infoBg ++ "; color: " ++ infoText ++ "; border-color: " ++ infoBorder ++ "; }"
@@ -1855,7 +1864,7 @@ rendererStyle palette =
                 -- is the key requirement (the researcher may have "unlimited" instances and scans).
                 , ".jr-card > .jr-stack--row > .jr-stack--col > .jr-stack--col { flex: 1 1 auto; max-height: 16rem; overflow-y: auto; gap: 2px; }"
                 , "[data-exoext-history-loading=\"true\"] .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col { min-height: 3rem; display: flex; flex-direction: row; align-items: center; gap: 8px; padding: 9px 10px; color: " ++ muted ++ "; background: " ++ frontBg ++ "; border-radius: 8px; }"
-                , "[data-exoext-history-loading=\"true\"] .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col::before { content: \"\"; display: inline-block; width: 12px; height: 12px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: jr-badge-spin 0.7s linear infinite; }"
+                , "[data-exoext-history-loading=\"true\"] .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col::before { content: \"\"; display: inline-block; flex: none; width: 12px; height: 12px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: jr-badge-spin 0.7s linear infinite; }"
                 , "[data-exoext-history-loading=\"true\"] .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col::after { content: \"Loading history…\"; font-size: 0.9em; }"
 
                 -- Scan-target rows (TARGETS scroll rows): the name grows; the Scan button sits right.
@@ -1893,7 +1902,7 @@ rendererStyle palette =
                 -- selector sets live side by side until the demo VM redeploys v2.
                 , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Now viewing\"]), .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"viewing\"]) { background: " ++ primaryTint ++ "; border-left-color: " ++ primary ++ "; box-shadow: inset 0 0 0 1px " ++ primaryLine ++ "; }"
                 , ".jr-badge[data-state=\"Now viewing\"], .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"viewing\"] { display: inline-flex; align-items: center; gap: 5px; background: " ++ primaryTintStrong ++ "; color: " ++ primary ++ "; border-color: " ++ primaryLine ++ "; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.7em; font-weight: 700; }"
-                , ".jr-badge[data-state=\"Now viewing\"]::before, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"viewing\"]::before { content: \"\"; width: 6px; height: 6px; border-radius: 50%; background: " ++ primary ++ "; animation: jr-viewing-pulse 2s ease-in-out infinite; }"
+                , ".jr-badge[data-state=\"Now viewing\"]::before, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"viewing\"]::before { content: \"\"; flex: none; width: 6px; height: 6px; border-radius: 50%; background: " ++ primary ++ "; animation: jr-viewing-pulse 2s ease-in-out infinite; }"
                 , "@keyframes jr-viewing-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }"
                 , "@media (prefers-reduced-motion: reduce) { .jr-badge[data-state=\"Now viewing\"]::before, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"viewing\"]::before { animation: none; } }"
                 , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Now viewing\"]) .jr-button, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"viewing\"]) .jr-button { background: transparent; border-color: " ++ primaryLine ++ "; color: " ++ primary ++ "; }"
@@ -1905,7 +1914,7 @@ rendererStyle palette =
                 -- the bridge mints the fresh embed.
                 , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Opening…\"]), .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"opening\"]) { background: " ++ primaryTint ++ "; border-left-color: " ++ primaryLine ++ "; }"
                 , ".jr-badge[data-state=\"Opening…\"], .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"opening\"] { display: inline-flex; align-items: center; gap: 6px; background: " ++ primaryTintStrong ++ "; color: " ++ primary ++ "; border-color: " ++ primaryLine ++ "; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.7em; font-weight: 700; }"
-                , ".jr-badge[data-state=\"Opening…\"]::before, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"opening\"]::before { content: \"\"; display: inline-block; width: 9px; height: 9px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: jr-badge-spin 0.7s linear infinite; }"
+                , ".jr-badge[data-state=\"Opening…\"]::before, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"opening\"]::before { content: \"\"; display: inline-block; flex: none; width: 9px; height: 9px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: jr-badge-spin 0.7s linear infinite; }"
                 , "@media (prefers-reduced-motion: reduce) { .jr-badge[data-state=\"Opening…\"]::before, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"opening\"]::before { animation: none; } }"
                 , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Opening…\"]) .jr-button, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"opening\"]) .jr-button { background: transparent; border-color: " ++ primaryLine ++ "; color: " ++ primary ++ "; opacity: 0.6; pointer-events: none; }"
 
