@@ -343,10 +343,16 @@ renderBadge ctx props =
         [ Html.text label ]
 
 
-{-| Tone mapping from a per-row `scanState` string. Keyed on the leading whitespace-delimited
-token so a value that carries a trailing detail suffix (e.g. `"scanning · 0:15"`, the live-scan
-row's counting-up elapsed) still maps to its state tone. Mirrors the Track A island's state→tone
-table (`pinned-format-reference.md` §"STILL-UNCERTAIN" item 3).
+{-| Tone mapping from a per-row state string. Keyed on the leading whitespace-delimited token so a
+value that carries a trailing detail suffix (e.g. `"running · 0:15"`, a live run's counting-up
+elapsed) still maps to its state tone. Mirrors the Track A island's state→tone table
+(`pinned-format-reference.md` §"STILL-UNCERTAIN" item 3).
+
+The arms are the §4.4 run states and nothing else. A publisher whose own vocabulary has a word this
+table does not know gets the neutral fall-through, and supplies a `variant` if it wants a specific
+tone — which is the mechanism that exists for exactly this, and is why no extension's private verb
+needs an arm of its own here.
+
 -}
 badgeTone : String -> String
 badgeTone state =
@@ -358,9 +364,6 @@ badgeTone state =
             "info"
 
         "running" ->
-            "info"
-
-        "scanning" ->
             "info"
 
         "stopping" ->
@@ -380,7 +383,7 @@ badgeTone state =
 
 
 {-| The leading token of a badge value: everything before the first space, minus a trailing
-ellipsis. So `"scanning · 0:15"` tones as `"scanning"` and `"stopping…"` tones as `"stopping"`,
+ellipsis. So `"running · 0:15"` tones as `"running"` and `"stopping…"` tones as `"stopping"`,
 while a plain `"done"` is unchanged.
 
 The ellipsis is dropped because it is punctuation on the display word, not part of the state: a

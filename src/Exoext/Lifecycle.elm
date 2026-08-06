@@ -509,10 +509,11 @@ ACROSS a reload it does not, because the reader only trusts the wire for what is
 the wire cannot distinguish "just finished" from "finished last week". That asymmetry is intended:
 session-local knowledge is dated by construction, and a run slot is not.
 
-The recovered request's `kind` is `"scan"` because the run slot is the RUN-correlated request channel
-and a run request is the only thing that appears in it — a session request (`getEmbed`) is correlated
-by requestId and never touches `run.state`. Like every run-correlated request's `kind`, it is inert:
-correlation is by `seq`.
+The recovered request's `kind` is `""`, and empty is the only honest value. §4.3 carries no verb, so
+the wire never says what the run was a request FOR; a reader that filled the field in would be
+stating something it was not told. It costs nothing to leave empty because a run-correlated request
+correlates by `seq` — nothing reads this `kind` — and it is the field an adapter would have to trust
+if anything ever did. Naming a verb here was the generic layer speaking one extension's vocabulary.
 
 -}
 recoverRun :
@@ -551,7 +552,7 @@ recoverRun { now, tracked, tailPending, metadata } =
                                 RecoverPending
                                     { seq = status.seq
                                     , requestId = status.requestId |> Maybe.withDefault ""
-                                    , kind = "scan"
+                                    , kind = ""
                                     , subject = target
                                     , since = Time.millisToPosix status.seq
                                     }

@@ -1,7 +1,8 @@
-module Tests.CloudShield.ServerDetail exposing (cloudShieldBatchPersistenceSuite, cloudShieldBatchSuite, cloudShieldBusyProjectionSuite, cloudShieldCancelSuite, cloudShieldDismissSuite, cloudShieldEmbedProjectionSuite, cloudShieldPendingEmbedSuite, cloudShieldPreEchoStopSuite, cloudShieldReadDecisionSuite, cloudShieldRecoverySuite, cloudShieldScanBlockedSuite, cloudShieldScanTimerSuite, cloudShieldStaleRunSuite, cloudShieldStoppingSuite, cloudShieldTailStopSuite)
+module Tests.CloudShield.ServerDetail exposing (cloudShieldBatchPersistenceSuite, cloudShieldBatchSuite, cloudShieldBusyProjectionSuite, cloudShieldCancelSuite, cloudShieldCardTitleSuite, cloudShieldDismissSuite, cloudShieldEmbedProjectionSuite, cloudShieldPendingEmbedSuite, cloudShieldPreEchoStopSuite, cloudShieldReadDecisionSuite, cloudShieldRecoverySuite, cloudShieldScanBlockedSuite, cloudShieldScanTimerSuite, cloudShieldStaleRunSuite, cloudShieldStoppingSuite, cloudShieldTailStopSuite)
 
 import CloudShield.Card as Card
 import Dict
+import Exoext.Discovery
 import Exoext.Lifecycle as Lifecycle
 import Expect
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -2088,4 +2089,28 @@ cloudShieldPreEchoStopSuite =
             \_ ->
                 Expect.equal Nothing
                     (ServerDetail.exoextRunControl pollTime [] Nothing (ServerDetail.init "self"))
+        ]
+
+
+cloudShieldCardTitleSuite : Test
+cloudShieldCardTitleSuite =
+    let
+        sentinelOfKind kind =
+            Exoext.Discovery.readSentinel [ { key = "exoext.v1.kind", value = kind } ]
+    in
+    describe "ServerDetail exoextCardTitle (the header reads the §3.1 sentinel)"
+        [ test "a kind this host ships an adapter for gets that adapter's own name" <|
+            \_ ->
+                Expect.equal Card.headerTitle
+                    (ServerDetail.exoextCardTitle (sentinelOfKind Card.sentinelKind))
+        , test "any other publisher gets the generic word, not its own kind painted into the chrome" <|
+            \_ ->
+                -- `kind` is publisher-controlled data read off a VM's metadata. Rendering it as a
+                -- title would let any instance name a panel of Exosphere's UI, so the header is a
+                -- lookup and never a transformation of the wire string.
+                Expect.equal [ "Extension", "Extension", "Extension" ]
+                    ([ "acme-scanner", "", "<script>" ] |> List.map (sentinelOfKind >> ServerDetail.exoextCardTitle))
+        , test "no sentinel at all is the generic word too" <|
+            \_ ->
+                Expect.equal "Extension" (ServerDetail.exoextCardTitle Nothing)
         ]

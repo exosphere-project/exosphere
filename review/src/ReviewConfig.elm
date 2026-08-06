@@ -68,10 +68,6 @@ config =
                 , "src/DesignSystem/"
                 , "src/LocalStorage/"
                 , "src/OpenStack/"
-
-                -- CloudShield extension transport + the embedded json-render manifest
-                -- (the frozen card.json string is contract data, not localizable copy).
-                , "src/CloudShield/"
                 ]
             )
     , NoMissingTypeExpose.rule

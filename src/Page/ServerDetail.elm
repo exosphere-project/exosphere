@@ -1,4 +1,4 @@
-module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, adoptRestoredExoextBatch, adoptStoredExoextBatch, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextAbandonStaleRun, exoextBatchSharedMsg, exoextCancelRequested, exoextCancellableRun, exoextDismissSession, exoextDropFromTail, exoextEmbedProjection, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextRequestsPending, exoextRunControl, exoextScanBlocked, exoextScanRequestPending, exoextScanTimer, exoextStatusOverride, exoextStopRequested, exoextStoppingTarget, exoextViewConfig, init, recoverExoextRun, update, view)
+module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, adoptRestoredExoextBatch, adoptStoredExoextBatch, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextAbandonStaleRun, exoextBatchSharedMsg, exoextCancelRequested, exoextCancellableRun, exoextCardTitle, exoextDismissSession, exoextDropFromTail, exoextEmbedProjection, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextRequestsPending, exoextRunControl, exoextScanBlocked, exoextScanRequestPending, exoextScanTimer, exoextStatusOverride, exoextStopRequested, exoextStoppingTarget, exoextViewConfig, init, recoverExoextRun, update, view)
 
 import CloudShield.Card
 import DateFormat.Relative
@@ -974,13 +974,13 @@ syncExoextManifest project sentinel etag model =
         ( Nothing, _ ) ->
             ( exoextManifestError (Time.millisToPosix 0)
                 etag
-                {- @nonlocalized -} "CloudShield manifest is stored in object storage, but this cloud has no Swift endpoint."
+                {- @nonlocalized -} "The extension's manifest is stored in object storage, but this cloud has no Swift endpoint."
                 model
             , Cmd.none
             )
 
         ( _, Nothing ) ->
-            ( exoextManifestError (Time.millisToPosix 0) etag "CloudShield manifest is stored in object storage, but its container or object name is missing." model
+            ( exoextManifestError (Time.millisToPosix 0) etag "The extension's manifest is stored in object storage, but its container or object name is missing." model
             , Cmd.none
             )
 
@@ -1073,13 +1073,13 @@ syncExoextResultRef project sentinel etag metadata ( model, manifestCmd ) =
                     ( exoextResultRefError (Time.millisToPosix 0)
                         etag
                         objectName
-                        {- @nonlocalized -} "CloudShield result is stored in object storage, but this cloud has no Swift endpoint."
+                        {- @nonlocalized -} "The extension's result is stored in object storage, but this cloud has no Swift endpoint."
                         model
                     , manifestCmd
                     )
 
                 ( _, Nothing ) ->
-                    ( exoextResultRefError (Time.millisToPosix 0) etag objectName "CloudShield result is stored in object storage, but its container is missing." model
+                    ( exoextResultRefError (Time.millisToPosix 0) etag objectName "The extension's result is stored in object storage, but its container is missing." model
                     , manifestCmd
                     )
 
@@ -2226,7 +2226,7 @@ exoextTransportWarning project model metadata maybeSentinel resultBody =
                         case project.endpoints.swift of
                             Nothing ->
                                 Just
-                                    {- @nonlocalized -} "CloudShield manifest is stored in object storage, but this cloud has no Swift endpoint."
+                                    {- @nonlocalized -} "The extension's manifest is stored in object storage, but this cloud has no Swift endpoint."
 
                             Just _ ->
                                 exoextReadErrorForEtag (exoextEtag metadata) model
@@ -2245,7 +2245,7 @@ exoextReadErrorForEtag etag model =
             case ( model.exoextManifestRequestEtag, model.exoextManifest.refreshStatus ) of
                 ( Just requestedEtag, RDPP.NotLoading (Just ( error, _ )) ) ->
                     if requestedEtag == etag then
-                        Just ("CloudShield object-storage manifest read failed: " ++ error)
+                        Just ("Extension object-storage manifest read failed: " ++ error)
 
                     else
                         Nothing
@@ -2261,7 +2261,7 @@ exoextReadErrorForEtag etag model =
             case ( model.exoextResultRefRequest, model.exoextResultRef.refreshStatus ) of
                 ( Just request, RDPP.NotLoading (Just ( error, _ )) ) ->
                     if request.etag == etag then
-                        Just ("CloudShield object-storage result read failed: " ++ error)
+                        Just ("Extension object-storage result read failed: " ++ error)
 
                     else
                         Nothing
@@ -3121,10 +3121,10 @@ exoextCardView context project ( currentTime, timeZone ) server model =
     -- metadata. No sentinel => no card. (Removes the prior dev fallback that rendered the
     -- embedded card on every instance.)
     let
-        sentinelPresent =
-            Exoext.Discovery.readSentinel server.osProps.details.metadata /= Nothing
+        sentinel =
+            Exoext.Discovery.readSentinel server.osProps.details.metadata
     in
-    if context.experimentalFeaturesEnabled && sentinelPresent then
+    if context.experimentalFeaturesEnabled && sentinel /= Nothing then
         let
             -- Approval is matched by the publishing instance's UUID only (a persisted
             -- `exoext.approval.v1` record). No record => the card shows its opt-in affordance.
@@ -3145,8 +3145,8 @@ exoextCardView context project ( currentTime, timeZone ) server model =
         in
         VH.tile
             context
-            ([ Icon.featherIcon [] Icons.shield
-             , Element.text "CloudShield (extension)"
+            ([ Icon.featherIcon [] Icons.grid
+             , Element.text (exoextCardTitle sentinel)
              , extensionExperimentalTag context
              ]
                 ++ headerChip
@@ -3164,7 +3164,31 @@ exoextCardView context project ( currentTime, timeZone ) server model =
         Element.none
 
 
-{-| The "Experimental" tag for the CloudShield card header (plan §C3). Same idiom as the
+{-| The card header's title, resolved from the §3.1 discovery sentinel's `kind` rather than
+hardcoded. `kind` is the one thing the sentinel already says about WHAT was published, and until now
+nothing read it — the header asserted one extension's name on behalf of every publisher.
+
+The resolution is a lookup, not a transformation of the publisher's string, and that is the point in
+two directions. A kind is a wire token (`cloudshield`), not a display name (`CloudShield`), and no
+general rule turns one into the other without guessing at capitalization. More importantly `kind`
+is publisher-controlled data read off a VM's own metadata: painting it straight into Exosphere's
+own chrome would let any instance title a panel of the researcher's UI with whatever it liked.
+
+So an adapter Exosphere ships supplies its own name, and everything else is the generic word. That
+is not a placeholder — it is the honest label for a card whose contents Exosphere cannot vouch for
+and whose publisher it does not recognize.
+
+-}
+exoextCardTitle : Maybe Exoext.Discovery.Sentinel -> String
+exoextCardTitle sentinel =
+    if (sentinel |> Maybe.map .kind) == Just CloudShield.Card.sentinelKind then
+        CloudShield.Card.headerTitle
+
+    else
+        "Extension"
+
+
+{-| The "Experimental" tag for the extension card header (plan §C3). Same idiom as the
 Settings "Experimental features" label: an emphasized word with a toggle-tip explaining that
 extensions are experimental and that the card's UI is published by a VM, not by Exosphere. It
 sits in the card header so it shows in both the opt-in and the approved state.

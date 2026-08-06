@@ -312,7 +312,7 @@ suite =
                             (Lifecycle.RecoverPending
                                 { seq = 1700
                                 , requestId = "exo-cs-req-1700"
-                                , kind = "scan"
+                                , kind = ""
                                 , subject = "i-9"
                                 , since = Time.millisToPosix 1700
                                 }
@@ -372,7 +372,7 @@ suite =
                             (Lifecycle.RecoverPending
                                 { seq = 1700
                                 , requestId = "exo-cs-req-1700"
-                                , kind = "scan"
+                                , kind = ""
                                 , subject = "i-9"
                                 , since = Time.millisToPosix 1700
                                 }
@@ -426,7 +426,7 @@ suite =
                             (Lifecycle.RecoverPending
                                 { seq = 1700
                                 , requestId = "exo-cs-req-1700"
-                                , kind = "scan"
+                                , kind = ""
                                 , subject = "i-9"
                                 , since = Time.millisToPosix 1700
                                 }
@@ -445,11 +445,22 @@ suite =
                             (Lifecycle.RecoverPending
                                 { seq = 1700
                                 , requestId = ""
-                                , kind = "scan"
+                                , kind = ""
                                 , subject = "i-9"
                                 , since = Time.millisToPosix 1700
                                 }
                             )
+            , test "a recovered run names no verb, because §4.3 never told this layer one" <|
+                \_ ->
+                    -- The run slot carries seq/state/target and no verb, so any `kind` here would be
+                    -- this layer inventing one — and the only value it ever invented was one
+                    -- extension's word. Correlation is by seq, so empty costs nothing.
+                    case Lifecycle.recoverRun { now = pollTime, tracked = Nothing, tailPending = False, metadata = runSlotFor 1700 "running" } of
+                        Lifecycle.RecoverPending request ->
+                            Expect.equal "" request.kind
+
+                        Lifecycle.NoRecovery ->
+                            Expect.fail "expected a live run to be recovered"
             ]
         , describe "declarative verbs"
             [ test "resolveVerb maps an aliased action name to its generic verb + kind" <|

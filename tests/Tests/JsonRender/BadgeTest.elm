@@ -113,19 +113,26 @@ every class-based selector fails here even against markup that plainly carries t
 badgeToneSuite : Test
 badgeToneSuite =
     describe "JsonRender.Render badgeTone"
-        [ test "the in-flight states all tone as info, ellipsis or not" <|
+        [ test "the in-flight states all tone as info, suffix or ellipsis or not" <|
             \_ ->
-                -- `stopping` is in flight like queued/running/scanning, and the neutral tone it used
-                -- to fall through to read as already-over — the one thing that state must not say,
-                -- since the stop control has withdrawn and the badge is the only feedback left. The
-                -- ellipsis is punctuation on the display word, so the tone must not depend on the
-                -- publisher's typography.
-                Expect.equal [ "info", "info", "info", "info", "info" ]
-                    ([ "queued", "running", "scanning · 0:15", "stopping", "stopping…" ]
+                -- `stopping` is in flight like queued/running, and the neutral tone it used to fall
+                -- through to read as already-over — the one thing that state must not say, since the
+                -- stop control has withdrawn and the badge is the only feedback left. The ellipsis is
+                -- punctuation on the display word, so the tone must not depend on the publisher's
+                -- typography.
+                Expect.equal [ "info", "info", "info", "info" ]
+                    ([ "queued", "running · 0:15", "stopping", "stopping…" ]
                         |> List.map Render.badgeTone
                     )
         , test "the settled states keep their own tones, so the ellipsis rule changed nothing else" <|
             \_ ->
                 Expect.equal [ "neutral", "success", "danger", "neutral" ]
                     ([ "idle", "done", "error", "cancelled" ] |> List.map Render.badgeTone)
+        , test "a word this table does not know is neutral, and a manifest variant owns its tone" <|
+            \_ ->
+                -- The catalog knows the §4.4 run states and nothing else. A publisher with its own
+                -- vocabulary gets the neutral fall-through and supplies `variant` for a tone, which
+                -- is why no extension's private verb needs an arm of its own here.
+                Expect.equal [ "neutral", "neutral" ]
+                    ([ "scanning · 0:15", "snapshotting" ] |> List.map Render.badgeTone)
         ]

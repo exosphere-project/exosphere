@@ -1,4 +1,4 @@
-module CloudShield.Card exposing (EmbedState(..), Instance, ManifestSource(..), Model, Msg, OutMsg(..), ViewConfig, abandonScanState, cancelTargetOf, dispatchVerb, init, projection, requestEmbed, resolveAction, resultIdOf, rollbackScanRequest, scanningRowLabel, settleScanState, transportChip, update, view)
+module CloudShield.Card exposing (EmbedState(..), Instance, ManifestSource(..), Model, Msg, OutMsg(..), ViewConfig, abandonScanState, cancelTargetOf, dispatchVerb, headerTitle, init, projection, requestEmbed, resolveAction, resultIdOf, rollbackScanRequest, scanningRowLabel, sentinelKind, settleScanState, transportChip, update, view)
 
 {-| Host wiring for the CloudShield dynamic-UI card (Phase 1, browser side).
 
@@ -46,6 +46,28 @@ import Style.Widgets.Code as Code
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Time
+
+
+
+-- IDENTITY
+
+
+{-| The §3.1 `exoext.v1.kind` value this adapter is the view for. The host matches a published
+sentinel's `kind` against it to decide whether it recognizes the publisher at all, so the token
+lives here with the adapter that speaks it rather than in the host that merely compares it.
+-}
+sentinelKind : String
+sentinelKind =
+    "cloudshield"
+
+
+{-| What the host draws in the card header for [`sentinelKind`](#sentinelKind). A display name is
+not derivable from a wire token, and it is the adapter, not the host, that knows how its own
+extension is spelled.
+-}
+headerTitle : String
+headerTitle =
+    "CloudShield (extension)"
 
 
 
@@ -611,7 +633,10 @@ projection zone config instances model =
         [ ( "selectAll", Encode.bool model.selectAll )
         , ( "results", Maybe.withDefault Encode.null config.results )
         , ( "embedUrl", Encode.string config.embedUrl )
-        , ( "instances", Encode.list (instanceProjection config model) instances )
+
+        -- Not display copy: this is the §2.4 state path the manifest binds against
+        -- (`$instances`), so it is contract data and localizing it would break the wire.
+        , {- @nonlocalized -} ( "instances", Encode.list (instanceProjection config model) instances )
         , ( "history", Encode.list (historyRow zone config.activeResultId config.pendingResultId config.erroredResultId config.expiredResultId) shown )
         , ( "historyNote", Encode.string historyNote )
 
@@ -1554,6 +1579,14 @@ provenanceMarker palette sourceName =
         ]
 
 
+{-| The §5.3 opt-in gate: nothing a publisher wrote is rendered until the researcher says so.
+
+Host chrome, and therefore extension-agnostic on purpose. This sentence is Exosphere speaking to
+its own user about a decision Exosphere is asking them to make, and it is shown before the manifest
+has been trusted at all — so it must not repeat any name the VM chose for itself. The publishing
+VM's name is the one identifier here, and it is quoted because it is untrusted data.
+
+-}
 optInAffordance : ExoPalette -> String -> Element.Element Msg
 optInAffordance palette sourceName =
     Element.column
@@ -1566,7 +1599,7 @@ optInAffordance palette sourceName =
         ]
         [ Element.paragraph []
             [ Text.body
-                ("The VM “" ++ sourceName ++ "” offers a CloudShield extension UI. Extensions are off until you enable them. Enabling is remembered for this instance; you can forget it any time.")
+                ("The VM “" ++ sourceName ++ "” offers an extension UI. Extensions are off until you enable them. Enabling is remembered for this VM; you can forget it any time.")
             ]
         , linkButton palette "Enable this extension" GotApprove
         ]
@@ -1788,6 +1821,14 @@ rendererStyle palette =
                 -- and they are the elements the researcher watches while a scan runs.
                 , ".jr-badge[data-state^=\"queued\"]::before, .jr-badge[data-state^=\"running\"]::before, .jr-badge[data-state^=\"scanning\"]::before, .jr-badge[data-state^=\"stopping\"]::before { content: \"\"; display: inline-block; flex: none; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: jr-badge-spin 0.7s linear infinite; }"
                 , "@keyframes jr-badge-spin { to { transform: rotate(360deg); } }"
+
+                -- `scanning` is THIS extension's word for the phase where the clone is being read,
+                -- composed by `scanningRowLabel`. The renderer's tone table knows only the §4.4 run
+                -- states, so the word falls through to the neutral tone there — which would read as
+                -- settled on the one row that is actively working. The adapter tones its own
+                -- vocabulary here instead, matching `.jr-badge--info` exactly, which is the whole
+                -- reason the generic layer does not need an arm for it.
+                , ".jr-badge[data-state^=\"scanning\"] { background: " ++ infoBg ++ "; color: " ++ infoText ++ "; border-color: " ++ infoBorder ++ "; }"
                 , ".jr-badge--neutral { background: " ++ frontBg ++ "; color: " ++ muted ++ "; border-color: " ++ border ++ "; }"
                 , ".jr-badge--info { background: " ++ infoBg ++ "; color: " ++ infoText ++ "; border-color: " ++ infoBorder ++ "; }"
                 , ".jr-badge--success { background: " ++ successBg ++ "; color: " ++ successText ++ "; border-color: " ++ successBorder ++ "; }"
