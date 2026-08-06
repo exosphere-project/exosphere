@@ -1,5 +1,6 @@
 module Rest.Swift exposing
-    ( containerPageLimit
+    ( cacheBuster
+    , containerPageLimit
     , postContainerMetadata
     , recursiveDeleteMaxCycles
     , requestBulkDelete
@@ -58,13 +59,18 @@ containerPageLimit =
     10000
 
 
-requestContainers : Project -> Url -> Time.Posix -> Cmd SharedMsg
-requestContainers project url currentTime =
-    requestContainersPage project url currentTime Nothing
+cacheBuster : Time.Posix -> Int -> String
+cacheBuster time nonce =
+    String.fromInt (Time.posixToMillis time) ++ "-" ++ String.fromInt nonce
 
 
-requestContainersPage : Project -> Url -> Time.Posix -> Maybe String -> Cmd SharedMsg
-requestContainersPage project url currentTime maybeMarker =
+requestContainers : Project -> Url -> Time.Posix -> Int -> Cmd SharedMsg
+requestContainers project url currentTime nonce =
+    requestContainersPage project url currentTime nonce Nothing
+
+
+requestContainersPage : Project -> Url -> Time.Posix -> Int -> Maybe String -> Cmd SharedMsg
+requestContainersPage project url currentTime nonce maybeMarker =
     let
         errorContext =
             ErrorContext
@@ -77,7 +83,7 @@ requestContainersPage project url currentTime maybeMarker =
         queryParams =
             [ Url.Builder.string "format" "json"
             , Url.Builder.int "limit" containerPageLimit
-            , Url.Builder.int "t" (Time.posixToMillis currentTime)
+            , Url.Builder.string "t" (cacheBuster currentTime nonce)
             ]
                 ++ (case maybeMarker of
                         Just marker ->
@@ -192,8 +198,8 @@ the recursive delete makes **no large-object guarantee** — segments of a large
 orphaned. That is warned about in the UI; large-object cleanup is CLI/rclone territory.
 
 -}
-requestContainerObjectNames : Project -> Url -> Time.Posix -> ObjectStorage.ContainerName -> Int -> Cmd SharedMsg
-requestContainerObjectNames project url currentTime containerName budget =
+requestContainerObjectNames : Project -> Url -> Time.Posix -> Int -> ObjectStorage.ContainerName -> Int -> Cmd SharedMsg
+requestContainerObjectNames project url currentTime nonce containerName budget =
     let
         errorContext =
             ErrorContext
@@ -204,7 +210,7 @@ requestContainerObjectNames project url currentTime containerName budget =
         queryParams =
             [ Url.Builder.string "format" "json"
             , Url.Builder.int "limit" containerPageLimit
-            , Url.Builder.int "t" (Time.posixToMillis currentTime)
+            , Url.Builder.string "t" (cacheBuster currentTime nonce)
             ]
 
         resultToMsg_ result =
@@ -240,8 +246,8 @@ requestBulkDeleteContainerObjects project url containerName budget remainingChun
         )
 
 
-requestObjects : Project -> Url -> Time.Posix -> ObjectStorage.ContainerName -> Maybe ObjectStorage.Prefix -> Maybe String -> Cmd SharedMsg
-requestObjects project url currentTime containerName maybePrefix maybeMarker =
+requestObjects : Project -> Url -> Time.Posix -> Int -> ObjectStorage.ContainerName -> Maybe ObjectStorage.Prefix -> Maybe String -> Cmd SharedMsg
+requestObjects project url currentTime nonce containerName maybePrefix maybeMarker =
     let
         errorContext =
             ErrorContext
@@ -253,7 +259,7 @@ requestObjects project url currentTime containerName maybePrefix maybeMarker =
             [ Url.Builder.string "format" "json"
             , Url.Builder.string "delimiter" "/"
             , Url.Builder.int "limit" ObjectStorage.listingPageLimit
-            , Url.Builder.int "t" (Time.posixToMillis currentTime)
+            , Url.Builder.string "t" (cacheBuster currentTime nonce)
             ]
                 ++ (case maybePrefix of
                         Just prefix ->
@@ -398,8 +404,8 @@ requestUploadObject project url containerName maybePrefix objectName uploadId co
 {-| Fetched through the proxy because an anchor can't carry the token + proxy headers;
 `State.State` hands the bytes to `File.Download.bytes`.
 -}
-requestDownloadObject : Project -> Url -> Time.Posix -> ObjectStorage.ContainerName -> ObjectStorage.ObjectName -> Cmd SharedMsg
-requestDownloadObject project url currentTime containerName objectName =
+requestDownloadObject : Project -> Url -> Time.Posix -> Int -> ObjectStorage.ContainerName -> ObjectStorage.ObjectName -> Cmd SharedMsg
+requestDownloadObject project url currentTime nonce containerName objectName =
     let
         errorContext =
             ErrorContext
@@ -419,7 +425,7 @@ requestDownloadObject project url currentTime containerName objectName =
         []
         ( url
         , ObjectStorage.objectPath containerName objectName |> List.map Url.percentEncode
-        , [ Url.Builder.int "t" (Time.posixToMillis currentTime) ]
+        , [ Url.Builder.string "t" (cacheBuster currentTime nonce) ]
         )
         Http.emptyBody
         (expectBytesWithErrorBody resultToMsg_)
@@ -525,8 +531,8 @@ the headers, but a proxy exposing only `X-Subject-Token` strips them and this me
 absent. The fix is proxy config, not code.
 
 -}
-requestContainerMetadata : Project -> Url -> Time.Posix -> ObjectStorage.ContainerName -> Cmd SharedMsg
-requestContainerMetadata project url currentTime containerName =
+requestContainerMetadata : Project -> Url -> Time.Posix -> Int -> ObjectStorage.ContainerName -> Cmd SharedMsg
+requestContainerMetadata project url currentTime nonce containerName =
     let
         errorContext =
             ErrorContext
@@ -547,7 +553,7 @@ requestContainerMetadata project url currentTime containerName =
         Head
         Nothing
         []
-        ( url, containerPath containerName, [ Url.Builder.int "t" (Time.posixToMillis currentTime) ] )
+        ( url, containerPath containerName, [ Url.Builder.string "t" (cacheBuster currentTime nonce) ] )
         Http.emptyBody
         (expectMetadataWithErrorBody resultToMsg_)
 

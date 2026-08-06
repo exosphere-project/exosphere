@@ -3407,15 +3407,23 @@ processProjectSpecificMsg outerModel project msg =
                                 (RDPP.withDefault [] project.objectStorageContainers)
                                 page
 
-                        ( refreshStatus, cmd ) =
+                        ( refreshStatus, cmd, modelForUpdate ) =
                             case ( OpenStack.ObjectStorage.markerForNextPage Rest.Swift.containerPageLimit page, project.endpoints.swift ) of
                                 ( Just marker, Just url ) ->
+                                    let
+                                        nonce =
+                                            sharedModel.swiftRequestNonce + 1
+
+                                        modelWithNonce =
+                                            { sharedModel | swiftRequestNonce = nonce }
+                                    in
                                     ( RDPP.Loading
-                                    , Rest.Swift.requestContainersPage project url sharedModel.clientCurrentTime (Just marker)
+                                    , Rest.Swift.requestContainersPage project url sharedModel.clientCurrentTime nonce (Just marker)
+                                    , modelWithNonce
                                     )
 
                                 _ ->
-                                    ( RDPP.NotLoading Nothing, Cmd.none )
+                                    ( RDPP.NotLoading Nothing, Cmd.none, sharedModel )
 
                         newProject =
                             { project
@@ -3426,7 +3434,7 @@ processProjectSpecificMsg outerModel project msg =
                             }
 
                         newSharedModel =
-                            GetterSetters.modelUpdateProject sharedModel newProject
+                            GetterSetters.modelUpdateProject modelForUpdate newProject
                     in
                     ( newSharedModel, cmd )
                         |> mapToOuterMsg
@@ -3461,14 +3469,22 @@ processProjectSpecificMsg outerModel project msg =
         RequestDeleteContainer containerName recursive ->
             case project.endpoints.swift of
                 Just swiftUrl ->
-                    ( outerModel
-                    , if recursive then
-                        Rest.Swift.requestContainerObjectNames project swiftUrl sharedModel.clientCurrentTime containerName Rest.Swift.recursiveDeleteMaxCycles
+                    if recursive then
+                        let
+                            nonce =
+                                sharedModel.swiftRequestNonce + 1
 
-                      else
-                        Rest.Swift.requestDeleteContainer project swiftUrl containerName
-                    )
-                        |> mapToOuterMsg
+                            newSharedModel =
+                                { sharedModel | swiftRequestNonce = nonce }
+                        in
+                        ( { outerModel | sharedModel = newSharedModel }
+                        , Rest.Swift.requestContainerObjectNames project swiftUrl sharedModel.clientCurrentTime nonce containerName Rest.Swift.recursiveDeleteMaxCycles
+                        )
+                            |> mapToOuterMsg
+
+                    else
+                        ( outerModel, Rest.Swift.requestDeleteContainer project swiftUrl containerName )
+                            |> mapToOuterMsg
 
                 Nothing ->
                     ( outerModel, Cmd.none )
@@ -3546,7 +3562,16 @@ processProjectSpecificMsg outerModel project msg =
                                     |> mapToOuterMsg
 
                             [] ->
-                                ( outerModel, Rest.Swift.requestContainerObjectNames project swiftUrl sharedModel.clientCurrentTime containerName (budget - 1) )
+                                let
+                                    nonce =
+                                        sharedModel.swiftRequestNonce + 1
+
+                                    newSharedModel =
+                                        { sharedModel | swiftRequestNonce = nonce }
+                                in
+                                ( { outerModel | sharedModel = newSharedModel }
+                                , Rest.Swift.requestContainerObjectNames project swiftUrl sharedModel.clientCurrentTime nonce containerName (budget - 1)
+                                )
                                     |> mapToOuterMsg
 
                     else
@@ -3587,8 +3612,14 @@ processProjectSpecificMsg outerModel project msg =
 
                         newSharedModel =
                             GetterSetters.modelUpdateProject sharedModel newProject
+
+                        nonce =
+                            newSharedModel.swiftRequestNonce + 1
+
+                        newerSharedModel =
+                            { newSharedModel | swiftRequestNonce = nonce }
                     in
-                    ( newSharedModel, Rest.Swift.requestObjects project swiftUrl sharedModel.clientCurrentTime containerName maybePrefix maybeMarker )
+                    ( newerSharedModel, Rest.Swift.requestObjects project swiftUrl sharedModel.clientCurrentTime nonce containerName maybePrefix maybeMarker )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -3858,7 +3889,16 @@ processProjectSpecificMsg outerModel project msg =
         RequestDownloadObject containerName objectName ->
             case project.endpoints.swift of
                 Just swiftUrl ->
-                    ( outerModel, Rest.Swift.requestDownloadObject project swiftUrl sharedModel.clientCurrentTime containerName objectName )
+                    let
+                        nonce =
+                            sharedModel.swiftRequestNonce + 1
+
+                        newSharedModel =
+                            { sharedModel | swiftRequestNonce = nonce }
+                    in
+                    ( { outerModel | sharedModel = newSharedModel }
+                    , Rest.Swift.requestDownloadObject project swiftUrl sharedModel.clientCurrentTime nonce containerName objectName
+                    )
                         |> mapToOuterMsg
 
                 Nothing ->

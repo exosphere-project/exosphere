@@ -25,6 +25,7 @@ type alias SharedModel =
     , cloudCorsProxyUrl : Maybe CloudCorsProxyUrl
     , clientUuid : UUID.UUID
     , clientCurrentTime : Time.Posix
+    , swiftRequestNonce : Int -- makes Swift read URLs unique within one clock tick
     , timeZone : Time.Zone
     , showDebugMsgs : Bool
     , style : Style

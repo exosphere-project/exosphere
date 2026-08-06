@@ -269,10 +269,17 @@ requestObjectStorageContainers projectUuid model =
         Just project ->
             case project.endpoints.swift of
                 Just url ->
+                    let
+                        nonce =
+                            model.swiftRequestNonce + 1
+
+                        newModel =
+                            { model | swiftRequestNonce = nonce }
+                    in
                     ( project
                         |> GetterSetters.projectSetObjectStorageContainersLoading
-                        |> GetterSetters.modelUpdateProject model
-                    , Rest.Swift.requestContainers project url model.clientCurrentTime
+                        |> GetterSetters.modelUpdateProject newModel
+                    , Rest.Swift.requestContainers project url model.clientCurrentTime nonce
                     )
 
                 Nothing ->
@@ -320,10 +327,17 @@ requestObjectStorageObjects projectUuid containerName maybePrefix model =
         Just project ->
             case project.endpoints.swift of
                 Just url ->
+                    let
+                        nonce =
+                            model.swiftRequestNonce + 1
+
+                        newModel =
+                            { model | swiftRequestNonce = nonce }
+                    in
                     ( project
                         |> GetterSetters.projectSetObjectStorageListingLoading containerName maybePrefix
-                        |> GetterSetters.modelUpdateProject model
-                    , Rest.Swift.requestObjects project url model.clientCurrentTime containerName maybePrefix Nothing
+                        |> GetterSetters.modelUpdateProject newModel
+                    , Rest.Swift.requestObjects project url model.clientCurrentTime nonce containerName maybePrefix Nothing
                     )
 
                 Nothing ->
@@ -344,10 +358,17 @@ requestObjectStorageContainerMetadata projectUuid containerName model =
         Just project ->
             case project.endpoints.swift of
                 Just url ->
+                    let
+                        nonce =
+                            model.swiftRequestNonce + 1
+
+                        newModel =
+                            { model | swiftRequestNonce = nonce }
+                    in
                     ( project
                         |> GetterSetters.projectSetObjectStorageContainerMetadataLoading containerName
-                        |> GetterSetters.modelUpdateProject model
-                    , Rest.Swift.requestContainerMetadata project url model.clientCurrentTime containerName
+                        |> GetterSetters.modelUpdateProject newModel
+                    , Rest.Swift.requestContainerMetadata project url model.clientCurrentTime nonce containerName
                     )
 
                 Nothing ->
