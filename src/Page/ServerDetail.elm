@@ -1599,11 +1599,117 @@ cancellableRunStates =
     [ "queued", "running", "scanning" ]
 
 
-{-| The run the §7.1 status slot is reporting, resolved to everything the stop affordances need:
-WHICH row it is on, what the publisher calls it, what state it is in, and whether a stop is already
-pending for it. One resolution, three consumers (`exoextCancellableRun`, `exoextStoppingTarget`, and
-the `stopping`/`cancellable` row projection through them), so they can never disagree about which run
-is on screen.
+{-| The run the stop affordances are about, resolved to everything they need: WHICH row it is on,
+what the publisher calls it, what state it is in, and whether a stop is already pending for it. One
+resolution, three consumers (`exoextCancellableRun`, `exoextStoppingTarget`, and the
+`stopping`/`cancellable` row projection through them), so they can never disagree about which run is
+on screen.
+
+There are TWO sources, and which one applies is decided by one question: has the §7.1 status slot
+echoed the seq of the request this host is tracking?
+
+1.  **Not yet echoed ⇒ the host's own record** ([`exoextPreEchoRun`](#exoextPreEchoRun)). The window
+    between writing a request and the publisher claiming it and reporting `run.*` is a whole poll
+    interval wide, and for that window the wire carries no run for this request at all — either
+    nothing, or the settled record of the PREVIOUS leg of a draining batch. Resolving purely from
+    the wire therefore named nothing and offered no control, so the head of a batch (the one target
+    actually about to be scanned) was the only one that could not be called off.
+2.  **Echoed ⇒ the wire** ([`exoextWireRun`](#exoextWireRun)), unchanged and still authoritative for
+    everything durable, including after a reload where the record is gone.
+
+This is the same shape as the WP10 `stopping` fix, and for the same reason: the wire is the truth
+but it LAGS, the host already knows what it just wrote, so the record covers the immediate window
+and the wire covers the durable one.
+
+-}
+exoextRunControl :
+    Time.Posix
+    -> List OSTypes.MetadataItem
+    -> Maybe { targetId : String, state : String }
+    -> Model
+    -> Maybe { targetId : String, requestId : String, state : String, stopping : Bool }
+exoextRunControl now metadata statusOverride model =
+    case exoextPreEchoRun now metadata model of
+        Just run ->
+            Just run
+
+        Nothing ->
+            exoextWireRun now metadata statusOverride model
+
+
+{-| The tracked request the §7.1 status slot has not echoed yet, resolved as a stoppable run from
+the host's OWN record of what it wrote.
+
+Both halves of the identity come out of the record and neither is a guess: the target is the
+request's `subject`, and the request id is minted from the seq by `exoextRequestId`, which is
+deterministic — the same id the publisher will be handed when it does claim the slot. So a stop
+pressed in this window names exactly the request that is about to run.
+
+**Which §7.1 cancel this uses, and why.** §7.1 describes a pre-claim cancel as the host bumping or
+clearing the request slot, and the explicit `exoext.v1.req.cancel` channel as the claimed case. This
+takes the cancel channel for both, because the host cannot tell the two apart here: no run status
+only means the publisher has not REPORTED, not that it has not claimed, and a slot bump aimed at an
+unclaimed request would land on a run already in flight and leave it nameable by nobody. The cancel
+channel is additive, names a request id the publisher can match whenever it gets to the slot, and is
+already what `exoextStopRequested` writes — so the pre-echo window needs no second stop mechanism.
+
+The guards are the wire path's guards, deliberately: an implausibly
+[stale](Exoext-Lifecycle#runStale) tracked request resolves to `Nothing` (the same safety valve, on
+the same clock, since `seq` IS the wall-clock moment of the write), and `stopping` is armed from the
+same two sources. Nothing here can weaken the terminal-run guard: the branch only runs while the
+wire says nothing about this request, so there is no terminal state to override.
+
+-}
+exoextPreEchoRun :
+    Time.Posix
+    -> List OSTypes.MetadataItem
+    -> Model
+    -> Maybe { targetId : String, requestId : String, state : String, stopping : Bool }
+exoextPreEchoRun now metadata model =
+    model.exoextCard.pending
+        |> Maybe.Extra.filter (\pending -> not (exoextRunEchoes pending.seq metadata))
+        |> Maybe.Extra.filter
+            (\pending ->
+                not
+                    (Exoext.Lifecycle.runStale now
+                        { seq = pending.seq
+                        , state = Exoext.Lifecycle.correlatedRunState pending.seq metadata
+                        }
+                    )
+            )
+        |> Maybe.map
+            (\pending ->
+                let
+                    requestId =
+                        exoextRequestId pending.seq
+
+                    -- By construction of the filter above this is `"queued"` — the state
+                    -- `correlatedRunState` documents for a tracked request the slot does not
+                    -- carry. Taken from there rather than written as a literal so the host keeps
+                    -- one definition of what an unreported request reads as.
+                    state =
+                        Exoext.Lifecycle.correlatedRunState pending.seq metadata
+                in
+                { targetId = pending.subject
+                , requestId = requestId
+                , state = state
+                , stopping = exoextRunStopping metadata model { requestId = requestId, state = state }
+                }
+            )
+
+
+{-| Whether the §7.1 status slot is reporting the run of `seq`. False when the slot is absent
+entirely, and false when it carries some other seq — the settled previous leg of a draining batch is
+the common case, and it is exactly as silent about this request as an empty slot is.
+-}
+exoextRunEchoes : Int -> List OSTypes.MetadataItem -> Bool
+exoextRunEchoes seq metadata =
+    Exoext.Transport.runStatusFromMetadata metadata
+        |> Maybe.map (\status -> status.seq == seq)
+        |> Maybe.withDefault False
+
+
+{-| The run the §7.1 status slot is reporting, resolved to what the stop affordances need.
 
 Identity has to resolve on both halves or there is nothing to offer — a stop control that cannot name
 its request would write a value the publisher can never match. Each half is taken from the wire first
@@ -1615,21 +1721,6 @@ and from the host's own record second:
     The fallback keeps a stop working against a publisher that reports no request id, since the
     minting is deterministic in the seq (see `exoextRequestId`).
 
-`stopping` is the WP10 fix for "the stop did nothing visible". It is armed by either of two sources,
-and both are needed:
-
-1.  **The wire** (`Exoext.Lifecycle.runStopping`) — the cancel channel on the publishing VM's own
-    metadata names this run. This is the durable half: the host wrote that channel, so it is still
-    there after a reload, which is precisely the case the session-local record cannot cover.
-2.  **This session's own record** (`exoextCancelRequestId`) — set the instant the press is dispatched.
-    This is the immediate half: the wire write is an HTTP round-trip and only becomes visible on the
-    NEXT server poll, so between the press and that poll the wire still says nothing at all. Without
-    this the row would keep reading `scanning` for seconds after a press that plainly landed, which
-    is the bug in miniature.
-
-Both are gated on the run being non-terminal, which is what retires the state: a `done`/`cancelled`
-run is not stopping, it has stopped, and its own terminal state is the truthful badge.
-
 A [stale](Exoext-Lifecycle#runStale) run resolves to `Nothing`, and this is the OTHER half of the
 safety valve rather than a detail. `exoextAbandonStaleRun` releases the tracker, but the run slot's
 own §4.3 descriptors need no tracker to resolve a target and a request id — so without this gate a
@@ -1639,13 +1730,13 @@ row in a second, worse state. A control nobody is listening to is not an escape 
 fresh scan is, and that is what the valve restores.
 
 -}
-exoextRunControl :
+exoextWireRun :
     Time.Posix
     -> List OSTypes.MetadataItem
     -> Maybe { targetId : String, state : String }
     -> Model
     -> Maybe { targetId : String, requestId : String, state : String, stopping : Bool }
-exoextRunControl now metadata statusOverride model =
+exoextWireRun now metadata statusOverride model =
     Exoext.Transport.runStatusFromMetadata metadata
         |> Maybe.Extra.filter
             (\status -> not (Exoext.Lifecycle.runStale now { seq = status.seq, state = status.state }))
@@ -1676,16 +1767,37 @@ exoextRunControl now metadata statusOverride model =
                         { targetId = target
                         , requestId = request
                         , state = status.state
-                        , stopping =
-                            Exoext.Lifecycle.runStopping { requestId = request, state = status.state } metadata
-                                || ((model.exoextCancelRequestId == Just request)
-                                        && not (Exoext.Lifecycle.isTerminalRunState status.state)
-                                   )
+                        , stopping = exoextRunStopping metadata model { requestId = request, state = status.state }
                         }
                     )
                     targetId
                     requestId
             )
+
+
+{-| Whether a stop is pending for a run. The WP10 fix for "the stop did nothing visible", shared by
+both resolution paths so neither can acknowledge a press the other would ignore. Armed by either of
+two sources, and both are needed:
+
+1.  **The wire** (`Exoext.Lifecycle.runStopping`) — the cancel channel on the publishing VM's own
+    metadata names this run. This is the durable half: the host wrote that channel, so it is still
+    there after a reload, which is precisely the case the session-local record cannot cover.
+2.  **This session's own record** (`exoextCancelRequestId`) — set the instant the press is dispatched.
+    This is the immediate half: the wire write is an HTTP round-trip and only becomes visible on the
+    NEXT server poll, so between the press and that poll the wire still says nothing at all. Without
+    this the row would keep reading `scanning` for seconds after a press that plainly landed, which
+    is the bug in miniature.
+
+Both are gated on the run being non-terminal, which is what retires the state: a `done`/`cancelled`
+run is not stopping, it has stopped, and its own terminal state is the truthful badge.
+
+-}
+exoextRunStopping : List OSTypes.MetadataItem -> Model -> { requestId : String, state : String } -> Bool
+exoextRunStopping metadata model run =
+    Exoext.Lifecycle.runStopping run metadata
+        || ((model.exoextCancelRequestId == Just run.requestId)
+                && not (Exoext.Lifecycle.isTerminalRunState run.state)
+           )
 
 
 {-| The one target row whose run can be stopped, and the §4.1 request id the stop must name

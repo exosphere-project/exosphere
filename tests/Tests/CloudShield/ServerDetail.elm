@@ -1,4 +1,4 @@
-module Tests.CloudShield.ServerDetail exposing (cloudShieldBatchPersistenceSuite, cloudShieldBatchSuite, cloudShieldBusyProjectionSuite, cloudShieldCancelSuite, cloudShieldDismissSuite, cloudShieldEmbedProjectionSuite, cloudShieldPendingEmbedSuite, cloudShieldReadDecisionSuite, cloudShieldRecoverySuite, cloudShieldScanBlockedSuite, cloudShieldScanTimerSuite, cloudShieldStaleRunSuite, cloudShieldStoppingSuite, cloudShieldTailStopSuite)
+module Tests.CloudShield.ServerDetail exposing (cloudShieldBatchPersistenceSuite, cloudShieldBatchSuite, cloudShieldBusyProjectionSuite, cloudShieldCancelSuite, cloudShieldDismissSuite, cloudShieldEmbedProjectionSuite, cloudShieldPendingEmbedSuite, cloudShieldPreEchoStopSuite, cloudShieldReadDecisionSuite, cloudShieldRecoverySuite, cloudShieldScanBlockedSuite, cloudShieldScanTimerSuite, cloudShieldStaleRunSuite, cloudShieldStoppingSuite, cloudShieldTailStopSuite)
 
 import CloudShield.Card as Card
 import Dict
@@ -1477,9 +1477,12 @@ cloudShieldCancelSuite =
                     (ServerDetail.exoextCancellableRun pollTime (runSlot 1700 "running") runningRow draining)
         , test "a run this host cannot name at all is not stoppable" <|
             \_ ->
-                -- No wire requestId and no tracker correlated to this seq: a stop would name nothing.
+                -- No wire requestId, no wire target and no tracker: a stop would name nothing. The
+                -- tracker has to be absent for this to be the question — a host that IS tracking a
+                -- request the wire never echoed names ITS OWN request instead, which is a different
+                -- run and a different question (`cloudShieldPreEchoStopSuite`).
                 Expect.equal Nothing
-                    (ServerDetail.exoextCancellableRun pollTime (runSlot 9999 "running") Nothing draining)
+                    (ServerDetail.exoextCancellableRun pollTime (runSlot 9999 "running") Nothing (ServerDetail.init "self"))
         , test "a run whose target cannot be attributed to a row is not stoppable either" <|
             \_ ->
                 Expect.equal Nothing
@@ -1982,4 +1985,107 @@ cloudShieldTailStopSuite =
                 in
                 Expect.equal ( Nothing, Dict.empty )
                     ( dropped.exoextBatch, dropped.exoextCard.scanState )
+        ]
+
+
+cloudShieldPreEchoStopSuite : Test
+cloudShieldPreEchoStopSuite =
+    let
+        -- The head of a batch, one poll after its request went out: the host tracks seq 1700 on
+        -- `i-1`, and the publisher has not claimed the slot or written any `run.*` yet.
+        headWritten =
+            writeRequestAt 1700 { subject = "i-1", batchId = Nothing } modelAfterStartScan
+
+        -- The wire as the SECOND leg of a batch finds it: the previous leg's run is still the only
+        -- thing in the status slot, settled and correlated to a seq the host no longer tracks.
+        previousLegSettled =
+            runSlotFor 1600 "done" "i-0"
+    in
+    describe "ServerDetail stopping a request the wire has not echoed yet"
+        [ test "an empty status slot still offers the tracked request a stop" <|
+            \_ ->
+                -- The reported bug in its simplest form: the request is on the wire, the publisher
+                -- has not answered, and the one target actually about to be scanned had no control.
+                Expect.equal (Just { targetId = "i-1", requestId = "exo-cs-req-1700" })
+                    (ServerDetail.exoextCancellableRun pollTime [] Nothing headWritten)
+        , test "the previous leg's settled run does not swallow the new head's stop" <|
+            \_ ->
+                -- Why the gate is "has the slot echoed MY seq" and not "is the slot empty": mid-batch
+                -- the slot is never empty, it carries the leg that just finished. Reading that as the
+                -- current run is what left the head reading `queued` with nothing to press.
+                Expect.equal (Just { targetId = "i-1", requestId = "exo-cs-req-1700" })
+                    (ServerDetail.exoextCancellableRun pollTime previousLegSettled Nothing headWritten)
+        , test "the pre-echo state is queued, the same word an unreported request reads as" <|
+            \_ ->
+                Expect.equal (Just "queued")
+                    (ServerDetail.exoextRunControl pollTime previousLegSettled Nothing headWritten
+                        |> Maybe.map .state
+                    )
+        , test "the wire takes over the moment it echoes the seq, terminal states included" <|
+            \_ ->
+                -- The record covers the pre-echo window and nothing more: once the publisher reports
+                -- the run, every answer comes off the wire, and a terminal run is not stoppable.
+                Expect.equal [ True, True, False, False ]
+                    ([ "queued", "running", "done", "cancelled" ]
+                        |> List.map
+                            (\state ->
+                                ServerDetail.exoextCancellableRun pollTime
+                                    (runSlotFor 1700 state "i-1")
+                                    (Just { targetId = "i-1", state = state })
+                                    headWritten
+                                    /= Nothing
+                            )
+                    )
+        , test "the press is acknowledged here too: the row reads stopping, the control withdraws" <|
+            \_ ->
+                -- The pre-echo run shares the WP10 acknowledgement, so a stop pressed before the
+                -- publisher has answered does not look like it did nothing.
+                let
+                    stopped =
+                        ServerDetail.exoextCancelRequested "exo-cs-req-1700" headWritten
+                in
+                Expect.equal ( Just "i-1", Nothing )
+                    ( ServerDetail.exoextStoppingTarget pollTime previousLegSettled Nothing stopped
+                    , ServerDetail.exoextCancellableRun pollTime previousLegSettled Nothing stopped
+                    )
+        , test "the cancel channel alone is enough, so the stop survives a reload of this window" <|
+            \_ ->
+                -- §7.1 describes a pre-claim cancel as a slot bump; this host writes the cancel
+                -- CHANNEL instead, which is durable and names a deterministic request id. Nothing
+                -- session-local is involved in reading it back.
+                Expect.equal (Just "i-1")
+                    (ServerDetail.exoextStoppingTarget pollTime
+                        (previousLegSettled ++ cancelSlot "exo-cs-req-1700")
+                        Nothing
+                        headWritten
+                    )
+        , test "a stop press in this window names the request, so it writes the cancel channel" <|
+            \_ ->
+                -- `exoextStopRequested` routes on a non-empty requestId, so the pre-echo id has to
+                -- reach it as a real id: an empty one would take the tail-removal path and leave the
+                -- publisher never told.
+                let
+                    ( stopped, _, _ ) =
+                        ServerDetail.exoextStopRequested project
+                            { requestId = "exo-cs-req-1700", targetId = "i-1" }
+                            headWritten
+                in
+                Expect.equal ( Just "exo-cs-req-1700", Nothing )
+                    ( stopped.exoextCancelRequestId, stopped.exoextBatch )
+        , test "a tracked request older than the stale bound offers nothing, same valve as the wire" <|
+            \_ ->
+                -- `seq` is the wall-clock moment of the write, so the record ages on the same clock
+                -- the wire path uses. A request the host has stopped believing must not keep a live
+                -- Stop control on a row that otherwise reads idle.
+                Expect.equal Nothing
+                    (ServerDetail.exoextCancellableRun
+                        (Time.millisToPosix (1700 + Lifecycle.staleRunAfterMillis + 1))
+                        previousLegSettled
+                        Nothing
+                        headWritten
+                    )
+        , test "no tracked request means no pre-echo run to offer" <|
+            \_ ->
+                Expect.equal Nothing
+                    (ServerDetail.exoextRunControl pollTime [] Nothing (ServerDetail.init "self"))
         ]
