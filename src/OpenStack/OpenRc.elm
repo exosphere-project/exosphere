@@ -91,16 +91,23 @@ parseValue rawValue =
 
             else
                 Nothing
-    in
-    if String.startsWith "$" value then
-        -- Discard bash variables defined with other bash variables, e.g. $OS_PASSWORD_INPUT
-        Nothing
 
-    else if startsWith "\"" then
-        unwrapQuotedValue "\""
+        discardBashVariable : String -> Maybe String
+        discardBashVariable unwrapped =
+            if String.startsWith "$" unwrapped then
+                -- Discard values that reference other bash variables, e.g. $OS_PASSWORD_INPUT
+                Nothing
+
+            else
+                Just unwrapped
+    in
+    if startsWith "\"" then
+        -- Bash expands variables inside double quotes, so "$VAR" is discarded like a bare $VAR
+        unwrapQuotedValue "\"" |> Maybe.andThen discardBashVariable
 
     else if startsWith "'" then
+        -- Single quotes are literal in bash, so '$VAR' is kept as-is
         unwrapQuotedValue "'"
 
     else
-        Just value
+        discardBashVariable value

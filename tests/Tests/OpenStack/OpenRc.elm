@@ -153,6 +153,22 @@ processOpenRcSuite =
                     |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
                     |> .password
                     |> Expect.equal ""
+        , test "that a double-quoted \"$OS_PASSWORD_INPUT\" is *not* processed" <|
+            \() ->
+                """
+                export OS_PASSWORD="$OS_PASSWORD_INPUT"
+                """
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .password
+                    |> Expect.equal ""
+        , test "that a single-quoted '$literal' is kept as-is" <|
+            \() ->
+                """
+                export OS_PASSWORD='$literal'
+                """
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .password
+                    |> Expect.equal "$literal"
         , test "that double quotes are not included in a processed match" <|
             \() ->
                 """
