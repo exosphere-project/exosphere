@@ -14,7 +14,7 @@ module JsonRender.Spec exposing
     , BadgeProps
     , ButtonProps
     , CheckboxProps
-    , FindingsTableProps
+    , CountPillsProps
     , IframeProps
     , TableProps
     , Column
@@ -26,8 +26,8 @@ module JsonRender.Spec exposing
     , Repeat
     )
 
-{-| The json-render flat `Spec` model and its fail-closed decoder, scoped to the
-CloudShield card's component set and pinned to `@json-render/core` v0.19.0.
+{-| The json-render flat `Spec` model and its fail-closed decoder, scoped to this host's
+allowlisted component set and pinned to `@json-render/core` v0.19.0.
 
 A `Spec` is the canonical flat form: `{ root, elements, state }` where `elements` is a
 map keyed by id and children are referenced by string key (never nested inline).
@@ -72,7 +72,7 @@ A rejected manifest never produces a partial tree — the host shows an error st
 @docs BadgeProps
 @docs ButtonProps
 @docs CheckboxProps
-@docs FindingsTableProps
+@docs CountPillsProps
 @docs IframeProps
 @docs TableProps
 @docs Column
@@ -128,7 +128,7 @@ type ComponentType
     | Badge
     | Button
     | Checkbox
-    | FindingsTable
+    | CountPills
     | Iframe
     | Table
     | Alert
@@ -146,7 +146,7 @@ type Props
     | BadgeP BadgeProps
     | ButtonP ButtonProps
     | CheckboxP CheckboxProps
-    | FindingsTableP FindingsTableProps
+    | CountPillsP CountPillsProps
     | IframeP IframeProps
     | TableP TableProps
     | AlertP AlertProps
@@ -160,8 +160,8 @@ type Direction
     | Col
 
 
-{-| `Alert` severity tone, driving the `jr-alert--<tone>` modifier class. Any other
-string fails the decode (fail-closed).
+{-| `Alert` tone, driving the `jr-alert--<tone>` modifier class. Any other string fails
+the decode (fail-closed).
 -}
 type Tone
     = Info
@@ -221,18 +221,31 @@ type alias CheckboxProps =
     }
 
 
-{-| `FindingsTable` props: the `bind` expression pointing at the findings payload, a `groupBy`
-field name, and an optional `emptyLabel` expression for the no-findings state.
+{-| `CountPills` props: the `bind` expression pointing at an array of records, and the vocabulary
+for counting them.
 
-`emptyLabel` is what lets a manifest say something DEFINITIVE about an empty table. The renderer's
-own default ("No findings yet") is right for a table that has nothing bound yet and wrong for a
-completed, genuinely clean scan; only the publisher knows which it is, so it supplies the string.
-Absent ⇒ the default; resolving to an empty string ⇒ no empty-state node at all.
+Everything but `bind` is optional, and every absent value falls back to the host's
+`Render.CountPillDefaults`. That is deliberate: the words a publisher counts in — what a row is
+called, which field groups them, which group leads — are the publisher's, not the renderer's, and
+a manifest written before these keys existed must keep rendering in them.
+
+  - `groupBy` — the record field to group on.
+  - `groupOrder` — the group values, in the order they should be shown. Groups outside the list
+    sort after the listed ones, by descending count and then name, which is also what an empty
+    order does to everything.
+  - `itemNoun` / `itemNounPlural` — what one row and many rows are called, for the total.
+  - `emptyLabel` — what a manifest says DEFINITIVELY about an empty table. The fallback
+    ("No <plural> yet") is right for a table that has nothing bound yet and wrong for a completed,
+    genuinely empty one; only the publisher knows which it is, so it supplies the string. Absent
+    ⇒ the fallback; resolving to an empty string ⇒ no empty-state node at all.
 
 -}
-type alias FindingsTableProps =
+type alias CountPillsProps =
     { bind : Expr
-    , groupBy : String
+    , groupBy : Maybe String
+    , groupOrder : Maybe (List String)
+    , itemNoun : Maybe String
+    , itemNounPlural : Maybe String
     , emptyLabel : Maybe Expr
     }
 
@@ -296,7 +309,7 @@ type alias ActionBinding =
 
 
 {-| A confirm dialog shown by the renderer before an action emits. `title` and `message`
-may be expressions (the per-row Scan message is a `$template`).
+may be expressions (a per-row message is typically a `$template`).
 -}
 type alias Confirm =
     { title : Expr
@@ -339,8 +352,8 @@ componentType ct =
         Checkbox ->
             "Checkbox"
 
-        FindingsTable ->
-            "FindingsTable"
+        CountPills ->
+            "CountPills"
 
         Iframe ->
             "Iframe"
@@ -569,8 +582,13 @@ parseComponentType name =
         "Checkbox" ->
             Just Checkbox
 
+        "CountPills" ->
+            Just CountPills
+
+        -- `FindingsTable` was this element's name before it was generalized. Manifests already
+        -- published under the old name keep decoding, unchanged, to the same component.
         "FindingsTable" ->
-            Just FindingsTable
+            Just CountPills
 
         "Iframe" ->
             Just Iframe
@@ -632,8 +650,8 @@ allowedPropKeys ct =
         Checkbox ->
             [ "label", "checked" ]
 
-        FindingsTable ->
-            [ "bind", "groupBy", "emptyLabel" ]
+        CountPills ->
+            [ "bind", "groupBy", "groupOrder", "itemNoun", "itemNounPlural", "emptyLabel" ]
 
         Iframe ->
             [ "src", "title" ]
@@ -689,10 +707,13 @@ propsBodyDecoder ct =
                 (Decode.maybe (Decode.field "label" Expr.decoder))
                 (Decode.maybe (Decode.field "checked" Expr.decoder))
 
-        FindingsTable ->
-            Decode.map3 (\b g e -> FindingsTableP (FindingsTableProps b g e))
+        CountPills ->
+            Decode.map6 (\b g o n np e -> CountPillsP (CountPillsProps b g o n np e))
                 (Decode.field "bind" Expr.decoder)
-                (optionalField "groupBy" Decode.string "severity")
+                (optionalField "groupBy" (Decode.map Just Decode.string) Nothing)
+                (optionalField "groupOrder" (Decode.map Just (Decode.list Decode.string)) Nothing)
+                (optionalField "itemNoun" (Decode.map Just Decode.string) Nothing)
+                (optionalField "itemNounPlural" (Decode.map Just Decode.string) Nothing)
                 (optionalField "emptyLabel" (Decode.map Just Expr.decoder) Nothing)
 
         Iframe ->

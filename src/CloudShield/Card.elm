@@ -21,6 +21,7 @@ Everything here is gated by `context.experimentalFeaturesEnabled` at the call si
 
 -}
 
+import CloudShield.CardStyle as CardStyle
 import CloudShield.Wire as Wire
 import Color
 import Dict exposing (Dict)
@@ -30,6 +31,7 @@ import Element.Border as Border
 import Element.Events
 import Element.Font as Font
 import Exoext.Lifecycle as Lifecycle
+import Exoext.RendererStyle as RendererStyle
 import Helpers.Time
 import Html
 import Html.Attributes
@@ -701,7 +703,7 @@ no conditionals (host-renderer-interface.md §1.2):
   - `subLabel` — the target + short batch id ("alpha · #84a1c6"), on every row including a failed
     one (the batch id is dropped when the scan had none).
   - `findings` — a findings-shaped array synthesized from the aggregate counts, bound into the
-    row's `FindingsTable` so history pills match the live `/results` pills.
+    row's `CountPills` so history pills match the live `/results` pills.
   - `rowState` — the one active/failed/loading hook the stylesheet keys on: "Opening…" for the
     row whose getEmbed is in flight (wins), "Now viewing" for the row the embed/results are
     showing, "Expired" for the row whose session has expired, "failed" for an errored scan,
@@ -877,7 +879,7 @@ historyRow zone activeResultId pendingResultId erroredResultId expiredResultId e
 
 
 {-| Synthesize a findings-shaped array from a row's aggregate `counts` so the per-row
-`FindingsTable` renders the same palette-driven severity pills as the live `/results` view: one
+`CountPills` renders the same palette-driven severity pills as the live `/results` view: one
 `{ "severity": <sev> }` object per counted finding, which the table groups and counts back into
 pills. This keeps history pills byte-consistent with results pills without a second pill
 renderer or any renderer conditional. Cost is O(total findings) per row; history is display-
@@ -1094,7 +1096,7 @@ type alias ViewConfig =
     , queuedTargets : List String
 
     -- the §4.2 result's `findings[]` array (host-parsed from the polled result object),
-    -- bound into the `FindingsTable` at `/results`. `Nothing` until a run is `done`.
+    -- bound into the `CountPills` at `/results`. `Nothing` until a run is `done`.
     , results : Maybe Encode.Value
 
     -- the archived-scan history rows (the bridge's `results/index.json`) plus the first-fetch
@@ -1335,7 +1337,7 @@ spinner palette =
         , Element.height (Element.px 12)
 
         -- `flex: none`: this el is a flex ITEM of the elm-ui row, and a shrunk circle is an oval
-        -- (same mechanism as the .jr-badge rings, see rendererStyle).
+        -- (same mechanism as the .jr-badge rings, see Exoext.RendererStyle).
         , Element.htmlAttribute (Html.Attributes.style "flex" "none")
         ]
     <|
@@ -1437,6 +1439,27 @@ transportChip palette label =
         (Element.text label)
 
 
+{-| What this adapter tells the generic renderer about itself.
+
+The renderer counts and orders `CountPills` rows but has no opinion about what a row IS. This
+extension does: a row is a finding, findings group by `severity`, and severity reads
+critical-first, not alphabetically and not by count. A published manifest could carry those keys
+itself, but the deployed `card.json` predates them, so the adapter supplies them here and the card
+renders in its own words with no wire change.
+
+-}
+renderOptions : ViewConfig -> Render.Options
+renderOptions config =
+    { allowedIframeOrigins = config.allowedIframeOrigins
+    , countPills =
+        { groupBy = "severity"
+        , groupOrder = [ "critical", "high", "medium", "low", "info" ]
+        , itemNoun = "finding"
+        , itemNounPlural = "findings"
+        }
+    }
+
+
 rendererView :
     ExoPalette
     -> HelperTypes.Localization
@@ -1467,8 +1490,8 @@ rendererView palette localization zone config instances model =
                                         "false"
                                     )
                                 ]
-                                [ rendererStyle palette
-                                , Html.map RendererMsg (Render.view config.allowedIframeOrigins spec (projection zone config instances model) model.renderer)
+                                [ RendererStyle.stylesheet palette CardStyle.extraRules
+                                , Html.map RendererMsg (Render.view (renderOptions config) spec (projection zone config instances model) model.renderer)
                                 ]
                             )
                         )
@@ -1727,332 +1750,3 @@ linkButton palette label msg =
         , Element.Events.onClick msg
         ]
         (Text.body label)
-
-
-
--- A self-contained stylesheet for the renderer's jr-* classes, generated from the active
--- `ExoPalette` so the vendored renderer looks native inside Exosphere in BOTH light and dark
--- themes (colors are pulled from the palette's neutral/state families, not hardcoded). Scoped
--- to .jr-* names.
-
-
-rendererStyle : ExoPalette -> Html.Html Msg
-rendererStyle palette =
-    let
-        c =
-            Color.toCssString
-
-        text =
-            c palette.neutral.text.default
-
-        muted =
-            c palette.neutral.text.subdued
-
-        border =
-            c palette.neutral.border
-
-        frontBg =
-            c palette.neutral.background.frontLayer
-
-        primary =
-            c palette.primary
-
-        -- State families: the palette's own tinted `background`/`border`/`textOnColoredBG`
-        -- read correctly on both light and dark pages, so badges/pills stay legible either way.
-        infoBg =
-            c palette.info.background
-
-        infoText =
-            c palette.info.textOnColoredBG
-
-        infoBorder =
-            c palette.info.border
-
-        successBg =
-            c palette.success.background
-
-        successText =
-            c palette.success.textOnColoredBG
-
-        successBorder =
-            c palette.success.border
-
-        dangerBg =
-            c palette.danger.background
-
-        dangerText =
-            c palette.danger.textOnColoredBG
-
-        dangerBorder =
-            c palette.danger.border
-
-        warningBg =
-            c palette.warning.background
-
-        warningText =
-            c palette.warning.textOnColoredBG
-
-        warningBorder =
-            c palette.warning.border
-
-        -- Solid severity-dot colors for the findings pills.
-        dangerDot =
-            c palette.danger.default
-
-        warningDot =
-            c palette.warning.default
-
-        infoDot =
-            c palette.info.default
-
-        neutralDot =
-            c palette.muted.default
-
-        -- Interactive/active accent, derived ENTIRELY from the Exosphere primary (never a
-        -- hardcoded hue): a faint fill, a stronger fill, and a hairline. `color-mix` keeps these
-        -- correct in both themes because `primary` itself flips with the palette.
-        primaryTint =
-            "color-mix(in srgb, " ++ primary ++ " 10%, transparent)"
-
-        primaryTintStrong =
-            "color-mix(in srgb, " ++ primary ++ " 16%, transparent)"
-
-        primaryLine =
-            "color-mix(in srgb, " ++ primary ++ " 55%, transparent)"
-
-        -- Danger accent for the embed-error ("Couldn't open") history row, mirroring the primary
-        -- tint/line idiom so the failed-to-open surface reads in the same visual language as the
-        -- active/loading rows, just danger-toned. `color-mix` keeps both correct in either theme.
-        dangerTint =
-            "color-mix(in srgb, " ++ dangerDot ++ " 9%, transparent)"
-
-        dangerLine =
-            "color-mix(in srgb, " ++ dangerDot ++ " 55%, transparent)"
-    in
-    Html.node "style"
-        []
-        [ Html.text
-            (String.join "\n"
-                [ ".jr-root { font-family: inherit; color: " ++ text ++ "; }"
-                , ".jr-card { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }"
-                , ".jr-card__title { font-size: 1.05em; margin: 0 0 4px 0; font-weight: 600; }"
-                , ".jr-stack { display: flex; gap: 10px; }"
-                , ".jr-stack--row { flex-direction: row; align-items: center; }"
-                , ".jr-stack--col { flex-direction: column; align-items: stretch; }"
-                , ".jr-text { }"
-                , ".jr-button { padding: 4px 12px; border: 1px solid " ++ border ++ "; border-radius: 4px; background: " ++ frontBg ++ "; color: " ++ text ++ "; cursor: pointer; font-size: 0.9em; }"
-                , ".jr-button:hover { border-color: " ++ primary ++ "; color: " ++ primary ++ "; }"
-
-                -- A `disabled` action (today: a row's View while the §7.1 request slot is busy).
-                -- Dimmed and not-allowed rather than hidden, so the control stays where the eye
-                -- expects it and the press reads as temporarily unavailable, not missing. The hover
-                -- rule is re-neutralized because `:hover` still fires over a disabled button.
-                , ".jr-button--disabled, .jr-button--disabled:hover { opacity: 0.45; cursor: not-allowed; border-color: " ++ border ++ "; color: " ++ muted ++ "; }"
-                , ".jr-checkbox { display: inline-flex; align-items: center; gap: 6px; }"
-                , ".jr-checkbox input { accent-color: " ++ primary ++ "; }"
-                , ".jr-badge { padding: 1px 9px; border-radius: 999px; font-size: 0.8em; border: 1px solid transparent; }"
-
-                -- In-progress badges (queued/running/scanning/stopping) get a small spinning ring
-                -- before the label so an active scan reads as moving. `currentColor` inherits the
-                -- badge tone color. `stopping` belongs here for a reason the others do not have: it
-                -- is the ONLY feedback a stop press gets, because the stop control withdraws with
-                -- the press. Drawn still, the row would read as already stopped while the publisher
-                -- is in fact still winding the run down, and a still-running row that looks finished
-                -- is what gets pressed a second time. Prefix selectors, so a state carrying a
-                -- display suffix (`scanning · 0:15`) or an ellipsis (`stopping…`) still matches.
-                --
-                -- `flex: none` is what keeps the ring ROUND. Every round box in this stylesheet is a
-                -- fixed-size pseudo-element sitting inside a badge or row that is itself a flex
-                -- container, so it is a flex ITEM: its default `flex-shrink: 1` lets the main axis
-                -- (here the width) be compressed when the line runs out of room, while the cross
-                -- axis keeps its declared size, and a circle compressed on one axis is an oval.
-                -- Nothing about `border-radius: 50%` prevents that — 50% of an oval is an oval.
-                -- `.jr-findings__dot` already carries this for the same reason; the rings did not,
-                -- and they are the elements the researcher watches while a scan runs.
-                , ".jr-badge[data-state^=\"queued\"]::before, .jr-badge[data-state^=\"running\"]::before, .jr-badge[data-state^=\"scanning\"]::before, .jr-badge[data-state^=\"stopping\"]::before { content: \"\"; display: inline-block; flex: none; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: jr-badge-spin 0.7s linear infinite; }"
-                , "@keyframes jr-badge-spin { to { transform: rotate(360deg); } }"
-
-                -- `scanning` is THIS extension's word for the phase where the clone is being read,
-                -- composed by `scanningRowLabel`. The renderer's tone table knows only the §4.4 run
-                -- states, so the word falls through to the neutral tone there — which would read as
-                -- settled on the one row that is actively working. The adapter tones its own
-                -- vocabulary here instead, matching `.jr-badge--info` exactly, which is the whole
-                -- reason the generic layer does not need an arm for it.
-                , ".jr-badge[data-state^=\"scanning\"] { background: " ++ infoBg ++ "; color: " ++ infoText ++ "; border-color: " ++ infoBorder ++ "; }"
-                , ".jr-badge--neutral { background: " ++ frontBg ++ "; color: " ++ muted ++ "; border-color: " ++ border ++ "; }"
-                , ".jr-badge--info { background: " ++ infoBg ++ "; color: " ++ infoText ++ "; border-color: " ++ infoBorder ++ "; }"
-                , ".jr-badge--success { background: " ++ successBg ++ "; color: " ++ successText ++ "; border-color: " ++ successBorder ++ "; }"
-                , ".jr-badge--danger { background: " ++ dangerBg ++ "; color: " ++ dangerText ++ "; border-color: " ++ dangerBorder ++ "; }"
-
-                -- Findings summary: a single clean row of severity pills (dot + count + label),
-                -- ordered by severity in the renderer; the iframe below is the rich view.
-                , ".jr-findings { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }"
-                , ".jr-findings--empty { color: " ++ muted ++ "; font-size: 0.9em; font-style: italic; }"
-                , ".jr-findings__total { color: " ++ muted ++ "; font-size: 0.85em; font-weight: 600; margin-right: 2px; }"
-                , ".jr-findings__pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; background: " ++ frontBg ++ "; border: 1px solid " ++ border ++ "; font-size: 0.85em; }"
-                , ".jr-findings__dot { width: 8px; height: 8px; border-radius: 50%; background: " ++ neutralDot ++ "; flex: none; }"
-                , ".jr-findings__count { font-weight: 700; color: " ++ text ++ "; }"
-                , ".jr-findings__label { color: " ++ muted ++ "; text-transform: capitalize; }"
-                , ".jr-findings__pill--critical .jr-findings__dot, .jr-findings__pill--high .jr-findings__dot { background: " ++ dangerDot ++ "; }"
-                , ".jr-findings__pill--medium .jr-findings__dot { background: " ++ warningDot ++ "; }"
-                , ".jr-findings__pill--low .jr-findings__dot { background: " ++ infoDot ++ "; }"
-                , ".jr-findings__pill--info .jr-findings__dot { background: " ++ neutralDot ++ "; }"
-
-                -- Table: a plain data grid. Header rule is heavier than row rules; all lines use
-                -- the neutral border so it reads as quiet structure, not a colored callout.
-                , ".jr-table { width: 100%; border-collapse: collapse; font-size: 0.85em; }"
-                , ".jr-table__header { text-align: left; font-weight: 600; color: " ++ muted ++ "; padding: 6px 10px; border-bottom: 2px solid " ++ border ++ "; }"
-                , ".jr-table__cell { padding: 6px 10px; color: " ++ text ++ "; border-bottom: 1px solid " ++ border ++ "; }"
-
-                -- Alert: a tinted callout box, one tone per severity. Same bg/text/border palette
-                -- families as the badges so tones stay consistent across the card in both themes.
-                , ".jr-alert { padding: 10px 12px; border-radius: 6px; border: 1px solid transparent; font-size: 0.9em; }"
-                , ".jr-alert__title { display: block; font-weight: 600; margin-bottom: 3px; }"
-                , ".jr-alert__message { display: block; line-height: 1.45; }"
-                , ".jr-alert--info { background: " ++ infoBg ++ "; color: " ++ infoText ++ "; border-color: " ++ infoBorder ++ "; }"
-                , ".jr-alert--warning { background: " ++ warningBg ++ "; color: " ++ warningText ++ "; border-color: " ++ warningBorder ++ "; }"
-                , ".jr-alert--danger { background: " ++ dangerBg ++ "; color: " ++ dangerText ++ "; border-color: " ++ dangerBorder ++ "; }"
-
-                -- Iframe chrome: the provenance bar reads as quiet host chrome (subdued text on
-                -- the front layer), and the frame carries a distinct-but-neutral border so the
-                -- embed is visibly framed as third-party without alarming. Works in both themes.
-                , ".jr-iframe { display: flex; flex-direction: column; }"
-                , ".jr-iframe__provenance { padding: 5px 10px; font-size: 0.78em; color: " ++ muted ++ "; background: " ++ frontBg ++ "; border: 1px solid " ++ border ++ "; border-bottom: 0; border-radius: 6px 6px 0 0; }"
-                , ".jr-iframe__frame { border: 1px solid " ++ border ++ "; border-radius: 0 0 6px 6px; overflow: hidden; }"
-
-                -- REDESIGN v2 — a TWO-COLUMN desktop layout. Provenance (above) and the results
-                -- region (below) are host chrome outside the manifest; INSIDE the manifest the card
-                -- is a two-column row (scan targets | scan history) followed by the full-width
-                -- results findings + iframe. Everything below styles a FIXED renderer DOM (no
-                -- manifest class hooks); the one per-row hook is the rowState Badge's `data-state`,
-                -- which `:has()` reads to style the whole row.
-                --
-                -- Selector anchoring — the columns row, the toolbar, and the history rows are ALL
-                -- Stack rows, so we key strictly on depth from `.jr-card`:
-                --   COLUMNS = `.jr-card > .jr-stack--row`  (the ONLY row that is a direct card child)
-                --   TARGETS = COLUMNS `> .jr-stack--col:nth-child(1)`
-                --   HISTORY = COLUMNS `> .jr-stack--col:nth-child(2)`
-                --   scroll  = TARGETS/HISTORY `> .jr-stack--col`  (the repeat container in a column)
-                , ".jr-card { gap: 16px; }"
-
-                -- The two-column grid: targets narrower than history (history rows carry more —
-                -- date, target, pills, state, action). On a narrow card it collapses to one column
-                -- (see the @media at the end). A hairline divider runs down the gutter.
-                , ".jr-card > .jr-stack--row { display: grid; grid-template-columns: 5fr 7fr; gap: 0; align-items: stretch; }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col { min-width: 0; gap: 8px; }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(1) { padding-right: 26px; }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) { padding-left: 26px; border-left: 1px solid " ++ border ++ "; }"
-
-                -- Column headers: an uppercase muted rubric carrying the live count. The history
-                -- overflow note ("showing latest 20 of M") is the history column's 2nd Text child.
-                , ".jr-card > .jr-stack--row > .jr-stack--col > .jr-text:first-child { text-transform: uppercase; letter-spacing: 0.07em; font-size: 0.72em; font-weight: 700; color: " ++ muted ++ "; }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col > .jr-text:nth-child(2) { font-size: 0.78em; color: " ++ muted ++ "; margin-top: -2px; }"
-
-                -- The scroll areas: BOTH the targets list and the history rows are height-bounded and
-                -- scroll internally, so the two columns stay EQUAL height and can never be lopsided
-                -- regardless of item counts. Grid `align-items: stretch` grows the shorter column's
-                -- scroll area to match the taller; the taller one caps at ~6 rows and scrolls. This
-                -- is the key requirement (the researcher may have "unlimited" instances and scans).
-                , ".jr-card > .jr-stack--row > .jr-stack--col > .jr-stack--col { flex: 1 1 auto; max-height: 16rem; overflow-y: auto; gap: 2px; }"
-                , "[data-exoext-history-loading=\"true\"] .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col { min-height: 3rem; display: flex; flex-direction: row; align-items: center; gap: 8px; padding: 9px 10px; color: " ++ muted ++ "; background: " ++ frontBg ++ "; border-radius: 8px; }"
-                , "[data-exoext-history-loading=\"true\"] .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col::before { content: \"\"; display: inline-block; flex: none; width: 12px; height: 12px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: jr-badge-spin 0.7s linear infinite; }"
-                , "[data-exoext-history-loading=\"true\"] .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col::after { content: \"Loading history…\"; font-size: 0.9em; }"
-
-                -- Scan-target rows (TARGETS scroll rows): the name grows; the Scan button sits right.
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(1) > .jr-stack--col > .jr-stack--row { align-items: center; gap: 10px; padding: 7px 10px; border-radius: 8px; }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(1) > .jr-stack--col > .jr-stack--row:hover { background: " ++ frontBg ++ "; }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(1) > .jr-stack--col > .jr-stack--row > .jr-text { flex: 1; min-width: 0; font-weight: 500; }"
-
-                -- Toolbar (Select all | Scan selected): the targets column's own row child; the
-                -- button pushes to the right edge.
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(1) > .jr-stack--row { align-items: center; }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(1) > .jr-stack--row .jr-button { margin-left: auto; }"
-
-                -- History rows (HISTORY scroll rows): a two-line main block (when + sub) that grows,
-                -- then pills, then the state badge, then the action.
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row { align-items: center; gap: 12px; padding: 9px 10px; border-radius: 9px; border-left: 3px solid transparent; }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:hover { background: " ++ frontBg ++ "; }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-stack--col { flex: 1; min-width: 0; gap: 1px; }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-stack--col > .jr-text:first-child { font-size: 0.95em; font-weight: 600; color: " ++ text ++ "; }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-stack--col > .jr-text:last-child { font-size: 0.82em; color: " ++ muted ++ "; }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) .jr-findings { flex: 0 0 auto; }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) .jr-findings__total { display: none; }"
-
-                -- The single per-row state hook. Empty rowState => hidden badge (the common case,
-                -- manifest v1). Manifest v2 projects the idle token instead of an empty string, so
-                -- the twin hides the idle history badge too — scoped to the history column so it
-                -- can't hide a targets-column "idle" scanState badge (which stays visible).
-                , ".jr-badge[data-state=\"\"] { display: none; }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"idle\"] { display: none; }"
-
-                -- Active / now-viewing row: accent stripe + primary tint + a pulsing flag, action
-                -- flips to Refresh. Keyed on the history Badge's data-state. Each rule carries BOTH
-                -- selectors: the manifest-v1 display string ("Now viewing") and the manifest-v2
-                -- token ("viewing", from the Badge `variant`). The token twins are history-scoped
-                -- (never a bare global) so they cannot collide with a targets-column scanState. Both
-                -- selector sets live side by side until the demo VM redeploys v2.
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Now viewing\"]), .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"viewing\"]) { background: " ++ primaryTint ++ "; border-left-color: " ++ primary ++ "; box-shadow: inset 0 0 0 1px " ++ primaryLine ++ "; }"
-                , ".jr-badge[data-state=\"Now viewing\"], .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"viewing\"] { display: inline-flex; align-items: center; gap: 5px; background: " ++ primaryTintStrong ++ "; color: " ++ primary ++ "; border-color: " ++ primaryLine ++ "; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.7em; font-weight: 700; }"
-                , ".jr-badge[data-state=\"Now viewing\"]::before, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"viewing\"]::before { content: \"\"; flex: none; width: 6px; height: 6px; border-radius: 50%; background: " ++ primary ++ "; animation: jr-viewing-pulse 2s ease-in-out infinite; }"
-                , "@keyframes jr-viewing-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }"
-                , "@media (prefers-reduced-motion: reduce) { .jr-badge[data-state=\"Now viewing\"]::before, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"viewing\"]::before { animation: none; } }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Now viewing\"]) .jr-button, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"viewing\"]) .jr-button { background: transparent; border-color: " ++ primaryLine ++ "; color: " ++ primary ++ "; }"
-
-                -- Opening / loading row: this row's getEmbed is in flight. Same accent surface as
-                -- "Now viewing" so the clicked row reads as the one taking over, but the badge carries
-                -- a spinning ring (the codebase's in-progress idiom, shared with queued/running) and
-                -- the action button is de-emphasized and non-interactive (pointer-events: none) while
-                -- the bridge mints the fresh embed.
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Opening…\"]), .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"opening\"]) { background: " ++ primaryTint ++ "; border-left-color: " ++ primaryLine ++ "; }"
-                , ".jr-badge[data-state=\"Opening…\"], .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"opening\"] { display: inline-flex; align-items: center; gap: 6px; background: " ++ primaryTintStrong ++ "; color: " ++ primary ++ "; border-color: " ++ primaryLine ++ "; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.7em; font-weight: 700; }"
-                , ".jr-badge[data-state=\"Opening…\"]::before, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"opening\"]::before { content: \"\"; display: inline-block; flex: none; width: 9px; height: 9px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: jr-badge-spin 0.7s linear infinite; }"
-                , "@media (prefers-reduced-motion: reduce) { .jr-badge[data-state=\"Opening…\"]::before, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"opening\"]::before { animation: none; } }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Opening…\"]) .jr-button, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"opening\"]) .jr-button { background: transparent; border-color: " ++ primaryLine ++ "; color: " ++ primary ++ "; opacity: 0.6; pointer-events: none; }"
-
-                -- Embed-error row: this batch's last getEmbed failed / timed out. Danger-toned badge
-                -- + stripe/tint (mirroring the primary active/loading idiom, just danger-colored), and
-                -- the action flips to a danger-outlined \"Retry\" that re-fires getEmbed. Distinct from
-                -- a FAILED SCAN below (which has nothing to view): here the scan is fine, only the
-                -- results session failed to open, so the button stays and reads \"Retry\".
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Couldn't open\"]), .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"error\"]) { background: " ++ dangerTint ++ "; border-left-color: " ++ dangerDot ++ "; }"
-                , ".jr-badge[data-state=\"Couldn't open\"], .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"error\"] { display: inline-flex; align-items: center; gap: 5px; background: " ++ dangerBg ++ "; color: " ++ dangerText ++ "; border-color: " ++ dangerBorder ++ "; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.7em; font-weight: 700; }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Couldn't open\"]) .jr-button, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"error\"]) .jr-button { background: transparent; border-color: " ++ dangerLine ++ "; color: " ++ dangerDot ++ "; }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Couldn't open\"]) .jr-button:hover, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"error\"]) .jr-button:hover { border-color: " ++ dangerDot ++ "; }"
-
-                -- Failed scan row: de-emphasized, a small danger 'failed' pill, and no pills/action
-                -- (nothing to view). The host also blanks its actionLabel; this hides the button.
-                , ".jr-badge[data-state=\"failed\"] { background: " ++ dangerBg ++ "; color: " ++ dangerText ++ "; border-color: " ++ dangerBorder ++ "; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.7em; font-weight: 700; }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"failed\"]) { opacity: 0.72; }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"failed\"]) .jr-button { display: none; }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"failed\"]) .jr-findings { display: none; }"
-
-                -- Expired session row (the expired-session fix): the row's result session lapsed, so
-                -- the host reverts it from "Now viewing"/"Refresh" to a muted neutral "Expired" badge
-                -- and a plain View (reopen). It keeps a FAINT highlight — the same palette-derived
-                -- primary accent as the active row, just at a lower alpha — so the researcher still
-                -- sees which scan they were on. Neutral toned (like the failed pill but not danger).
-                , ".jr-badge[data-state=\"Expired\"], .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"expired\"] { background: " ++ frontBg ++ "; color: " ++ muted ++ "; border-color: " ++ border ++ "; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.7em; font-weight: 700; }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Expired\"]), .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"expired\"]) { background: color-mix(in srgb, " ++ primary ++ " 5%, transparent); border-left-color: " ++ primaryLine ++ "; }"
-                , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Expired\"]) .jr-button, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"expired\"]) .jr-button { background: transparent; border-color: " ++ border ++ "; color: " ++ muted ++ "; }"
-
-                -- Responsive: on a narrow card the two columns stack (targets, then history), each
-                -- keeping its own bounded scroll. The divider moves from a left border to a top one.
-                , "@media (max-width: 720px) { .jr-card > .jr-stack--row { grid-template-columns: 1fr; } .jr-card > .jr-stack--row > .jr-stack--col:nth-child(1) { padding-right: 0; padding-bottom: 14px; } .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) { padding-left: 0; border-left: 0; border-top: 1px solid " ++ border ++ "; padding-top: 14px; } }"
-                , ".jr-confirm { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 1000; }"
-
-                -- `white-space: normal` re-establishes wrapping inside the dialog: the card is raw
-                -- HTML embedded in an elm-ui tree, and elm-ui sets `white-space: pre` on every `el`,
-                -- which inherits into the overlay — an unwrapped message overflows the box.
-                , ".jr-confirm__box { background: " ++ frontBg ++ "; color: " ++ text ++ "; padding: 20px 22px; border-radius: 8px; max-width: 380px; white-space: normal; border: 1px solid " ++ border ++ "; box-shadow: 0 8px 40px rgba(0,0,0,0.5); }"
-                , ".jr-confirm__title { margin: 0 0 8px 0; font-size: 1.1em; font-weight: 600; }"
-                , ".jr-confirm__message { margin: 0; color: " ++ muted ++ "; line-height: 1.45; }"
-                , ".jr-confirm__actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }"
-                , ".jr-confirm__cancel, .jr-confirm__confirm { padding: 6px 16px; border-radius: 4px; cursor: pointer; font-size: 0.9em; }"
-                , ".jr-confirm__cancel { background: transparent; color: " ++ text ++ "; border: 1px solid " ++ border ++ "; }"
-                , ".jr-confirm__cancel:hover { background: " ++ frontBg ++ "; }"
-                , ".jr-confirm__confirm { background: " ++ primary ++ "; color: #fff; border: 1px solid " ++ primary ++ "; }"
-                , ".jr-confirm__confirm:hover { filter: brightness(1.08); }"
-                , ".jr-error, .jr-error-stub { border: 1px solid " ++ dangerBorder ++ "; padding: 8px 10px; border-radius: 4px; color: " ++ dangerText ++ "; background: " ++ dangerBg ++ "; }"
-                ]
-            )
-        ]

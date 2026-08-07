@@ -79,7 +79,7 @@ specOf raw =
 
 render : String -> Query.Single Render.Msg
 render raw =
-    Render.view [] (specOf raw) Encode.null Render.init
+    Render.view Render.defaultOptions (specOf raw) Encode.null Render.init
         |> Query.fromHtml
 
 
