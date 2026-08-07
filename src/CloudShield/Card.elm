@@ -703,7 +703,7 @@ no conditionals (host-renderer-interface.md §1.2):
   - `subLabel` — the target + short batch id ("alpha · #84a1c6"), on every row including a failed
     one (the batch id is dropped when the scan had none).
   - `findings` — a findings-shaped array synthesized from the aggregate counts, bound into the
-    row's `FindingsTable` so history pills match the live `/results` pills.
+    row's `CountPills` so history pills match the live `/results` pills.
   - `rowState` — the one active/failed/loading hook the stylesheet keys on: "Opening…" for the
     row whose getEmbed is in flight (wins), "Now viewing" for the row the embed/results are
     showing, "Expired" for the row whose session has expired, "failed" for an errored scan,
@@ -879,7 +879,7 @@ historyRow zone activeResultId pendingResultId erroredResultId expiredResultId e
 
 
 {-| Synthesize a findings-shaped array from a row's aggregate `counts` so the per-row
-`FindingsTable` renders the same palette-driven severity pills as the live `/results` view: one
+`CountPills` renders the same palette-driven severity pills as the live `/results` view: one
 `{ "severity": <sev> }` object per counted finding, which the table groups and counts back into
 pills. This keeps history pills byte-consistent with results pills without a second pill
 renderer or any renderer conditional. Cost is O(total findings) per row; history is display-
@@ -1096,7 +1096,7 @@ type alias ViewConfig =
     , queuedTargets : List String
 
     -- the §4.2 result's `findings[]` array (host-parsed from the polled result object),
-    -- bound into the `FindingsTable` at `/results`. `Nothing` until a run is `done`.
+    -- bound into the `CountPills` at `/results`. `Nothing` until a run is `done`.
     , results : Maybe Encode.Value
 
     -- the archived-scan history rows (the bridge's `results/index.json`) plus the first-fetch
@@ -1439,6 +1439,27 @@ transportChip palette label =
         (Element.text label)
 
 
+{-| What this adapter tells the generic renderer about itself.
+
+The renderer counts and orders `CountPills` rows but has no opinion about what a row IS. This
+extension does: a row is a finding, findings group by `severity`, and severity reads
+critical-first, not alphabetically and not by count. A published manifest could carry those keys
+itself, but the deployed `card.json` predates them, so the adapter supplies them here and the card
+renders in its own words with no wire change.
+
+-}
+renderOptions : ViewConfig -> Render.Options
+renderOptions config =
+    { allowedIframeOrigins = config.allowedIframeOrigins
+    , countPills =
+        { groupBy = "severity"
+        , groupOrder = [ "critical", "high", "medium", "low", "info" ]
+        , itemNoun = "finding"
+        , itemNounPlural = "findings"
+        }
+    }
+
+
 rendererView :
     ExoPalette
     -> HelperTypes.Localization
@@ -1470,7 +1491,7 @@ rendererView palette localization zone config instances model =
                                     )
                                 ]
                                 [ RendererStyle.stylesheet palette CardStyle.extraRules
-                                , Html.map RendererMsg (Render.view config.allowedIframeOrigins spec (projection zone config instances model) model.renderer)
+                                , Html.map RendererMsg (Render.view (renderOptions config) spec (projection zone config instances model) model.renderer)
                                 ]
                             )
                         )

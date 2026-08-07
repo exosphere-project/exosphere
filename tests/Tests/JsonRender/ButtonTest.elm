@@ -38,7 +38,7 @@ specOf raw =
 
 render : String -> Encode.Value -> Query.Single Render.Msg
 render raw state =
-    Render.view [] (specOf raw) state Render.init
+    Render.view Render.defaultOptions (specOf raw) state Render.init
         |> Query.fromHtml
 
 

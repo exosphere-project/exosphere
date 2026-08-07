@@ -187,15 +187,15 @@ baseRules t =
     , ".jr-badge--success { background: " ++ t.successBg ++ "; color: " ++ t.successText ++ "; border-color: " ++ t.successBorder ++ "; }"
     , ".jr-badge--danger { background: " ++ t.dangerBg ++ "; color: " ++ t.dangerText ++ "; border-color: " ++ t.dangerBorder ++ "; }"
 
-    -- Findings summary: a single clean row of severity pills (dot + count + label), ordered by
-    -- the renderer; an extension tints the per-group dot from its own block.
-    , ".jr-findings { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }"
-    , ".jr-findings--empty { color: " ++ t.muted ++ "; font-size: 0.9em; font-style: italic; }"
-    , ".jr-findings__total { color: " ++ t.muted ++ "; font-size: 0.85em; font-weight: 600; margin-right: 2px; }"
-    , ".jr-findings__pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; background: " ++ t.frontBg ++ "; border: 1px solid " ++ t.border ++ "; font-size: 0.85em; }"
-    , ".jr-findings__dot { width: 8px; height: 8px; border-radius: 50%; background: " ++ t.neutralDot ++ "; flex: none; }"
-    , ".jr-findings__count { font-weight: 700; color: " ++ t.text ++ "; }"
-    , ".jr-findings__label { color: " ++ t.muted ++ "; text-transform: capitalize; }"
+    -- CountPills: a single clean row of count pills (dot + count + label), ordered by the
+    -- renderer. The dot is neutral here; an extension tints it per group from its own block.
+    , ".jr-counts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }"
+    , ".jr-counts--empty { color: " ++ t.muted ++ "; font-size: 0.9em; font-style: italic; }"
+    , ".jr-counts__total { color: " ++ t.muted ++ "; font-size: 0.85em; font-weight: 600; margin-right: 2px; }"
+    , ".jr-counts__pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; background: " ++ t.frontBg ++ "; border: 1px solid " ++ t.border ++ "; font-size: 0.85em; }"
+    , ".jr-counts__dot { width: 8px; height: 8px; border-radius: 50%; background: " ++ t.neutralDot ++ "; flex: none; }"
+    , ".jr-counts__count { font-weight: 700; color: " ++ t.text ++ "; }"
+    , ".jr-counts__label { color: " ++ t.muted ++ "; text-transform: capitalize; }"
 
     -- Table: a plain data grid. Header rule is heavier than row rules; all lines use
     -- the neutral border so it reads as quiet structure, not a colored callout.

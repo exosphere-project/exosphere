@@ -47,10 +47,10 @@ extraRules t =
 
     -- Severity is CloudShield's grouping, so the per-group dot colors are CloudShield's too: the
     -- base draws a neutral dot and this maps the CVSS bands onto the palette's state families.
-    , ".jr-findings__pill--critical .jr-findings__dot, .jr-findings__pill--high .jr-findings__dot { background: " ++ t.dangerDot ++ "; }"
-    , ".jr-findings__pill--medium .jr-findings__dot { background: " ++ t.warningDot ++ "; }"
-    , ".jr-findings__pill--low .jr-findings__dot { background: " ++ t.infoDot ++ "; }"
-    , ".jr-findings__pill--info .jr-findings__dot { background: " ++ t.neutralDot ++ "; }"
+    , ".jr-counts__pill--critical .jr-counts__dot, .jr-counts__pill--high .jr-counts__dot { background: " ++ t.dangerDot ++ "; }"
+    , ".jr-counts__pill--medium .jr-counts__dot { background: " ++ t.warningDot ++ "; }"
+    , ".jr-counts__pill--low .jr-counts__dot { background: " ++ t.infoDot ++ "; }"
+    , ".jr-counts__pill--info .jr-counts__dot { background: " ++ t.neutralDot ++ "; }"
 
     -- REDESIGN v2 — a TWO-COLUMN desktop layout. Provenance (above) and the results region
     -- (below) are host chrome outside the manifest; INSIDE the manifest the card is a two-column
@@ -97,8 +97,8 @@ extraRules t =
     , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-stack--col { flex: 1; min-width: 0; gap: 1px; }"
     , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-stack--col > .jr-text:first-child { font-size: 0.95em; font-weight: 600; color: " ++ t.text ++ "; }"
     , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-stack--col > .jr-text:last-child { font-size: 0.82em; color: " ++ t.muted ++ "; }"
-    , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) .jr-findings { flex: 0 0 auto; }"
-    , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) .jr-findings__total { display: none; }"
+    , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) .jr-counts { flex: 0 0 auto; }"
+    , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) .jr-counts__total { display: none; }"
 
     -- The base hides a badge whose rowState is empty (manifest v1, the common case). Manifest v2
     -- projects the idle token instead of an empty string, so this twin hides the idle history
@@ -145,7 +145,7 @@ extraRules t =
     , ".jr-badge[data-state=\"failed\"] { background: " ++ t.dangerBg ++ "; color: " ++ t.dangerText ++ "; border-color: " ++ t.dangerBorder ++ "; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.7em; font-weight: 700; }"
     , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"failed\"]) { opacity: 0.72; }"
     , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"failed\"]) .jr-button { display: none; }"
-    , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"failed\"]) .jr-findings { display: none; }"
+    , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"failed\"]) .jr-counts { display: none; }"
 
     -- Expired session row (the expired-session fix): the row's result session lapsed, so
     -- the host reverts it from "Now viewing"/"Refresh" to a muted neutral "Expired" badge

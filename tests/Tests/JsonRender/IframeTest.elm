@@ -51,7 +51,11 @@ specOf raw =
 
 render : String -> Query.Single Render.Msg
 render embedUrl =
-    Render.view allowedOrigins (specOf iframeManifest) (Encode.object [ ( "embedUrl", Encode.string embedUrl ) ]) Render.init
+    let
+        options =
+            Render.defaultOptions
+    in
+    Render.view { options | allowedIframeOrigins = allowedOrigins } (specOf iframeManifest) (Encode.object [ ( "embedUrl", Encode.string embedUrl ) ]) Render.init
         |> Query.fromHtml
 
 

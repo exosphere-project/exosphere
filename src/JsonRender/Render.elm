@@ -2,7 +2,7 @@ module JsonRender.Render exposing
     ( Model, init
     , Msg, update
     , Effect(..)
-    , view
+    , Options, CountPillDefaults, defaultOptions, view
     , badgeTone
     )
 
@@ -36,7 +36,7 @@ tree is **XSS-safe by construction**.
 
 # View
 
-@docs view
+@docs Options, CountPillDefaults, defaultOptions, view
 
 
 # Styling hooks
@@ -167,27 +167,72 @@ emitAction emit =
 -- VIEW
 
 
-{-| Render the spec against the current host-owned `state`. The returned `Html Msg`
-includes the confirm dialog overlay when one is pending.
+{-| What the host tells the renderer about itself.
 
-`allowedOrigins` is the host-provided iframe origin allowlist: an `Iframe` element renders
-only when its resolved `src` is an https URL whose origin is an exact member of this list.
-An empty list disables all iframes (fail-closed).
+  - `allowedIframeOrigins` — the iframe origin allowlist: an `Iframe` element renders only when
+    its resolved `src` is an https URL whose origin is an exact member of this list. An empty
+    list disables all iframes (fail-closed).
+  - `countPills` — the vocabulary a `CountPills` element falls back to.
 
 -}
-view : List String -> Spec -> Value -> Model -> Html Msg
-view allowedOrigins spec state (Model model) =
+type alias Options =
+    { allowedIframeOrigins : List String
+    , countPills : CountPillDefaults
+    }
+
+
+{-| The words a `CountPills` element uses when its manifest does not name its own.
+
+The renderer counts rows and groups them; it has no opinion about what a row IS. An adapter does:
+it knows what one row is called, which field groups them, and which group belongs at the front. A
+manifest published before `CountPills` could carry those keys cannot say so itself, so the adapter
+that mounts the renderer supplies them and its already-published manifests keep reading correctly.
+
+  - `groupBy` — the record field to group rows on.
+  - `groupOrder` — group values in display order. Anything outside the list sorts after the
+    listed ones by descending count then name, which is what an EMPTY list does to everything.
+  - `itemNoun` / `itemNounPlural` — what one row and many rows are called.
+
+-}
+type alias CountPillDefaults =
+    { groupBy : String
+    , groupOrder : List String
+    , itemNoun : String
+    , itemNounPlural : String
+    }
+
+
+{-| Options for a host that has no extension vocabulary of its own: no iframes, no group order
+(so counts fall back to descending), and rows that are simply "items".
+-}
+defaultOptions : Options
+defaultOptions =
+    { allowedIframeOrigins = []
+    , countPills =
+        { groupBy = "group"
+        , groupOrder = []
+        , itemNoun = "item"
+        , itemNounPlural = "items"
+        }
+    }
+
+
+{-| Render the spec against the current host-owned `state`. The returned `Html Msg`
+includes the confirm dialog overlay when one is pending.
+-}
+view : Options -> Spec -> Value -> Model -> Html Msg
+view opts spec state (Model model) =
     Html.div [ Attr.class "jr-root" ]
-        [ renderElement spec (Expr.rootContext allowedOrigins state) spec.root
+        [ renderElement opts spec (Expr.rootContext opts.allowedIframeOrigins state) spec.root
         , confirmOverlay model.pendingConfirm
         ]
 
 
-renderElement : Spec -> Context -> String -> Html Msg
-renderElement spec ctx id =
+renderElement : Options -> Spec -> Context -> String -> Html Msg
+renderElement opts spec ctx id =
     case Dict.get id spec.elements of
         Just element ->
-            renderUIElement spec ctx element
+            renderUIElement opts spec ctx element
 
         Nothing ->
             -- Cannot happen for a decoded spec (child refs are validated); fail-closed stub.
@@ -195,22 +240,22 @@ renderElement spec ctx id =
                 [ Html.text ("Missing element: " ++ id) ]
 
 
-renderUIElement : Spec -> Context -> UIElement -> Html Msg
-renderUIElement spec ctx element =
+renderUIElement : Options -> Spec -> Context -> UIElement -> Html Msg
+renderUIElement opts spec ctx element =
     let
         childrenHtml =
             case element.repeat of
                 Just repeat ->
-                    repeatChildren spec ctx element repeat
+                    repeatChildren opts spec ctx element repeat
 
                 Nothing ->
-                    List.map (renderElement spec ctx) element.children
+                    List.map (renderElement opts spec ctx) element.children
     in
-    renderComponent ctx element childrenHtml
+    renderComponent opts.countPills ctx element childrenHtml
 
 
-repeatChildren : Spec -> Context -> UIElement -> Repeat -> List (Html Msg)
-repeatChildren spec ctx element repeat =
+repeatChildren : Options -> Spec -> Context -> UIElement -> Repeat -> List (Html Msg)
+repeatChildren opts spec ctx element repeat =
     let
         items =
             arrayAt repeat.statePath ctx.state
@@ -220,13 +265,13 @@ repeatChildren spec ctx element repeat =
                 rowCtx =
                     Expr.childContext repeat.statePath index item ctx
             in
-            List.map (renderElement spec rowCtx) element.children
+            List.map (renderElement opts spec rowCtx) element.children
     in
     List.concat (List.indexedMap renderRow items)
 
 
-renderComponent : Context -> UIElement -> List (Html Msg) -> Html Msg
-renderComponent ctx element childrenHtml =
+renderComponent : CountPillDefaults -> Context -> UIElement -> List (Html Msg) -> Html Msg
+renderComponent countPillDefaults ctx element childrenHtml =
     case element.props of
         CardP props ->
             renderCard ctx props childrenHtml
@@ -247,8 +292,8 @@ renderComponent ctx element childrenHtml =
         CheckboxP props ->
             renderCheckbox ctx props
 
-        FindingsTableP props ->
-            renderFindingsTable ctx props
+        CountPillsP props ->
+            renderCountPills countPillDefaults ctx props
 
         IframeP props ->
             renderIframe ctx props
@@ -534,22 +579,30 @@ renderCheckbox ctx props =
         )
 
 
-{-| Render a `FindingsTable`: one severity pill per group, or the empty state.
+{-| Render a `CountPills` element: one pill per group, or the empty state.
 
-The empty state is the manifest's to name. `emptyLabel` resolves to the text shown when there are
-no groups; absent it falls back to the renderer's own provisional "No findings yet", and resolving
-to an empty string renders NO node at all (for a row that already says "failed" elsewhere, a second
-empty-state line would be double-messaging).
+The renderer counts and orders; the WORDS are the publisher's. Each of `groupBy`, `groupOrder`,
+`itemNoun` and `itemNounPlural` comes from the manifest when it names one and from the host's
+[`CountPillDefaults`](#CountPillDefaults) when it does not, so a manifest published before those
+keys existed still reads in the vocabulary its adapter set.
+
+The empty state is the manifest's to name too. `emptyLabel` resolves to the text shown when there
+are no groups; absent it falls back to "No <plural> yet", and resolving to an empty string renders
+NO node at all (for a row that already says "failed" elsewhere, a second empty-state line would be
+double-messaging).
 
 -}
-renderFindingsTable : Context -> Spec.FindingsTableProps -> Html Msg
-renderFindingsTable ctx props =
+renderCountPills : CountPillDefaults -> Context -> Spec.CountPillsProps -> Html Msg
+renderCountPills fallback ctx props =
     let
+        plural =
+            Maybe.withDefault fallback.itemNounPlural props.itemNounPlural
+
         groups =
             Expr.resolve ctx props.bind
-                |> decodeFindings
-                |> groupFindings props.groupBy
-                |> orderBySeverity
+                |> decodeRows
+                |> countByGroup (Maybe.withDefault fallback.groupBy props.groupBy)
+                |> orderGroups (Maybe.withDefault fallback.groupOrder props.groupOrder)
     in
     case groups of
         [] ->
@@ -557,29 +610,36 @@ renderFindingsTable ctx props =
                 emptyLabel =
                     props.emptyLabel
                         |> Maybe.map (Expr.resolveDisplay ctx)
-                        |> Maybe.withDefault "No findings yet"
+                        |> Maybe.withDefault ("No " ++ plural ++ " yet")
             in
             if String.isEmpty emptyLabel then
                 Html.text ""
 
             else
-                Html.div [ Attr.class "jr-findings jr-findings--empty" ]
+                Html.div [ Attr.class "jr-counts jr-counts--empty" ]
                     [ Html.text emptyLabel ]
 
         _ ->
             let
                 total =
                     List.sum (List.map Tuple.second groups)
+
+                noun =
+                    if total == 1 then
+                        Maybe.withDefault fallback.itemNoun props.itemNoun
+
+                    else
+                        plural
             in
-            Html.div [ Attr.class "jr-findings" ]
-                (Html.span [ Attr.class "jr-findings__total" ]
-                    [ Html.text (String.fromInt total ++ pluralizeFindings total) ]
-                    :: List.map renderFindingPill groups
+            Html.div [ Attr.class "jr-counts" ]
+                (Html.span [ Attr.class "jr-counts__total" ]
+                    [ Html.text (String.fromInt total ++ " " ++ noun) ]
+                    :: List.map countPill groups
                 )
 
 
-decodeFindings : Value -> List (Dict.Dict String Value)
-decodeFindings value =
+decodeRows : Value -> List (Dict.Dict String Value)
+decodeRows value =
     if isNull value then
         []
 
@@ -588,35 +648,26 @@ decodeFindings value =
             |> Result.withDefault []
 
 
-pluralizeFindings : Int -> String
-pluralizeFindings n =
-    if n == 1 then
-        " finding"
-
-    else
-        " findings"
-
-
-{-| One at-a-glance severity pill: a severity-colored dot, the count, then the label. The
-`jr-findings__pill--<label>` modifier drives the dot color from the host stylesheet.
+{-| One at-a-glance pill: a group-colored dot, the count, then the group. The
+`jr-counts__pill--<group>` modifier is what lets the host stylesheet tint the dot per group.
 -}
-renderFindingPill : ( String, Int ) -> Html Msg
-renderFindingPill ( label, count ) =
-    Html.span [ Attr.class ("jr-findings__pill jr-findings__pill--" ++ String.toLower label) ]
-        [ Html.span [ Attr.class "jr-findings__dot" ] []
-        , Html.span [ Attr.class "jr-findings__count" ] [ Html.text (String.fromInt count) ]
-        , Html.span [ Attr.class "jr-findings__label" ] [ Html.text label ]
+countPill : ( String, Int ) -> Html Msg
+countPill ( label, count ) =
+    Html.span [ Attr.class ("jr-counts__pill jr-counts__pill--" ++ String.toLower label) ]
+        [ Html.span [ Attr.class "jr-counts__dot" ] []
+        , Html.span [ Attr.class "jr-counts__count" ] [ Html.text (String.fromInt count) ]
+        , Html.span [ Attr.class "jr-counts__label" ] [ Html.text label ]
         ]
 
 
-groupFindings : String -> List (Dict.Dict String Value) -> List ( String, Int )
-groupFindings groupBy findings =
-    findings
+countByGroup : String -> List (Dict.Dict String Value) -> List ( String, Int )
+countByGroup groupBy rows =
+    rows
         |> List.foldr
-            (\finding acc ->
+            (\row acc ->
                 let
                     key =
-                        Dict.get groupBy finding
+                        Dict.get groupBy row
                             |> Maybe.andThen (Decode.decodeValue Decode.string >> Result.toMaybe)
                             |> Maybe.withDefault "ungrouped"
                 in
@@ -626,19 +677,20 @@ groupFindings groupBy findings =
         |> Dict.toList
 
 
-{-| Order the grouped counts by severity rank (critical, high, medium, low, info) rather than
-alphabetically, dropping any zero counts. Unrecognized labels sort after the known severities,
-by descending count then name, so a non-severity `groupBy` still renders sensibly.
+{-| Order the grouped counts by the publisher's `groupOrder` rather than alphabetically, dropping
+any zero counts. Groups the order does not name sort after the ones it does, by descending count
+then name — which is what an EMPTY order does to every group, and is the sensible reading of a
+grouping whose values the publisher never enumerated.
 -}
-orderBySeverity : List ( String, Int ) -> List ( String, Int )
-orderBySeverity =
+orderGroups : List String -> List ( String, Int ) -> List ( String, Int )
+orderGroups order =
     List.filter (\( _, count ) -> count > 0)
-        >> List.sortWith compareSeverityGroup
+        >> List.sortWith (compareGroup (groupRank order))
 
 
-compareSeverityGroup : ( String, Int ) -> ( String, Int ) -> Order
-compareSeverityGroup ( labelA, countA ) ( labelB, countB ) =
-    case ( severityRank labelA, severityRank labelB ) of
+compareGroup : (String -> Maybe Int) -> ( String, Int ) -> ( String, Int ) -> Order
+compareGroup rankOf ( labelA, countA ) ( labelB, countB ) =
+    case ( rankOf labelA, rankOf labelB ) of
         ( Just rankA, Just rankB ) ->
             compare rankA rankB
 
@@ -657,26 +709,17 @@ compareSeverityGroup ( labelA, countA ) ( labelB, countB ) =
                     order
 
 
-severityRank : String -> Maybe Int
-severityRank label =
-    case String.toLower label of
-        "critical" ->
-            Just 0
-
-        "high" ->
-            Just 1
-
-        "medium" ->
-            Just 2
-
-        "low" ->
-            Just 3
-
-        "info" ->
-            Just 4
-
-        _ ->
-            Nothing
+groupRank : List String -> String -> Maybe Int
+groupRank order label =
+    let
+        lowered =
+            String.toLower label
+    in
+    order
+        |> List.indexedMap (\index name -> ( String.toLower name, index ))
+        |> List.filter (\( name, _ ) -> name == lowered)
+        |> List.head
+        |> Maybe.map Tuple.second
 
 
 
@@ -691,7 +734,7 @@ renderTable : Context -> Spec.TableProps -> Html Msg
 renderTable ctx props =
     let
         rows =
-            Expr.resolve ctx props.bind |> decodeFindings
+            Expr.resolve ctx props.bind |> decodeRows
     in
     Html.table [ Attr.class "jr-table" ]
         [ Html.thead []

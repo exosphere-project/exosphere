@@ -691,7 +691,7 @@ manifestSuite =
                 let
                     emptyLabelFor status =
                         case propsOf "history-pills" of
-                            Just (FindingsTableP p) ->
+                            Just (CountPillsP p) ->
                                 p.emptyLabel
                                     |> Maybe.map (Expr.resolveDisplay (rowContextWith [ ( "status", Encode.string status ) ]))
                                     |> Maybe.withDefault "No findings yet"
@@ -1757,7 +1757,7 @@ rendererWithOpenDialog : Render.Model
 rendererWithOpenDialog =
     case JsonRender.decodeString confirmGatedScanManifest of
         Ok spec ->
-            Render.view [] spec Encode.null Render.init
+            Render.view Render.defaultOptions spec Encode.null Render.init
                 |> Query.fromHtml
                 |> Query.find [ Selector.tag "button" ]
                 |> Event.simulate Event.click
