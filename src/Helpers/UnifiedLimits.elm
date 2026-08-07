@@ -6,7 +6,6 @@ module Helpers.UnifiedLimits exposing
     , comparableStringForLimitResourceName
     , customResourceRequirementsByFlavor
     , customResourceRequirementsForFlavor
-    , evaluateResourceLimit
     , flavorWarningMessages
     , parseFlavorCustomResourceRequirements
     , quotasFromUnifiedLimits
@@ -159,22 +158,28 @@ customResourceRequirementsByFlavor customResources flavors =
         |> Dict.fromList
 
 
-evaluateResourceLimit : List ResourceLimitQuota -> List CustomResourceRequirement -> List (Result String ())
-evaluateResourceLimit quotas requirements =
+{-| Describe each custom resource requirement that would exceed its quota.
+
+A requirement with no matching quota is permitted, since an absent limit is not
+an exceeded one.
+
+-}
+resourceLimitWarnings : List ResourceLimitQuota -> List CustomResourceRequirement -> List String
+resourceLimitWarnings quotas requirements =
     requirements
-        |> List.map
+        |> List.filterMap
             (\r ->
                 quotas
                     |> List.Extra.find (\q -> q.resourceName == r.resource.resource)
-                    |> Maybe.map
+                    |> Maybe.andThen
                         (\{ quota } ->
                             case quota.limit of
                                 Unlimited ->
-                                    Ok ()
+                                    Nothing
 
                                 Limit limit ->
                                     if quota.inUse + r.count > limit then
-                                        Err
+                                        Just
                                             (String.concat
                                                 [ r.resource.friendlyName
                                                 , ": "
@@ -188,26 +193,14 @@ evaluateResourceLimit quotas requirements =
                                             )
 
                                     else
-                                        Ok ()
+                                        Nothing
                         )
-                    |> Maybe.withDefault (Ok ())
             )
 
 
 flavorWarningMessages : List String -> List ResourceLimitQuota -> List CustomResourceRequirement -> List String
 flavorWarningMessages computeQuotaWarnings quotas requirements =
-    computeQuotaWarnings
-        ++ (evaluateResourceLimit quotas requirements
-                |> List.filterMap
-                    (\result ->
-                        case result of
-                            Err message ->
-                                Just message
-
-                            Ok _ ->
-                                Nothing
-                    )
-           )
+    computeQuotaWarnings ++ resourceLimitWarnings quotas requirements
 
 
 quotasFromUnifiedLimits : List OSTypes.RegisteredLimit -> List OSTypes.ProjectLimit -> List OSTypes.ProjectUsage -> List ResourceLimitQuota
