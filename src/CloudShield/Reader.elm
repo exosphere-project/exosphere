@@ -1,11 +1,13 @@
 module CloudShield.Reader exposing
     ( Projection
     , ReadContext
+    , answeredRequestId
     , completionTimer
     , projection
     , resultId
     , resultObjectName
     , rowStatus
+    , truncationWarning
     )
 
 {-| The CloudShield extension's read side: what the wire says, turned into what its card shows.
@@ -440,6 +442,47 @@ resultObjectName sessionRequest prefix body =
 
         Nothing ->
             Exoext.Transport.resultRefObjectName (Exoext.Transport.resolveResultBody body)
+
+
+{-| The §4.1 `requestId` a res-slot body answers, if it answers one at all.
+
+Only an embed result is a reply TO a request; a scan result is a run's output rather than a
+response, so it answers nothing and yields `Nothing`. The host holds the in-flight marker and does
+the comparison — recognizing a body as a reply, and finding the id inside it, is this extension's
+to do, since a second extension's responses would be shaped differently.
+
+-}
+answeredRequestId : String -> Maybe String
+answeredRequestId body =
+    Wire.embedResultFromBody body
+        |> Maybe.map .requestId
+
+
+{-| The truncation notice for a result body the publisher had to cut down, or `Nothing` when it did
+not.
+
+`truncated` / `truncatedReason` are fields of THIS extension's result body, not of the exoext
+envelope (§5.5 caps the envelope; what a publisher does when its own payload will not fit is its
+own business), so both the decode and the sentence belong here. The host only finds a slot to put
+the line in.
+
+-}
+truncationWarning : String -> Maybe String
+truncationWarning body =
+    case Decode.decodeString (Decode.field "truncated" Decode.bool) body of
+        Ok True ->
+            let
+                suffix =
+                    Decode.decodeString (Decode.field "truncatedReason" Decode.string) body
+                        |> Result.toMaybe
+                        |> Maybe.map (\reason -> ": " ++ reason)
+                        |> Maybe.withDefault ""
+            in
+            Just
+                {- @nonlocalized -} ("Full results are too large for this cloud's metadata transport" ++ suffix)
+
+        _ ->
+            Nothing
 
 
 

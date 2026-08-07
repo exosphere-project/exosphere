@@ -972,25 +972,30 @@ exoextTrackedKind model =
     model.exoextCard.pending |> Maybe.map .kind |> Maybe.withDefault ""
 
 
-{-| Resolve the pending getEmbed marker against fresh metadata: clear it once a res-slot embed
-result carrying the same `requestId` appears (the bridge answered this request). A result for a
+{-| Resolve the pending session marker against fresh metadata: clear it once the res slot holds a
+body answering the same `requestId` (the publisher answered this request). A body answering a
 different (earlier) requestId leaves the marker in place — a newer request is still in flight.
+
+The host pulls the §7.1 res slot and owns the comparison, because the marker is its own; whether a
+body is a reply at all, and which request it replies to, is the adapter's read
+([`CloudShield.Reader.answeredRequestId`](CloudShield-Reader#answeredRequestId)).
+
 -}
 clearResolvedPendingEmbed : List OSTypes.MetadataItem -> Maybe Exoext.Lifecycle.PendingRequest -> Maybe Exoext.Lifecycle.PendingRequest
 clearResolvedPendingEmbed metadata pending =
     pending
         |> Maybe.andThen
             (\p ->
-                case Exoext.Transport.resultBodyFromMetadata metadata |> Maybe.andThen CloudShield.Wire.embedResultFromBody of
-                    Just embed ->
-                        if embed.requestId == p.requestId then
-                            Nothing
+                if
+                    (Exoext.Transport.resultBodyFromMetadata metadata
+                        |> Maybe.andThen CloudShield.Reader.answeredRequestId
+                    )
+                        == Just p.requestId
+                then
+                    Nothing
 
-                        else
-                            Just p
-
-                    Nothing ->
-                        Just p
+                else
+                    Just p
             )
 
 
@@ -1864,9 +1869,14 @@ exoextReaderProjection metadata archivedResultObjectName currentTime statusOverr
         }
 
 
+{-| The one warning line under the card, whichever of two kinds it is. A publisher that had to cut
+its own payload down says so through the adapter
+([`CloudShield.Reader.truncationWarning`](CloudShield-Reader#truncationWarning)) and wins the slot;
+otherwise the host reports its own transport failures (no Swift endpoint, a failed object read).
+-}
 exoextTransportWarning : Project -> Model -> List OSTypes.MetadataItem -> Maybe Exoext.Discovery.Sentinel -> Maybe String -> Maybe String
 exoextTransportWarning project model metadata maybeSentinel resultBody =
-    case resultBody |> Maybe.andThen resultTruncationWarning of
+    case resultBody |> Maybe.andThen CloudShield.Reader.truncationWarning of
         Just warning ->
             Just warning
 
@@ -1919,24 +1929,6 @@ exoextReadErrorForEtag etag model =
 
                 _ ->
                     Nothing
-
-
-resultTruncationWarning : String -> Maybe String
-resultTruncationWarning body =
-    case Decode.decodeString (Decode.field "truncated" Decode.bool) body of
-        Ok True ->
-            let
-                suffix =
-                    Decode.decodeString (Decode.field "truncatedReason" Decode.string) body
-                        |> Result.toMaybe
-                        |> Maybe.map (\reason -> ": " ++ reason)
-                        |> Maybe.withDefault ""
-            in
-            Just
-                {- @nonlocalized -} ("Full results are too large for this cloud's metadata transport" ++ suffix)
-
-        _ ->
-            Nothing
 
 
 {-| Extract the json-render `ui` body from a §1 manifest envelope for the renderer.
