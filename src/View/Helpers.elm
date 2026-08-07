@@ -1274,9 +1274,14 @@ flavorPicker context project restrictFlavorIds showDisabledFlavorsReason flavorL
                         :: (if isQuotaExceeded then
                                 -- Since elm-ui is quite opinionated about the use of disabled states,
                                 -- we apply some styling from the outside to lower user expectations.
+                                -- The option stays selectable so that submitting can explain why it
+                                -- is unavailable, so aria-disabled carries that state to assistive
+                                -- technology without removing it from the tab order.
                                 [ Element.alpha 0.5
                                 , Element.htmlAttribute <|
-                                    Html.Attributes.style "filter" "grayscale(1)  brightness(0.85)"
+                                    Html.Attributes.style "filter" "grayscale(1) brightness(0.85)"
+                                , Element.htmlAttribute <|
+                                    Html.Attributes.attribute "aria-disabled" "true"
                                 ]
 
                             else
