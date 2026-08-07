@@ -1,6 +1,7 @@
-module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, adoptRestoredExoextBatch, adoptStoredExoextBatch, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextAbandonStaleRun, exoextBatchSharedMsg, exoextCancelRequested, exoextCancellableRun, exoextCardTitle, exoextDismissSession, exoextDropFromTail, exoextEmbedProjection, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextRequestsPending, exoextRunControl, exoextScanBlocked, exoextScanRequestPending, exoextScanTimer, exoextStatusOverride, exoextStopRequested, exoextStoppingTarget, exoextViewConfig, init, recoverExoextRun, update, view)
+module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, adoptRestoredExoextBatch, adoptStoredExoextBatch, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextAbandonStaleRun, exoextBatchSharedMsg, exoextCancelRequested, exoextCancellableRun, exoextCardTitle, exoextDismissSession, exoextDropFromTail, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextReaderProjection, exoextRequestsPending, exoextRunControl, exoextScanBlocked, exoextScanRequestPending, exoextStatusOverride, exoextStopRequested, exoextStoppingTarget, exoextViewConfig, init, recoverExoextRun, update, view)
 
 import CloudShield.Card
+import CloudShield.Reader
 import CloudShield.Wire
 import DateFormat.Relative
 import Dict
@@ -112,7 +113,7 @@ type alias Model =
     -- The host's own correlation record — the request id matches the response, the result id names
     -- the resource — and unlike `exoextPendingEmbed` it survives the response (which clears the
     -- pending marker), so a resolved session keeps its identity. Replaced by the next getEmbed.
-    -- It is the SECOND source `exoextEmbedResultId` consults, behind the response's own echoed
+    -- It is the SECOND source `CloudShield.Reader.resultId` consults, behind the response's own echoed
     -- `resultId`: it exists for a publisher that does not echo one, and being session-local it is
     -- gone after a page reload, which is exactly where the echoed field takes over.
     , exoextEmbedResultId :
@@ -920,7 +921,8 @@ its optimistic `queued` badge the moment the tracker retargets. Then write the n
 request, carrying the batch's shared `batchId`.
 
 An exhausted batch clears `exoextBatch` but deliberately leaves `exoextCard.pending` set — the
-completion timer (`exoextScanTimer`) and the settled-run projection are both keyed on it.
+completion timer (`CloudShield.Reader.completionTimer`) and the settled-run projection are both
+keyed on it.
 
 -}
 advanceExoextBatch : List OSTypes.MetadataItem -> Model -> ( Model, Cmd Msg )
@@ -1032,60 +1034,16 @@ syncExoextManifest project sentinel etag model =
                 ( model, Cmd.none )
 
 
-{-| The archived result an embed result is about, resolved in three steps:
-
-1.  the response's own `resultId` — self-describing, and the only source that survives a page
-    reload, so it wins whenever the publisher echoes it;
-2.  the host's record of what it asked for, when this response answers that request — this covers
-    a publisher that predates the echoed `resultId`;
-3.  the response's `batchId` — last resort. §2.2 siblings SHARE it, so it names a whole batch
-    rather than one run; it is right only for a legacy, batch-keyed archive.
-
-§4.2 keys result objects by requestId, so this same value also names the object to fetch.
-
-Steps 1 and 2 are what keep the "Now viewing" flag on exactly one row: with only step 3, an open
-session on either sibling of a batch flagged both.
-
--}
-exoextEmbedResultId : Model -> CloudShield.Wire.EmbedResult -> String
-exoextEmbedResultId model embed =
-    let
-        recordedResultId =
-            model.exoextEmbedResultId
-                |> Maybe.andThen
-                    (\record ->
-                        if record.requestId == embed.requestId then
-                            Just record.resultId
-
-                        else
-                            Nothing
-                    )
-    in
-    Maybe.Extra.or embed.resultId recordedResultId
-        |> Maybe.withDefault embed.batchId
-
-
-{-| The object to fetch for the current res-slot body, if any: a `{"ref": ...}` scan-result
-pointer names its object directly; an embed result (`kind == "embed"`, `status == "ok"`) names
-the archived scan body `<prefix>results/<resultId>.json` (§4.2) — the same capped ref-fetch path
-serves both. An inline scan result or a non-ok embed result names nothing.
+{-| The object to fetch for the current res-slot body, if any. The host pulls the §7.1 res slot out
+of metadata and hands the body, plus its own request record and the §3.1 prefix, to the adapter that
+knows how its archive is laid out ([`CloudShield.Reader.resultObjectName`](CloudShield-Reader#resultObjectName)).
+`Nothing` means nothing to fetch.
 -}
 exoextResultObjectName : Model -> Exoext.Discovery.Sentinel -> List OSTypes.MetadataItem -> Maybe String
 exoextResultObjectName model sentinel metadata =
     Exoext.Transport.resultBodyFromMetadata metadata
         |> Maybe.andThen
-            (\body ->
-                case CloudShield.Wire.embedResultFromBody body of
-                    Just embed ->
-                        if embed.status == "ok" then
-                            Just (Maybe.withDefault "" sentinel.prefix ++ "results/" ++ exoextEmbedResultId model embed ++ ".json")
-
-                        else
-                            Nothing
-
-                    Nothing ->
-                        Exoext.Transport.resultRefObjectName (Exoext.Transport.resolveResultBody body)
-            )
+            (CloudShield.Reader.resultObjectName model.exoextEmbedResultId (Maybe.withDefault "" sentinel.prefix))
 
 
 syncExoextResultRef : Project -> Exoext.Discovery.Sentinel -> String -> List OSTypes.MetadataItem -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
@@ -1475,56 +1433,39 @@ exoextViewConfig approved project model currentTime server =
             maybeSentinel
                 |> Maybe.andThen (\sentinel -> exoextResultObjectName model sentinel metadata)
 
-        -- The reader projection for the history-View embed flow: the findings/`embedUrl` binding
-        -- (a valid history pick wins over the live scan result), the host-side `embedState` line,
-        -- and whether a history pick is active (used to hide the live-scan timer). `embedUrl` is
-        -- gated on `embedState`: only `EmbedReady` carries the live URL, so an expired/errored/
-        -- loading embed unmounts the iframe (the resource-drain fix).
-        embedProjection =
-            exoextEmbedProjection metadata archivedResultObjectName currentTime statusOverride resultBody model
+        -- The adapter's read side, all three parts of it. The host has done its half — polled the
+        -- instance, pulled the §7.1 slots, fetched the capped object, held the etag and the clock —
+        -- and hands that over rather than deciding what any of it means.
+        readerProjection =
+            exoextReaderProjection metadata archivedResultObjectName currentTime statusOverride resultBody model
 
         results =
-            embedProjection.results
+            readerProjection.results
 
         embedUrl =
-            embedProjection.embedUrl
+            readerProjection.embedUrl
 
-        -- The scan-completion descriptor for the card's frozen confirmation line. It exists only
-        -- while a run is tracked this session (`pending` set) and drops the moment the run is
-        -- terminal-but-not-done. It is independent of any concurrent history view: the *running*
-        -- progress now lives on the scanning target row (`displayStatusOverride`), so the timer is
-        -- no longer suppressed while a past scan is "Now viewing". See `exoextScanTimer`.
-        scanTimer =
-            exoextScanTimer
+        -- The elapsed descriptor for the card's frozen confirmation line, keyed on the tracked
+        -- request's wall-clock seq and the correlated run state.
+        elapsedTimer =
+            CloudShield.Reader.completionTimer
                 (Maybe.map .seq model.exoextCard.pending)
                 (statusOverride |> Maybe.map .state |> Maybe.withDefault "queued")
                 resultBody
 
-        -- The row display state (left column). Raw `statusOverride` drives the reader logic above
-        -- (embed projection, completion timer); here, while the run is `running`, we compose the
-        -- counting-up elapsed into its state (`"scanning · m:ss"`) so the scanning row is the live
-        -- progress signal. `queued`/`done`/terminal states pass through raw.
+        -- The row display state (left column). The RAW status slot drives the reader logic above;
+        -- what a row says while a run is live is the adapter's word to compose.
         displayStatusOverride =
-            case ( statusOverride, model.exoextCard.pending ) of
-                ( Just override, Just pending ) ->
-                    if override.state == "running" then
-                        Just
-                            { targetId = override.targetId
-                            , state = CloudShield.Card.scanningRowLabel pending.seq (Time.posixToMillis currentTime)
-                            }
-
-                    else
-                        Just override
-
-                ( other, _ ) ->
-                    other
+            CloudShield.Reader.rowStatus statusOverride
+                (Maybe.map .seq model.exoextCard.pending)
+                (Time.posixToMillis currentTime)
     in
     { approved = approved
     , sourceName = server.osProps.name
     , manifest = manifestSource
     , transportLabel = transportLabel
     , transportWarning = exoextTransportWarning project model metadata maybeSentinel resultBody
-    , scanTimer = scanTimer
+    , scanTimer = elapsedTimer
     , statusOverride = displayStatusOverride
 
     -- The targets still waiting for their turn at the single §7.1 request slot. Projecting them
@@ -1548,10 +1489,10 @@ exoextViewConfig approved project model currentTime server =
 
             Nothing ->
                 { rows = [], loading = False, loaded = True }
-    , activeResultId = embedProjection.activeResultId
-    , pendingResultId = embedProjection.pendingResultId
-    , erroredResultId = embedProjection.erroredResultId
-    , expiredResultId = embedProjection.expiredResultId
+    , activeResultId = readerProjection.activeResultId
+    , pendingResultId = readerProjection.pendingResultId
+    , erroredResultId = readerProjection.erroredResultId
+    , expiredResultId = readerProjection.expiredResultId
 
     -- The §7.1 guard, projected so the manifest can disable the affordance it would swallow.
     -- Same predicate the `SessionRequested` branch of `update` applies, read from the same live wire
@@ -1573,10 +1514,10 @@ exoextViewConfig approved project model currentTime server =
     -- The row whose stop has been asked for but not yet answered, projected as a state token (the
     -- manifest owns the word). Same raw-`statusOverride` discipline and the same reason.
     , stoppingTargetId = exoextStoppingTarget currentTime metadata statusOverride model
-    , sessionOpen = embedProjection.sessionOpen
+    , sessionOpen = readerProjection.sessionOpen
     , allowedIframeOrigins = allowedIframeOrigins
     , embedUrl = embedUrl
-    , embedState = embedProjection.embedState
+    , embedState = readerProjection.embedState
 
     -- The results iframe is now the catalog's origin-pinned `Iframe` element (bound to the scan
     -- result's embedUrl). The old raw/unpinned demo panel is disabled to avoid a second, confusing
@@ -1888,350 +1829,39 @@ exoextRequestId seq =
     "exoext-req-" ++ String.fromInt seq
 
 
-{-| The scan-completion timer descriptor, derived purely from the tracked run's wall-clock start
-(`Just` the request seq, else `Nothing` when no scan is tracked), the correlated live `state`, and
-the fetched result body. Independent of any history view — a scan that is queued/running/done keeps
-its descriptor while a past scan is viewed on the right (its running progress renders on the row).
+{-| Stamp the host's half of the adapter's read side and ask for the projection back.
 
-Shapes:
+This is the read-side twin of the request seam: everything on this side of the call is framing the
+host owns — the §7.1 res slot pulled out of metadata, the §3.1 etag, the object it last fetched, the
+in-flight session request, the shared client clock, the researcher's dismissal — and nothing on this
+side decides what any of it means. Which body wins, when a session is stale, which row is being
+viewed and what it should say are all the adapter's (`CloudShield.Reader.projection`).
 
-  - no tracked run (`Nothing` start) ⇒ `Nothing` (no descriptor).
-  - `done` ⇒ freeze to the full wall-clock flow, `completedAt - startMillis` (minutes; snapshot →
-    boot clone → scan). It never falls back to `summary.durationSec` (the scanner-only ~seconds,
-    which reads as "faster than reality"); if `completedAt` is missing/unparseable the frozen
-    duration is `Nothing` (no line) rather than a misleadingly small number.
-  - a terminal non-`done` state (`error`/`cancelled`/`expired`) ⇒ `Nothing` (drop the line).
-  - otherwise (queued/running) ⇒ a live descriptor with `doneDurationSec = Nothing`; the running
-    elapsed itself is drawn on the scanning row, not here.
+`resultBody` is the res-slot body the host has already matched to the current manifest etag;
+`archivedResultObjectName` is what `exoextResultObjectName` resolved for it, passed rather than
+recomputed so the fetch side and the read side can never name two different objects.
 
 -}
-exoextScanTimer : Maybe Int -> String -> Maybe String -> Maybe { startMillis : Int, doneDurationSec : Maybe Int }
-exoextScanTimer maybeStartMillis state resultBody =
-    maybeStartMillis
-        |> Maybe.andThen
-            (\startMillis ->
-                case state of
-                    "done" ->
-                        Just
-                            { startMillis = startMillis
-                            , doneDurationSec =
-                                resultBody
-                                    |> Maybe.andThen
-                                        (\body ->
-                                            Decode.decodeString (Decode.field "completedAt" Decode.string) body
-                                                |> Result.toMaybe
-                                        )
-                                    |> Maybe.andThen (Helpers.Time.iso8601StringToPosix >> Result.toMaybe)
-                                    |> Maybe.map (\completedAt -> max 0 ((Time.posixToMillis completedAt - startMillis) // 1000))
-                            }
+exoextReaderProjection : List OSTypes.MetadataItem -> Maybe String -> Time.Posix -> Maybe { targetId : String, state : String } -> Maybe String -> Model -> CloudShield.Reader.Projection
+exoextReaderProjection metadata archivedResultObjectName currentTime statusOverride resultBody model =
+    CloudShield.Reader.projection
+        { resSlotBody = Exoext.Transport.resultBodyFromMetadata metadata
+        , resultBody = resultBody
+        , manifestEtag = exoextEtag metadata
+        , archivedObjectName = archivedResultObjectName
+        , fetchedArchive =
+            case model.exoextResultRef.data of
+                RDPP.DoHave fetched _ ->
+                    Just fetched
 
-                    "error" ->
-                        Nothing
-
-                    "cancelled" ->
-                        Nothing
-
-                    "expired" ->
-                        Nothing
-
-                    _ ->
-                        Just { startMillis = startMillis, doneDurationSec = Nothing }
-            )
-
-
-{-| How long a written getEmbed waits for its result before the pending marker is treated as a
-timeout error. getEmbed normally resolves in ~10s (one poll after the bridge claims the slot); 30s
-leaves headroom for a slow mint + CloudShield without leaving a dead "Opening…" row up so long it
-reads as broken.
--}
-embedRequestTimeoutMillis : Int
-embedRequestTimeoutMillis =
-    30 * 1000
-
-
-{-| The reader projection for the history-View embed flow, decided purely from this instance's
-metadata, the fetched archived body (`model.exoextResultRef`), the pending getEmbed marker,
-and the shared client clock. `archivedResultObjectName` is the object the CURRENT embed result
-points at (`exoextResultObjectName`), which is what a cached body has to match to be bound.
-Returns the findings/`embedUrl` binding for the renderer, the
-host-side `embedState` line, and the active/pending/errored **result** ids for per-row state
-(never batch ids — §2.2 siblings share a batch, so a batch id flags every sibling row at once).
-
-An ok embed result in the res slot is a history pick and wins over the live scan result for both
-the findings table and the iframe; otherwise the scan-result path is used exactly as before.
-`embedUrl` is gated on `embedState`: only `EmbedReady` carries the live URL, so an expired
-(`embedExpiresAt <= currentTime`), errored, or in-flight embed emits `""` and the origin-pinned
-Iframe self-hides. That unmount is the resource-drain fix (an expired CloudShield+Clerk app kept
-mounted spins forever on auth retries).
-
--}
-exoextEmbedProjection :
-    List OSTypes.MetadataItem
-    -> Maybe String
-    -> Time.Posix
-    -> Maybe { targetId : String, state : String }
-    -> Maybe String
-    -> Model
-    -> { results : Maybe Encode.Value, embedUrl : String, embedState : CloudShield.Card.EmbedState, activeResultId : Maybe String, pendingResultId : Maybe String, erroredResultId : Maybe String, expiredResultId : Maybe String, sessionOpen : Bool }
-exoextEmbedProjection metadata archivedResultObjectName currentTime statusOverride resultBody model =
-    let
-        rawEmbedResult =
-            Exoext.Transport.resultBodyFromMetadata metadata
-                |> Maybe.andThen CloudShield.Wire.embedResultFromBody
-
-        -- A history pick to show: an ok embed result in the res slot (fresh OR expired). A non-ok
-        -- embed result never binds findings/iframe (it falls to the scan path).
-        maybeEmbedResult =
-            rawEmbedResult
-                |> Maybe.andThen
-                    (\embed ->
-                        if embed.status == "ok" then
-                            Just embed
-
-                        else
-                            Nothing
-                    )
-
-        -- Normalize the wire embed result into the generic `Exoext.Lifecycle.ResultInput` (unwrap
-        -- the error message; parse the ISO expiry once — unparseable/absent = no expiry = Fresh).
-        -- The generic `sessionState` machine then classifies opening / open / stale / failed / idle.
-        resultInput =
-            rawEmbedResult
-                |> Maybe.map
-                    (\embed ->
-                        { requestId = embed.requestId
-
-                        -- The session's subject is the §4.2 RESULT it views, resolved from the
-                        -- host's own request record (see `exoextEmbedResultId`) — the response's
-                        -- `batchId` cannot tell two siblings apart.
-                        , subject = exoextEmbedResultId model embed
-                        , status = embed.status
-                        , url = embed.embedUrl
-                        , expiresAt =
-                            ISO8601.fromString embed.embedExpiresAt
-                                |> Result.toMaybe
-                                |> Maybe.map ISO8601.toPosix
-                        , message = embedErrorMessage embed
-                        }
-                    )
-
-        session =
-            Exoext.Lifecycle.sessionState embedRequestTimeoutMillis currentTime model.exoextPendingEmbed resultInput
-
-        -- The host-side embed line + iframe gate, mapped 1:1 from the generic session token.
-        embedState =
-            case session of
-                Exoext.Lifecycle.NoSession ->
-                    CloudShield.Card.EmbedIdle
-
-                Exoext.Lifecycle.Opening _ ->
-                    CloudShield.Card.EmbedLoading
-
-                Exoext.Lifecycle.Open _ ->
-                    CloudShield.Card.EmbedReady
-
-                Exoext.Lifecycle.OpenStale _ ->
-                    CloudShield.Card.EmbedExpired
-
-                Exoext.Lifecycle.Failed { message } ->
-                    CloudShield.Card.EmbedError message
-
-        -- The expiry fix: an ok-but-expired session is `OpenStale`, so the previously-viewed row
-        -- becomes `expiredResultId` (a muted "Expired" / plain-View row) INSTEAD of
-        -- `activeResultId` ("Now viewing" / Refresh). A fresh ok session stays active as before.
-        expiredResultId =
-            case session of
-                Exoext.Lifecycle.OpenStale expiredSession ->
-                    Just expiredSession.resultId
-
-                _ ->
+                RDPP.DontHave ->
                     Nothing
-
-        -- A getEmbed the user just pressed is in flight, so whatever it opens supersedes whatever is
-        -- on screen now. The manual-session path gets this for free — its `results`/`embedUrl` come
-        -- from `session`, which is already `Opening` — but the auto-opened live-scan view below is
-        -- read straight off the run's result body and has to be told.
-        embedRequestInFlight =
-            model.exoextPendingEmbed /= Nothing
-
-        ( results, embedUrl ) =
-            case maybeEmbedResult of
-                Just _ ->
-                    -- Findings for the selected history scan, parsed from the archived body fetched
-                    -- into `exoextResultRef`. TWO gates, both required. The etag rejects a body left
-                    -- over from a different instance/manifest (it gives no scan-freshness — it is a
-                    -- constant manifest hash). The object name is what pins the body to THIS scan:
-                    -- `exoextResultRef` holds whatever object was fetched last, and a fetch in
-                    -- flight deliberately keeps the previous body, so without this check pressing
-                    -- View on one sibling while another's body was cached bound the OLD scan's
-                    -- findings under the new scan's "Now viewing" row and iframe — three UI elements
-                    -- showing two different scans. A mismatch reads as not-yet-loaded (`Nothing`),
-                    -- never as another object's data.
-                    let
-                        archivedFindings =
-                            case model.exoextResultRef.data of
-                                RDPP.DoHave fetched _ ->
-                                    if fetched.etag == exoextEtag metadata && Just fetched.objectName == archivedResultObjectName then
-                                        Decode.decodeString (Decode.field "findings" Decode.value) fetched.body
-                                            |> Result.toMaybe
-
-                                    else
-                                        Nothing
-
-                                RDPP.DontHave ->
-                                    Nothing
-                    in
-                    ( archivedFindings
-                    , case session of
-                        Exoext.Lifecycle.Open openSession ->
-                            -- Only a fresh, open session mounts the iframe (its live URL from the
-                            -- generic session). Expired/loading keep the findings but unmount it.
-                            openSession.url
-
-                        _ ->
-                            ""
-                    )
-
-                Nothing ->
-                    -- The scan-result path: when the in-flight run is `done`, bind the §4.2 result
-                    -- body's `findings[]` into `/results` and its `embedUrl` into `/embedUrl`. Gated
-                    -- on the correlated `done` state so a stale prior-run result can't show — and on
-                    -- no getEmbed being in flight, so pressing View on another row closes this
-                    -- auto-opened view AT THE PRESS rather than ~10s later when the bridge answers.
-                    -- Left mounted it read as "View won't close", and it put a live `embedUrl` on
-                    -- screen outside `EmbedReady`, against the invariant the rest of this function
-                    -- keeps. Yielding nothing here hands the pane to the same Opening presentation
-                    -- the manual path shows.
-                    if embedRequestInFlight then
-                        ( Nothing, "" )
-
-                    else
-                        let
-                            atDone decoder =
-                                case statusOverride of
-                                    Just override ->
-                                        if override.state == "done" then
-                                            resultBody |> Maybe.andThen decoder
-
-                                        else
-                                            Nothing
-
-                                    Nothing ->
-                                        Nothing
-                        in
-                        ( atDone (Decode.decodeString (Decode.field "findings" Decode.value) >> Result.toMaybe)
-                        , atDone (Decode.decodeString (Decode.field "embedUrl" Decode.string) >> Result.toMaybe)
-                            |> Maybe.withDefault ""
-                        )
-
-        -- The resultId whose findings/embed are on screen, so the card can flag exactly one
-        -- history row as "Now viewing": the picked history row wins (only while its session is not
-        -- expired — an expired session becomes `expiredResultId` above), else the just-completed
-        -- live scan (read from the result body only when the correlated run is `done`).
-        activeResultId =
-            case maybeEmbedResult of
-                Just embed ->
-                    if expiredResultId == Nothing then
-                        Just (exoextEmbedResultId model embed)
-
-                    else
-                        Nothing
-
-                Nothing ->
-                    case statusOverride of
-                        Just override ->
-                            if override.state == "done" && not embedRequestInFlight then
-                                -- The just-completed live scan, keyed exactly as its fresh history
-                                -- row keys itself (`requestId`, falling back to `batchId` for a
-                                -- publisher that archives no per-run id). Get this wrong and the new
-                                -- row sits on "View" instead of "Now viewing". Dropped while a
-                                -- getEmbed is in flight for the same reason the bindings above are:
-                                -- one source of truth here, rather than leaning on `historyRow` to
-                                -- suppress the chip downstream via `pendingResultId`.
-                                resultBody
-                                    |> Maybe.andThen
-                                        (\body ->
-                                            let
-                                                stringField key =
-                                                    Decode.decodeString (Decode.field key Decode.string) body |> Result.toMaybe
-                                            in
-                                            Maybe.Extra.or (stringField "requestId") (stringField "batchId")
-                                        )
-
-                            else
-                                Nothing
-
-                        Nothing ->
-                            Nothing
-
-        -- The in-flight getEmbed's result (`Opening`) for the per-row "Opening…" loading state, and
-        -- the last failed getEmbed's result (`Failed`) for the per-row "Couldn't open" + Retry
-        -- state. Both come straight from the generic session token, so each is `Just` only in its
-        -- state and clears the moment the request resolves — no row is ever wedged loading/errored.
-        pendingResultId =
-            case session of
-                Exoext.Lifecycle.Opening { subject } ->
-                    Just subject
-
-                _ ->
-                    Nothing
-
-        erroredResultId =
-            case session of
-                Exoext.Lifecycle.Failed { subject } ->
-                    Just subject
-
-                _ ->
-                    Nothing
-
-        -- Whether the results pane has anything on it. Not `embedState == EmbedReady`: a history pick
-        -- whose session has expired still shows its findings with the iframe unmounted, and that is
-        -- still a session on screen and still closeable.
-        paneShowsSession =
-            (results /= Nothing) || embedUrl /= ""
-
-        showing =
-            { results = results
-            , embedUrl = embedUrl
-            , embedState = embedState
-            , activeResultId = activeResultId
-            , pendingResultId = pendingResultId
-            , erroredResultId = erroredResultId
-            , expiredResultId = expiredResultId
-            , sessionOpen = paneShowsSession
-            }
-    in
-    if paneShowsSession && model.exoextSessionDismissed then
-        -- The researcher closed this session, so blank the PANE fields and nothing else. The iframe
-        -- goes by way of an empty `embedUrl`, which unmounts it rather than hiding it — a live embed
-        -- left mounted keeps retrying auth. `activeResultId` goes because it is the "now viewing"
-        -- flag and nothing is being viewed; `pendingResultId` / `erroredResultId` /
-        -- `expiredResultId` stay, because they are per-row history and closing a pane never claims a
-        -- scan did not happen.
-        { showing
-            | results = Nothing
-            , embedUrl = ""
-            , embedState = CloudShield.Card.EmbedIdle
-            , activeResultId = Nothing
-            , sessionOpen = False
+        , currentTime = currentTime
+        , runStatus = statusOverride
+        , pendingSession = model.exoextPendingEmbed
+        , sessionRequest = model.exoextEmbedResultId
+        , sessionDismissed = model.exoextSessionDismissed
         }
-
-    else
-        showing
-
-
-{-| The user-facing text of an embed result's `error`. `EmbedResult.error` holds the error field
-re-encoded as a JSON string (the bridge may send a string or an object), so unwrap a plain-string
-error back to its text for a clean line, falling back to the raw JSON for a structured error.
--}
-embedErrorMessage : CloudShield.Wire.EmbedResult -> String
-embedErrorMessage embed =
-    case embed.error of
-        Just encoded ->
-            Decode.decodeString Decode.string encoded |> Result.withDefault encoded
-
-        Nothing ->
-            "the request failed"
 
 
 exoextTransportWarning : Project -> Model -> List OSTypes.MetadataItem -> Maybe Exoext.Discovery.Sentinel -> Maybe String -> Maybe String
@@ -2415,7 +2045,7 @@ no longer want what it would show, so leaving the marker set left the row advert
 nothing would then display — indefinitely, since the pane it would have opened is closed. Dropping it
 also lets the fast poll settle (`exoextRequestsPending`).
 
-`exoextEmbedResultId` deliberately does NOT go with it. It is not the in-flight marker but the record
+`exoextEmbedResultId` (the field) deliberately does NOT go with it. It is not the in-flight marker but the record
 of WHICH archived result a res-slot embed result names, and it outlives the request by design (see
 the field's own comment). A dismissal leaves that result standing on the wire, along with the per-row
 expired / errored states derived from it; clearing the record would degrade those to the §2.2

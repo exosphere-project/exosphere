@@ -1195,10 +1195,10 @@ type alias ViewConfig =
     }
 
 
-{-| The host-computed state of a history-View embed round-trip, decided in
-`Page.ServerDetail.exoextEmbedProjection` from (the pending getEmbed marker, the res-slot
-embed result, and the shared client clock). It drives the quiet affordance line and gates the
-iframe mount.
+{-| The state of a history-View embed round-trip, decided in
+[`CloudShield.Reader.projection`](CloudShield-Reader#projection) from (the pending getEmbed marker,
+the res-slot embed result, and the shared client clock). It drives the quiet affordance line and
+gates the iframe mount.
 
   - `EmbedIdle` — nothing in flight and no embed result to show; draws no line.
   - `EmbedLoading` — a getEmbed is in flight (pending set, no matching result yet).

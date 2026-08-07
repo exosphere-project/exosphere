@@ -708,7 +708,7 @@ dismissSuite : Test
 dismissSuite =
     let
         openSession model =
-            ServerDetail.exoextEmbedProjection
+            ServerDetail.exoextReaderProjection
                 (embedResultMetadata (okEmbedBody expiresAtIso))
                 (objectFor "b1")
                 beforeExpiry
@@ -758,7 +758,7 @@ dismissSuite =
             \_ ->
                 let
                     idle model =
-                        ServerDetail.exoextEmbedProjection [] Nothing beforeExpiry Nothing Nothing model
+                        ServerDetail.exoextReaderProjection [] Nothing beforeExpiry Nothing Nothing model
 
                     base =
                         ServerDetail.init "self"
@@ -775,7 +775,7 @@ dismissSuite =
                         modelPendingEmbed (Time.millisToPosix 0)
 
                     rowState model =
-                        (ServerDetail.exoextEmbedProjection [] Nothing (Time.millisToPosix 1000) Nothing Nothing model).pendingResultId
+                        (ServerDetail.exoextReaderProjection [] Nothing (Time.millisToPosix 1000) Nothing Nothing model).pendingResultId
                 in
                 Expect.equal ( Just "b1", Nothing, Nothing )
                     ( rowState pending

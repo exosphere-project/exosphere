@@ -9,6 +9,7 @@ fixtures both share live in `Tests.Exoext.Fixtures`.
 -}
 
 import CloudShield.Card as Card
+import CloudShield.Reader as Reader
 import Expect
 import ISO8601
 import Json.Decode as Decode
@@ -36,12 +37,12 @@ liveScanFindingsJson =
 
 cloudShieldEmbedProjectionSuite : Test
 cloudShieldEmbedProjectionSuite =
-    describe "ServerDetail exoextEmbedProjection (history-View reader)"
+    describe "CloudShield.Reader.projection (history-View reader)"
         [ test "an ok, unexpired embed result renders findings + the iframe url and reports EmbedReady" <|
             \_ ->
                 let
                     projection =
-                        ServerDetail.exoextEmbedProjection
+                        ServerDetail.exoextReaderProjection
                             (embedResultMetadata (okEmbedBody expiresAtIso))
                             (objectFor "b1")
                             beforeExpiry
@@ -63,7 +64,7 @@ cloudShieldEmbedProjectionSuite =
                 -- different scans on screen at once. It must read as not-yet-loaded instead.
                 let
                     projection =
-                        ServerDetail.exoextEmbedProjection
+                        ServerDetail.exoextReaderProjection
                             (embedResultMetadata (okEmbedBodyWithResultId "exoext-req-7"))
                             (objectFor "exoext-req-7")
                             beforeExpiry
@@ -80,7 +81,7 @@ cloudShieldEmbedProjectionSuite =
                 -- The other half of the gate, so the test above cannot pass by binding nothing ever.
                 let
                     projection =
-                        ServerDetail.exoextEmbedProjection
+                        ServerDetail.exoextReaderProjection
                             (embedResultMetadata (okEmbedBodyWithResultId "b1"))
                             (objectFor "b1")
                             beforeExpiry
@@ -97,7 +98,7 @@ cloudShieldEmbedProjectionSuite =
                 -- The etag gate is an AND with the object name, not a replacement for it.
                 let
                     projection =
-                        ServerDetail.exoextEmbedProjection
+                        ServerDetail.exoextReaderProjection
                             (embedResultMetadata (okEmbedBody expiresAtIso))
                             (objectFor "b1")
                             beforeExpiry
@@ -110,7 +111,7 @@ cloudShieldEmbedProjectionSuite =
             \_ ->
                 let
                     projection =
-                        ServerDetail.exoextEmbedProjection
+                        ServerDetail.exoextReaderProjection
                             (embedResultMetadata (okEmbedBody expiresAtIso))
                             (objectFor "b1")
                             afterExpiry
@@ -127,7 +128,7 @@ cloudShieldEmbedProjectionSuite =
             \_ ->
                 let
                     projection =
-                        ServerDetail.exoextEmbedProjection
+                        ServerDetail.exoextReaderProjection
                             (embedResultMetadata errorEmbedBody)
                             Nothing
                             beforeExpiry
@@ -144,7 +145,7 @@ cloudShieldEmbedProjectionSuite =
                         Time.millisToPosix 1000000
 
                     projection =
-                        ServerDetail.exoextEmbedProjection
+                        ServerDetail.exoextReaderProjection
                             [ { key = "exoext.v1.etag", value = "etag-1" } ]
                             Nothing
                             now
@@ -161,7 +162,7 @@ cloudShieldEmbedProjectionSuite =
                         Time.millisToPosix 1000000
 
                     projection =
-                        ServerDetail.exoextEmbedProjection
+                        ServerDetail.exoextReaderProjection
                             [ { key = "exoext.v1.etag", value = "etag-1" } ]
                             Nothing
                             now
@@ -186,7 +187,7 @@ cloudShieldEmbedProjectionSuite =
                         }
 
                     projection =
-                        ServerDetail.exoextEmbedProjection
+                        ServerDetail.exoextReaderProjection
                             (embedResultMetadata errorEmbedBody)
                             Nothing
                             beforeExpiry
@@ -203,7 +204,7 @@ cloudShieldEmbedProjectionSuite =
                         """{"schemaVersion":"1.0","requestId":"exoext-req-42","batchId":null,"completedAt":"2026-07-20T21:00:00.000Z","status":"ok","findings":[]}"""
 
                     projection =
-                        ServerDetail.exoextEmbedProjection
+                        ServerDetail.exoextReaderProjection
                             [ { key = "exoext.v1.etag", value = "etag-1" } ]
                             Nothing
                             beforeExpiry
@@ -221,7 +222,7 @@ cloudShieldEmbedProjectionSuite =
                         """{"schemaVersion":"1.0","requestId":"exoext-req-42","batchId":"batch-9","completedAt":"2026-07-20T21:00:00.000Z","status":"ok","findings":[]}"""
 
                     projection =
-                        ServerDetail.exoextEmbedProjection
+                        ServerDetail.exoextReaderProjection
                             [ { key = "exoext.v1.etag", value = "etag-1" } ]
                             Nothing
                             beforeExpiry
@@ -237,7 +238,7 @@ cloudShieldEmbedProjectionSuite =
                         """{"schemaVersion":"1.0","batchId":"batch-9","completedAt":"2026-07-20T21:00:00.000Z","status":"ok","findings":[]}"""
 
                     projection =
-                        ServerDetail.exoextEmbedProjection
+                        ServerDetail.exoextReaderProjection
                             [ { key = "exoext.v1.etag", value = "etag-1" } ]
                             Nothing
                             beforeExpiry
@@ -252,7 +253,7 @@ cloudShieldEmbedProjectionSuite =
                 -- themselves. Pinned so the supersession below cannot be mistaken for it breaking.
                 let
                     projection =
-                        ServerDetail.exoextEmbedProjection
+                        ServerDetail.exoextReaderProjection
                             [ { key = "exoext.v1.etag", value = "etag-1" } ]
                             Nothing
                             beforeExpiry
@@ -273,7 +274,7 @@ cloudShieldEmbedProjectionSuite =
                 -- "won't close" — and a live embedUrl was on screen outside EmbedReady.
                 let
                     projection =
-                        ServerDetail.exoextEmbedProjection
+                        ServerDetail.exoextReaderProjection
                             [ { key = "exoext.v1.etag", value = "etag-1" } ]
                             Nothing
                             beforeExpiry
@@ -296,7 +297,7 @@ cloudShieldEmbedProjectionSuite =
                 -- statusOverride, so none of them pit the two branches against each other.
                 let
                     projection =
-                        ServerDetail.exoextEmbedProjection
+                        ServerDetail.exoextReaderProjection
                             (embedResultMetadata (okEmbedBodyWithResultId "exoext-req-7"))
                             (objectFor "exoext-req-7")
                             beforeExpiry
@@ -318,7 +319,7 @@ cloudShieldEmbedProjectionSuite =
                 -- back to the SHARED batchId and flag every sibling of the batch again.
                 let
                     projection =
-                        ServerDetail.exoextEmbedProjection
+                        ServerDetail.exoextReaderProjection
                             (embedResultMetadata (okEmbedBodyWithResultId "exoext-req-7"))
                             (objectFor "exoext-req-7")
                             beforeExpiry
@@ -336,7 +337,7 @@ cloudShieldEmbedProjectionSuite =
                 -- A publisher predating the echoed field: the record is the second source.
                 let
                     projection =
-                        ServerDetail.exoextEmbedProjection
+                        ServerDetail.exoextReaderProjection
                             (embedResultMetadata (okEmbedBody expiresAtIso))
                             (objectFor "exoext-req-7")
                             beforeExpiry
@@ -351,7 +352,7 @@ cloudShieldEmbedProjectionSuite =
                 -- Precedence, not merely coverage: the wire is self-describing and authoritative.
                 let
                     projection =
-                        ServerDetail.exoextEmbedProjection
+                        ServerDetail.exoextReaderProjection
                             (embedResultMetadata (okEmbedBodyWithResultId "exoext-req-7"))
                             (objectFor "exoext-req-7")
                             beforeExpiry
@@ -364,7 +365,7 @@ cloudShieldEmbedProjectionSuite =
             \_ ->
                 let
                     projection =
-                        ServerDetail.exoextEmbedProjection
+                        ServerDetail.exoextReaderProjection
                             (embedResultMetadata (okEmbedBody expiresAtIso))
                             (objectFor "b1")
                             beforeExpiry
@@ -379,7 +380,7 @@ cloudShieldEmbedProjectionSuite =
                 -- projection -> rendered row state, with no host record in play.
                 let
                     projection =
-                        ServerDetail.exoextEmbedProjection
+                        ServerDetail.exoextReaderProjection
                             (embedResultMetadata (okEmbedBodyWithResultId "exoext-req-7"))
                             (objectFor "exoext-req-7")
                             beforeExpiry
@@ -442,25 +443,25 @@ cloudShieldScanTimerSuite =
         bodyWith completedField =
             "{\"requestId\":\"exoext-req-42\"" ++ completedField ++ ",\"summary\":{\"durationSec\":22}}"
     in
-    describe "ServerDetail exoextScanTimer (frozen completion time)"
+    describe "CloudShield.Reader.completionTimer (frozen completion time)"
         [ test "no tracked run yields no descriptor" <|
             \_ ->
-                Expect.equal Nothing (ServerDetail.exoextScanTimer Nothing "done" Nothing)
+                Expect.equal Nothing (Reader.completionTimer Nothing "done" Nothing)
         , test "a running scan yields a live descriptor with no frozen duration (the row carries progress)" <|
             \_ ->
                 Expect.equal (Just { startMillis = startMillis, doneDurationSec = Nothing })
-                    (ServerDetail.exoextScanTimer (Just startMillis) "running" Nothing)
+                    (Reader.completionTimer (Just startMillis) "running" Nothing)
         , test "a done scan freezes to the full wall-clock flow (completedAt - start), not the 22s scanner time" <|
             \_ ->
                 Expect.equal (Just { startMillis = startMillis, doneDurationSec = Just 130 })
-                    (ServerDetail.exoextScanTimer (Just startMillis) "done" (Just (bodyWith (",\"completedAt\":\"" ++ completedAtIso ++ "\""))))
+                    (Reader.completionTimer (Just startMillis) "done" (Just (bodyWith (",\"completedAt\":\"" ++ completedAtIso ++ "\""))))
         , test "a done scan with no completedAt shows no frozen duration (no durationSec fallback)" <|
             \_ ->
                 Expect.equal (Just { startMillis = startMillis, doneDurationSec = Nothing })
-                    (ServerDetail.exoextScanTimer (Just startMillis) "done" (Just (bodyWith "")))
+                    (Reader.completionTimer (Just startMillis) "done" (Just (bodyWith "")))
         , test "a terminal error state drops the descriptor" <|
             \_ ->
-                Expect.equal Nothing (ServerDetail.exoextScanTimer (Just startMillis) "error" Nothing)
+                Expect.equal Nothing (Reader.completionTimer (Just startMillis) "error" Nothing)
         ]
 
 
