@@ -98,7 +98,7 @@ runSlotFor : Int -> String -> List { key : String, value : String }
 runSlotFor seq state =
     runSlot seq state
         ++ [ { key = "exoext.v1.run.target", value = "i-9" }
-           , { key = "exoext.v1.run.requestId", value = "exo-cs-req-" ++ String.fromInt seq }
+           , { key = "exoext.v1.run.requestId", value = "exoext-req-" ++ String.fromInt seq }
            ]
 
 
@@ -311,7 +311,7 @@ suite =
                         |> Expect.equal
                             (Lifecycle.RecoverPending
                                 { seq = 1700
-                                , requestId = "exo-cs-req-1700"
+                                , requestId = "exoext-req-1700"
                                 , kind = ""
                                 , subject = "i-9"
                                 , since = Time.millisToPosix 1700
@@ -371,7 +371,7 @@ suite =
                         |> Expect.equal
                             (Lifecycle.RecoverPending
                                 { seq = 1700
-                                , requestId = "exo-cs-req-1700"
+                                , requestId = "exoext-req-1700"
                                 , kind = ""
                                 , subject = "i-9"
                                 , since = Time.millisToPosix 1700
@@ -425,7 +425,7 @@ suite =
                         |> Expect.equal
                             (Lifecycle.RecoverPending
                                 { seq = 1700
-                                , requestId = "exo-cs-req-1700"
+                                , requestId = "exoext-req-1700"
                                 , kind = ""
                                 , subject = "i-9"
                                 , since = Time.millisToPosix 1700

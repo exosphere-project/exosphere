@@ -40,9 +40,9 @@ requestBytesSuite =
         [ test "a scan request" <|
             \_ ->
                 Expect.equal
-                    """{"schemaVersion":"1.0","requestId":"exo-cs-req-1","batchId":null,"createdAt":"2026-06-22T00:00:00Z","requestedBy":{"source":"exosphere","projectId":"proj-1"},"target":{"instanceId":"i-1","instanceName":"alpha"},"scan":{"profile":"quick","method":"snapshot-clone"}}"""
+                    """{"schemaVersion":"1.0","requestId":"exoext-req-1","batchId":null,"createdAt":"2026-06-22T00:00:00Z","requestedBy":{"source":"exosphere","projectId":"proj-1"},"target":{"instanceId":"i-1","instanceName":"alpha"},"scan":{"profile":"quick","method":"snapshot-clone"}}"""
                     (Wire.scanRequestJson
-                        { requestId = "exo-cs-req-1"
+                        { requestId = "exoext-req-1"
                         , batchId = Nothing
                         , createdAt = "2026-06-22T00:00:00Z"
                         , projectId = "proj-1"
@@ -53,10 +53,10 @@ requestBytesSuite =
         , test "a scan request that belongs to a batch carries the shared id" <|
             \_ ->
                 Expect.equal
-                    """{"schemaVersion":"1.0","requestId":"exo-cs-req-2","batchId":"exo-cs-batch-1","createdAt":"2026-06-22T00:00:00Z","requestedBy":{"source":"exosphere","projectId":"proj-1"},"target":{"instanceId":"i-2","instanceName":"beta"},"scan":{"profile":"quick","method":"snapshot-clone"}}"""
+                    """{"schemaVersion":"1.0","requestId":"exoext-req-2","batchId":"exoext-batch-1","createdAt":"2026-06-22T00:00:00Z","requestedBy":{"source":"exosphere","projectId":"proj-1"},"target":{"instanceId":"i-2","instanceName":"beta"},"scan":{"profile":"quick","method":"snapshot-clone"}}"""
                     (Wire.scanRequestJson
-                        { requestId = "exo-cs-req-2"
-                        , batchId = Just "exo-cs-batch-1"
+                        { requestId = "exoext-req-2"
+                        , batchId = Just "exoext-batch-1"
                         , createdAt = "2026-06-22T00:00:00Z"
                         , projectId = "proj-1"
                         , target = { instanceId = "i-2", instanceName = "beta" }
@@ -66,11 +66,11 @@ requestBytesSuite =
         , test "a getEmbed request" <|
             \_ ->
                 Expect.equal
-                    """{"schemaVersion":"1.0","requestId":"exo-cs-req-1700000000000","action":"getEmbed","batchId":"b-1","resultId":"exo-cs-req-1699999999999","createdAt":"2026-07-17T00:00:00Z"}"""
+                    """{"schemaVersion":"1.0","requestId":"exoext-req-1700000000000","action":"getEmbed","batchId":"b-1","resultId":"exoext-req-1699999999999","createdAt":"2026-07-17T00:00:00Z"}"""
                     (Wire.embedRequestJson
-                        { requestId = "exo-cs-req-1700000000000"
+                        { requestId = "exoext-req-1700000000000"
                         , batchId = "b-1"
-                        , resultId = "exo-cs-req-1699999999999"
+                        , resultId = "exoext-req-1699999999999"
                         , createdAt = "2026-07-17T00:00:00Z"
                         }
                     )
@@ -89,7 +89,7 @@ requestKindSuite : Test
 requestKindSuite =
     let
         context =
-            { requestId = "exo-cs-req-1"
+            { requestId = "exoext-req-1"
             , batchId = Nothing
             , createdAt = "2026-06-22T00:00:00Z"
             , projectId = "proj-1"
@@ -136,7 +136,7 @@ requestKindSuite =
                 Expect.equal
                     (Just
                         (Wire.scanRequestJson
-                            { requestId = "exo-cs-req-1"
+                            { requestId = "exoext-req-1"
                             , batchId = Nothing
                             , createdAt = "2026-06-22T00:00:00Z"
                             , projectId = "proj-1"
@@ -151,7 +151,7 @@ requestKindSuite =
                 Expect.equal
                     (Just
                         (Wire.embedRequestJson
-                            { requestId = "exo-cs-req-1"
+                            { requestId = "exoext-req-1"
                             , batchId = "b-1"
                             , resultId = "exo-cs-res-9"
                             , createdAt = "2026-06-22T00:00:00Z"
@@ -201,8 +201,8 @@ indexSuite =
                         Expect.fail "expected at least one row"
         , test "a row's requestId is decoded as its per-run result identity" <|
             \_ ->
-                Expect.equal [ Just "exo-cs-req-42" ]
-                    (Wire.decodeIndex """[ { "batchId": "b-1", "requestId": "exo-cs-req-42" } ]"""
+                Expect.equal [ Just "exoext-req-42" ]
+                    (Wire.decodeIndex """[ { "batchId": "b-1", "requestId": "exoext-req-42" } ]"""
                         |> List.map .requestId
                     )
         , test "a legacy row with no requestId decodes as Nothing (the batchId fallback)" <|
@@ -277,9 +277,9 @@ embedRequestSuite =
                 let
                     json =
                         Wire.embedRequestJson
-                            { requestId = "exo-cs-req-1700000000000"
+                            { requestId = "exoext-req-1700000000000"
                             , batchId = "b-1"
-                            , resultId = "exo-cs-req-1699999999999"
+                            , resultId = "exoext-req-1699999999999"
                             , createdAt = "2026-07-17T00:00:00Z"
                             }
 
@@ -287,7 +287,7 @@ embedRequestSuite =
                         Decode.decodeString (Decode.field key Decode.string) json
                 in
                 Expect.equal
-                    ( Ok "1.0", Ok "getEmbed", ( Ok "b-1", Ok "exo-cs-req-1699999999999" ) )
+                    ( Ok "1.0", Ok "getEmbed", ( Ok "b-1", Ok "exoext-req-1699999999999" ) )
                     ( field "schemaVersion", field "action", ( field "batchId", field "resultId" ) )
         ]
 
@@ -310,9 +310,9 @@ embedResultSuite =
                         Expect.fail "expected an embed result"
         , test "an echoed resultId is decoded: the session's own §4.2 identity" <|
             \_ ->
-                Wire.embedResultFromBody """{"kind":"embed","requestId":"r-1","batchId":"b-1","resultId":"exo-cs-req-7","status":"ok"}"""
+                Wire.embedResultFromBody """{"kind":"embed","requestId":"r-1","batchId":"b-1","resultId":"exoext-req-7","status":"ok"}"""
                     |> Maybe.andThen .resultId
-                    |> Expect.equal (Just "exo-cs-req-7")
+                    |> Expect.equal (Just "exoext-req-7")
         , test "a publisher echoing no resultId decodes as Nothing (the reader falls back)" <|
             \_ ->
                 Wire.embedResultFromBody """{"kind":"embed","requestId":"r-1","batchId":"b-1","status":"ok"}"""

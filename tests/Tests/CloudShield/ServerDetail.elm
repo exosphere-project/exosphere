@@ -26,7 +26,7 @@ the two the pane bound.
 -}
 liveScanBody : String
 liveScanBody =
-    """{"schemaVersion":"1.0","requestId":"exo-cs-req-42","batchId":null,"completedAt":"2026-07-20T21:00:00.000Z","status":"ok","findings":[{"severity":"high"}],"embedUrl":"https://vm.example/live-scan"}"""
+    """{"schemaVersion":"1.0","requestId":"exoext-req-42","batchId":null,"completedAt":"2026-07-20T21:00:00.000Z","status":"ok","findings":[{"severity":"high"}],"embedUrl":"https://vm.example/live-scan"}"""
 
 
 liveScanFindingsJson : String
@@ -64,14 +64,14 @@ cloudShieldEmbedProjectionSuite =
                 let
                     projection =
                         ServerDetail.exoextEmbedProjection
-                            (embedResultMetadata (okEmbedBodyWithResultId "exo-cs-req-7"))
-                            (objectFor "exo-cs-req-7")
+                            (embedResultMetadata (okEmbedBodyWithResultId "exoext-req-7"))
+                            (objectFor "exoext-req-7")
                             beforeExpiry
                             Nothing
                             Nothing
                             modelWithArchivedFindings
                 in
-                Expect.equal ( Nothing, Just "exo-cs-req-7" )
+                Expect.equal ( Nothing, Just "exoext-req-7" )
                     ( projection.results |> Maybe.map (Encode.encode 0)
                     , projection.activeResultId
                     )
@@ -174,7 +174,7 @@ cloudShieldEmbedProjectionSuite =
         , test "a matching error result reports EmbedError and clears pendingResultId (no stuck loading)" <|
             \_ ->
                 let
-                    -- pending marker whose requestId matches the error body's (exo-cs-req-100).
+                    -- pending marker whose requestId matches the error body's (exoext-req-100).
                     model =
                         let
                             base =
@@ -182,7 +182,7 @@ cloudShieldEmbedProjectionSuite =
                         in
                         { base
                             | exoextPendingEmbed =
-                                Just { seq = 0, requestId = "exo-cs-req-100", kind = "getEmbed", subject = "b1", since = beforeExpiry }
+                                Just { seq = 0, requestId = "exoext-req-100", kind = "getEmbed", subject = "b1", since = beforeExpiry }
                         }
 
                     projection =
@@ -200,7 +200,7 @@ cloudShieldEmbedProjectionSuite =
             \_ ->
                 let
                     doneScanBody =
-                        """{"schemaVersion":"1.0","requestId":"exo-cs-req-42","batchId":null,"completedAt":"2026-07-20T21:00:00.000Z","status":"ok","findings":[]}"""
+                        """{"schemaVersion":"1.0","requestId":"exoext-req-42","batchId":null,"completedAt":"2026-07-20T21:00:00.000Z","status":"ok","findings":[]}"""
 
                     projection =
                         ServerDetail.exoextEmbedProjection
@@ -211,14 +211,14 @@ cloudShieldEmbedProjectionSuite =
                             (Just doneScanBody)
                             (ServerDetail.init "self")
                 in
-                Expect.equal (Just "exo-cs-req-42") projection.activeResultId
+                Expect.equal (Just "exoext-req-42") projection.activeResultId
         , test "a just-completed scan in a BATCH keys activeResultId on its own requestId, not the shared batchId" <|
             \_ ->
                 -- The history row it has to match is keyed by requestId too, and every sibling of
                 -- the batch shares `batch-9` — keying on that flags them all "Now viewing" at once.
                 let
                     doneScanBody =
-                        """{"schemaVersion":"1.0","requestId":"exo-cs-req-42","batchId":"batch-9","completedAt":"2026-07-20T21:00:00.000Z","status":"ok","findings":[]}"""
+                        """{"schemaVersion":"1.0","requestId":"exoext-req-42","batchId":"batch-9","completedAt":"2026-07-20T21:00:00.000Z","status":"ok","findings":[]}"""
 
                     projection =
                         ServerDetail.exoextEmbedProjection
@@ -229,7 +229,7 @@ cloudShieldEmbedProjectionSuite =
                             (Just doneScanBody)
                             (ServerDetail.init "self")
                 in
-                Expect.equal (Just "exo-cs-req-42") projection.activeResultId
+                Expect.equal (Just "exoext-req-42") projection.activeResultId
         , test "a result body carrying no requestId at all falls back to its batchId" <|
             \_ ->
                 let
@@ -261,7 +261,7 @@ cloudShieldEmbedProjectionSuite =
                             (ServerDetail.init "self")
                 in
                 Expect.equal
-                    ( Just liveScanFindingsJson, "https://vm.example/live-scan", Just "exo-cs-req-42" )
+                    ( Just liveScanFindingsJson, "https://vm.example/live-scan", Just "exoext-req-42" )
                     ( projection.results |> Maybe.map (Encode.encode 0)
                     , projection.embedUrl
                     , projection.activeResultId
@@ -297,16 +297,16 @@ cloudShieldEmbedProjectionSuite =
                 let
                     projection =
                         ServerDetail.exoextEmbedProjection
-                            (embedResultMetadata (okEmbedBodyWithResultId "exo-cs-req-7"))
-                            (objectFor "exo-cs-req-7")
+                            (embedResultMetadata (okEmbedBodyWithResultId "exoext-req-7"))
+                            (objectFor "exoext-req-7")
                             beforeExpiry
                             (Just { targetId = "i-1", state = "done" })
                             (Just liveScanBody)
-                            (modelWithResultRef "etag-1" "results/exo-cs-req-7.json" """{"findings":[{"severity":"low"}]}""")
+                            (modelWithResultRef "etag-1" "results/exoext-req-7.json" """{"findings":[{"severity":"low"}]}""")
                 in
                 Expect.equal
                     ( ( Just archivedFindingsJson, "https://vm.example/embed" )
-                    , ( Just "exo-cs-req-7", Card.EmbedReady )
+                    , ( Just "exoext-req-7", Card.EmbedReady )
                     )
                     ( ( projection.results |> Maybe.map (Encode.encode 0), projection.embedUrl )
                     , ( projection.activeResultId, projection.embedState )
@@ -319,14 +319,14 @@ cloudShieldEmbedProjectionSuite =
                 let
                     projection =
                         ServerDetail.exoextEmbedProjection
-                            (embedResultMetadata (okEmbedBodyWithResultId "exo-cs-req-7"))
-                            (objectFor "exo-cs-req-7")
+                            (embedResultMetadata (okEmbedBodyWithResultId "exoext-req-7"))
+                            (objectFor "exoext-req-7")
                             beforeExpiry
                             Nothing
                             Nothing
                             modelWithArchivedFindings
                 in
-                Expect.equal ( Card.EmbedReady, Just "exo-cs-req-7", Nothing )
+                Expect.equal ( Card.EmbedReady, Just "exoext-req-7", Nothing )
                     ( projection.embedState
                     , projection.activeResultId
                     , modelWithArchivedFindings.exoextEmbedResultId
@@ -338,13 +338,13 @@ cloudShieldEmbedProjectionSuite =
                     projection =
                         ServerDetail.exoextEmbedProjection
                             (embedResultMetadata (okEmbedBody expiresAtIso))
-                            (objectFor "exo-cs-req-7")
+                            (objectFor "exoext-req-7")
                             beforeExpiry
                             Nothing
                             Nothing
-                            (modelRecording "exo-cs-req-100" "exo-cs-req-7")
+                            (modelRecording "exoext-req-100" "exoext-req-7")
                 in
-                Expect.equal ( Card.EmbedReady, Just "exo-cs-req-7" )
+                Expect.equal ( Card.EmbedReady, Just "exoext-req-7" )
                     ( projection.embedState, projection.activeResultId )
         , test "an echoed resultId wins over a record for the same request" <|
             \_ ->
@@ -352,14 +352,14 @@ cloudShieldEmbedProjectionSuite =
                 let
                     projection =
                         ServerDetail.exoextEmbedProjection
-                            (embedResultMetadata (okEmbedBodyWithResultId "exo-cs-req-7"))
-                            (objectFor "exo-cs-req-7")
+                            (embedResultMetadata (okEmbedBodyWithResultId "exoext-req-7"))
+                            (objectFor "exoext-req-7")
                             beforeExpiry
                             Nothing
                             Nothing
-                            (modelRecording "exo-cs-req-100" "exo-cs-req-STALE")
+                            (modelRecording "exoext-req-100" "exoext-req-STALE")
                 in
-                Expect.equal (Just "exo-cs-req-7") projection.activeResultId
+                Expect.equal (Just "exoext-req-7") projection.activeResultId
         , test "neither source present falls back to the response's batchId (legacy archive)" <|
             \_ ->
                 let
@@ -380,8 +380,8 @@ cloudShieldEmbedProjectionSuite =
                 let
                     projection =
                         ServerDetail.exoextEmbedProjection
-                            (embedResultMetadata (okEmbedBodyWithResultId "exo-cs-req-7"))
-                            (objectFor "exo-cs-req-7")
+                            (embedResultMetadata (okEmbedBodyWithResultId "exoext-req-7"))
+                            (objectFor "exoext-req-7")
                             beforeExpiry
                             Nothing
                             Nothing
@@ -401,7 +401,7 @@ cloudShieldEmbedProjectionSuite =
                         Card.projection Time.utc
                             { cardViewConfig
                                 | history =
-                                    { rows = [ sibling "exo-cs-req-6", sibling "exo-cs-req-7" ]
+                                    { rows = [ sibling "exoext-req-6", sibling "exoext-req-7" ]
                                     , loading = False
                                     , loaded = True
                                     }
@@ -416,7 +416,7 @@ cloudShieldEmbedProjectionSuite =
                                 (Decode.field "history" (Decode.list (Decode.field "state" Decode.string)))
                             |> Result.mapError Decode.errorToString
                 in
-                -- Newest first, so the viewed run (exo-cs-req-7) leads and its sibling stays idle.
+                -- Newest first, so the viewed run (exoext-req-7) leads and its sibling stays idle.
                 Expect.equal (Ok [ "viewing", "idle" ]) rowStates_
         ]
 
@@ -440,7 +440,7 @@ cloudShieldScanTimerSuite =
             completedMillis - 130000
 
         bodyWith completedField =
-            "{\"requestId\":\"exo-cs-req-42\"" ++ completedField ++ ",\"summary\":{\"durationSec\":22}}"
+            "{\"requestId\":\"exoext-req-42\"" ++ completedField ++ ",\"summary\":{\"durationSec\":22}}"
     in
     describe "ServerDetail exoextScanTimer (frozen completion time)"
         [ test "no tracked run yields no descriptor" <|
@@ -517,9 +517,9 @@ cloudShieldScanBlockedSuite =
         drained =
             afterFirstWrite
                 |> advance 1000 "done"
-                |> writeRequestAt 2000 { subject = "i-2", batchId = Just "exo-cs-batch-1000" }
+                |> writeRequestAt 2000 { subject = "i-2", batchId = Just "exoext-batch-1000" }
                 |> advance 2000 "done"
-                |> writeRequestAt 3000 { subject = "i-3", batchId = Just "exo-cs-batch-1000" }
+                |> writeRequestAt 3000 { subject = "i-3", batchId = Just "exoext-batch-1000" }
                 |> advance 3000 "done"
     in
     describe "ServerDetail exoextScanBlocked (§7.1 guard on a user-initiated scan)"
@@ -538,7 +538,7 @@ cloudShieldScanBlockedSuite =
                 -- Last subject popped (`remaining` empty) but not yet written.
                 Expect.equal True
                     (ServerDetail.exoextScanBlocked (projectPublishing (runSlot 2000 "done"))
-                        { afterFirstWrite | exoextBatch = Just { batchId = Just "exo-cs-batch-1000", remaining = [], awaitingWrite = True } }
+                        { afterFirstWrite | exoextBatch = Just { batchId = Just "exoext-batch-1000", remaining = [], awaitingWrite = True } }
                     )
         , test "not blocked once the batch has drained — a completed batch must allow a new scan" <|
             \_ ->
@@ -555,13 +555,13 @@ cloudShieldPendingEmbedSuite =
                 Expect.equal Nothing
                     (ServerDetail.clearResolvedPendingEmbed
                         (embedResultMetadata (okEmbedBody expiresAtIso))
-                        (Just { seq = 0, requestId = "exo-cs-req-100", kind = "getEmbed", subject = "b1", since = Time.millisToPosix 0 })
+                        (Just { seq = 0, requestId = "exoext-req-100", kind = "getEmbed", subject = "b1", since = Time.millisToPosix 0 })
                     )
         , test "a result for a different requestId leaves the pending marker in place" <|
             \_ ->
                 let
                     pending =
-                        Just { seq = 0, requestId = "exo-cs-req-999", kind = "getEmbed", subject = "b1", since = Time.millisToPosix 0 }
+                        Just { seq = 0, requestId = "exoext-req-999", kind = "getEmbed", subject = "b1", since = Time.millisToPosix 0 }
                 in
                 Expect.equal pending
                     (ServerDetail.clearResolvedPendingEmbed

@@ -48,8 +48,8 @@ runStatusSuite =
 
         descriptorKeys =
             [ ( "exoext.v1.run.target", "i-1" )
-            , ( "exoext.v1.run.requestId", "exo-cs-req-7" )
-            , ( "exoext.v1.run.batchId", "exo-cs-batch-7" )
+            , ( "exoext.v1.run.requestId", "exoext-req-7" )
+            , ( "exoext.v1.run.batchId", "exoext-batch-7" )
             , ( "exoext.v1.run.phase", "cloning" )
             , ( "exoext.v1.run.pct", "40" )
             ]
@@ -68,7 +68,7 @@ runStatusSuite =
         , test "a publisher writing every descriptor decodes all of them" <|
             \_ ->
                 Expect.equal
-                    (Just ( ( Just "i-1", Just "exo-cs-req-7", Just "exo-cs-batch-7" ), ( Just "cloning", Just 40 ) ))
+                    (Just ( ( Just "i-1", Just "exoext-req-7", Just "exoext-batch-7" ), ( Just "cloning", Just 40 ) ))
                     (Transport.runStatusFromMetadata (meta (requiredKeys ++ descriptorKeys))
                         |> Maybe.map (\s -> ( descriptors s, ( s.phase, s.pct ) ))
                     )
@@ -126,8 +126,8 @@ reqCancelSuite =
     describe "the exoext.v1.req.cancel channel"
         [ test "a cancel names the requestId to stop, and touches nothing else" <|
             \_ ->
-                Expect.equal [ { key = "exoext.v1.req.cancel", value = "exo-cs-req-7" } ]
-                    (Transport.reqCancelMetadata "exo-cs-req-7")
+                Expect.equal [ { key = "exoext.v1.req.cancel", value = "exoext-req-7" } ]
+                    (Transport.reqCancelMetadata "exoext-req-7")
         , test "cancelling nothing writes the cleared value, which names no request" <|
             \_ ->
                 Expect.equal [ { key = "exoext.v1.req.cancel", value = "" } ]
@@ -142,8 +142,8 @@ reqCancelSuite =
                     )
         , test "the channel reads back, which is what makes a pending stop survive a reload" <|
             \_ ->
-                Expect.equal (Just "exo-cs-req-7")
-                    (Transport.reqCancelFromMetadata (Transport.reqCancelMetadata "exo-cs-req-7"))
+                Expect.equal (Just "exoext-req-7")
+                    (Transport.reqCancelFromMetadata (Transport.reqCancelMetadata "exoext-req-7"))
         , test "the cleared, absent and stringified-None channels all name no request" <|
             \_ ->
                 -- None of the three can equal a real requestId, so none can make a live run look

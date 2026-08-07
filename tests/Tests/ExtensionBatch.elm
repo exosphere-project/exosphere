@@ -25,7 +25,7 @@ sample =
     { cloudUrl = "https://keystone.example/v3"
     , projectUuid = "proj-1"
     , instanceUuid = "vm-abc"
-    , batchId = "exo-cs-batch-1000"
+    , batchId = "exoext-batch-1000"
     , remaining = [ "i-2", "i-3" ]
     }
 
@@ -58,7 +58,7 @@ decodeSuite =
                         { "cloudUrl": "https://keystone.example/v3"
                         , "projectUuid": "proj-1"
                         , "instanceUuid": "vm-abc"
-                        , "batchId": "exo-cs-batch-1000"
+                        , "batchId": "exoext-batch-1000"
                         , "remaining": ["i-2", "i-3"]
                         , "profile": "quick"
                         , "somethingNew": { "nested": 1 }

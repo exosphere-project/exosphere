@@ -418,7 +418,7 @@ update msg project model =
                                 Nothing
 
                             else
-                                Just ("exo-cs-batch-" ++ String.fromInt timeSeq)
+                                Just ("exoext-batch-" ++ String.fromInt timeSeq)
 
                 oldCloud =
                     model.exoextCard
@@ -1885,7 +1885,7 @@ disagree about what a run is called.
 -}
 exoextRequestId : Int -> String
 exoextRequestId seq =
-    "exo-cs-req-" ++ String.fromInt seq
+    "exoext-req-" ++ String.fromInt seq
 
 
 {-| The scan-completion timer descriptor, derived purely from the tracked run's wall-clock start

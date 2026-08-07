@@ -929,12 +929,12 @@ projectionSuite =
                 let
                     value =
                         Card.projection Time.utc
-                            { sampleConfig | cancellableRun = Just { targetId = "i-1", requestId = "exo-cs-req-7" } }
+                            { sampleConfig | cancellableRun = Just { targetId = "i-1", requestId = "exoext-req-7" } }
                             sampleInstances
                             idleModel
                 in
                 Expect.equal
-                    ( ( Ok True, Ok "exo-cs-req-7", Ok "i-1" ), ( Ok False, Ok "", Ok "" ) )
+                    ( ( Ok True, Ok "exoext-req-7", Ok "i-1" ), ( Ok False, Ok "", Ok "" ) )
                     ( ( rowCancellable 0 value, rowCancelRequestId 0 value, rowCancelTargetId 0 value )
                     , ( rowCancellable 1 value, rowCancelRequestId 1 value, rowCancelTargetId 1 value )
                     )
@@ -1067,8 +1067,8 @@ cancelDismissVerbSuite =
     describe "CloudShield cancel + dismiss verbs"
         [ test "a cancel press asks the host to stop the named request" <|
             \_ ->
-                Expect.equal (Just (Card.CancelRequested { requestId = "exo-cs-req-7", targetId = "i-1" }))
-                    (dispatch Lifecycle.verbCancelRequest (stopParams "exo-cs-req-7" "i-1"))
+                Expect.equal (Just (Card.CancelRequested { requestId = "exoext-req-7", targetId = "i-1" }))
+                    (dispatch Lifecycle.verbCancelRequest (stopParams "exoext-req-7" "i-1"))
         , test "the v1 cloudshield.* alias reaches the same verb" <|
             \_ ->
                 Expect.equal (Just Lifecycle.verbCancelRequest)
@@ -1089,16 +1089,16 @@ cancelDismissVerbSuite =
                     (dispatch Lifecycle.verbCancelRequest (stopParams "" "i-2"))
         , test "the frozen v4 manifest, which emits only requestId, still dispatches" <|
             \_ ->
-                Expect.equal (Just (Card.CancelRequested { requestId = "exo-cs-req-7", targetId = "" }))
-                    (dispatch Lifecycle.verbCancelRequest (cancelParams "exo-cs-req-7"))
+                Expect.equal (Just (Card.CancelRequested { requestId = "exoext-req-7", targetId = "" }))
+                    (dispatch Lifecycle.verbCancelRequest (cancelParams "exoext-req-7"))
         , test "cancelTargetOf reads both ids, and rejects only the press that names neither" <|
             \_ ->
                 Expect.equal
-                    ( Just { requestId = "exo-cs-req-7", targetId = "i-1" }
+                    ( Just { requestId = "exoext-req-7", targetId = "i-1" }
                     , Just { requestId = "", targetId = "i-2" }
                     , Nothing
                     )
-                    ( Card.cancelTargetOf (stopParams "exo-cs-req-7" "i-1")
+                    ( Card.cancelTargetOf (stopParams "exoext-req-7" "i-1")
                     , Card.cancelTargetOf (stopParams "" "i-2")
                     , Card.cancelTargetOf (stopParams "" "")
                     )

@@ -190,7 +190,7 @@ runSlotFor : Int -> String -> String -> List { key : String, value : String }
 runSlotFor seq state target =
     runSlot seq state
         ++ [ { key = "exoext.v1.run.target", value = target }
-           , { key = "exoext.v1.run.requestId", value = "exo-cs-req-" ++ String.fromInt seq }
+           , { key = "exoext.v1.run.requestId", value = "exoext-req-" ++ String.fromInt seq }
            ]
 
 
@@ -310,7 +310,7 @@ storedBatch remaining =
     { cloudUrl = "https://openstack.example/keystone/v3"
     , projectUuid = "project-uuid"
     , instanceUuid = "self"
-    , batchId = "exo-cs-batch-1000"
+    , batchId = "exoext-batch-1000"
     , remaining = remaining
     }
 
@@ -341,11 +341,11 @@ embedResultMetadata bodyJson =
     ]
 
 
-{-| An `status:"ok"` embed result body for requestId `exo-cs-req-100`, expiring at `expiresAt`.
+{-| An `status:"ok"` embed result body for requestId `exoext-req-100`, expiring at `expiresAt`.
 -}
 okEmbedBody : String -> String
 okEmbedBody expiresAt =
-    "{\"kind\":\"embed\",\"requestId\":\"exo-cs-req-100\",\"batchId\":\"b1\",\"status\":\"ok\",\"embedUrl\":\"https://vm.example/embed\",\"embedExpiresAt\":\"" ++ expiresAt ++ "\"}"
+    "{\"kind\":\"embed\",\"requestId\":\"exoext-req-100\",\"batchId\":\"b1\",\"status\":\"ok\",\"embedUrl\":\"https://vm.example/embed\",\"embedExpiresAt\":\"" ++ expiresAt ++ "\"}"
 
 
 {-| The same ok embed result, but from a publisher that echoes the §4.2 `resultId` the session was
@@ -353,7 +353,7 @@ minted for. `batchId` stays `b1` — the id its siblings share.
 -}
 okEmbedBodyWithResultId : String -> String
 okEmbedBodyWithResultId resultId =
-    "{\"kind\":\"embed\",\"requestId\":\"exo-cs-req-100\",\"batchId\":\"b1\",\"resultId\":\""
+    "{\"kind\":\"embed\",\"requestId\":\"exoext-req-100\",\"batchId\":\"b1\",\"resultId\":\""
         ++ resultId
         ++ "\",\"status\":\"ok\",\"embedUrl\":\"https://vm.example/embed\",\"embedExpiresAt\":\""
         ++ expiresAtIso
@@ -364,7 +364,7 @@ okEmbedBodyWithResultId resultId =
 -}
 errorEmbedBody : String
 errorEmbedBody =
-    "{\"kind\":\"embed\",\"requestId\":\"exo-cs-req-100\",\"batchId\":\"b1\",\"status\":\"error\",\"embedUrl\":\"\",\"embedExpiresAt\":\"\",\"error\":\"remint failed\"}"
+    "{\"kind\":\"embed\",\"requestId\":\"exoext-req-100\",\"batchId\":\"b1\",\"status\":\"error\",\"embedUrl\":\"\",\"embedExpiresAt\":\"\",\"error\":\"remint failed\"}"
 
 
 {-| A fixed embed-token expiry, and the client clock set just before / just after it.
@@ -412,7 +412,7 @@ modelPendingEmbed since =
     in
     { model
         | exoextPendingEmbed =
-            Just { seq = 0, requestId = "exo-cs-req-200", kind = "getEmbed", subject = "b1", since = since }
+            Just { seq = 0, requestId = "exoext-req-200", kind = "getEmbed", subject = "b1", since = since }
     }
 
 

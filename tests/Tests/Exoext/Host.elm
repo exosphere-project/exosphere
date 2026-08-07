@@ -119,13 +119,13 @@ batchSuite =
 
         -- The continuation is written at t=2000, carrying the batch's minted id.
         afterSecondWrite =
-            writeRequestAt 2000 { subject = "i-2", batchId = Just "exo-cs-batch-1000" } afterFirstSettle
+            writeRequestAt 2000 { subject = "i-2", batchId = Just "exoext-batch-1000" } afterFirstSettle
     in
     describe "ServerDetail batch continuation (§7.1 sequential pacing)"
         [ test "the first write mints the shared batchId and keeps the undrained tail" <|
             \_ ->
                 Expect.equal
-                    ( Just { batchId = Just "exo-cs-batch-1000", remaining = [ "i-2", "i-3" ], awaitingWrite = False }
+                    ( Just { batchId = Just "exoext-batch-1000", remaining = [ "i-2", "i-3" ], awaitingWrite = False }
                     , ( Just ( "i-1", 1000 ), [ Just "queued", Just "queued", Just "queued" ] )
                     )
                     ( afterFirstWrite.exoextBatch, rowStates afterFirstWrite )
@@ -142,14 +142,14 @@ batchSuite =
         , test "a settled run commits its row's terminal state and pops the next subject" <|
             \_ ->
                 Expect.equal
-                    ( Just { batchId = Just "exo-cs-batch-1000", remaining = [ "i-3" ], awaitingWrite = True }
+                    ( Just { batchId = Just "exoext-batch-1000", remaining = [ "i-3" ], awaitingWrite = True }
                     , ( Just ( "i-1", 1000 ), [ Just "done", Just "queued", Just "queued" ] )
                     )
                     ( afterFirstSettle.exoextBatch, rowStates afterFirstSettle )
         , test "the continuation retargets the tracker, carries the SAME batchId, and row 1 holds done" <|
             \_ ->
                 Expect.equal
-                    ( Just { batchId = Just "exo-cs-batch-1000", remaining = [ "i-3" ], awaitingWrite = False }
+                    ( Just { batchId = Just "exoext-batch-1000", remaining = [ "i-3" ], awaitingWrite = False }
                     , ( Just ( "i-2", 2000 ), [ Just "done", Just "queued", Just "queued" ] )
                     )
                     ( afterSecondWrite.exoextBatch, rowStates afterSecondWrite )
@@ -181,7 +181,7 @@ batchSuite =
                     drained =
                         afterSecondWrite
                             |> advance 2000 "done"
-                            |> writeRequestAt 3000 { subject = "i-3", batchId = Just "exo-cs-batch-1000" }
+                            |> writeRequestAt 3000 { subject = "i-3", batchId = Just "exoext-batch-1000" }
                             |> advance 3000 "error"
                 in
                 Expect.equal
@@ -414,7 +414,7 @@ staleRunSuite =
                 -- The §4.3 descriptors resolve a target and a request id with no tracker at all, so
                 -- withdrawing the tracker is not by itself enough to withdraw the control. Pressing
                 -- it would arm `stopping` against a publisher that answers nothing.
-                Expect.equal ( Just { targetId = "i-1", requestId = "exo-cs-req-1700" }, Nothing )
+                Expect.equal ( Just { targetId = "i-1", requestId = "exoext-req-1700" }, Nothing )
                     ( ServerDetail.exoextCancellableRun fresh wedgedRun Nothing afterReload
                     , ServerDetail.exoextCancellableRun stale wedgedRun Nothing afterReload
                     )
@@ -492,13 +492,13 @@ batchPersistenceSuite =
         , test "a stopped batch drops the record too — a stop must not leave resumable work behind" <|
             \_ ->
                 Expect.equal (SharedMsg.ForgetExtensionBatch "self")
-                    (ServerDetail.exoextBatchSharedMsg project (ServerDetail.exoextCancelRequested "exo-cs-req-1000" draining))
+                    (ServerDetail.exoextBatchSharedMsg project (ServerDetail.exoextCancelRequested "exoext-req-1000" draining))
         , test "a stored tail round-trips back into a live batch, ready to drain" <|
             \_ ->
                 -- `awaitingWrite` comes back False by construction: it guards a window inside one
                 -- session, and after a reload nothing is in flight.
                 Expect.equal
-                    (Just { batchId = Just "exo-cs-batch-1000", remaining = [ "i-2", "i-3" ], awaitingWrite = False })
+                    (Just { batchId = Just "exoext-batch-1000", remaining = [ "i-2", "i-3" ], awaitingWrite = False })
                     (adopt [ storedBatch [ "i-2", "i-3" ] ] [ "i-2", "i-3" ]).exoextBatch
         , test "a record for another instance is ignored" <|
             \_ ->
@@ -532,7 +532,7 @@ batchPersistenceSuite =
                         adopt [ storedBatch [ "i-2", "i-3" ] ] []
                 in
                 Expect.equal
-                    ( Nothing, Just { batchId = Just "exo-cs-batch-1000", remaining = [ "i-2", "i-3" ], awaitingWrite = False } )
+                    ( Nothing, Just { batchId = Just "exoext-batch-1000", remaining = [ "i-2", "i-3" ], awaitingWrite = False } )
                     ( tooEarly.exoextBatch, tooEarly.exoextRestoredBatch )
         , test "a deferred record is HELD in storage, not forgotten on that poll" <|
             \_ ->
@@ -543,7 +543,7 @@ batchPersistenceSuite =
         , test "the deferred decision resolves once the sibling instances arrive" <|
             \_ ->
                 Expect.equal
-                    (Just { batchId = Just "exo-cs-batch-1000", remaining = [ "i-2", "i-3" ], awaitingWrite = False })
+                    (Just { batchId = Just "exoext-batch-1000", remaining = [ "i-2", "i-3" ], awaitingWrite = False })
                     (adopt [ storedBatch [ "i-2", "i-3" ] ] []
                         |> ServerDetail.adoptRestoredExoextBatch (projectWithTargets [ "i-2", "i-3" ] [])
                         |> .exoextBatch
@@ -574,7 +574,7 @@ batchPersistenceSuite =
                             |> Tuple.first
                 in
                 Expect.equal
-                    ( Just { batchId = Just "exo-cs-batch-1000", remaining = [ "i-3" ], awaitingWrite = True }
+                    ( Just { batchId = Just "exoext-batch-1000", remaining = [ "i-3" ], awaitingWrite = True }
                     , Just "done"
                     )
                     ( resumed.exoextBatch, Dict.get "i-1" resumed.exoextCard.scanState )
@@ -631,7 +631,7 @@ cancelSuite =
     describe "ServerDetail cancel (the §I cancel channel)"
         [ test "an active run offers its row a stop, naming the request id" <|
             \_ ->
-                Expect.equal (Just { targetId = "i-1", requestId = "exo-cs-req-1700" })
+                Expect.equal (Just { targetId = "i-1", requestId = "exoext-req-1700" })
                     (ServerDetail.exoextCancellableRun pollTime (runSlotFor 1700 "running" "i-1") runningRow draining)
         , test "every non-terminal state is stoppable and every terminal one is not" <|
             \_ ->
@@ -648,7 +648,7 @@ cancelSuite =
                     )
         , test "a publisher reporting no requestId falls back to the id this host minted for the seq" <|
             \_ ->
-                Expect.equal (Just { targetId = "i-1", requestId = "exo-cs-req-1700" })
+                Expect.equal (Just { targetId = "i-1", requestId = "exoext-req-1700" })
                     (ServerDetail.exoextCancellableRun pollTime (runSlot 1700 "running") runningRow draining)
         , test "a run this host cannot name at all is not stoppable" <|
             \_ ->
@@ -666,10 +666,10 @@ cancelSuite =
             \_ ->
                 let
                     cancelled =
-                        ServerDetail.exoextCancelRequested "exo-cs-req-1700" draining
+                        ServerDetail.exoextCancelRequested "exoext-req-1700" draining
                 in
                 Expect.equal
-                    ( Just "exo-cs-req-1700", Nothing, [ Just "queued", Nothing, Nothing ] )
+                    ( Just "exoext-req-1700", Nothing, [ Just "queued", Nothing, Nothing ] )
                     ( cancelled.exoextCancelRequestId
                     , cancelled.exoextBatch
                     , [ "i-1", "i-2", "i-3" ] |> List.map (\id -> Dict.get id cancelled.exoextCard.scanState)
@@ -680,26 +680,26 @@ cancelSuite =
                     (ServerDetail.exoextCancellableRun pollTime
                         (runSlotFor 1700 "running" "i-1")
                         runningRow
-                        (ServerDetail.exoextCancelRequested "exo-cs-req-1700" draining)
+                        (ServerDetail.exoextCancelRequested "exoext-req-1700" draining)
                     )
         , test "the NEXT request restores the control, because that write clears the channel" <|
             \_ ->
                 let
                     restarted =
-                        ServerDetail.exoextCancelRequested "exo-cs-req-1700" draining
+                        ServerDetail.exoextCancelRequested "exoext-req-1700" draining
                             |> writeRequestAt 2500 { subject = "i-1", batchId = Nothing }
                 in
-                Expect.equal ( Nothing, Just { targetId = "i-1", requestId = "exo-cs-req-2500" } )
+                Expect.equal ( Nothing, Just { targetId = "i-1", requestId = "exoext-req-2500" } )
                     ( restarted.exoextCancelRequestId
                     , ServerDetail.exoextCancellableRun pollTime (runSlotFor 2500 "running" "i-1") runningRow restarted
                     )
         , test "a stop for one request does not withdraw a DIFFERENT run's control" <|
             \_ ->
-                Expect.equal (Just { targetId = "i-1", requestId = "exo-cs-req-1700" })
+                Expect.equal (Just { targetId = "i-1", requestId = "exoext-req-1700" })
                     (ServerDetail.exoextCancellableRun pollTime
                         (runSlotFor 1700 "running" "i-1")
                         runningRow
-                        (ServerDetail.exoextCancelRequested "exo-cs-req-9999" draining)
+                        (ServerDetail.exoextCancelRequested "exoext-req-9999" draining)
                     )
         ]
 
@@ -788,9 +788,9 @@ dismissSuite =
                 -- siblings apart. Clearing it would degrade the per-row states to the shared batchId.
                 let
                     recording =
-                        modelRecording "exo-cs-req-100" "b1-run-2"
+                        modelRecording "exoext-req-100" "b1-run-2"
                 in
-                Expect.equal (Just { requestId = "exo-cs-req-100", resultId = "b1-run-2" })
+                Expect.equal (Just { requestId = "exoext-req-100", resultId = "b1-run-2" })
                     (ServerDetail.exoextDismissSession recording).exoextEmbedResultId
         , test "dismissing with no request in flight only records the dismissal" <|
             \_ ->
@@ -810,7 +810,7 @@ dismissSuite =
                             (ServerDetail.exoextDismissSession (modelPendingEmbed (Time.millisToPosix 0)))
                 in
                 Expect.equal
-                    ( False, Just "b1", Just "exo-cs-req-3000" )
+                    ( False, Just "b1", Just "exoext-req-3000" )
                     ( reopened.exoextSessionDismissed
                     , reopened.exoextPendingEmbed |> Maybe.map .subject
                     , reopened.exoextPendingEmbed |> Maybe.map .requestId
@@ -840,25 +840,25 @@ stoppingSuite =
         [ test "a cancel on the wire makes the run it names stopping" <|
             \_ ->
                 Expect.equal (Just "i-1")
-                    (ServerDetail.exoextStoppingTarget pollTime (liveRun ++ cancelSlot "exo-cs-req-1700") runningRow draining)
+                    (ServerDetail.exoextStoppingTarget pollTime (liveRun ++ cancelSlot "exoext-req-1700") runningRow draining)
         , test "a stopping run survives a reload: no session state, and the wire still says so" <|
             \_ ->
                 -- The whole of bug 3. Every session-local record is gone, and the answer is
                 -- unchanged, because the host wrote the channel it is now reading.
                 Expect.equal ( Just "i-1", Nothing )
-                    ( ServerDetail.exoextStoppingTarget pollTime (liveRun ++ cancelSlot "exo-cs-req-1700") Nothing afterReload
-                    , ServerDetail.exoextCancellableRun pollTime (liveRun ++ cancelSlot "exo-cs-req-1700") Nothing afterReload
+                    ( ServerDetail.exoextStoppingTarget pollTime (liveRun ++ cancelSlot "exoext-req-1700") Nothing afterReload
+                    , ServerDetail.exoextCancellableRun pollTime (liveRun ++ cancelSlot "exoext-req-1700") Nothing afterReload
                     )
         , test "the same reload with no cancel on the wire reads as a plain live run" <|
             \_ ->
-                Expect.equal ( Nothing, Just { targetId = "i-1", requestId = "exo-cs-req-1700" } )
+                Expect.equal ( Nothing, Just { targetId = "i-1", requestId = "exoext-req-1700" } )
                     ( ServerDetail.exoextStoppingTarget pollTime liveRun Nothing afterReload
                     , ServerDetail.exoextCancellableRun pollTime liveRun Nothing afterReload
                     )
         , test "a stopping run is not cancellable: a second press could only be a no-op" <|
             \_ ->
                 Expect.equal Nothing
-                    (ServerDetail.exoextCancellableRun pollTime (liveRun ++ cancelSlot "exo-cs-req-1700") runningRow draining)
+                    (ServerDetail.exoextCancellableRun pollTime (liveRun ++ cancelSlot "exoext-req-1700") runningRow draining)
         , test "the press is acknowledged before the write lands, from this session's own record" <|
             \_ ->
                 -- The gap the session-local record covers: the cancel write is an HTTP round-trip and
@@ -869,14 +869,14 @@ stoppingSuite =
                      , ServerDetail.exoextCancellableRun pollTime liveRun runningRow
                      )
                         |> Tuple.mapBoth
-                            (\f -> f (ServerDetail.exoextCancelRequested "exo-cs-req-1700" draining))
-                            (\f -> f (ServerDetail.exoextCancelRequested "exo-cs-req-1700" draining))
+                            (\f -> f (ServerDetail.exoextCancelRequested "exoext-req-1700" draining))
+                            (\f -> f (ServerDetail.exoextCancelRequested "exoext-req-1700" draining))
                     )
         , test "a cancel naming a DIFFERENT request leaves this run alone" <|
             \_ ->
-                Expect.equal ( Nothing, Just { targetId = "i-1", requestId = "exo-cs-req-1700" } )
-                    ( ServerDetail.exoextStoppingTarget pollTime (liveRun ++ cancelSlot "exo-cs-req-9999") runningRow draining
-                    , ServerDetail.exoextCancellableRun pollTime (liveRun ++ cancelSlot "exo-cs-req-9999") runningRow draining
+                Expect.equal ( Nothing, Just { targetId = "i-1", requestId = "exoext-req-1700" } )
+                    ( ServerDetail.exoextStoppingTarget pollTime (liveRun ++ cancelSlot "exoext-req-9999") runningRow draining
+                    , ServerDetail.exoextCancellableRun pollTime (liveRun ++ cancelSlot "exoext-req-9999") runningRow draining
                     )
         , test "the cleared channel names nothing, so a superseded stop cannot linger" <|
             \_ ->
@@ -894,12 +894,12 @@ stoppingSuite =
                             (\state ->
                                 let
                                     metadata =
-                                        runSlotFor 1700 state "i-1" ++ cancelSlot "exo-cs-req-1700"
+                                        runSlotFor 1700 state "i-1" ++ cancelSlot "exoext-req-1700"
                                 in
                                 ServerDetail.exoextStoppingTarget pollTime
                                     metadata
                                     (Just { targetId = "i-1", state = state })
-                                    (ServerDetail.exoextCancelRequested "exo-cs-req-1700" draining)
+                                    (ServerDetail.exoextCancelRequested "exoext-req-1700" draining)
                             )
                     )
         , test "a state this host does not recognize is stoppable, and stoppable-in-progress" <|
@@ -907,8 +907,8 @@ stoppingSuite =
                 -- §4.4 fixes the four terminal states and leaves the rest to the publisher, so a
                 -- phase word this host has never heard of is by definition a run still in flight:
                 -- a stop is offered for it, and a stop already asked for is pending on it.
-                Expect.equal ( Just "i-1", Just { targetId = "i-1", requestId = "exo-cs-req-1700" } )
-                    ( ServerDetail.exoextStoppingTarget pollTime (runSlotFor 1700 "snapshotting" "i-1" ++ cancelSlot "exo-cs-req-1700") Nothing afterReload
+                Expect.equal ( Just "i-1", Just { targetId = "i-1", requestId = "exoext-req-1700" } )
+                    ( ServerDetail.exoextStoppingTarget pollTime (runSlotFor 1700 "snapshotting" "i-1" ++ cancelSlot "exoext-req-1700") Nothing afterReload
                     , ServerDetail.exoextCancellableRun pollTime (runSlotFor 1700 "snapshotting" "i-1") Nothing afterReload
                     )
         , test "a terminal run is never stoppable, whatever the publisher calls the states around it" <|
@@ -926,21 +926,21 @@ stoppingSuite =
             \_ ->
                 let
                     restarted =
-                        ServerDetail.exoextCancelRequested "exo-cs-req-1700" draining
+                        ServerDetail.exoextCancelRequested "exoext-req-1700" draining
                             |> writeRequestAt 2500 { subject = "i-1", batchId = Nothing }
 
                     -- The wire as `reqSlotMetadata` leaves it: the new run, and a cleared channel.
                     metadata =
                         runSlotFor 2500 "running" "i-1" ++ cancelSlot ""
                 in
-                Expect.equal ( Nothing, Just { targetId = "i-1", requestId = "exo-cs-req-2500" } )
+                Expect.equal ( Nothing, Just { targetId = "i-1", requestId = "exoext-req-2500" } )
                     ( ServerDetail.exoextStoppingTarget pollTime metadata (Just { targetId = "i-1", state = "running" }) restarted
                     , ServerDetail.exoextCancellableRun pollTime metadata (Just { targetId = "i-1", state = "running" }) restarted
                     )
         , test "a run the host cannot name is neither stoppable nor stopping" <|
             \_ ->
                 Expect.equal ( Nothing, Nothing )
-                    ( ServerDetail.exoextStoppingTarget pollTime (runSlot 1700 "running" ++ cancelSlot "exo-cs-req-1700") Nothing afterReload
+                    ( ServerDetail.exoextStoppingTarget pollTime (runSlot 1700 "running" ++ cancelSlot "exoext-req-1700") Nothing afterReload
                     , ServerDetail.exoextRunControl pollTime (runSlot 1700 "running") Nothing afterReload
                     )
         ]
@@ -993,7 +993,7 @@ tailStopSuite =
                         runSlotFor 1700 "running" "i-1"
                 in
                 Expect.equal
-                    ( Just { targetId = "i-1", requestId = "exo-cs-req-1700" }, Nothing )
+                    ( Just { targetId = "i-1", requestId = "exoext-req-1700" }, Nothing )
                     ( ServerDetail.exoextCancellableRun pollTime metadata (Just { targetId = "i-1", state = "running" }) stopped
                     , ServerDetail.exoextStoppingTarget pollTime metadata (Just { targetId = "i-1", state = "running" }) stopped
                     )
@@ -1046,10 +1046,10 @@ tailStopSuite =
                 -- The other branch, unchanged by WP10: stopping a live run stops the batch with it.
                 let
                     stopped =
-                        stop { requestId = "exo-cs-req-1700", targetId = "i-1" } draining
+                        stop { requestId = "exoext-req-1700", targetId = "i-1" } draining
                 in
                 Expect.equal
-                    ( Just "exo-cs-req-1700", Nothing, [ Just "queued", Nothing, Nothing ] )
+                    ( Just "exoext-req-1700", Nothing, [ Just "queued", Nothing, Nothing ] )
                     ( stopped.exoextCancelRequestId
                     , stopped.exoextBatch
                     , [ "i-1", "i-2", "i-3" ] |> List.map (\id -> Dict.get id stopped.exoextCard.scanState)
@@ -1083,14 +1083,14 @@ preEchoStopSuite =
             \_ ->
                 -- The reported bug in its simplest form: the request is on the wire, the publisher
                 -- has not answered, and the one target actually about to be scanned had no control.
-                Expect.equal (Just { targetId = "i-1", requestId = "exo-cs-req-1700" })
+                Expect.equal (Just { targetId = "i-1", requestId = "exoext-req-1700" })
                     (ServerDetail.exoextCancellableRun pollTime [] Nothing headWritten)
         , test "the previous leg's settled run does not swallow the new head's stop" <|
             \_ ->
                 -- Why the gate is "has the slot echoed MY seq" and not "is the slot empty": mid-batch
                 -- the slot is never empty, it carries the leg that just finished. Reading that as the
                 -- current run is what left the head reading `queued` with nothing to press.
-                Expect.equal (Just { targetId = "i-1", requestId = "exo-cs-req-1700" })
+                Expect.equal (Just { targetId = "i-1", requestId = "exoext-req-1700" })
                     (ServerDetail.exoextCancellableRun pollTime previousLegSettled Nothing headWritten)
         , test "the pre-echo state is queued, the same word an unreported request reads as" <|
             \_ ->
@@ -1119,7 +1119,7 @@ preEchoStopSuite =
                 -- publisher has answered does not look like it did nothing.
                 let
                     stopped =
-                        ServerDetail.exoextCancelRequested "exo-cs-req-1700" headWritten
+                        ServerDetail.exoextCancelRequested "exoext-req-1700" headWritten
                 in
                 Expect.equal ( Just "i-1", Nothing )
                     ( ServerDetail.exoextStoppingTarget pollTime previousLegSettled Nothing stopped
@@ -1132,7 +1132,7 @@ preEchoStopSuite =
                 -- session-local is involved in reading it back.
                 Expect.equal (Just "i-1")
                     (ServerDetail.exoextStoppingTarget pollTime
-                        (previousLegSettled ++ cancelSlot "exo-cs-req-1700")
+                        (previousLegSettled ++ cancelSlot "exoext-req-1700")
                         Nothing
                         headWritten
                     )
@@ -1144,10 +1144,10 @@ preEchoStopSuite =
                 let
                     ( stopped, _, _ ) =
                         ServerDetail.exoextStopRequested project
-                            { requestId = "exo-cs-req-1700", targetId = "i-1" }
+                            { requestId = "exoext-req-1700", targetId = "i-1" }
                             headWritten
                 in
-                Expect.equal ( Just "exo-cs-req-1700", Nothing )
+                Expect.equal ( Just "exoext-req-1700", Nothing )
                     ( stopped.exoextCancelRequestId, stopped.exoextBatch )
         , test "a tracked request older than the stale bound offers nothing, same valve as the wire" <|
             \_ ->

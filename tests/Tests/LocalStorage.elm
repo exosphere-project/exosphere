@@ -131,7 +131,7 @@ extensionBatchesMigrationSuite =
                                 [ { "cloudUrl": "https://keystone.example/v3"
                                   , "projectUuid": "proj-1"
                                   , "instanceUuid": "vm-1"
-                                  , "batchId": "exo-cs-batch-1000"
+                                  , "batchId": "exoext-batch-1000"
                                   , "remaining": ["i-2", "i-3"]
                                   }
                                 ]
