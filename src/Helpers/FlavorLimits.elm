@@ -21,9 +21,18 @@ type Evaluation
     = Evaluation (Dict OSTypes.FlavorId (List String))
 
 
+{-| What the user is about to do with the flavor, which determines how much
+compute quota it is expected to consume.
+
+`ResizeFrom Nothing` means the server's current flavor could not be resolved,
+for example because the operator has retired it. Without a baseline there is no
+sound delta to evaluate, so compute quota is not evaluated at all rather than
+being treated as if the target flavor were an additional server.
+
+-}
 type ComputeQuotaOperation
     = Create
-    | ResizeFrom OSTypes.Flavor
+    | ResizeFrom (Maybe OSTypes.Flavor)
 
 
 type alias Params =
@@ -38,6 +47,8 @@ type alias Params =
     }
 
 
+{-| Collect, per flavor, the reasons that flavor would exceed a limit.
+-}
 evaluate : Params -> Evaluation
 evaluate params =
     let
@@ -80,8 +91,11 @@ computeQuotaOverages operation computeQuota targetFlavor =
         Create ->
             OSQuotas.computeQuotaFlavorOverages computeQuota targetFlavor
 
-        ResizeFrom currentFlavor ->
+        ResizeFrom (Just currentFlavor) ->
             OSQuotas.computeQuotaFlavorResizeOverages computeQuota currentFlavor targetFlavor
+
+        ResizeFrom Nothing ->
+            []
 
 
 computeQuotaOverageWarning : HelperTypes.Localization -> OSQuotas.ComputeQuotaOverage -> String

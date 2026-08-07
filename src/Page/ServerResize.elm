@@ -111,10 +111,7 @@ view_ context project model computeQuota =
         flavorLimitEvaluation =
             FlavorLimits.evaluate
                 { computeQuota = computeQuota
-                , computeQuotaOperation =
-                    currentFlavor
-                        |> Maybe.map FlavorLimits.ResizeFrom
-                        |> Maybe.withDefault FlavorLimits.Create
+                , computeQuotaOperation = FlavorLimits.ResizeFrom currentFlavor
                 , customResources = GetterSetters.getCustomResources project context
                 , flavors = RDPP.withDefault [] project.flavors
                 , localization = context.localization

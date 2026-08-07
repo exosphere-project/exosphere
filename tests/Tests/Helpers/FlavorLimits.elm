@@ -105,12 +105,30 @@ flavorLimitsSuite =
 
                     evaluation =
                         computeOnlyEvaluation
-                            (FlavorLimits.ResizeFrom currentFlavor)
+                            (FlavorLimits.ResizeFrom (Just currentFlavor))
                             computeQuota
                             [ targetFlavor ]
                 in
                 FlavorLimits.exceedsLimit targetFlavor.id evaluation
                     |> Expect.equal False
+        , test "resize fails open for compute quota when the current flavor is unknown" <|
+            \_ ->
+                let
+                    targetFlavor =
+                        flavor "target" "" 6 5632
+
+                    -- Every compute resource is already at its limit, so
+                    -- charging the target flavor as a new server would warn.
+                    computeQuota =
+                        { cores = { inUse = 10, limit = OSTypes.Limit 10 }
+                        , instances = { inUse = 1, limit = OSTypes.Limit 1 }
+                        , ram = { inUse = 10000, limit = OSTypes.Limit 10000 }
+                        , keypairsLimit = 10
+                        }
+                in
+                computeOnlyEvaluation (FlavorLimits.ResizeFrom Nothing) computeQuota [ targetFlavor ]
+                    |> FlavorLimits.warningMessagesFor targetFlavor.id
+                    |> Expect.equal []
         , test "fails open for custom resources until all unified limit data is available" <|
             \_ ->
                 let
