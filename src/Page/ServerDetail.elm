@@ -1,6 +1,7 @@
 module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, adoptRestoredExoextBatch, adoptStoredExoextBatch, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextAbandonStaleRun, exoextBatchSharedMsg, exoextCancelRequested, exoextCancellableRun, exoextCardTitle, exoextDismissSession, exoextDropFromTail, exoextEmbedProjection, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextRequestsPending, exoextRunControl, exoextScanBlocked, exoextScanRequestPending, exoextScanTimer, exoextStatusOverride, exoextStopRequested, exoextStoppingTarget, exoextViewConfig, init, recoverExoextRun, update, view)
 
 import CloudShield.Card
+import CloudShield.Wire
 import DateFormat.Relative
 import Dict
 import Element
@@ -95,7 +96,7 @@ type alias Model =
             { etag : String
             , objectName : String
             }
-    , exoextHistory : RDPP.RemoteDataPlusPlus String (List Exoext.Transport.IndexEntry)
+    , exoextHistory : RDPP.RemoteDataPlusPlus String (List CloudShield.Wire.IndexEntry)
     , exoextHistoryRequestKey : Maybe String
 
     -- the in-flight history-View getEmbed request, as the generic `Exoext.Lifecycle.PendingRequest`
@@ -536,13 +537,13 @@ genuinely in-flight SCAN — a `queued`/`running` run, or a scan this reader jus
 still unclaimed on the wire (correlated by the scan's `pending.seq`). Crucially it does NOT block
 just because a prior _getEmbed_ left the req slot unclaimed (e.g. after a timeout), so one View can
 always supersede another and a timed-out getEmbed never wedges future clicks. No server (nothing to
-write against) counts as blocked. See `Exoext.Transport.getEmbedBlocked`.
+write against) counts as blocked. See `CloudShield.Wire.getEmbedBlocked`.
 -}
 exoextGetEmbedBlocked : Project -> Model -> Bool
 exoextGetEmbedBlocked project model =
     case GetterSetters.serverLookup project model.serverUuid of
         Just server ->
-            Exoext.Transport.getEmbedBlocked
+            CloudShield.Wire.getEmbedBlocked
                 (Maybe.map .seq model.exoextCard.pending)
                 server.osProps.details.metadata
 
@@ -955,7 +956,7 @@ clearResolvedPendingEmbed metadata pending =
     pending
         |> Maybe.andThen
             (\p ->
-                case Exoext.Transport.resultBodyFromMetadata metadata |> Maybe.andThen Exoext.Transport.embedResultFromBody of
+                case Exoext.Transport.resultBodyFromMetadata metadata |> Maybe.andThen CloudShield.Wire.embedResultFromBody of
                     Just embed ->
                         if embed.requestId == p.requestId then
                             Nothing
@@ -1023,7 +1024,7 @@ Steps 1 and 2 are what keep the "Now viewing" flag on exactly one row: with only
 session on either sibling of a batch flagged both.
 
 -}
-exoextEmbedResultId : Model -> Exoext.Transport.EmbedResult -> String
+exoextEmbedResultId : Model -> CloudShield.Wire.EmbedResult -> String
 exoextEmbedResultId model embed =
     let
         recordedResultId =
@@ -1051,7 +1052,7 @@ exoextResultObjectName model sentinel metadata =
     Exoext.Transport.resultBodyFromMetadata metadata
         |> Maybe.andThen
             (\body ->
-                case Exoext.Transport.embedResultFromBody body of
+                case CloudShield.Wire.embedResultFromBody body of
                     Just embed ->
                         if embed.status == "ok" then
                             Just (Maybe.withDefault "" sentinel.prefix ++ "results/" ++ exoextEmbedResultId model embed ++ ".json")
@@ -1136,8 +1137,8 @@ syncExoextIndex project sentinel refreshKey ( model, priorCmd ) =
                         project
                         swiftUrl
                         container
-                        (Exoext.Transport.indexObjectName (Maybe.withDefault "" sentinel.prefix))
-                        Exoext.Transport.indexCapBytes
+                        (CloudShield.Wire.indexObjectName (Maybe.withDefault "" sentinel.prefix))
+                        CloudShield.Wire.indexCapBytes
                         (\result ->
                             SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                                 SharedMsg.ServerMsg model.serverUuid <|
@@ -1179,7 +1180,7 @@ receiveExoextIndex project receivedTime refreshKey result model =
                 case result of
                     Ok body ->
                         RDPP.RemoteDataPlusPlus
-                            (RDPP.DoHave (Exoext.Transport.decodeIndex body) receivedTime)
+                            (RDPP.DoHave (CloudShield.Wire.decodeIndex body) receivedTime)
                             (RDPP.NotLoading Nothing)
 
                     Err _ ->
@@ -1953,7 +1954,7 @@ exoextEmbedProjection metadata archivedResultObjectName currentTime statusOverri
     let
         rawEmbedResult =
             Exoext.Transport.resultBodyFromMetadata metadata
-                |> Maybe.andThen Exoext.Transport.embedResultFromBody
+                |> Maybe.andThen CloudShield.Wire.embedResultFromBody
 
         -- A history pick to show: an ok embed result in the res slot (fresh OR expired). A non-ok
         -- embed result never binds findings/iframe (it falls to the scan path).
@@ -2200,7 +2201,7 @@ exoextEmbedProjection metadata archivedResultObjectName currentTime statusOverri
 re-encoded as a JSON string (the bridge may send a string or an object), so unwrap a plain-string
 error back to its text for a clean line, falling back to the raw JSON for a structured error.
 -}
-embedErrorMessage : Exoext.Transport.EmbedResult -> String
+embedErrorMessage : CloudShield.Wire.EmbedResult -> String
 embedErrorMessage embed =
     case embed.error of
         Just encoded ->
@@ -2359,7 +2360,7 @@ writeScanRequestCmd project model instances req now =
 
         items =
             Exoext.Transport.reqSlotMetadata req.seq
-                (Exoext.Transport.scanRequestJson scanRequest)
+                (CloudShield.Wire.scanRequestJson scanRequest)
     in
     -- One atomic POST for all request-slot keys. Firing one request per key
     -- concurrently races on Nova's single metadata row and silently drops writes,
@@ -2388,7 +2389,7 @@ writeEmbedRequestCmd project model req now =
 
         items =
             Exoext.Transport.reqSlotMetadata timeSeq
-                (Exoext.Transport.embedRequestJson embedRequest)
+                (CloudShield.Wire.embedRequestJson embedRequest)
     in
     Rest.Nova.requestSetServerMetadataItems project model.serverUuid items
         |> Cmd.map SharedMsg

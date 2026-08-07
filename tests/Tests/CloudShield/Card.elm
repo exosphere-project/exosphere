@@ -20,6 +20,7 @@ sentinel + §7.1 metadata transport framing, and the §2.4 `$instances` eligibil
 -}
 
 import CloudShield.Card as Card
+import CloudShield.Wire as Wire
 import Dict
 import Exoext.Discovery as Discovery
 import Exoext.Lifecycle as Lifecycle
@@ -743,12 +744,12 @@ rowSelected index value =
         |> Result.mapError Decode.errorToString
 
 
-loadedHistory : List Transport.IndexEntry -> { rows : List Transport.IndexEntry, loading : Bool, loaded : Bool }
+loadedHistory : List Wire.IndexEntry -> { rows : List Wire.IndexEntry, loading : Bool, loaded : Bool }
 loadedHistory rows =
     { rows = rows, loading = False, loaded = True }
 
 
-loadingHistory : { rows : List Transport.IndexEntry, loading : Bool, loaded : Bool }
+loadingHistory : { rows : List Wire.IndexEntry, loading : Bool, loaded : Bool }
 loadingHistory =
     { rows = [], loading = True, loaded = False }
 
@@ -1243,26 +1244,9 @@ candidate id name status metadata =
 transportSuite : Test
 transportSuite =
     describe "CloudShield POC transport (§7.1)"
-        [ test "scanRequestJson encodes the §4.1 shape" <|
-            \_ ->
-                let
-                    json =
-                        Transport.scanRequestJson
-                            { requestId = "exo-cs-req-1"
-                            , batchId = Nothing
-                            , createdAt = "2026-06-22T00:00:00Z"
-                            , projectId = "proj-1"
-                            , target = { instanceId = "i-1", instanceName = "alpha" }
-                            , profile = "quick"
-                            }
-
-                    field path =
-                        Decode.decodeString (Decode.at path Decode.string) json
-                in
-                Expect.equal
-                    ( Ok "1.0", Ok "i-1", Ok "snapshot-clone" )
-                    ( field [ "schemaVersion" ], field [ "target", "instanceId" ], field [ "scan", "method" ] )
-        , test "reqSlotMetadata emits seq + chunk-count + chunked body" <|
+        -- The §4.1 request bodies themselves are pinned as exact bytes in Tests.CloudShield.Wire;
+        -- what matters here is the framing they are chunked into.
+        [ test "reqSlotMetadata emits seq + chunk-count + chunked body" <|
             \_ ->
                 let
                     items =
@@ -1324,7 +1308,7 @@ transportSuite =
 
 
 -- EMBED (getEmbed action, Phase B). The single-req-slot guard is host-side (see
--- Tests.Exoext.Transport getEmbedBlockedSuite); the card just emits the request.
+-- Tests.CloudShield.Wire getEmbedBlockedSuite); the card just emits the request.
 
 
 idleModel : Card.Model
@@ -1380,7 +1364,7 @@ embedSuite =
 {-| A LEGACY index row: no per-run `requestId`, so its resultId falls back to the batchId. Most of
 the suite below uses it, which keeps that fallback covered; `siblingEntry` covers the new path.
 -}
-historyEntry : String -> Transport.IndexEntry
+historyEntry : String -> Wire.IndexEntry
 historyEntry batchId =
     { batchId = batchId
     , requestId = Nothing
@@ -1395,7 +1379,7 @@ historyEntry batchId =
 {-| One §2.2 sibling: its own `requestId` (hence its own resultId) under a batchId it SHARES with
 the other siblings — the live shape that made BOTH rows of a batch read "Now viewing".
 -}
-siblingEntry : String -> String -> Transport.IndexEntry
+siblingEntry : String -> String -> Wire.IndexEntry
 siblingEntry batchId requestId =
     let
         base =
@@ -1420,13 +1404,13 @@ historyNoteOf value =
 
 {-| `n` history entries in append-only (oldest-first) file order, batchIds `b-01`..`b-<n>`.
 -}
-historyEntries : Int -> List Transport.IndexEntry
+historyEntries : Int -> List Wire.IndexEntry
 historyEntries n =
     List.range 1 n
         |> List.map (\i -> historyEntry ("b-" ++ String.padLeft 2 '0' (String.fromInt i)))
 
 
-projectHistory : List Transport.IndexEntry -> Decode.Value
+projectHistory : List Wire.IndexEntry -> Decode.Value
 projectHistory entries =
     Card.projection Time.utc { sampleConfig | history = loadedHistory entries } sampleInstances idleModel
 
@@ -1434,7 +1418,7 @@ projectHistory entries =
 {-| Project a single history row and read a string field from `/history/0`, given the active and
 in-flight (`pendingResultId`) batch ids. No embed-error batch (the common case).
 -}
-historyRowField : Maybe String -> Maybe String -> Transport.IndexEntry -> String -> Result String String
+historyRowField : Maybe String -> Maybe String -> Wire.IndexEntry -> String -> Result String String
 historyRowField activeResultId pendingResultId entry field =
     historyRowFieldE activeResultId pendingResultId Nothing entry field
 
@@ -1442,7 +1426,7 @@ historyRowField activeResultId pendingResultId entry field =
 {-| As `historyRowField`, but also supplying the `erroredResultId` (the last getEmbed that failed /
 timed out) so the "Couldn't open" / "Retry" precedence can be exercised.
 -}
-historyRowFieldE : Maybe String -> Maybe String -> Maybe String -> Transport.IndexEntry -> String -> Result String String
+historyRowFieldE : Maybe String -> Maybe String -> Maybe String -> Wire.IndexEntry -> String -> Result String String
 historyRowFieldE activeResultId pendingResultId erroredResultId entry field =
     Card.projection Time.utc
         { sampleConfig
@@ -1461,7 +1445,7 @@ historyRowFieldE activeResultId pendingResultId erroredResultId entry field =
 expired), so the expired-session row state ("Expired" / plain "View", faint highlight) can be
 exercised.
 -}
-historyRowFieldX : Maybe String -> Maybe String -> Transport.IndexEntry -> String -> Result String String
+historyRowFieldX : Maybe String -> Maybe String -> Wire.IndexEntry -> String -> Result String String
 historyRowFieldX activeResultId expiredResultId entry field =
     Card.projection Time.utc
         { sampleConfig
@@ -1475,7 +1459,7 @@ historyRowFieldX activeResultId expiredResultId entry field =
         |> Result.mapError Decode.errorToString
 
 
-erroredEntry : Transport.IndexEntry
+erroredEntry : Wire.IndexEntry
 erroredEntry =
     { batchId = "b-err"
     , requestId = Nothing

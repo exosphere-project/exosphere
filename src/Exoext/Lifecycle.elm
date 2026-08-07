@@ -174,8 +174,8 @@ sessionFreshness now session =
 
 
 {-| The normalized wire result an adapter feeds to [`sessionState`](#sessionState). The adapter
-parses its extension-specific result body into this shape (today: `Exoext.Transport.EmbedResult`
-→ `ResultInput`, with `message` the already-unwrapped error text). `requestId` correlates the
+parses its extension-specific result body into this shape, with `message` the already-unwrapped
+error text. `requestId` correlates the
 result to the pending request; `subject` is the result's resource / batch id; `status` is the
 wire status (`"ok"` / `"error"` / anything else = still settling); `url` and `expiresAt` describe
 the session an `"ok"` result opens; `message` is the human-facing error for an `"error"` result.

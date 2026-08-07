@@ -1,21 +1,10 @@
 module Exoext.Transport exposing
-    ( Counts
-    , EmbedRequest
-    , EmbedResult
-    , IndexEntry
-    , ResolvedResult(..)
+    ( ResolvedResult(..)
     , RunStatus
-    , ScanRequest
     , capBody
     , chunkString
-    , countsLabel
-    , decodeIndex
-    , embedRequestJson
-    , embedResultFromBody
-    , getEmbedBlocked
     , historyRefreshKey
-    , indexCapBytes
-    , indexObjectName
+    , identifierField
     , manifestCapBytes
     , readChunkedBody
     , reqCancelFromMetadata
@@ -28,16 +17,21 @@ module Exoext.Transport exposing
     , resultCapBytes
     , resultRefObjectName
     , runStatusFromMetadata
-    , scanRequestJson
     )
 
 {-| Exoext POC wire transport over Nova server metadata (Phase 0 spec §4.1 / §7.1).
 
-This is the **throwaway framing layer** for the no-Jetstream2 POC: it carries the §4.1 scan
-request and the §4.3 status / §4.2 result over server metadata instead of object storage.
-Per the spec, the request/result _JSON_ and the run _states_ are identical to the Jetstream2
-path; only the `seq`/`claimed`/chunk framing here is POC-specific and is dropped when
-`store=swift` lands (Phase 1b).
+This is the **throwaway framing layer** for the no-Jetstream2 POC: it carries the §4.1 request
+and the §4.3 status / §4.2 result over server metadata instead of object storage. Per the spec,
+the request/result _JSON_ and the run _states_ are identical to the Jetstream2 path; only the
+`seq`/`claimed`/chunk framing here is POC-specific and is dropped when `store=swift` lands
+(Phase 1b).
+
+**This module is the envelope, never the contents.** Nothing here knows what a request is FOR:
+bodies go in and come out as opaque strings, and the extension-specific payloads that fill them
+live with the adapter that speaks them (`CloudShield.Wire` today, cited only as the example
+consumer, the same convention `Exoext.Lifecycle` follows). That is what lets a second extension
+reuse this file unchanged.
 
 All functions are pure and string-in/string-out so they unit-test without a live cloud.
 
@@ -60,67 +54,11 @@ Wire layout (on the publishing extension VM's own metadata):
 
 import Dict exposing (Dict)
 import Json.Decode as Decode
-import Json.Encode as Encode
 import OpenStack.Types as OSTypes
 
 
 
 -- REQUEST (Exosphere -> VM)
-
-
-{-| The host-resolved scan request (§4.1). `target` is the re-resolved real instance
-(§5.4); `createdAt` is an ISO-8601 string supplied by the host (Phase 0 §4.1).
--}
-type alias ScanRequest =
-    { requestId : String
-    , batchId : Maybe String
-    , createdAt : String
-    , projectId : String
-    , target :
-        { instanceId : String
-        , instanceName : String
-        }
-    , profile : String
-    }
-
-
-{-| Encode a §4.1 scan-request object to a compact JSON string (the body that gets chunked
-into the metadata req-slot, or written object-side in Phase 1b — same bytes either way).
--}
-scanRequestJson : ScanRequest -> String
-scanRequestJson req =
-    Encode.encode 0 <|
-        Encode.object
-            [ ( "schemaVersion", Encode.string "1.0" )
-            , ( "requestId", Encode.string req.requestId )
-            , ( "batchId"
-              , case req.batchId of
-                    Just b ->
-                        Encode.string b
-
-                    Nothing ->
-                        Encode.null
-              )
-            , ( "createdAt", Encode.string req.createdAt )
-            , ( "requestedBy"
-              , Encode.object
-                    [ ( "source", Encode.string "exosphere" )
-                    , ( "projectId", Encode.string req.projectId )
-                    ]
-              )
-            , ( "target"
-              , Encode.object
-                    [ ( "instanceId", Encode.string req.target.instanceId )
-                    , ( "instanceName", Encode.string req.target.instanceName )
-                    ]
-              )
-            , ( "scan"
-              , Encode.object
-                    [ ( "profile", Encode.string req.profile )
-                    , ( "method", Encode.string "snapshot-clone" )
-                    ]
-              )
-            ]
 
 
 {-| Build the §7.1 request-slot metadata key/value items for a request: the monotonic `seq`,
@@ -218,7 +156,7 @@ says WHICH run the slot is reporting, and every one of them is optional — abse
 writes only `seq`/`state` still decodes, and a new publisher's extra keys are simply ignored by an
 older reader.
 
-  - `target` — the instance id the run is scanning. It is the key that makes run RECOVERY possible:
+  - `target` — the instance id the run is about. It is the key that makes run RECOVERY possible:
     without it a reader can only project a run whose request IT wrote this session, so a reload
     mid-run leaves the card looking idle.
   - `requestId` — the §4.1 request id of the run, i.e. the value a cancel has to name
@@ -440,106 +378,6 @@ readChunkedBody prefix metadata =
                     Nothing
 
 
-
--- SCAN HISTORY (the append-only results/index.json the bridge archives, Phase B)
-
-
-{-| One archived-scan row from `<prefix>results/index.json` (the append-only history index the
-bridge writes in `store=swift` mode). Only the fields the reader renders are decoded; unknown
-fields are tolerated (the bridge may add more over time).
-
-`requestId` is the §4.1 request this row archives, and it is **optional**: rows written before the
-per-run result identity landed carry only `batchId`, which §2.2 siblings SHARE — so `batchId` alone
-cannot identify one run within a batch. `Nothing` for those legacy rows; the reader falls back to
-`batchId` there.
-
--}
-type alias IndexEntry =
-    { batchId : String
-    , requestId : Maybe String
-    , targetId : String
-    , targetName : String
-    , completedAt : String
-    , status : String
-    , counts : Counts
-    }
-
-
-{-| Per-severity finding counts carried on an index row.
--}
-type alias Counts =
-    { critical : Int
-    , high : Int
-    , medium : Int
-    , low : Int
-    , info : Int
-    }
-
-
-{-| The history index object name for a per-instance prefix (§3.1 `exoext.v1.prefix`, which
-already carries its trailing slash). Built the same way the manifest is fetched (`prefix ++
-manifest`, no separator inserted): `prefix ++ "results/index.json"`.
--}
-indexObjectName : String -> String
-indexObjectName prefix =
-    prefix ++ "results/index.json"
-
-
-{-| The history index hard cap: **64 KiB**. Enforced fail-closed alongside the §5.5 caps: an
-oversize index reads as no history rather than an error, so a runaway index can never wedge
-the card.
--}
-indexCapBytes : Int
-indexCapBytes =
-    64 * 1024
-
-
-{-| Decode the history index body into rows, fail-closed. Malformed JSON, a non-array top
-level, or a body over `indexCapBytes` all resolve to `[]` (no history) — never an error state.
-Individual rows tolerate missing/unknown fields (string fields default to `""`, counts to 0).
--}
-decodeIndex : String -> List IndexEntry
-decodeIndex body =
-    if String.length body > indexCapBytes then
-        []
-
-    else
-        Decode.decodeString (Decode.list indexEntryDecoder) body
-            |> Result.withDefault []
-
-
-indexEntryDecoder : Decode.Decoder IndexEntry
-indexEntryDecoder =
-    Decode.map7 IndexEntry
-        (optionalString "batchId")
-        (identifierField "requestId")
-        (optionalString "targetId")
-        (optionalString "targetName")
-        (optionalString "completedAt")
-        (optionalString "status")
-        (Decode.oneOf [ Decode.field "counts" countsDecoder, Decode.succeed emptyCounts ])
-
-
-countsDecoder : Decode.Decoder Counts
-countsDecoder =
-    Decode.map5 Counts
-        (optionalInt "critical")
-        (optionalInt "high")
-        (optionalInt "medium")
-        (optionalInt "low")
-        (optionalInt "info")
-
-
-emptyCounts : Counts
-emptyCounts =
-    { critical = 0, high = 0, medium = 0, low = 0, info = 0 }
-
-
-optionalString : String -> Decode.Decoder String
-optionalString key =
-    Decode.oneOf [ Decode.field key Decode.string, Decode.succeed "" ]
-
-
 {-| An identifier field, read the same way wherever one appears on the wire. A publisher that
 knows no value may say so three different ways, and all three mean the same thing here:
 
@@ -570,17 +408,17 @@ emptyToNothing value =
         Just value
 
 
-optionalInt : String -> Decode.Decoder Int
-optionalInt key =
-    Decode.oneOf [ Decode.field key Decode.int, Decode.succeed 0 ]
+{-| The cache key that decides when a reader should refetch a body derived from PAST requests
+(today: the archived-run history index). Generic on purpose: it composes only §3.1/§7.1 keys and
+knows nothing about what is being refetched.
 
+The exoext `etag` (`exoext.v1.etag`) is a content hash of the **static manifest UI body**, so it
+does NOT change when a request settles — keying a refetch on it alone would leave a derived body
+stale until reload. Composing it with the run slot (`run.seq` + `run.state`) fixes that: the slot
+advances on every §4.4 state transition and on every request the publisher claims. Missing keys
+render as `""`. So each transition triggers one cheap refetch, and a steady state refetches
+nothing.
 
-{-| The cache key that decides when to refetch the history index. The exoext `etag`
-(`exoext.v1.etag`) is a content hash of the **static manifest UI body**, so it does NOT change
-when a scan completes — keying a refetch on it alone would leave history stale until reload.
-Instead compose it with the run slot (`run.seq` + `run.state`), which advances on every scan
-state transition (queued → running → done) and on a getEmbed claim. Missing keys render as `""`.
-So each transition triggers one cheap ≤`indexCapBytes` refetch; a steady state refetches nothing.
 -}
 historyRefreshKey : List OSTypes.MetadataItem -> String
 historyRefreshKey metadata =
@@ -596,164 +434,6 @@ historyRefreshKey metadata =
         , get "exoext.v1.run.seq"
         , get "exoext.v1.run.state"
         ]
-
-
-{-| A human-readable severity summary from a row's counts, omitting zero severities in
-descending order, e.g. `"7 high · 14 medium · 3 low"`. All-zero ⇒ `"no findings"`.
--}
-countsLabel : Counts -> String
-countsLabel counts =
-    let
-        parts =
-            [ ( "critical", counts.critical )
-            , ( "high", counts.high )
-            , ( "medium", counts.medium )
-            , ( "low", counts.low )
-            , ( "info", counts.info )
-            ]
-                |> List.filter (\( _, n ) -> n > 0)
-                |> List.map (\( label, n ) -> String.fromInt n ++ " " ++ label)
-    in
-    if List.isEmpty parts then
-        "no findings"
-
-    else
-        String.join " · " parts
-
-
-
--- EMBED (getEmbed request + embed result, Phase B)
-
-
-{-| A `getEmbed` request: ask the bridge to mint a fresh, short-lived embed token/URL for an
-already-archived scan. Written through the same §7.1 req slot as a scan request (via
-`reqSlotMetadata`); the bridge claims the slot and writes a small embed result inline into the
-res slot without touching `run.state`.
--}
-type alias EmbedRequest =
-    { requestId : String
-    , batchId : String
-    , resultId : String
-    , createdAt : String
-    }
-
-
-{-| Encode a `getEmbed` request to a compact JSON string (the body that gets chunked into the
-req slot). Shape: `{schemaVersion, requestId, action:"getEmbed", batchId, resultId, createdAt}`.
-
-`resultId` names the ONE archived result to open (§4.2 keys results by requestId). `batchId` stays
-on the wire for a publisher that predates `resultId` and selects by batch; it is the selector of
-last resort, since §2.2 siblings share it.
-
--}
-embedRequestJson : EmbedRequest -> String
-embedRequestJson req =
-    Encode.encode 0 <|
-        Encode.object
-            [ ( "schemaVersion", Encode.string "1.0" )
-            , ( "requestId", Encode.string req.requestId )
-            , ( "action", Encode.string "getEmbed" )
-            , ( "batchId", Encode.string req.batchId )
-            , ( "resultId", Encode.string req.resultId )
-            , ( "createdAt", Encode.string req.createdAt )
-            ]
-
-
-{-| The bridge's embed result, written inline into the res slot in response to a `getEmbed`.
-Distinguished from a scan result by `"kind":"embed"` (scan-result bodies carry no `kind`).
-
-`resultId` is the §4.2 result the session was minted for, and it is the ONLY self-describing
-identity on this response: `batchId` is shared by §2.2 siblings, so it cannot say which archived
-run is on screen. The bridge always writes the key and sends JSON `null` when it does not know a
-value (so the object's shape never varies); a publisher predating the field omits it entirely.
-Either way it reads as `Nothing` and sends the reader to its fallbacks.
-
--}
-type alias EmbedResult =
-    { requestId : String
-    , batchId : String
-    , resultId : Maybe String
-    , status : String
-    , embedUrl : String
-    , embedExpiresAt : String
-    , error : Maybe String
-    }
-
-
-{-| Recognize a res-slot body as an embed result: `Just` only when the body decodes with
-`"kind":"embed"`. A body without a `kind` field (a scan result) is `Nothing`, so scan-result
-handling is untouched by this path.
--}
-embedResultFromBody : String -> Maybe EmbedResult
-embedResultFromBody body =
-    case Decode.decodeString (Decode.field "kind" Decode.string) body of
-        Ok "embed" ->
-            Decode.decodeString embedResultDecoder body
-                |> Result.toMaybe
-
-        _ ->
-            Nothing
-
-
-embedResultDecoder : Decode.Decoder EmbedResult
-embedResultDecoder =
-    Decode.map7 EmbedResult
-        (optionalString "requestId")
-        (optionalString "batchId")
-        (identifierField "resultId")
-        (optionalString "status")
-        (optionalString "embedUrl")
-        (optionalString "embedExpiresAt")
-        (Decode.oneOf
-            [ Decode.field "error" (Decode.nullable Decode.value)
-                |> Decode.map (Maybe.map (Encode.encode 0))
-            , Decode.succeed Nothing
-            ]
-        )
-
-
-{-| Whether issuing a `getEmbed` right now would cancel a genuinely in-flight **scan** and must be
-blocked (§7.1, single req slot). Its only job is to protect a scan — NOT to block one View from
-superseding another. Blocked when:
-
-  - the run is active — `run.state ∈ {queued, running}`; or
-  - the reader has a scan it just wrote (`pendingScanSeq` = `Just` its `pending.seq`) whose req is
-    still **unclaimed** on the wire: `req.seq` equals that scan's seq and `req.claimed` does not
-    equal it (the ≤10 s window before the bridge claims a request).
-
-Writing the getEmbed req slot bumps `req.seq`, and the bridge's `is_cancelled` (compares `req.seq`
-vs `run.seq`) would cancel a pending/running scan — hence the guard. It deliberately keys the
-unclaimed branch on the scan's own seq: a req slot left unclaimed by a prior _getEmbed_ (e.g. after
-a timeout) does NOT match `pendingScanSeq`, so it never blocks — a timed-out getEmbed cannot wedge
-future clicks, and a new View always supersedes an in-flight one. A missing `req.claimed` counts as
-unclaimed. Terminal runs (`done`/`error`/`expired`) with a claimed request do not block.
-
--}
-getEmbedBlocked : Maybe Int -> List OSTypes.MetadataItem -> Bool
-getEmbedBlocked pendingScanSeq metadata =
-    let
-        dict =
-            toDict metadata
-
-        runActive =
-            case Dict.get "exoext.v1.run.state" dict of
-                Just state ->
-                    state == "queued" || state == "running"
-
-                Nothing ->
-                    False
-
-        scanUnclaimed =
-            case ( pendingScanSeq, Dict.get "exoext.v1.req.seq" dict ) of
-                ( Just seq, Just wireSeq ) ->
-                    -- The unclaimed req is this scan's (not a later getEmbed's) and not yet claimed.
-                    (wireSeq == String.fromInt seq)
-                        && (Dict.get "exoext.v1.req.claimed" dict /= Just wireSeq)
-
-                _ ->
-                    False
-    in
-    runActive || scanUnclaimed
 
 
 

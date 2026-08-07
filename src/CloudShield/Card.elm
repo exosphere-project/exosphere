@@ -21,6 +21,7 @@ Everything here is gated by `context.experimentalFeaturesEnabled` at the call si
 
 -}
 
+import CloudShield.Wire as Wire
 import Color
 import Dict exposing (Dict)
 import Element
@@ -29,7 +30,6 @@ import Element.Border as Border
 import Element.Events
 import Element.Font as Font
 import Exoext.Lifecycle as Lifecycle
-import Exoext.Transport as Transport
 import Helpers.Time
 import Html
 import Html.Attributes
@@ -718,7 +718,7 @@ exclusive (`OpenStale` sets one, `Open` the other), so they never contend for a 
 `countsLabel` is retained (unbound by the current manifest) as a stable plain-text fallback.
 
 -}
-historyRow : Time.Zone -> Maybe String -> Maybe String -> Maybe String -> Maybe String -> Transport.IndexEntry -> Encode.Value
+historyRow : Time.Zone -> Maybe String -> Maybe String -> Maybe String -> Maybe String -> Wire.IndexEntry -> Encode.Value
 historyRow zone activeResultId pendingResultId erroredResultId expiredResultId entry =
     let
         -- The row's identity for every session match below, and the `resultId` the View press
@@ -847,7 +847,7 @@ historyRow zone activeResultId pendingResultId erroredResultId expiredResultId e
         , ( "completedAt", Encode.string completedAtLabel )
         , ( "subLabel", Encode.string subLabel )
         , ( "status", Encode.string entry.status )
-        , ( "countsLabel", Encode.string (Transport.countsLabel entry.counts) )
+        , ( "countsLabel", Encode.string (Wire.countsLabel entry.counts) )
         , ( "findings", findingsFromCounts entry.counts )
         , ( "rowState", Encode.string rowState )
         , ( "actionLabel", Encode.string actionLabel )
@@ -862,7 +862,7 @@ pills. This keeps history pills byte-consistent with results pills without a sec
 renderer or any renderer conditional. Cost is O(total findings) per row; history is display-
 capped and scan counts are modest, so the projected state stays small.
 -}
-findingsFromCounts : Transport.Counts -> Encode.Value
+findingsFromCounts : Wire.Counts -> Encode.Value
 findingsFromCounts counts =
     let
         entriesFor severity n =
@@ -1080,7 +1080,7 @@ type alias ViewConfig =
     -- state. Once `loaded` is true the stale rows stay visible during refreshes; first-fetch
     -- loading hides the count and lets host CSS draw the loading line in the history column.
     , history :
-        { rows : List Transport.IndexEntry
+        { rows : List Wire.IndexEntry
         , loading : Bool
         , loaded : Bool
         }
