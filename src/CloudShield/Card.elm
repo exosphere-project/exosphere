@@ -1333,11 +1333,19 @@ spinner palette =
     Element.el
         [ Element.width (Element.px 12)
         , Element.height (Element.px 12)
+
+        -- `flex: none`: this el is a flex ITEM of the elm-ui row, and a shrunk circle is an oval
+        -- (same mechanism as the .jr-badge rings, see rendererStyle).
+        , Element.htmlAttribute (Html.Attributes.style "flex" "none")
         ]
     <|
         Element.html
             (Html.node "span"
-                [ Html.Attributes.style "display" "inline-block"
+                -- `block` + `border-box` keep the ring exactly 12x12 inside its wrapper: inline-block
+                -- sits on the text baseline, and a content-box span grows past the wrapper by its
+                -- border width. Either one shows as a squashed ring.
+                [ Html.Attributes.style "display" "block"
+                , Html.Attributes.style "box-sizing" "border-box"
                 , Html.Attributes.style "width" "12px"
                 , Html.Attributes.style "height" "12px"
                 , Html.Attributes.style "border" ("2px solid " ++ Color.toCssString palette.neutral.text.subdued)
