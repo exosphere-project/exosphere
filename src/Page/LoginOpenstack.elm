@@ -18,9 +18,11 @@ import OpenStack.OpenRc
 import OpenStack.Types as OSTypes
 import Set
 import Style.Helpers as SH
+import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.Icon exposing (sizedFeatherIcon)
 import Style.Widgets.Link as Link
+import Style.Widgets.Popover.Popover as Popover
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Tag as Tag
 import Style.Widgets.Text as Text
@@ -110,6 +112,11 @@ defaultAppCredential =
     { uuid = ""
     , secret = ""
     }
+
+
+credentialFileHelpPopoverId : String
+credentialFileHelpPopoverId =
+    "loginOpenstackCredentialFileHelp"
 
 
 update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -597,6 +604,7 @@ loginOpenstackCredentialFileEntry context model =
     Element.column
         (VH.formContainer ++ [ Element.spacing spacer.px16 ])
         [ fileDropZone context model
+        , credentialFileHelp context
         , orPasteSeparator context
         , Input.multiline
             (VH.inputItemAttributes context.palette
@@ -700,6 +708,61 @@ droppedFileDecoder : Json.Decode.Decoder Msg
 droppedFileDecoder =
     Json.Decode.at [ "dataTransfer", "files" ]
         (Json.Decode.oneOrMore (\file _ -> GotCredentialFile file) File.decoder)
+
+
+credentialFileHelp : View.Types.Context -> Element.Element Msg
+credentialFileHelp context =
+    let
+        content _ =
+            Element.column
+                [ Element.width (Element.maximum 400 Element.shrink)
+                , Element.spacing spacer.px12
+                ]
+                [ Element.paragraph []
+                    [ Element.text
+                        (String.concat
+                            [ "Horizon, your "
+                            , context.localization.openstackWithOwnKeystone
+                            , " dashboard: open Identity, then Application "
+                            , context.localization.credential
+                                |> Helpers.String.pluralize
+                                |> Helpers.String.toTitleCase
+                            , ", create one, and download the file it offers."
+                            ]
+                        )
+                    ]
+                , Element.paragraph []
+                    [ Element.text
+                        (String.concat
+                            [ "Another Exosphere, like jetstream2.exosphere.app: open your "
+                            , context.localization.unitOfTenancy
+                            , ", choose "
+                            , context.localization.credential
+                                |> Helpers.String.pluralize
+                                |> Helpers.String.toTitleCase
+                            , ", then Download."
+                            ]
+                        )
+                    ]
+                ]
+
+        target togglePopoverMsg _ =
+            Element.el
+                (Link.linkStyle context.palette
+                    ++ [ Element.Events.onClick togglePopoverMsg ]
+                )
+                (Element.text "How do I get this file?")
+    in
+    Popover.popover context
+        (SharedMsg << SharedMsg.TogglePopover)
+        { id = credentialFileHelpPopoverId
+        , content = content
+        , contentStyleAttrs = []
+        , position = ST.PositionBottomLeft
+        , distanceToTarget = Nothing
+        , target = target
+        , targetStyleAttrs = []
+        }
 
 
 orPasteSeparator : View.Types.Context -> Element.Element Msg
