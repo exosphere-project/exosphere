@@ -1,4 +1,4 @@
-module OpenStack.OpenRc exposing (looksLikeOpenRc, openRcUsesAppCredentialAuth, parseOpenRcAppCredential, processOpenRc)
+module OpenStack.OpenRc exposing (looksLikeOpenRc, openRcUsesAppCredentialAuth, parseOpenRcAppCredential, parseOpenRcProjectName, processOpenRc)
 
 import Helpers.String exposing (normalizeLineEndings)
 import OpenStack.Types as OSTypes
@@ -26,6 +26,14 @@ parseOpenRcAppCredential openRc =
 
         _ ->
             Nothing
+
+
+{-| The project an OpenRC file is scoped to, when it says. Used to name what the user is about
+to log in to, so it is fine for this to be absent.
+-}
+parseOpenRcProjectName : String -> Maybe String
+parseOpenRcProjectName openRc =
+    parseVar openRc "OS_PROJECT_NAME"
 
 
 {-| True when the text assigns at least one `OS_` variable, which is what makes an OpenRC file
