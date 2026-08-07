@@ -1,6 +1,7 @@
 module OpenStack.Quotas exposing
     ( computeQuotaDecoder
     , computeQuotaFlavorAvailServers
+    , computeQuotaFlavorResizeExceedsLimit
     , overallQuotaAvailServers
     , requestComputeQuota
     , requestNetworkQuota
@@ -272,6 +273,36 @@ computeQuotaFlavorAvailServers computeQuota flavor =
     ]
         |> List.filterMap identity
         |> List.minimum
+
+
+{-| Determine whether resizing from one flavor to another would exceed compute quota.
+
+This implements Nova's legacy quota behavior.
+
+Only positive changes in cores and RAM consume additional quota. Resizing an
+existing server does not consume another instance from the instance quota.
+
+-}
+computeQuotaFlavorResizeExceedsLimit : OSTypes.ComputeQuota -> OSTypes.Flavor -> OSTypes.Flavor -> Bool
+computeQuotaFlavorResizeExceedsLimit computeQuota currentFlavor targetFlavor =
+    [ ( computeQuota.cores, targetFlavor.vcpu - currentFlavor.vcpu )
+    , ( computeQuota.ram, targetFlavor.ram_mb - currentFlavor.ram_mb )
+    ]
+        |> List.any quotaItemDeltaExceedsLimit
+
+
+quotaItemDeltaExceedsLimit : ( OSTypes.QuotaItem, Int ) -> Bool
+quotaItemDeltaExceedsLimit ( quota, resourceDelta ) =
+    if resourceDelta <= 0 then
+        False
+
+    else
+        case quota.limit of
+            OSTypes.Limit limit ->
+                quota.inUse + resourceDelta > limit
+
+            OSTypes.Unlimited ->
+                False
 
 
 

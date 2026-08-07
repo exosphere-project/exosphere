@@ -1,5 +1,6 @@
 module Helpers.FlavorLimits exposing
-    ( Evaluation
+    ( ComputeQuotaOperation(..)
+    , Evaluation
     , Params
     , evaluate
     , exceedsLimit
@@ -20,8 +21,14 @@ type Evaluation
     = Evaluation (Dict OSTypes.FlavorId (List String))
 
 
+type ComputeQuotaOperation
+    = Create
+    | ResizeFrom OSTypes.Flavor
+
+
 type alias Params =
     { computeQuota : OSTypes.ComputeQuota
+    , computeQuotaOperation : ComputeQuotaOperation
     , customResources : List HelperTypes.CustomResource
     , flavors : List OSTypes.Flavor
     , localization : HelperTypes.Localization
@@ -53,7 +60,7 @@ evaluate params =
                     |> Dict.get flavor.id
                     |> Maybe.withDefault []
                     |> UnifiedLimits.flavorWarningMessages
-                        (computeQuotaWarning params.localization params.computeQuota flavor)
+                        (computeQuotaWarning params.localization params.computeQuotaOperation params.computeQuota flavor)
                         unifiedLimitQuotas
                 )
             )
@@ -61,26 +68,33 @@ evaluate params =
         |> Evaluation
 
 
-computeQuotaWarning : HelperTypes.Localization -> OSTypes.ComputeQuota -> OSTypes.Flavor -> Maybe String
-computeQuotaWarning localization computeQuota flavor =
-    OSQuotas.computeQuotaFlavorAvailServers computeQuota flavor
-        |> Maybe.andThen
-            (\launchableServers ->
-                -- TODO: For resize, evaluate the resource delta instead of the full target flavor.
-                if launchableServers < 1 then
-                    -- TODO: Provide more granular detail on how the compute quota is exceeded.
-                    Just <|
-                        "This "
-                            ++ localization.virtualComputerHardwareConfig
-                            ++ " would exceed your "
-                            ++ localization.unitOfTenancy
-                            ++ "'s "
-                            ++ localization.maxResourcesPerProject
-                            ++ "."
+computeQuotaWarning : HelperTypes.Localization -> ComputeQuotaOperation -> OSTypes.ComputeQuota -> OSTypes.Flavor -> Maybe String
+computeQuotaWarning localization operation computeQuota targetFlavor =
+    if computeQuotaExceeded operation computeQuota targetFlavor then
+        -- TODO: Provide more granular detail on how the compute quota is exceeded.
+        Just <|
+            "This "
+                ++ localization.virtualComputerHardwareConfig
+                ++ " would exceed your "
+                ++ localization.unitOfTenancy
+                ++ "'s "
+                ++ localization.maxResourcesPerProject
+                ++ "."
 
-                else
-                    Nothing
-            )
+    else
+        Nothing
+
+
+computeQuotaExceeded : ComputeQuotaOperation -> OSTypes.ComputeQuota -> OSTypes.Flavor -> Bool
+computeQuotaExceeded operation computeQuota targetFlavor =
+    case operation of
+        Create ->
+            OSQuotas.computeQuotaFlavorAvailServers computeQuota targetFlavor
+                |> Maybe.map (\launchableServers -> launchableServers < 1)
+                |> Maybe.withDefault False
+
+        ResizeFrom currentFlavor ->
+            OSQuotas.computeQuotaFlavorResizeExceedsLimit computeQuota currentFlavor targetFlavor
 
 
 warningMessagesFor : OSTypes.FlavorId -> Evaluation -> List String

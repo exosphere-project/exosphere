@@ -105,9 +105,16 @@ view_ context project model computeQuota =
         currentFlavorId =
             GetterSetters.serverLookup project model.serverUuid |> Maybe.map (\server -> server.osProps.details.flavorId)
 
+        currentFlavor =
+            currentFlavorId |> Maybe.andThen (GetterSetters.flavorLookup project)
+
         flavorLimitEvaluation =
             FlavorLimits.evaluate
                 { computeQuota = computeQuota
+                , computeQuotaOperation =
+                    currentFlavor
+                        |> Maybe.map FlavorLimits.ResizeFrom
+                        |> Maybe.withDefault FlavorLimits.Create
                 , customResources = GetterSetters.getCustomResources project context
                 , flavors = RDPP.withDefault [] project.flavors
                 , localization = context.localization
@@ -130,9 +137,9 @@ view_ context project model computeQuota =
                 [ "Resize"
                 , context.localization.virtualComputer
                     |> Helpers.String.toTitleCase
-                , case currentFlavorId of
-                    Just flavorId ->
-                        "(Current Size: " ++ (GetterSetters.flavorLookup project flavorId |> Maybe.map .name |> Maybe.withDefault "") ++ ")"
+                , case currentFlavor of
+                    Just flavor ->
+                        "(Current Size: " ++ flavor.name ++ ")"
 
                     Nothing ->
                         ""

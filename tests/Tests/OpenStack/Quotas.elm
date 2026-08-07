@@ -9,6 +9,7 @@ import Json.Decode as Decode
 import OpenStack.Quotas
     exposing
         ( computeQuotaDecoder
+        , computeQuotaFlavorResizeExceedsLimit
         , shareQuotaDecoder
         , volumeQuotaDecoder
         )
@@ -74,7 +75,82 @@ computeQuotasAndLimitsSuite =
                         , keypairsLimit = 100
                         }
                     )
+        , test "resize checks only positive cores and RAM deltas and ignores instance quota" <|
+            \_ ->
+                let
+                    currentFlavor =
+                        quotaTestFlavor "current" 4 4096
+
+                    computeQuota =
+                        { cores = { inUse = 8, limit = OSTypes.Limit 10 }
+                        , instances = { inUse = 1, limit = OSTypes.Limit 1 }
+                        , ram = { inUse = 8000, limit = OSTypes.Limit 10000 }
+                        , keypairsLimit = 10
+                        }
+                in
+                Expect.all
+                    [ \_ ->
+                        computeQuotaFlavorResizeExceedsLimit
+                            computeQuota
+                            currentFlavor
+                            (quotaTestFlavor "within" 6 5632)
+                            |> Expect.equal False
+                    , \_ ->
+                        computeQuotaFlavorResizeExceedsLimit
+                            computeQuota
+                            currentFlavor
+                            (quotaTestFlavor "cores-over" 7 5632)
+                            |> Expect.equal True
+                    , \_ ->
+                        computeQuotaFlavorResizeExceedsLimit
+                            computeQuota
+                            currentFlavor
+                            (quotaTestFlavor "ram-over" 6 6656)
+                            |> Expect.equal True
+                    ]
+                    ()
+        , test "resize permits non-increasing resources when usage is already over quota" <|
+            \_ ->
+                let
+                    currentFlavor =
+                        quotaTestFlavor "current" 8 8192
+
+                    computeQuota =
+                        { cores = { inUse = 11, limit = OSTypes.Limit 10 }
+                        , instances = { inUse = 2, limit = OSTypes.Limit 1 }
+                        , ram = { inUse = 11000, limit = OSTypes.Limit 10000 }
+                        , keypairsLimit = 10
+                        }
+                in
+                Expect.all
+                    [ \_ ->
+                        computeQuotaFlavorResizeExceedsLimit
+                            computeQuota
+                            currentFlavor
+                            (quotaTestFlavor "same" 8 8192)
+                            |> Expect.equal False
+                    , \_ ->
+                        computeQuotaFlavorResizeExceedsLimit
+                            computeQuota
+                            currentFlavor
+                            (quotaTestFlavor "smaller" 4 4096)
+                            |> Expect.equal False
+                    ]
+                    ()
         ]
+
+
+quotaTestFlavor : OSTypes.FlavorId -> Int -> Int -> OSTypes.Flavor
+quotaTestFlavor id vcpu ramMb =
+    { id = id
+    , name = id
+    , description = Nothing
+    , vcpu = vcpu
+    , ram_mb = ramMb
+    , disk_root = 0
+    , disk_ephemeral = 0
+    , extra_specs = []
+    }
 
 
 volumeQuotasAndLimitsSuite : Test

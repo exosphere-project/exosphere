@@ -28,6 +28,46 @@ flavorLimitsSuite =
                             |> Expect.equal [ "This size would exceed your project's resource limit." ]
                     ]
                     ()
+        , test "create counts the target flavor as a new instance" <|
+            \_ ->
+                let
+                    targetFlavor =
+                        flavor "target" "" 1 1024
+
+                    computeQuota =
+                        { cores = { inUse = 10, limit = OSTypes.Unlimited }
+                        , instances = { inUse = 1, limit = OSTypes.Limit 1 }
+                        , ram = { inUse = 10240, limit = OSTypes.Unlimited }
+                        , keypairsLimit = 10
+                        }
+                in
+                computeOnlyEvaluation FlavorLimits.Create computeQuota [ targetFlavor ]
+                    |> FlavorLimits.exceedsLimit targetFlavor.id
+                    |> Expect.equal True
+        , test "resize computes the quota delta from the current flavor (legacy quota behavior)" <|
+            \_ ->
+                let
+                    currentFlavor =
+                        flavor "current" "" 4 4096
+
+                    targetFlavor =
+                        flavor "target" "" 6 5632
+
+                    computeQuota =
+                        { cores = { inUse = 8, limit = OSTypes.Limit 10 }
+                        , instances = { inUse = 1, limit = OSTypes.Limit 1 }
+                        , ram = { inUse = 8000, limit = OSTypes.Limit 10000 }
+                        , keypairsLimit = 10
+                        }
+
+                    evaluation =
+                        computeOnlyEvaluation
+                            (FlavorLimits.ResizeFrom currentFlavor)
+                            computeQuota
+                            [ targetFlavor ]
+                in
+                FlavorLimits.exceedsLimit targetFlavor.id evaluation
+                    |> Expect.equal False
         , test "fails open for custom resources until all unified limit data is available" <|
             \_ ->
                 let
@@ -97,6 +137,7 @@ completeParams =
             }
         , keypairsLimit = 10
         }
+    , computeQuotaOperation = FlavorLimits.Create
     , customResources =
         [ { resource = "CUSTOM_A100"
           , friendlyName = "A100"
@@ -104,9 +145,9 @@ completeParams =
           }
         ]
     , flavors =
-        [ flavor "safe" "A100:1" 1
-        , flavor "resource-over" "A100:2" 1
-        , flavor "compute-over" "" 3
+        [ flavor "safe" "A100:1" 1 1024
+        , flavor "resource-over" "A100:2" 1 1024
+        , flavor "compute-over" "" 3 1024
         ]
     , localization = Types.Defaults.localization
     , registeredLimits =
@@ -128,13 +169,31 @@ completeParams =
     }
 
 
-flavor : OSTypes.FlavorId -> String -> Int -> OSTypes.Flavor
-flavor id aliasSpec vcpu =
+computeOnlyEvaluation : FlavorLimits.ComputeQuotaOperation -> OSTypes.ComputeQuota -> List OSTypes.Flavor -> FlavorLimits.Evaluation
+computeOnlyEvaluation operation computeQuota flavors =
+    let
+        params =
+            completeParams
+    in
+    FlavorLimits.evaluate
+        { params
+            | computeQuota = computeQuota
+            , computeQuotaOperation = operation
+            , customResources = []
+            , flavors = flavors
+            , registeredLimits = Nothing
+            , projectLimits = Nothing
+            , projectUsages = Nothing
+        }
+
+
+flavor : OSTypes.FlavorId -> String -> Int -> Int -> OSTypes.Flavor
+flavor id aliasSpec vcpu ramMb =
     { id = id
     , name = id
     , description = Nothing
     , vcpu = vcpu
-    , ram_mb = 1024
+    , ram_mb = ramMb
     , disk_root = 0
     , disk_ephemeral = 0
     , extra_specs =

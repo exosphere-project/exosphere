@@ -558,6 +558,7 @@ view context project currentTime model =
                 flavorLimitEvaluation =
                     FlavorLimits.evaluate
                         { computeQuota = computeQuota
+                        , computeQuotaOperation = FlavorLimits.Create
                         , customResources = GetterSetters.getCustomResources project context
                         , flavors = flavorsToShow
                         , localization = context.localization
