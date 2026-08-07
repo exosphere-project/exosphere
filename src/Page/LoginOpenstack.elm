@@ -1,4 +1,4 @@
-module Page.LoginOpenstack exposing (CredentialFileError, EntryType, Model, Msg, defaultCreds, headerView, init, selectedClouds, update, view)
+module Page.LoginOpenstack exposing (CredentialFileError, EntryType, FoundCredential, Model, Msg, defaultCreds, headerView, init, selectedClouds, update, view)
 
 import Element
 import Element.Background as Background
@@ -10,6 +10,7 @@ import FeatherIcons as Icons
 import File
 import File.Select
 import Helpers.String
+import Helpers.Url
 import Html.Events
 import Json.Decode
 import OpenStack.CloudsYaml
@@ -19,6 +20,7 @@ import OpenStack.Types as OSTypes
 import Set
 import Style.Helpers as SH
 import Style.Types as ST
+import Style.Widgets.Alert as Alert
 import Style.Widgets.Button as Button
 import Style.Widgets.Icon exposing (sizedFeatherIcon)
 import Style.Widgets.Link as Link
@@ -35,11 +37,10 @@ import View.Types
 
 type alias Model =
     { creds : OSTypes.OpenstackLogin
-    , appCredentialAuthUrl : OSTypes.KeystoneUrl
-    , appCredential : OSTypes.ApplicationCredential
     , credentialFileText : String
     , entryType : EntryType
     , credentialFileError : Maybe CredentialFileError
+    , foundCredential : Maybe FoundCredential
     , fileIsOverDropZone : Bool
     , clouds : List OpenStack.CloudsYaml.CloudEntry
     , selectedClouds : Set.Set String
@@ -48,7 +49,6 @@ type alias Model =
 
 type EntryType
     = CredsEntry
-    | AppCredEntry
     | CredentialFileEntry
     | CloudSelectEntry
 
@@ -58,17 +58,24 @@ type CredentialFileError
     | NoApplicationCredentials
 
 
+{-| A single application credential read out of a file, ready to log in with. There is no form
+to edit it in: an application credential is only ever machine generated, so retyping one by hand
+is a way to get it wrong rather than a way to get it right.
+-}
+type alias FoundCredential =
+    { name : String
+    , authUrl : OSTypes.KeystoneUrl
+    , appCredential : OSTypes.ApplicationCredential
+    }
+
+
 type Msg
     = GotAuthUrl String
-    | GotAppCredAuthUrl String
     | GotUserDomain String
     | GotUsername String
     | GotPassword String
-    | GotAppCredentialId String
-    | GotAppCredentialSecret String
     | GotCredentialFileText String
     | GotSelectCredentialFileInput
-    | GotSelectAppCredInput
     | GotSelectCredsInput
     | GotBrowseForCredentialFile
     | GotCredentialFile File.File
@@ -82,16 +89,11 @@ type Msg
 
 init : Maybe OSTypes.OpenstackLogin -> Model
 init maybeCreds =
-    let
-        creds =
-            Maybe.withDefault defaultCreds maybeCreds
-    in
-    { creds = creds
-    , appCredentialAuthUrl = creds.authUrl
-    , appCredential = defaultAppCredential
+    { creds = Maybe.withDefault defaultCreds maybeCreds
     , credentialFileText = ""
     , entryType = CredsEntry
     , credentialFileError = Nothing
+    , foundCredential = Nothing
     , fileIsOverDropZone = False
     , clouds = []
     , selectedClouds = Set.empty
@@ -104,13 +106,6 @@ defaultCreds =
     , userDomain = ""
     , username = ""
     , password = ""
-    }
-
-
-defaultAppCredential : OSTypes.ApplicationCredential
-defaultAppCredential =
-    { uuid = ""
-    , secret = ""
     }
 
 
@@ -131,22 +126,7 @@ update msg _ model =
     in
     case msg of
         GotAuthUrl authUrl ->
-            ( { model
-                | creds = { oldCreds | authUrl = authUrl }
-                , appCredentialAuthUrl = authUrl
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
-
-        GotAppCredAuthUrl authUrl ->
-            ( { model
-                | creds = { oldCreds | authUrl = authUrl }
-                , appCredentialAuthUrl = authUrl
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
+            ( updateCreds model { oldCreds | authUrl = authUrl }, Cmd.none, SharedMsg.NoOp )
 
         GotUserDomain userDomain ->
             ( updateCreds model { oldCreds | userDomain = userDomain }, Cmd.none, SharedMsg.NoOp )
@@ -157,36 +137,19 @@ update msg _ model =
         GotPassword password ->
             ( updateCreds model { oldCreds | password = password }, Cmd.none, SharedMsg.NoOp )
 
-        GotAppCredentialId appCredId ->
-            ( { model
-                | appCredential =
-                    { uuid = appCredId
-                    , secret = model.appCredential.secret
-                    }
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
-
-        GotAppCredentialSecret appCredSecret ->
-            ( { model
-                | appCredential =
-                    { uuid = model.appCredential.uuid
-                    , secret = appCredSecret
-                    }
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
-
         GotCredentialFileText text ->
-            ( { model | credentialFileText = text, credentialFileError = Nothing }, Cmd.none, SharedMsg.NoOp )
+            -- Editing the text invalidates whatever the last read of it found.
+            ( { model
+                | credentialFileText = text
+                , credentialFileError = Nothing
+                , foundCredential = Nothing
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
 
         GotSelectCredentialFileInput ->
             ( { model | entryType = CredentialFileEntry, credentialFileError = Nothing }, Cmd.none, SharedMsg.NoOp )
-
-        GotSelectAppCredInput ->
-            ( { model | entryType = AppCredEntry }, Cmd.none, SharedMsg.NoOp )
 
         GotSelectCredsInput ->
             ( { model | entryType = CredsEntry }, Cmd.none, SharedMsg.NoOp )
@@ -257,7 +220,7 @@ processCredentialFile model =
             processCloudsYaml model
 
         OpenStack.CredentialFile.UnrecognizedFile ->
-            { model | credentialFileError = Just UnrecognizedFile }
+            { model | credentialFileError = Just UnrecognizedFile, foundCredential = Nothing }
 
 
 processOpenRc : Model -> Model
@@ -265,52 +228,49 @@ processOpenRc model =
     let
         newCreds =
             OpenStack.OpenRc.processOpenRc model.creds model.credentialFileText
-
-        maybeAppCredential =
-            OpenStack.OpenRc.parseOpenRcAppCredential model.credentialFileText
-
-        entryTypeFromOpenRc =
-            case maybeAppCredential of
-                Just _ ->
-                    AppCredEntry
-
-                Nothing ->
-                    if OpenStack.OpenRc.openRcUsesAppCredentialAuth model.credentialFileText then
-                        AppCredEntry
-
-                    else
-                        CredsEntry
     in
-    { model
-        | creds = newCreds
-        , appCredentialAuthUrl = newCreds.authUrl
-        , appCredential = Maybe.withDefault model.appCredential maybeAppCredential
-        , entryType = entryTypeFromOpenRc
-        , credentialFileError = Nothing
-    }
+    case OpenStack.OpenRc.parseOpenRcAppCredential model.credentialFileText of
+        Just appCredential ->
+            { model
+                | creds = newCreds
+                , foundCredential =
+                    Just
+                        { name =
+                            OpenStack.OpenRc.parseOpenRcProjectName model.credentialFileText
+                                |> Maybe.withDefault (Helpers.Url.hostnameFromUrl newCreds.authUrl)
+                        , authUrl = newCreds.authUrl
+                        , appCredential = appCredential
+                        }
+                , credentialFileError = Nothing
+            }
+
+        Nothing ->
+            -- No application credential in the file, so this is a username and password login.
+            { model
+                | creds = newCreds
+                , entryType = CredsEntry
+                , foundCredential = Nothing
+                , credentialFileError = Nothing
+            }
 
 
 processCloudsYaml : Model -> Model
 processCloudsYaml model =
     case OpenStack.CloudsYaml.parse model.credentialFileText of
         Err OpenStack.CloudsYaml.NoAppCredentials ->
-            { model | credentialFileError = Just NoApplicationCredentials }
+            { model | credentialFileError = Just NoApplicationCredentials, foundCredential = Nothing }
 
         Err OpenStack.CloudsYaml.NotCloudsYaml ->
-            { model | credentialFileError = Just UnrecognizedFile }
+            { model | credentialFileError = Just UnrecognizedFile, foundCredential = Nothing }
 
         Ok [ cloud ] ->
-            let
-                oldCreds =
-                    model.creds
-            in
-            -- A single cloud is just an application credential login, so hand the user the form
-            -- they would have filled in by hand, already filled in.
             { model
-                | creds = { oldCreds | authUrl = cloud.authUrl }
-                , appCredentialAuthUrl = cloud.authUrl
-                , appCredential = cloud.appCredential
-                , entryType = AppCredEntry
+                | foundCredential =
+                    Just
+                        { name = cloud.name
+                        , authUrl = cloud.authUrl
+                        , appCredential = cloud.appCredential
+                        }
                 , credentialFileError = Nothing
             }
 
@@ -319,6 +279,7 @@ processCloudsYaml model =
                 | clouds = clouds
                 , selectedClouds = clouds |> List.map .name |> Set.fromList
                 , entryType = CloudSelectEntry
+                , foundCredential = Nothing
                 , credentialFileError = Nothing
             }
 
@@ -343,25 +304,11 @@ view context _ model =
             ]
                 |> List.any (\x -> String.isEmpty x)
                 |> not
-
-        allAppCredentialFieldsEntered =
-            [ model.appCredentialAuthUrl
-            , model.appCredential.uuid
-            , model.appCredential.secret
-            ]
-                |> List.any String.isEmpty
-                |> not
-
-        credentialFileButtonText =
-            "Use OpenRC or clouds.yaml"
     in
     Element.column (VH.formContainer ++ [ Element.spacing spacer.px16 ])
         [ case model.entryType of
             CredsEntry ->
                 loginOpenstackCredsEntry context model allCredsEntered
-
-            AppCredEntry ->
-                loginOpenstackAppCredEntry context model allAppCredentialFieldsEntered
 
             CredentialFileEntry ->
                 loginOpenstackCredentialFileEntry context model
@@ -381,13 +328,8 @@ view context _ model =
                         )
                     , Button.default
                         context.palette
-                        { text = credentialFileButtonText
+                        { text = "Use OpenRC or clouds.yaml"
                         , onPress = Just GotSelectCredentialFileInput
-                        }
-                    , Button.default
-                        context.palette
-                        { text = "Use Application " ++ Helpers.String.toTitleCase context.localization.credential
-                        , onPress = Just GotSelectAppCredInput
                         }
                     , Element.el [ Element.alignRight ]
                         (Button.primary
@@ -396,40 +338,6 @@ view context _ model =
                             , onPress =
                                 if allCredsEntered then
                                     Just (SharedMsg <| SharedMsg.RequestUnscopedToken model.creds)
-
-                                else
-                                    Nothing
-                            }
-                        )
-                    ]
-
-                AppCredEntry ->
-                    [ Element.el []
-                        (VH.loginPickerButton context
-                            |> Element.map SharedMsg
-                        )
-                    , Button.default
-                        context.palette
-                        { text = "Use Username and Password"
-                        , onPress = Just GotSelectCredsInput
-                        }
-                    , Button.default
-                        context.palette
-                        { text = credentialFileButtonText
-                        , onPress = Just GotSelectCredentialFileInput
-                        }
-                    , Element.el [ Element.alignRight ]
-                        (Button.primary
-                            context.palette
-                            { text = "Log In"
-                            , onPress =
-                                if allAppCredentialFieldsEntered then
-                                    Just
-                                        (SharedMsg <|
-                                            SharedMsg.RequestProjectScopedTokenWithAppCredential
-                                                model.appCredentialAuthUrl
-                                                model.appCredential
-                                        )
 
                                 else
                                     Nothing
@@ -449,12 +357,7 @@ view context _ model =
                         (Button.primary
                             context.palette
                             { text = "Log In"
-                            , onPress =
-                                if String.isEmpty (String.trim model.credentialFileText) then
-                                    Nothing
-
-                                else
-                                    Just GotProcessCredentialFile
+                            , onPress = credentialFileLoginMsg model
                             }
                         )
                     ]
@@ -495,6 +398,26 @@ view context _ model =
         ]
 
 
+{-| One button does both jobs on the credential file screen: read what has been given, and then
+log in with what was read.
+-}
+credentialFileLoginMsg : Model -> Maybe Msg
+credentialFileLoginMsg model =
+    case model.foundCredential of
+        Just found ->
+            Just
+                (SharedMsg <|
+                    SharedMsg.RequestProjectScopedTokenWithAppCredential found.authUrl found.appCredential
+                )
+
+        Nothing ->
+            if String.isEmpty (String.trim model.credentialFileText) then
+                Nothing
+
+            else
+                Just GotProcessCredentialFile
+
+
 loginOpenstackCredsEntry : View.Types.Context -> Model -> Bool -> Element.Element Msg
 loginOpenstackCredsEntry context model allCredsEntered =
     let
@@ -531,7 +454,7 @@ loginOpenstackCredsEntry context model allCredsEntered =
         , Input.currentPassword
             (VH.inputItemAttributes context.palette)
             { text = creds.password
-            , placeholder = Just (Input.placeholder [] (Element.text "Password"))
+            , placeholder = Just (Input.placeholder [] (Element.text "Password e.g. correct-horse-battery-staple"))
             , show = False
             , onChange = GotPassword
             , label = Input.labelAbove [ Text.fontSize Text.Small ] (Element.text "Password")
@@ -548,62 +471,12 @@ loginOpenstackCredsEntry context model allCredsEntered =
         ]
 
 
-loginOpenstackAppCredEntry : View.Types.Context -> Model -> Bool -> Element.Element Msg
-loginOpenstackAppCredEntry context model allAppCredentialFieldsEntered =
-    let
-        appCredentialText =
-            "application " ++ context.localization.credential
-
-        appCredentialLabel =
-            "Application " ++ Helpers.String.toTitleCase context.localization.credential
-
-        textField text placeholderText onChange labelText =
-            Input.text
-                (VH.inputItemAttributes context.palette)
-                { text = text
-                , placeholder = Just (Input.placeholder [] (Element.text placeholderText))
-                , onChange = onChange
-                , label = Input.labelAbove [ Text.fontSize Text.Small ] (Element.text labelText)
-                }
-    in
-    Element.column
-        (VH.formContainer ++ [ Element.spacing spacer.px16 ])
-        [ Element.el [] (Element.text ("Enter your " ++ appCredentialText ++ "."))
-        , textField
-            model.appCredentialAuthUrl
-            "OS_AUTH_URL e.g. https://mycloud.net:5000/v3"
-            GotAppCredAuthUrl
-            "Keystone auth URL"
-        , textField
-            model.appCredential.uuid
-            (appCredentialLabel ++ " ID")
-            GotAppCredentialId
-            (appCredentialLabel ++ " ID")
-        , Input.currentPassword
-            (VH.inputItemAttributes context.palette)
-            { text = model.appCredential.secret
-            , placeholder = Just (Input.placeholder [] (Element.text (appCredentialText ++ " secret")))
-            , show = False
-            , onChange = GotAppCredentialSecret
-            , label = Input.labelAbove [ Text.fontSize Text.Small ] (Element.text (appCredentialLabel ++ " Secret"))
-            }
-        , if allAppCredentialFieldsEntered then
-            Element.none
-
-          else
-            Element.el
-                [ Element.alignRight
-                , Font.color (context.palette.danger.textOnNeutralBG |> SH.toElementColor)
-                ]
-                (Element.text "All fields are required.")
-        ]
-
-
 loginOpenstackCredentialFileEntry : View.Types.Context -> Model -> Element.Element Msg
 loginOpenstackCredentialFileEntry context model =
     Element.column
         (VH.formContainer ++ [ Element.spacing spacer.px16 ])
         [ fileDropZone context model
+        , credentialFileStatus context model
         , credentialFileHelp context
         , orPasteSeparator context
         , Input.multiline
@@ -615,21 +488,66 @@ loginOpenstackCredentialFileEntry context model =
             )
             { onChange = GotCredentialFileText
             , text = model.credentialFileText
-            , placeholder = Nothing
+            , placeholder = Just (Input.placeholder [] pastePlaceholder)
             , label = Input.labelHidden "Paste an OpenRC or clouds.yaml file"
             , spellcheck = False
             }
-        , case model.credentialFileError of
-            Nothing ->
-                Element.none
-
-            Just error ->
-                Element.paragraph
-                    [ Element.width Element.fill
-                    , Font.color (context.palette.danger.textOnNeutralBG |> SH.toElementColor)
-                    ]
-                    [ Element.text (credentialFileErrorText context error) ]
         ]
+
+
+pastePlaceholder : Element.Element Msg
+pastePlaceholder =
+    Element.column
+        [ Element.spacing spacer.px4, Element.width Element.fill ]
+        (List.map Element.text
+            [ "export OS_AUTH_URL=https://mycloud.net:5000/v3"
+            , "export OS_APPLICATION_CREDENTIAL_ID=e.g. 6ee7d4f9c0a24b1f"
+            , "export OS_APPLICATION_CREDENTIAL_SECRET=e.g. hunter2"
+            ]
+        )
+
+
+{-| What the last read of the pasted or dropped text found, whether that is a credential to log
+in with or a reason it cannot be used.
+-}
+credentialFileStatus : View.Types.Context -> Model -> Element.Element Msg
+credentialFileStatus context model =
+    case ( model.foundCredential, model.credentialFileError ) of
+        ( Just found, _ ) ->
+            Alert.alert [ Element.width Element.fill ]
+                context.palette
+                { state = Alert.Success
+                , showIcon = True
+                , showContainer = True
+                , content =
+                    Element.column [ Element.spacing spacer.px4, Element.width Element.fill ]
+                        [ Element.paragraph []
+                            [ Element.text
+                                (String.concat
+                                    [ "Found an application "
+                                    , context.localization.credential
+                                    , " for "
+                                    , found.name
+                                    , "."
+                                    ]
+                                )
+                            ]
+                        , Element.el [ Text.fontSize Text.Small ] (Element.text found.authUrl)
+                        ]
+                }
+
+        ( Nothing, Just error ) ->
+            Alert.alert [ Element.width Element.fill ]
+                context.palette
+                { state = Alert.Danger
+                , showIcon = True
+                , showContainer = True
+                , content =
+                    Element.paragraph [] [ Element.text (credentialFileErrorText context error) ]
+                }
+
+        ( Nothing, Nothing ) ->
+            Element.none
 
 
 credentialFileErrorText : View.Types.Context -> CredentialFileError -> String
@@ -715,7 +633,8 @@ credentialFileHelp context =
     let
         content _ =
             Element.column
-                [ Element.width (Element.maximum 400 Element.shrink)
+                [ -- A nearby element has no width of its own to shrink to, so give it one.
+                  Element.width (Element.px 360)
                 , Element.spacing spacer.px12
                 ]
                 [ Element.paragraph []
@@ -859,13 +778,13 @@ cloudCheckbox context selection cloud =
         , label =
             Input.labelRight [ Element.width Element.fill ]
                 (Element.row [ Element.width Element.fill, Element.spacing spacer.px8 ]
-                    [ Element.paragraph [] [ Element.text cloud.name ]
+                    [ Element.text cloud.name
                     , case cloud.regionName of
                         Nothing ->
                             Element.none
 
                         Just regionName ->
-                            Element.el [ Element.alignRight ] (Tag.tagNeutral context.palette regionName)
+                            Tag.tagNeutral context.palette regionName
                     ]
                 )
         }
