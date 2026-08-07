@@ -318,4 +318,29 @@ processOpenRcSuite =
                     |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
                     |> .authUrl
                     |> Expect.equal "https://mycloud.example:5000/v3"
+        , test "parse the project name when the file names one" <|
+            \() ->
+                openrcNoExportKeyword
+                    |> OpenStack.OpenRc.parseOpenRcProjectName
+                    |> Expect.equal (Just "redactedprojectname")
+        , test "parse the project name when it is quoted" <|
+            \() ->
+                openrcV3withComments
+                    |> OpenStack.OpenRc.parseOpenRcProjectName
+                    |> Expect.equal (Just "cloud-riders")
+        , test "report no project name when the file names none" <|
+            \() ->
+                openrcAppCredential
+                    |> OpenStack.OpenRc.parseOpenRcProjectName
+                    |> Expect.equal Nothing
+        , test "recognize an OpenRC file by its OpenStack variables" <|
+            \() ->
+                openrcAppCredential
+                    |> OpenStack.OpenRc.looksLikeOpenRc
+                    |> Expect.equal True
+        , test "do not recognize a shell script that sets no OpenStack variables" <|
+            \() ->
+                "#!/usr/bin/env bash\nexport PATH=/usr/bin\n"
+                    |> OpenStack.OpenRc.looksLikeOpenRc
+                    |> Expect.equal False
         ]
