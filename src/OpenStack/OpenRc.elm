@@ -1,4 +1,4 @@
-module OpenStack.OpenRc exposing (openRcUsesAppCredentialAuth, parseOpenRcAppCredential, processOpenRc)
+module OpenStack.OpenRc exposing (looksLikeOpenRc, openRcUsesAppCredentialAuth, parseOpenRcAppCredential, processOpenRc)
 
 import Helpers.String exposing (normalizeLineEndings)
 import OpenStack.Types as OSTypes
@@ -28,6 +28,27 @@ parseOpenRcAppCredential openRc =
             Nothing
 
 
+{-| True when the text assigns at least one `OS_` variable, which is what makes an OpenRC file
+an OpenRC file. Used to tell OpenRC apart from other pasted or uploaded text.
+-}
+looksLikeOpenRc : String -> Bool
+looksLikeOpenRc openRc =
+    openRc
+        |> normalizeLineEndings
+        |> String.lines
+        |> List.any lineAssignsOpenStackVar
+
+
+lineAssignsOpenStackVar : String -> Bool
+lineAssignsOpenStackVar line =
+    let
+        assignment : String
+        assignment =
+            line |> String.trim |> dropExport
+    in
+    String.startsWith "OS_" assignment && String.contains "=" assignment
+
+
 openRcUsesAppCredentialAuth : String -> Bool
 openRcUsesAppCredentialAuth openRc =
     parseVar openRc "OS_AUTH_TYPE"
@@ -52,11 +73,7 @@ parseLine varName line =
             line |> String.trim
 
         lineWithoutExport =
-            if String.startsWith "export " trimmedLine || String.startsWith "export\t" trimmedLine then
-                String.dropLeft 7 trimmedLine |> String.trimLeft
-
-            else
-                trimmedLine
+            dropExport trimmedLine
 
         keyPrefix =
             varName ++ "="
@@ -68,6 +85,15 @@ parseLine varName line =
 
     else
         Nothing
+
+
+dropExport : String -> String
+dropExport line =
+    if String.startsWith "export " line || String.startsWith "export\t" line then
+        String.dropLeft 7 line |> String.trimLeft
+
+    else
+        line
 
 
 parseValue : String -> Maybe String
