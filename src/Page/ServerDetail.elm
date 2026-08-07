@@ -1585,20 +1585,6 @@ exoextStatusOverride metadata model =
             Nothing
 
 
-{-| The run states a stop can still do something about. A stop is only offered while the publisher
-has work left to abandon; on a terminal run the control would be a lie, and there is nothing on the
-wire for the publisher to act on.
-
-`"scanning"` is here because a publisher may report that instead of `"running"` for the phase where
-the clone is actually being scanned — the state vocabulary is the publisher's (§4.4), and the host
-must not decide that a run it does not recognize is finished.
-
--}
-cancellableRunStates : List String
-cancellableRunStates =
-    [ "queued", "running", "scanning" ]
-
-
 {-| The run the stop affordances are about, resolved to everything they need: WHICH row it is on,
 what the publisher calls it, what state it is in, and whether a stop is already pending for it. One
 resolution, three consumers (`exoextCancellableRun`, `exoextStoppingTarget`, and the
@@ -1803,8 +1789,19 @@ exoextRunStopping metadata model run =
 {-| The one target row whose run can be stopped, and the §4.1 request id the stop must name
 (`exoextRunControl` resolves both).
 
-`Nothing` in two cases. On a terminal / unrecognized run state, because a stop would be a lie and
-there is nothing on the wire for the publisher to act on. And on a run that is already `stopping`:
+**A stop is offered for any run that is not terminal.** The rule is stated that way round on
+purpose. §4.4 fixes exactly four states in which a publisher is done — `done`, `error`, `cancelled`,
+`expired` ([`Exoext.Lifecycle.terminalRunStates`](Exoext-Lifecycle#terminalRunStates)) — and says
+nothing about the rest, because the rest are the publisher's own vocabulary: `queued` and `running`
+are the two the contract names, but a publisher is free to report `snapshotting`, `booting-clone`,
+or any phase word of its own. Every one of those is, by the contract's own definition, a run the
+publisher has not finished, and therefore a run it still has work to abandon. An allowlist of the
+states this host happens to recognize would silently withhold the stop from all of them, which is
+the same host-decides-for-the-publisher mistake the `stopping` projection below already refuses to
+make — and it would be the host holding an opinion about verbs it has never seen.
+
+`Nothing` in two cases. On a terminal run, because a stop would be a lie and there is nothing on the
+wire for the publisher to act on. And on a run that is already `stopping`:
 a second press names the same request the channel already carries, so it can only be a no-op, and the
 row says so with its `stopping` state rather than with a control that does nothing. That the control
 also withdraws is now the SECOND acknowledgement of a press, no longer the only one — which is what
@@ -1821,7 +1818,7 @@ exoextCancellableRun now metadata statusOverride model =
     exoextRunControl now metadata statusOverride model
         |> Maybe.andThen
             (\run ->
-                if List.member run.state cancellableRunStates && not run.stopping then
+                if not (Exoext.Lifecycle.isTerminalRunState run.state) && not run.stopping then
                     Just { targetId = run.targetId, requestId = run.requestId }
 
                 else
@@ -1833,10 +1830,10 @@ exoextCancellableRun now metadata statusOverride model =
 row's `"stopping"` state token. The host projects the TOKEN and nothing else: the manifest owns the
 word the researcher reads, exactly as it owns `queued` / `scanning` / `done`.
 
-Deliberately NOT filtered by `cancellableRunStates`. That list is about what a stop can still
-usefully be OFFERED for, and it names only the states this host recognizes; whether a stop is
-PENDING is a fact about the wire, and a publisher reporting some state of its own that this host has
-never heard of is still a publisher that has been asked to stop.
+Deliberately NOT gated on whether a stop could still be OFFERED for the run. Those are different
+questions: offering a stop is about work the publisher has left to abandon, whereas whether a stop is
+PENDING is a fact about the wire, and a publisher that has already settled the run is still a
+publisher that was asked to stop.
 
 -}
 exoextStoppingTarget :

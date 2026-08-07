@@ -901,13 +901,25 @@ stoppingSuite =
                                     (ServerDetail.exoextCancelRequested "exo-cs-req-1700" draining)
                             )
                     )
-        , test "a state this host does not recognize is still stoppable-in-progress" <|
+        , test "a state this host does not recognize is stoppable, and stoppable-in-progress" <|
             \_ ->
-                -- `cancellableRunStates` is about what a stop can be OFFERED for and names only
-                -- states this host knows; whether a stop is PENDING is a fact about the wire.
-                Expect.equal ( Just "i-1", Nothing )
+                -- §4.4 fixes the four terminal states and leaves the rest to the publisher, so a
+                -- phase word this host has never heard of is by definition a run still in flight:
+                -- a stop is offered for it, and a stop already asked for is pending on it.
+                Expect.equal ( Just "i-1", Just { targetId = "i-1", requestId = "exo-cs-req-1700" } )
                     ( ServerDetail.exoextStoppingTarget pollTime (runSlotFor 1700 "snapshotting" "i-1" ++ cancelSlot "exo-cs-req-1700") Nothing afterReload
                     , ServerDetail.exoextCancellableRun pollTime (runSlotFor 1700 "snapshotting" "i-1") Nothing afterReload
+                    )
+        , test "a terminal run is never stoppable, whatever the publisher calls the states around it" <|
+            \_ ->
+                -- The other half of the inverted rule: "not terminal" has to keep meaning exactly
+                -- §4.4's four, or the stop control would outlive the run it acts on.
+                Expect.equal []
+                    ([ "done", "error", "cancelled", "expired" ]
+                        |> List.filterMap
+                            (\state ->
+                                ServerDetail.exoextCancellableRun pollTime (runSlotFor 1700 state "i-1") Nothing afterReload
+                            )
                     )
         , test "the NEXT request clears the channel, so a restarted run is stoppable again" <|
             \_ ->
