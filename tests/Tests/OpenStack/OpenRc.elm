@@ -185,6 +185,12 @@ processOpenRcSuite =
                     |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
                     |> .authUrl
                     |> Expect.equal "https://cell.alliance.rebel:5000/v3"
+        , test "that a tab after export is accepted" <|
+            \() ->
+                "export\tOS_AUTH_URL=https://cell.alliance.rebel:5000/v3\n"
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .authUrl
+                    |> Expect.equal "https://cell.alliance.rebel:5000/v3"
         , test "that quotes are optional" <|
             \() ->
                 """

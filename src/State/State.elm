@@ -967,8 +967,19 @@ processSharedMsg sharedMsg outerModel =
                                 |> List.filter (\p -> p.auth.project.uuid == authToken.project.uuid)
                                 |> List.map
                                     (\p ->
+                                        let
+                                            -- If this token came from an application credential login, store that
+                                            -- credential so future token refreshes use it instead of a stale one
+                                            projectWithFreshSecret =
+                                                case maybeAppCredential of
+                                                    Just appCredential ->
+                                                        { p | secret = ApplicationCredential appCredential }
+
+                                                    Nothing ->
+                                                        p
+                                        in
                                         \outerModel__ ->
-                                            State.Auth.projectUpdateAuthToken outerModel__ p authToken
+                                            State.Auth.projectUpdateAuthToken outerModel__ projectWithFreshSecret authToken
                                                 |> mapToOuterMsg
                                     )
                                 |> List.foldl pipelineCmdOuterModelMsg ( outerModel_, Cmd.none )
