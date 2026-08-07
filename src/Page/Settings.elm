@@ -175,7 +175,7 @@ extensionsSection context =
                                 , Element.spacing spacer.px8
                                 , Font.regular
                                 ]
-                                [ Element.text ("Extensions are an experimental feature. Each interface is published by a VM in your " ++ context.localization.unitOfTenancy ++ ", not by Exosphere. Forgetting one returns that VM's card to its off state.") ]
+                                [ Element.text ("Extensions are an experimental feature. Each interface is published by " ++ Helpers.String.indefiniteArticle context.localization.virtualComputer ++ " " ++ context.localization.virtualComputer ++ " in your " ++ context.localization.unitOfTenancy ++ ", not by Exosphere. Forgetting one returns that " ++ context.localization.virtualComputer ++ "'s card to its off state.") ]
                             )
                             ST.PositionRight
             in

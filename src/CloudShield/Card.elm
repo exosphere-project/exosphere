@@ -46,6 +46,7 @@ import Style.Widgets.Code as Code
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Time
+import Types.HelperTypes as HelperTypes
 
 
 
@@ -1196,9 +1197,16 @@ type EmbedState
 
 {-| Render the card with its host trust chrome. The whole thing is mounted inside
 Exosphere's elm-ui tree via `Element.html`.
+
+`localization` is threaded in for the trust chrome, which is the most-read text on the card and
+the only text on it that Exosphere says in its own voice. Every other page in the app calls a
+server by whatever noun the deployer configured (`virtualComputer`), and the three sentences that
+decide whether a researcher trusts this panel at all were the ones still saying "VM" — a word no
+deployer chose and Exosphere uses nowhere else.
+
 -}
-view : ExoPalette -> Time.Zone -> ViewConfig -> List Instance -> Model -> Element.Element Msg
-view palette zone config instances model =
+view : ExoPalette -> HelperTypes.Localization -> Time.Zone -> ViewConfig -> List Instance -> Model -> Element.Element Msg
+view palette localization zone config instances model =
     if config.approved then
         -- The card is now a two-column desktop layout (scan targets | scan history, with the
         -- results region full-width below), so it wants room. Cap the whole column at ~1300px so it
@@ -1207,8 +1215,8 @@ view palette zone config instances model =
         -- and the muted host lines all share this one contained surface.
         Element.column
             [ Element.width (Element.fill |> Element.maximum 1300), Element.spacing spacer.px8 ]
-            [ provenanceMarker palette config.sourceName
-            , rendererView palette zone config instances model
+            [ provenanceMarker palette localization.virtualComputer config.sourceName
+            , rendererView palette localization zone config instances model
             , embedStateView palette config.embedState config.erroredResultId
             , transportWarningView palette config.transportWarning
             , scanTimerView palette config.scanTimer
@@ -1217,7 +1225,7 @@ view palette zone config instances model =
             ]
 
     else
-        optInAffordance palette config.sourceName
+        optInAffordance palette localization.virtualComputer config.sourceName
 
 
 transportWarningView : ExoPalette -> Maybe String -> Element.Element Msg
@@ -1402,12 +1410,13 @@ transportChip palette label =
 
 rendererView :
     ExoPalette
+    -> HelperTypes.Localization
     -> Time.Zone
     -> ViewConfig
     -> List Instance
     -> Model
     -> Element.Element Msg
-rendererView palette zone config instances model =
+rendererView palette localization zone config instances model =
     case config.manifest of
         ManifestReady manifestJson ->
             -- Decode per render is fine for the small card; the fail-closed decoder is the security
@@ -1436,7 +1445,7 @@ rendererView palette zone config instances model =
                         )
 
                 Err message ->
-                    manifestErrorView palette config.sourceName message model.showManifestErrorDetail
+                    manifestErrorView palette localization.virtualComputer config.sourceName message model.showManifestErrorDetail
 
         ManifestLoading ->
             -- The sentinel is present but the manifest body has not resolved yet: quiet host chrome
@@ -1485,8 +1494,8 @@ in the card model, not a `<details>` island. Exosphere ships no disclosure widge
 `Style.Widgets`, and the surrounding card chrome is elm-ui, so this keeps one idiom in one file.
 
 -}
-manifestErrorView : ExoPalette -> String -> String -> Bool -> Element.Element Msg
-manifestErrorView palette sourceName message detailExpanded =
+manifestErrorView : ExoPalette -> String -> String -> String -> Bool -> Element.Element Msg
+manifestErrorView palette sourceNoun sourceName message detailExpanded =
     let
         ( title, body ) =
             case Spec.errorKind message of
@@ -1494,7 +1503,9 @@ manifestErrorView palette sourceName message detailExpanded =
                     ( "This extension needs a newer Exosphere"
                     , "The \""
                         ++ sourceName
-                        ++ "\" VM published interface features this version of Exosphere doesn't support yet. Updating Exosphere may fix this."
+                        ++ "\" "
+                        ++ sourceNoun
+                        ++ " published interface features this version of Exosphere doesn't support yet. Updating Exosphere may fix this."
                     )
 
                 Spec.Malformed ->
@@ -1547,11 +1558,16 @@ manifestErrorView palette sourceName message detailExpanded =
 
 
 {-| §5.2 provenance marker — host-drawn, naming the source instance and stating that the UI
-was published by a VM, not by Exosphere. Its text comes from the host/envelope, never the
-manifest's `ui` body, and it is not suppressible by the manifest.
+was published by that instance, not by Exosphere. Its text comes from the host/envelope, never
+the manifest's `ui` body, and it is not suppressible by the manifest.
+
+`sourceNoun` is the deployer's own word for a server (`localization.virtualComputer`), so the one
+sentence a researcher reads before deciding whether to believe this panel uses the vocabulary the
+rest of their Exosphere uses.
+
 -}
-provenanceMarker : ExoPalette -> String -> Element.Element Msg
-provenanceMarker palette sourceName =
+provenanceMarker : ExoPalette -> String -> String -> Element.Element Msg
+provenanceMarker palette sourceNoun sourceName =
     Element.row
         [ Element.spacing spacer.px8
         , Element.padding spacer.px8
@@ -1574,7 +1590,7 @@ provenanceMarker palette sourceName =
             [ Text.fontSize Text.Small
             , Font.color (SH.toElementColor palette.neutral.text.subdued)
             ]
-            [ Text.body ("Published by the \"" ++ sourceName ++ "\" VM — not verified by Exosphere.")
+            [ Text.body ("Published by the \"" ++ sourceName ++ "\" " ++ sourceNoun ++ ", not verified by Exosphere.")
             ]
         ]
 
@@ -1583,12 +1599,17 @@ provenanceMarker palette sourceName =
 
 Host chrome, and therefore extension-agnostic on purpose. This sentence is Exosphere speaking to
 its own user about a decision Exosphere is asking them to make, and it is shown before the manifest
-has been trusted at all — so it must not repeat any name the VM chose for itself. The publishing
-VM's name is the one identifier here, and it is quoted because it is untrusted data.
+has been trusted at all — so it must not repeat any name the publisher chose for itself. The
+publishing instance's name is the one identifier here, and it is quoted because it is untrusted
+data.
+
+Being Exosphere's own voice is also why the noun is `sourceNoun`
+(`localization.virtualComputer`) rather than a literal: the deployer picked the word this app calls
+a server by, and a prompt asking for the user's trust is the last place to invent a different one.
 
 -}
-optInAffordance : ExoPalette -> String -> Element.Element Msg
-optInAffordance palette sourceName =
+optInAffordance : ExoPalette -> String -> String -> Element.Element Msg
+optInAffordance palette sourceNoun sourceName =
     Element.column
         [ Element.spacing spacer.px8
         , Element.padding spacer.px12
@@ -1599,7 +1620,7 @@ optInAffordance palette sourceName =
         ]
         [ Element.paragraph []
             [ Text.body
-                ("The VM “" ++ sourceName ++ "” offers an extension UI. Extensions are off until you enable them. Enabling is remembered for this VM; you can forget it any time.")
+                ("The " ++ sourceNoun ++ " “" ++ sourceName ++ "” offers an extension UI. Extensions are off until you enable them. Enabling is remembered for this " ++ sourceNoun ++ "; you can forget it any time.")
             ]
         , linkButton palette "Enable this extension" GotApprove
         ]

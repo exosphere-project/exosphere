@@ -3150,6 +3150,7 @@ exoextCardView context project ( currentTime, timeZone ) server model =
             )
             [ CloudShield.Card.view
                 context.palette
+                context.localization
                 timeZone
                 config
                 (exoextInstances project model)
@@ -3204,7 +3205,7 @@ extensionExperimentalTag context =
                         , Element.spacing spacer.px8
                         , Font.regular
                         ]
-                        [ Element.text ("Extensions are an experimental feature. This interface is published by a VM in your " ++ context.localization.unitOfTenancy ++ ", not by Exosphere.") ]
+                        [ Element.text ("Extensions are an experimental feature. This interface is published by " ++ Helpers.String.indefiniteArticle context.localization.virtualComputer ++ " " ++ context.localization.virtualComputer ++ " in your " ++ context.localization.unitOfTenancy ++ ", not by Exosphere.") ]
                     )
                     ST.PositionRight
             )

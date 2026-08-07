@@ -19,6 +19,7 @@ import Test.Html.Query as Query
 import Test.Html.Selector as Selector
 import Tests.CloudShield.Fixtures exposing (cardViewConfig)
 import Time
+import Types.Defaults
 
 
 palette : ST.ExoPalette
@@ -47,7 +48,7 @@ configFor manifestJson =
 
 render : String -> Bool -> Query.Single Card.Msg
 render manifestJson detailExpanded =
-    Card.view palette Time.utc (configFor manifestJson) [] (modelWith detailExpanded)
+    Card.view palette Types.Defaults.localization Time.utc (configFor manifestJson) [] (modelWith detailExpanded)
         |> Element.layout []
         |> Query.fromHtml
 
@@ -77,12 +78,12 @@ rawDiagnosticFragment =
 suite : Test
 suite =
     describe "the card's refused-manifest presentation"
-        [ test "version skew says so, and names the VM that published the manifest" <|
+        [ test "version skew says so, and names the instance that published the manifest" <|
             \_ ->
                 render offCatalogManifest False
                     |> Query.has
                         [ Selector.text "This extension needs a newer Exosphere"
-                        , Selector.text "The \"cloudshield-vm\" VM published interface features this version of Exosphere doesn't support yet. Updating Exosphere may fix this."
+                        , Selector.text "The \"cloudshield-vm\" instance published interface features this version of Exosphere doesn't support yet. Updating Exosphere may fix this."
                         ]
         , test "a malformed manifest says the refusal is deliberate and points at the publisher" <|
             \_ ->
