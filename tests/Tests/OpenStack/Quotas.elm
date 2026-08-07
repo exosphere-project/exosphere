@@ -9,7 +9,8 @@ import Json.Decode as Decode
 import OpenStack.Quotas
     exposing
         ( computeQuotaDecoder
-        , computeQuotaFlavorResizeExceedsLimit
+        , computeQuotaFlavorOverages
+        , computeQuotaFlavorResizeOverages
         , shareQuotaDecoder
         , volumeQuotaDecoder
         )
@@ -75,6 +76,36 @@ computeQuotasAndLimitsSuite =
                         , keypairsLimit = 100
                         }
                     )
+        , test "create reports every exceeded compute quota" <|
+            \_ ->
+                let
+                    computeQuota =
+                        { cores = { inUse = 8, limit = OSTypes.Limit 10 }
+                        , instances = { inUse = 1, limit = OSTypes.Limit 1 }
+                        , ram = { inUse = 8000, limit = OSTypes.Limit 10000 }
+                        , keypairsLimit = 10
+                        }
+                in
+                computeQuotaFlavorOverages
+                    computeQuota
+                    (quotaTestFlavor "target" 4 4096)
+                    |> Expect.equal
+                        [ { resource = OpenStack.Quotas.Cores
+                          , required = 12
+                          , inUse = 8
+                          , limit = 10
+                          }
+                        , { resource = OpenStack.Quotas.Ram
+                          , required = 12096
+                          , inUse = 8000
+                          , limit = 10000
+                          }
+                        , { resource = OpenStack.Quotas.Instances
+                          , required = 2
+                          , inUse = 1
+                          , limit = 1
+                          }
+                        ]
         , test "resize checks only positive cores and RAM deltas and ignores instance quota" <|
             \_ ->
                 let
@@ -90,23 +121,35 @@ computeQuotasAndLimitsSuite =
                 in
                 Expect.all
                     [ \_ ->
-                        computeQuotaFlavorResizeExceedsLimit
+                        computeQuotaFlavorResizeOverages
                             computeQuota
                             currentFlavor
                             (quotaTestFlavor "within" 6 5632)
-                            |> Expect.equal False
+                            |> Expect.equal []
                     , \_ ->
-                        computeQuotaFlavorResizeExceedsLimit
+                        computeQuotaFlavorResizeOverages
                             computeQuota
                             currentFlavor
                             (quotaTestFlavor "cores-over" 7 5632)
-                            |> Expect.equal True
+                            |> Expect.equal
+                                [ { resource = OpenStack.Quotas.Cores
+                                  , required = 11
+                                  , inUse = 8
+                                  , limit = 10
+                                  }
+                                ]
                     , \_ ->
-                        computeQuotaFlavorResizeExceedsLimit
+                        computeQuotaFlavorResizeOverages
                             computeQuota
                             currentFlavor
                             (quotaTestFlavor "ram-over" 6 6656)
-                            |> Expect.equal True
+                            |> Expect.equal
+                                [ { resource = OpenStack.Quotas.Ram
+                                  , required = 10560
+                                  , inUse = 8000
+                                  , limit = 10000
+                                  }
+                                ]
                     ]
                     ()
         , test "resize permits non-increasing resources when usage is already over quota" <|
@@ -124,17 +167,17 @@ computeQuotasAndLimitsSuite =
                 in
                 Expect.all
                     [ \_ ->
-                        computeQuotaFlavorResizeExceedsLimit
+                        computeQuotaFlavorResizeOverages
                             computeQuota
                             currentFlavor
                             (quotaTestFlavor "same" 8 8192)
-                            |> Expect.equal False
+                            |> Expect.equal []
                     , \_ ->
-                        computeQuotaFlavorResizeExceedsLimit
+                        computeQuotaFlavorResizeOverages
                             computeQuota
                             currentFlavor
                             (quotaTestFlavor "smaller" 4 4096)
-                            |> Expect.equal False
+                            |> Expect.equal []
                     ]
                     ()
         ]

@@ -214,7 +214,7 @@ unifiedLimitsSuite =
             [ test "returns no warnings when the flavor fits its custom resource quotas" <|
                 \_ ->
                     UnifiedLimits.flavorWarningMessages
-                        Nothing
+                        []
                         [ { resourceName = customResourceA100.resource
                           , quota =
                                 { inUse = 1
@@ -227,7 +227,7 @@ unifiedLimitsSuite =
             , test "returns friendly warnings for custom resource quotas the flavor would exceed" <|
                 \_ ->
                     UnifiedLimits.flavorWarningMessages
-                        Nothing
+                        []
                         [ { resourceName = customResourceA100.resource
                           , quota =
                                 { inUse = 2
@@ -237,10 +237,12 @@ unifiedLimitsSuite =
                         ]
                         [ { resource = customResourceA100, count = 1 } ]
                         |> Expect.equal [ "A100: 3 required, 2/2 in use." ]
-            , test "preserves a compute quota warning before custom resource warnings" <|
+            , test "preserves compute quota warnings before custom resource warnings" <|
                 \_ ->
                     UnifiedLimits.flavorWarningMessages
-                        (Just "Compute quota exceeded.")
+                        [ "Cores exceeded."
+                        , "RAM exceeded."
+                        ]
                         [ { resourceName = customResourceNVMe.resource
                           , quota =
                                 { inUse = 3
@@ -250,7 +252,8 @@ unifiedLimitsSuite =
                         ]
                         [ { resource = customResourceNVMe, count = 2 } ]
                         |> Expect.equal
-                            [ "Compute quota exceeded."
+                            [ "Cores exceeded."
+                            , "RAM exceeded."
                             , "NVMe: 5 required, 3/4 in use."
                             ]
             ]

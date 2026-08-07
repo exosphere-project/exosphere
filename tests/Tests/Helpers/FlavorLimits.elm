@@ -5,6 +5,7 @@ import Helpers.FlavorLimits as FlavorLimits
 import OpenStack.Types as OSTypes
 import Test exposing (Test, describe, test)
 import Types.Defaults
+import Types.HelperTypes as HelperTypes
 
 
 flavorLimitsSuite : Test
@@ -25,7 +26,7 @@ flavorLimitsSuite =
                             |> Expect.equal [ "A100: 3 required, 1/2 in use." ]
                     , \_ ->
                         FlavorLimits.warningMessagesFor "compute-over" evaluation
-                            |> Expect.equal [ "This size would exceed your project's resource limit." ]
+                            |> Expect.equal [ "Cores: 4 required, 1/3 in use." ]
                     ]
                     ()
         , test "create counts the target flavor as a new instance" <|
@@ -42,8 +43,50 @@ flavorLimitsSuite =
                         }
                 in
                 computeOnlyEvaluation FlavorLimits.Create computeQuota [ targetFlavor ]
-                    |> FlavorLimits.exceedsLimit targetFlavor.id
-                    |> Expect.equal True
+                    |> FlavorLimits.warningMessagesFor targetFlavor.id
+                    |> Expect.equal [ "Instances: 2 required, 1/1 in use." ]
+        , test "describes every compute resource that would exceed its quota" <|
+            \_ ->
+                let
+                    targetFlavor =
+                        flavor "target" "" 4 4096
+
+                    computeQuota =
+                        { cores = { inUse = 8, limit = OSTypes.Limit 10 }
+                        , instances = { inUse = 1, limit = OSTypes.Limit 1 }
+                        , ram = { inUse = 8000, limit = OSTypes.Limit 10000 }
+                        , keypairsLimit = 10
+                        }
+                in
+                computeOnlyEvaluation FlavorLimits.Create computeQuota [ targetFlavor ]
+                    |> FlavorLimits.warningMessagesFor targetFlavor.id
+                    |> Expect.equal
+                        [ "Cores: 12 required, 8/10 in use."
+                        , "RAM: 12096 MiB required, 8000/10000 MiB in use."
+                        , "Instances: 2 required, 1/1 in use."
+                        ]
+        , test "localizes the instance quota resource name" <|
+            \_ ->
+                let
+                    targetFlavor =
+                        flavor "target" "" 1 1024
+
+                    computeQuota =
+                        { cores = { inUse = 0, limit = OSTypes.Unlimited }
+                        , instances = { inUse = 1, limit = OSTypes.Limit 1 }
+                        , ram = { inUse = 0, limit = OSTypes.Unlimited }
+                        , keypairsLimit = 10
+                        }
+
+                    defaultLocalization =
+                        Types.Defaults.localization
+
+                    localization =
+                        { defaultLocalization | virtualComputer = "server" }
+                in
+                computeOnlyEvaluationWithLocalization localization FlavorLimits.Create computeQuota [ targetFlavor ]
+                    |> FlavorLimits.warningMessagesFor targetFlavor.id
+                    |> Expect.equal [ "Servers: 2 required, 1/1 in use." ]
         , test "resize computes the quota delta from the current flavor (legacy quota behavior)" <|
             \_ ->
                 let
@@ -109,7 +152,7 @@ flavorLimitsSuite =
                         FlavorLimits.evaluate { completeParams | localization = localization }
                 in
                 Expect.equal
-                    { computeWarning = [ "This flavour would exceed your workspace's capacity cap." ]
+                    { computeWarning = [ "Cores: 4 required, 1/3 in use." ]
                     , guidance = "Please select a flavour that does not exceed your workspace's capacity caps."
                     , invalid = "Please select a valid flavour."
                     }
@@ -171,6 +214,11 @@ completeParams =
 
 computeOnlyEvaluation : FlavorLimits.ComputeQuotaOperation -> OSTypes.ComputeQuota -> List OSTypes.Flavor -> FlavorLimits.Evaluation
 computeOnlyEvaluation operation computeQuota flavors =
+    computeOnlyEvaluationWithLocalization Types.Defaults.localization operation computeQuota flavors
+
+
+computeOnlyEvaluationWithLocalization : HelperTypes.Localization -> FlavorLimits.ComputeQuotaOperation -> OSTypes.ComputeQuota -> List OSTypes.Flavor -> FlavorLimits.Evaluation
+computeOnlyEvaluationWithLocalization localization operation computeQuota flavors =
     let
         params =
             completeParams
@@ -179,6 +227,7 @@ computeOnlyEvaluation operation computeQuota flavors =
         { params
             | computeQuota = computeQuota
             , computeQuotaOperation = operation
+            , localization = localization
             , customResources = []
             , flavors = flavors
             , registeredLimits = Nothing

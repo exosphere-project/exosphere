@@ -194,11 +194,11 @@ evaluateResourceLimit quotas requirements =
             )
 
 
-flavorWarningMessages : Maybe String -> List ResourceLimitQuota -> List CustomResourceRequirement -> List String
-flavorWarningMessages maybeComputeQuotaWarning quotas requirements =
-    maybeComputeQuotaWarning
-        :: (evaluateResourceLimit quotas requirements
-                |> List.map
+flavorWarningMessages : List String -> List ResourceLimitQuota -> List CustomResourceRequirement -> List String
+flavorWarningMessages computeQuotaWarnings quotas requirements =
+    computeQuotaWarnings
+        ++ (evaluateResourceLimit quotas requirements
+                |> List.filterMap
                     (\result ->
                         case result of
                             Err message ->
@@ -208,7 +208,6 @@ flavorWarningMessages maybeComputeQuotaWarning quotas requirements =
                                 Nothing
                     )
            )
-        |> List.filterMap identity
 
 
 quotasFromUnifiedLimits : List OSTypes.RegisteredLimit -> List OSTypes.ProjectLimit -> List OSTypes.ProjectUsage -> List ResourceLimitQuota

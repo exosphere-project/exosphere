@@ -1,7 +1,10 @@
 module OpenStack.Quotas exposing
-    ( computeQuotaDecoder
+    ( ComputeQuotaOverage
+    , ComputeQuotaResource(..)
+    , computeQuotaDecoder
     , computeQuotaFlavorAvailServers
-    , computeQuotaFlavorResizeExceedsLimit
+    , computeQuotaFlavorOverages
+    , computeQuotaFlavorResizeOverages
     , overallQuotaAvailServers
     , requestComputeQuota
     , requestNetworkQuota
@@ -27,6 +30,20 @@ import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..
 
 
 -- Compute Quota
+
+
+type ComputeQuotaResource
+    = Cores
+    | Instances
+    | Ram
+
+
+type alias ComputeQuotaOverage =
+    { resource : ComputeQuotaResource
+    , required : Int
+    , inUse : Int
+    , limit : Int
+    }
 
 
 requestComputeQuota : Project -> Cmd SharedMsg
@@ -275,7 +292,18 @@ computeQuotaFlavorAvailServers computeQuota flavor =
         |> List.minimum
 
 
-{-| Determine whether resizing from one flavor to another would exceed compute quota.
+{-| List the compute quotas exceeded by launching a server with the given flavor.
+-}
+computeQuotaFlavorOverages : OSTypes.ComputeQuota -> OSTypes.Flavor -> List ComputeQuotaOverage
+computeQuotaFlavorOverages computeQuota flavor =
+    [ computeQuotaOverage Cores flavor.vcpu computeQuota.cores
+    , computeQuotaOverage Ram flavor.ram_mb computeQuota.ram
+    , computeQuotaOverage Instances 1 computeQuota.instances
+    ]
+        |> List.filterMap identity
+
+
+{-| List the compute quotas exceeded by resizing from one flavor to another.
 
 This implements Nova's legacy quota behavior.
 
@@ -283,26 +311,39 @@ Only positive changes in cores and RAM consume additional quota. Resizing an
 existing server does not consume another instance from the instance quota.
 
 -}
-computeQuotaFlavorResizeExceedsLimit : OSTypes.ComputeQuota -> OSTypes.Flavor -> OSTypes.Flavor -> Bool
-computeQuotaFlavorResizeExceedsLimit computeQuota currentFlavor targetFlavor =
-    [ ( computeQuota.cores, targetFlavor.vcpu - currentFlavor.vcpu )
-    , ( computeQuota.ram, targetFlavor.ram_mb - currentFlavor.ram_mb )
+computeQuotaFlavorResizeOverages : OSTypes.ComputeQuota -> OSTypes.Flavor -> OSTypes.Flavor -> List ComputeQuotaOverage
+computeQuotaFlavorResizeOverages computeQuota currentFlavor targetFlavor =
+    [ computeQuotaOverage Cores (targetFlavor.vcpu - currentFlavor.vcpu) computeQuota.cores
+    , computeQuotaOverage Ram (targetFlavor.ram_mb - currentFlavor.ram_mb) computeQuota.ram
     ]
-        |> List.any quotaItemDeltaExceedsLimit
+        |> List.filterMap identity
 
 
-quotaItemDeltaExceedsLimit : ( OSTypes.QuotaItem, Int ) -> Bool
-quotaItemDeltaExceedsLimit ( quota, resourceDelta ) =
-    if resourceDelta <= 0 then
-        False
+computeQuotaOverage : ComputeQuotaResource -> Int -> OSTypes.QuotaItem -> Maybe ComputeQuotaOverage
+computeQuotaOverage resource requested quota =
+    if requested <= 0 then
+        Nothing
 
     else
         case quota.limit of
             OSTypes.Limit limit ->
-                quota.inUse + resourceDelta > limit
+                let
+                    required =
+                        quota.inUse + requested
+                in
+                if required > limit then
+                    Just
+                        { resource = resource
+                        , required = required
+                        , inUse = quota.inUse
+                        , limit = limit
+                        }
+
+                else
+                    Nothing
 
             OSTypes.Unlimited ->
-                False
+                Nothing
 
 
 

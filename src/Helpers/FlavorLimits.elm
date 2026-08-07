@@ -60,7 +60,7 @@ evaluate params =
                     |> Dict.get flavor.id
                     |> Maybe.withDefault []
                     |> UnifiedLimits.flavorWarningMessages
-                        (computeQuotaWarning params.localization params.computeQuotaOperation params.computeQuota flavor)
+                        (computeQuotaWarnings params.localization params.computeQuotaOperation params.computeQuota flavor)
                         unifiedLimitQuotas
                 )
             )
@@ -68,33 +68,52 @@ evaluate params =
         |> Evaluation
 
 
-computeQuotaWarning : HelperTypes.Localization -> ComputeQuotaOperation -> OSTypes.ComputeQuota -> OSTypes.Flavor -> Maybe String
-computeQuotaWarning localization operation computeQuota targetFlavor =
-    if computeQuotaExceeded operation computeQuota targetFlavor then
-        -- TODO: Provide more granular detail on how the compute quota is exceeded.
-        Just <|
-            "This "
-                ++ localization.virtualComputerHardwareConfig
-                ++ " would exceed your "
-                ++ localization.unitOfTenancy
-                ++ "'s "
-                ++ localization.maxResourcesPerProject
-                ++ "."
-
-    else
-        Nothing
+computeQuotaWarnings : HelperTypes.Localization -> ComputeQuotaOperation -> OSTypes.ComputeQuota -> OSTypes.Flavor -> List String
+computeQuotaWarnings localization operation computeQuota targetFlavor =
+    computeQuotaOverages operation computeQuota targetFlavor
+        |> List.map (computeQuotaOverageWarning localization)
 
 
-computeQuotaExceeded : ComputeQuotaOperation -> OSTypes.ComputeQuota -> OSTypes.Flavor -> Bool
-computeQuotaExceeded operation computeQuota targetFlavor =
+computeQuotaOverages : ComputeQuotaOperation -> OSTypes.ComputeQuota -> OSTypes.Flavor -> List OSQuotas.ComputeQuotaOverage
+computeQuotaOverages operation computeQuota targetFlavor =
     case operation of
         Create ->
-            OSQuotas.computeQuotaFlavorAvailServers computeQuota targetFlavor
-                |> Maybe.map (\launchableServers -> launchableServers < 1)
-                |> Maybe.withDefault False
+            OSQuotas.computeQuotaFlavorOverages computeQuota targetFlavor
 
         ResizeFrom currentFlavor ->
-            OSQuotas.computeQuotaFlavorResizeExceedsLimit computeQuota currentFlavor targetFlavor
+            OSQuotas.computeQuotaFlavorResizeOverages computeQuota currentFlavor targetFlavor
+
+
+computeQuotaOverageWarning : HelperTypes.Localization -> OSQuotas.ComputeQuotaOverage -> String
+computeQuotaOverageWarning localization overage =
+    let
+        ( resourceName, unit ) =
+            case overage.resource of
+                OSQuotas.Cores ->
+                    ( "Cores", "" )
+
+                OSQuotas.Instances ->
+                    ( localization.virtualComputer
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                    , ""
+                    )
+
+                OSQuotas.Ram ->
+                    ( "RAM", " MiB" )
+    in
+    String.concat
+        [ resourceName
+        , ": "
+        , String.fromInt overage.required
+        , unit
+        , " required, "
+        , String.fromInt overage.inUse
+        , "/"
+        , String.fromInt overage.limit
+        , unit
+        , " in use."
+        ]
 
 
 warningMessagesFor : OSTypes.FlavorId -> Evaluation -> List String
