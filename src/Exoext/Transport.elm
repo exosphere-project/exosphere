@@ -1,5 +1,6 @@
 module Exoext.Transport exposing
-    ( ResolvedResult(..)
+    ( RequestContext
+    , ResolvedResult(..)
     , RunStatus
     , capBody
     , chunkString
@@ -31,7 +32,8 @@ the request/result _JSON_ and the run _states_ are identical to the Jetstream2 p
 bodies go in and come out as opaque strings, and the extension-specific payloads that fill them
 live with the adapter that speaks them (`CloudShield.Wire` today, cited only as the example
 consumer, the same convention `Exoext.Lifecycle` follows). That is what lets a second extension
-reuse this file unchanged.
+reuse this file unchanged — see [`RequestContext`](#RequestContext), which is the whole of what
+the host contributes to a request body.
 
 All functions are pure and string-in/string-out so they unit-test without a live cloud.
 
@@ -59,6 +61,44 @@ import OpenStack.Types as OSTypes
 
 
 -- REQUEST (Exosphere -> VM)
+
+
+{-| Everything the HOST contributes to a §4.1 request body, handed to an adapter so the adapter can
+finish that body. It is the whole of the host's half of a request, and the reason a second
+extension can write one at all.
+
+Every field is something only the host can know or is allowed to decide, which is exactly why the
+split falls where it does:
+
+  - `requestId` — minted from the request-slot `seq`, deterministically, so a stop can name a run
+    whose id the publisher never echoed back (`ServerDetail.exoextRequestId`).
+  - `batchId` — §4.1 siblings share one id, minted on a batch's first write. `Nothing` for a lone
+    request, which is the wire's null.
+  - `createdAt` — a genuine wall-clock ISO-8601 stamp. The publisher's §4.4 expiry guard compares
+    it against REQUEST\_TTL, so a placeholder epoch would read as already expired.
+  - `projectId` — the Keystone project the request is made from (§4.1 `requestedBy`): provenance
+    the publisher must not be able to state on the host's behalf.
+  - `subject` — WHAT the request is about, re-resolved against Exosphere's own data (§5.4): `id` as
+    the manifest named it, `name` as Exosphere knows it. A publisher therefore cannot make a
+    request claim a target it invented. `name` falls back to `id` when the subject is not one of
+    the host's instances (a request about an archived result, say), and an adapter with no use for
+    it simply ignores it.
+
+What is deliberately NOT here is the verb. The host is handed a `kind` alongside this record and
+passes it straight through; only the adapter knows what a kind means, which fields its body has, or
+which of these values it uses. The host frames and writes; it never composes.
+
+-}
+type alias RequestContext =
+    { requestId : String
+    , batchId : Maybe String
+    , createdAt : String
+    , projectId : String
+    , subject :
+        { id : String
+        , name : String
+        }
+    }
 
 
 {-| Build the §7.1 request-slot metadata key/value items for a request: the monotonic `seq`,

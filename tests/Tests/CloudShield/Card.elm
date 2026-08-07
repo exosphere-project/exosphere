@@ -657,7 +657,7 @@ manifestSuite =
                         in
                         Expect.equal
                             ( Just Lifecycle.verbOpenSession
-                            , Just (Card.EmbedRequested { resultId = "r-1", batchId = "b-1" })
+                            , Just (Card.SessionRequested { kind = Wire.kindOpenSession, resultId = "r-1", batchId = "b-1" })
                             )
                             ( resolvedVerb, emitted )
 
@@ -1322,11 +1322,11 @@ idleModel =
 
 embedSuite : Test
 embedSuite =
-    describe "cloudshield.getEmbed emits EmbedRequested (guard is host-side)"
-        [ test "a getEmbed with a resultId emits EmbedRequested regardless of card scan state" <|
+    describe "cloudshield.getEmbed emits SessionRequested (guard is host-side)"
+        [ test "a getEmbed with a resultId emits SessionRequested regardless of card scan state" <|
             \_ ->
                 -- sampleModel carries a stale "queued" scan for i-2; the card no longer guards on it.
-                Expect.equal (Just (Card.EmbedRequested { resultId = "r-1", batchId = "b-1" }))
+                Expect.equal (Just (Card.SessionRequested { kind = Wire.kindOpenSession, resultId = "r-1", batchId = "b-1" }))
                     (Card.requestEmbed (Just { resultId = "r-1", batchId = "b-1" }) (sampleModel Set.empty) |> Tuple.second)
         , test "a getEmbed with no ids is a no-op" <|
             \_ ->

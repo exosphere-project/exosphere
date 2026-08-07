@@ -8,10 +8,14 @@ module CloudShield.Wire exposing
     , decodeIndex
     , embedRequestJson
     , embedResultFromBody
+    , encodeRequestBody
     , getEmbedBlocked
     , indexCapBytes
     , indexObjectName
+    , kindOpenSession
+    , kindScan
     , scanRequestJson
+    , writeRequestKinds
     )
 
 {-| The CloudShield extension's own wire payloads: the bodies it puts inside the exoext envelope,
@@ -41,6 +45,93 @@ import OpenStack.Types as OSTypes
 
 
 -- REQUESTS (Exosphere -> the CloudShield VM)
+
+
+{-| The wire request kind for a scan (§4.1). The token the manifest routes an
+`exoext.writeRequest` press with, and the one this adapter answers for.
+-}
+kindScan : String
+kindScan =
+    "scan"
+
+
+{-| The wire request kind for a `getEmbed`: mint a session for one already-archived result. It is
+not a [`writeRequestKind`](#writeRequestKinds) — the manifest reaches it through the generic
+`exoext.openSession` verb, not through the per-target request path — but it is written into the
+same §7.1 slot, so it is encoded here alongside the scan.
+-}
+kindOpenSession : String
+kindOpenSession =
+    "getEmbed"
+
+
+{-| The request kinds a manifest may route through `exoext.writeRequest`, i.e. the per-target
+request path with its optimistic row states and its batch pacing.
+
+The gate is an allowlist rather than "anything with a kind" on purpose: that path flips the
+targeted rows to `queued` before anything reaches the wire, so a kind
+[`encodeRequestBody`](#encodeRequestBody) would decline would leave rows advertising a request that
+never gets written. Refusing at dispatch keeps the two answers in one place.
+
+-}
+writeRequestKinds : List String
+writeRequestKinds =
+    [ kindScan ]
+
+
+{-| Turn a request `kind` plus the host's [`Exoext.Transport.RequestContext`](Exoext-Transport#RequestContext)
+into the §7.1 request body, or `Nothing` for a kind this adapter does not speak.
+
+**This is the host↔adapter request boundary.** The host mints the ids and timestamps (only it has
+the wall clock and the §7.1 seq), re-resolves the subject against Exosphere's own instance list
+(§5.4), and then knows nothing else about what it is about to write: it asks here for a body and
+frames whatever comes back. Every word that is CloudShield's — `scan`, `snapshot-clone`, the
+`quick` profile, `getEmbed` — is on this side of the call, and a second extension supplies its own
+version of this one function.
+
+`Nothing` is fail-closed and reaches the wire as no write at all: an unknown kind must never be
+silently encoded as some other verb.
+
+`profile` is fixed at `"quick"` here. §2.2 admits `"quick" | "full"` as a manifest param, and
+plumbing that through is a manifest + params change, not a host change — which is now exactly the
+point: it would be a change to this file only.
+
+-}
+encodeRequestBody : String -> Transport.RequestContext -> Maybe String
+encodeRequestBody kind context =
+    if kind == kindScan || String.isEmpty kind then
+        -- An empty kind is a request this host is continuing without having been told the verb: a
+        -- batch tail restored across a reload, whose §4.3 run slot carries no verb to recover one
+        -- from (`Exoext.Lifecycle.recoverRun` mints `""` rather than inventing one). Resolving it
+        -- to the scan is this ADAPTER's call to make, and it is sound because a batch is a group of
+        -- §4.1 siblings and the scan is the only kind this adapter can make a batch of. An adapter
+        -- with two batchable kinds would have to persist the kind alongside the tail instead.
+        Just
+            (scanRequestJson
+                { requestId = context.requestId
+                , batchId = context.batchId
+                , createdAt = context.createdAt
+                , projectId = context.projectId
+                , target = { instanceId = context.subject.id, instanceName = context.subject.name }
+                , profile = "quick"
+                }
+            )
+
+    else if kind == kindOpenSession then
+        -- The subject of a session request is the §4.2 result to open, not an instance, so its
+        -- re-resolved display name is unused. `batchId` is the selector of last resort for a
+        -- publisher that predates `resultId`, and it is always present on this path.
+        Just
+            (embedRequestJson
+                { requestId = context.requestId
+                , batchId = context.batchId |> Maybe.withDefault ""
+                , resultId = context.subject.id
+                , createdAt = context.createdAt
+                }
+            )
+
+    else
+        Nothing
 
 
 {-| The host-resolved scan request (§4.1). `target` is the re-resolved real instance

@@ -5,6 +5,7 @@ module Tests.CloudShield.Wire exposing
     , getEmbedBlockedSuite
     , indexSuite
     , requestBytesSuite
+    , requestKindSuite
     )
 
 {-| The CloudShield extension's own wire payloads: the bodies it puts inside the exoext envelope,
@@ -12,9 +13,11 @@ and the reads that make sense of what comes back. The envelope itself (§7.1 fra
 cancel channel, caps) is covered by `Tests.Exoext.Transport`.
 -}
 
+import CloudShield.Card as Card
 import CloudShield.Wire as Wire
 import Expect
 import Json.Decode as Decode
+import Json.Encode as Encode
 import Test exposing (Test, describe, test)
 
 
@@ -71,6 +74,103 @@ requestBytesSuite =
                         , createdAt = "2026-07-17T00:00:00Z"
                         }
                     )
+        ]
+
+
+{-| The host↔adapter request boundary, driven from both ends.
+
+The property under test is that the request VERB travels as data all the way from the press to the
+body, and that the host contributes only stamps. So: the dispatcher puts a kind on the
+out-message and on the tracker (which is where a batch continuation reads it back from), and the
+encoder turns a kind plus the host's stamps into a body, declining a kind it does not speak.
+
+-}
+requestKindSuite : Test
+requestKindSuite =
+    let
+        context =
+            { requestId = "exo-cs-req-1"
+            , batchId = Nothing
+            , createdAt = "2026-06-22T00:00:00Z"
+            , projectId = "proj-1"
+            , subject = { id = "i-1", name = "alpha" }
+            }
+
+        writeRequestParams kind =
+            Encode.object
+                [ ( "kind", Encode.string kind )
+                , ( "targetInstanceIds", Encode.list Encode.string [ "i-1" ] )
+                ]
+
+        dispatch kind =
+            Card.dispatchVerb (Card.resolveAction "exoext.writeRequest" (writeRequestParams kind))
+                (writeRequestParams kind)
+                Card.init
+    in
+    describe "a request's kind travels from the press to the body"
+        [ test "a write-request press emits its kind, and records it on the tracker" <|
+            \_ ->
+                -- The tracker is the ONLY carrier for a batch continuation: the host writes each
+                -- sibling with no second press, so a kind the tracker did not keep is a kind the
+                -- tail could not be written with.
+                let
+                    ( model, outMsg ) =
+                        dispatch Wire.kindScan
+                in
+                Expect.equal
+                    ( Just (Card.WriteRequested { kind = "scan", seq = 1, targetIds = [ "i-1" ] })
+                    , Just "scan"
+                    )
+                    ( outMsg, model.pending |> Maybe.map .kind )
+        , test "a kind outside writeRequestKinds changes nothing at all" <|
+            \_ ->
+                -- Fail-closed on BOTH halves: no out-message, and no optimistic row state either.
+                -- Rows flipped to `queued` for a body the encoder would decline would advertise a
+                -- request that never reaches the wire.
+                Expect.equal ( Nothing, Nothing )
+                    ( Tuple.second (dispatch "backup")
+                    , Tuple.first (dispatch "backup") |> .pending
+                    )
+        , test "the scan kind encodes the §4.1 scan body from the host's stamps" <|
+            \_ ->
+                Expect.equal
+                    (Just
+                        (Wire.scanRequestJson
+                            { requestId = "exo-cs-req-1"
+                            , batchId = Nothing
+                            , createdAt = "2026-06-22T00:00:00Z"
+                            , projectId = "proj-1"
+                            , target = { instanceId = "i-1", instanceName = "alpha" }
+                            , profile = "quick"
+                            }
+                        )
+                    )
+                    (Wire.encodeRequestBody Wire.kindScan context)
+        , test "the session kind encodes the getEmbed body, taking the subject as the result id" <|
+            \_ ->
+                Expect.equal
+                    (Just
+                        (Wire.embedRequestJson
+                            { requestId = "exo-cs-req-1"
+                            , batchId = "b-1"
+                            , resultId = "exo-cs-res-9"
+                            , createdAt = "2026-06-22T00:00:00Z"
+                            }
+                        )
+                    )
+                    (Wire.encodeRequestBody Wire.kindOpenSession
+                        { context | batchId = Just "b-1", subject = { id = "exo-cs-res-9", name = "exo-cs-res-9" } }
+                    )
+        , test "a kind this adapter does not speak encodes nothing, so nothing is written" <|
+            \_ ->
+                Expect.equal Nothing (Wire.encodeRequestBody "backup" context)
+        , test "an unnamed kind resolves to the scan, which is what resumes a tail across a reload" <|
+            \_ ->
+                -- §4.3 carries no verb, so a run adopted from the wire after a reload has none to
+                -- recover; the host passes `""` through rather than inventing one, and THIS
+                -- adapter answers it, because a batch of §4.1 siblings can only be scans here.
+                Expect.equal (Wire.encodeRequestBody Wire.kindScan context)
+                    (Wire.encodeRequestBody "" context)
         ]
 
 

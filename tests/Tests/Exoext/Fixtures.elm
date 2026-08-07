@@ -218,11 +218,28 @@ modelAfterStartScan =
     }
 
 
+{-| Issue the §7.1 request write the host would issue for `req` at wall-clock `millis`.
+
+The request `kind` is taken from the model's own tracker, which is where the host takes it from for
+a batch continuation (`ServerDetail.exoextTrackedKind`) and where the press that started the batch
+put it. So a fixture never states a verb, and a test that sets up a tracker with an unusual kind
+gets that kind on the wire.
+
+-}
 writeRequestAt : Int -> { subject : String, batchId : Maybe String } -> ServerDetail.Model -> ServerDetail.Model
 writeRequestAt millis req model =
     let
         ( updated, _, _ ) =
-            ServerDetail.update (ServerDetail.ExoextWriteRequest req (Time.millisToPosix millis)) project model
+            ServerDetail.update
+                (ServerDetail.ExoextWriteRequest
+                    { kind = model.exoextCard.pending |> Maybe.map .kind |> Maybe.withDefault ""
+                    , subject = req.subject
+                    , batchId = req.batchId
+                    }
+                    (Time.millisToPosix millis)
+                )
+                project
+                model
     in
     updated
 

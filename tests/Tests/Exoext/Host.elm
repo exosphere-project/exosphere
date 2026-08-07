@@ -16,6 +16,7 @@ embed) stays in `Tests.CloudShield.ServerDetail`.
 -}
 
 import CloudShield.Card as Card
+import CloudShield.Wire as Wire
 import Dict
 import Exoext.Discovery
 import Exoext.Lifecycle as Lifecycle
@@ -108,7 +109,7 @@ batchSuite : Test
 batchSuite =
     let
         -- Target 1's request is written at t=1000; only its subject reaches the wire (the request
-        -- carries one target by construction — see `writeScanRequestCmd`).
+        -- carries one target by construction — see `writeExoextRequestCmd`).
         afterFirstWrite =
             writeRequestAt 1000 { subject = "i-1", batchId = Nothing } modelAfterStartScan
 
@@ -744,7 +745,7 @@ dismissSuite =
                 let
                     ( reopened, _, _ ) =
                         ServerDetail.update
-                            (ServerDetail.ExoextWriteEmbedRequest { resultId = "b1", batchId = "b1" } (Time.millisToPosix 3000))
+                            (ServerDetail.ExoextWriteEmbedRequest { kind = Wire.kindOpenSession, resultId = "b1", batchId = "b1" } (Time.millisToPosix 3000))
                             project
                             (dismissed modelWithArchivedFindings)
                 in
@@ -804,7 +805,7 @@ dismissSuite =
                 let
                     ( reopened, _, _ ) =
                         ServerDetail.update
-                            (ServerDetail.ExoextWriteEmbedRequest { resultId = "b1", batchId = "b1" } (Time.millisToPosix 3000))
+                            (ServerDetail.ExoextWriteEmbedRequest { kind = Wire.kindOpenSession, resultId = "b1", batchId = "b1" } (Time.millisToPosix 3000))
                             project
                             (ServerDetail.exoextDismissSession (modelPendingEmbed (Time.millisToPosix 0)))
                 in

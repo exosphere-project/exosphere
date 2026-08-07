@@ -129,19 +129,27 @@ type Msg
 {-| What the card asks its parent (`Page.ServerDetail`) to do. The card itself never issues
 OpenStack Cmds; the parent owns the Nova metadata write (it has `Rest.Nova` + the project).
 
-  - `ScanRequested { seq, targetIds }` — a confirmed `cloudshield.startScan`. The parent
-    re-resolves the targets (§5.4), encodes the §4.1 request, and writes the §7.1 req-slot
-    on the CloudShield VM's metadata.
+Both request out-messages carry a `kind`, and that field is the whole of what tells the host WHICH
+request it is about to write. The host never interprets it: it stamps the §7.1 seq, the ids and the
+timestamp, hands the kind straight back to `CloudShield.Wire.encodeRequestBody` for a body, and
+frames whatever comes back. So adding a verb is a change to this module and `CloudShield.Wire`, and
+to nothing in `Exoext.*` or `Page.ServerDetail`.
 
-  - `EmbedRequested { resultId, batchId }` — a `cloudshield.getEmbed` on a history row. The parent
-    stamps a wall-clock seq, encodes the `getEmbed` request, and writes the same §7.1 req-slot.
-    `resultId` is the row's own §4.2 result id (the selector); `batchId` is the shared §2.2 batch
-    id, kept on the wire for a publisher that only knows how to select by batch.
+  - `WriteRequested { kind, seq, targetIds }` — a confirmed press on the per-target request path
+    (`exoext.writeRequest`, or the frozen manifest's `cloudshield.startScan` alias). The parent
+    re-resolves the targets (§5.4), asks this extension for a body of `kind`, and writes the §7.1
+    req-slot on the publishing instance's metadata. §7.1 admits one request at a time, so the full
+    target list rides along and the parent paces it.
+
+  - `SessionRequested { kind, resultId, batchId }` — an `exoext.openSession` press on a history row
+    (the `cloudshield.getEmbed` alias). Same req-slot, same encoder, a different kind. `resultId`
+    is the row's own §4.2 result id (the selector); `batchId` is the shared §2.2 batch id, kept on
+    the wire for a publisher that only knows how to select by batch.
 
 -}
 type OutMsg
-    = ScanRequested { seq : Int, targetIds : List String }
-    | EmbedRequested { resultId : String, batchId : String }
+    = WriteRequested { kind : String, seq : Int, targetIds : List String }
+    | SessionRequested { kind : String, resultId : String, batchId : String }
       -- `CancelRequested { requestId, targetId }` — a confirmed `exoext.cancelRequest` on a row the
       -- host marked stoppable. BOTH ids ride along because the two stoppable cases are stopped in
       -- different ways: a run on the wire is stopped by writing the cancel channel
@@ -273,19 +281,21 @@ kindOf params =
 
 
 {-| The generic verb dispatcher: interpret a resolved [`Lifecycle.VerbAlias`](Exoext-Lifecycle#VerbAlias)
-against this adapter's request/session handlers. `verbWriteRequest` frames + writes a scan request
-(targets resolved §5.4) — but only for `kind == "scan"`, the one request kind this adapter
-handles; any other (or missing) kind is a no-op, so a manifest cannot route an unknown request
-kind onto the scan path. `verbOpenSession` opens a result session for the pressed row's result.
-`verbCancelRequest` asks the host to stop the named request. `verbDismissSession` closes the open
-session. `Nothing` (an unaliased action) and any not-yet-wired verb are no-ops (fail-closed).
+against this adapter's request/session handlers. `verbWriteRequest` frames + writes a request of
+the alias's own `kind` (targets resolved §5.4) — but only for a kind in
+[`Wire.writeRequestKinds`](CloudShield-Wire#writeRequestKinds); any other (or missing) kind is a
+no-op, so a manifest can neither route an unknown kind onto the per-target request path nor leave
+rows queued for a body the encoder would decline. `verbOpenSession` opens a result session for the
+pressed row's result. `verbCancelRequest` asks the host to stop the named request.
+`verbDismissSession` closes the open session. `Nothing` (an unaliased action) and any
+not-yet-wired verb are no-ops (fail-closed).
 -}
 dispatchVerb : Maybe Lifecycle.VerbAlias -> Encode.Value -> Model -> ( Model, Maybe OutMsg )
 dispatchVerb maybeAlias params model =
     case maybeAlias of
         Just alias ->
-            if alias.verb == Lifecycle.verbWriteRequest && alias.kind == "scan" then
-                requestScan (targetsOf model params) model
+            if alias.verb == Lifecycle.verbWriteRequest && List.member alias.kind Wire.writeRequestKinds then
+                requestWrite alias.kind (targetsOf model params) model
 
             else if alias.verb == Lifecycle.verbOpenSession then
                 requestEmbed (resultIdOf params) model
@@ -303,14 +313,20 @@ dispatchVerb maybeAlias params model =
             ( model, Nothing )
 
 
-{-| A confirmed `startScan`: bump the seq, flip the targeted rows to `queued` optimistically
-(dedup-aware), record the in-flight correlation (first target — §7.1 single-in-flight), and
-ask the parent to write the §7.1 req-slot. The full target list rides along: §7.1 allows one
-request at a time, so the parent writes the head now and paces the tail as each run settles.
-No targets ⇒ no-op.
+{-| A confirmed per-target request press: bump the seq, flip the targeted rows to `queued`
+optimistically (dedup-aware), record the in-flight correlation (first target — §7.1
+single-in-flight), and ask the parent to write the §7.1 req-slot. The full target list rides along:
+§7.1 allows one request at a time, so the parent writes the head now and paces the tail as each run
+settles. No targets ⇒ no-op.
+
+`kind` is carried rather than assumed, both onto the out-message and onto the tracked
+[`Lifecycle.PendingRequest`](Exoext-Lifecycle#PendingRequest). The tracker is where a batch's
+continuation reads it back from: the host writes each sibling of the tail without a second press,
+so the in-flight leg's `kind` is what says what the next one should be.
+
 -}
-requestScan : List String -> Model -> ( Model, Maybe OutMsg )
-requestScan requested model =
+requestWrite : String -> List String -> Model -> ( Model, Maybe OutMsg )
+requestWrite kind requested model =
     let
         -- Dedup at the source (§4.4 one-active-run / §7.1 single-in-flight): drop targets
         -- that already have an active run, so a re-click does not re-emit a request, bump the
@@ -333,13 +349,13 @@ requestScan requested model =
                     Just
                         { seq = seq
                         , requestId = ""
-                        , kind = "scan"
+                        , kind = kind
                         , subject = firstTarget
                         , since = Time.millisToPosix 0
                         }
                 , scanState = startScan targets model.scanState
               }
-            , Just (ScanRequested { seq = seq, targetIds = targets })
+            , Just (WriteRequested { kind = kind, seq = seq, targetIds = targets })
             )
 
 
@@ -347,12 +363,17 @@ requestScan requested model =
 named archived scan. The card holds no run-state knowledge, so it does not guard here — the §7.1
 single-req-slot guard (don't disturb an active or unclaimed scan) is applied host-side in
 `Page.ServerDetail`, derived from the live wire metadata. Missing ids ⇒ no-op.
+
+The out-message names its own [`Wire.kindOpenSession`](CloudShield-Wire#kindOpenSession) rather
+than leaving the host to assume one: the host writes this through the same §7.1 slot and the same
+adapter encoder as a scan, and the kind is all that distinguishes them.
+
 -}
 requestEmbed : Maybe { resultId : String, batchId : String } -> Model -> ( Model, Maybe OutMsg )
 requestEmbed maybeIds model =
     case maybeIds of
         Just ids ->
-            ( model, Just (EmbedRequested ids) )
+            ( model, Just (SessionRequested { kind = Wire.kindOpenSession, resultId = ids.resultId, batchId = ids.batchId }) )
 
         Nothing ->
             ( model, Nothing )
@@ -462,11 +483,11 @@ startScan ids scanState =
     List.foldl trigger scanState ids
 
 
-{-| Undo [`requestScan`](#update)'s optimistic mutation on a request the host refused, given the
+{-| Undo [`requestWrite`](#update)'s optimistic mutation on a request the host refused, given the
 card as it was before the press and as it is after. The card decodes the press, so it has already
 updated by the time the host's §7.1 guard gets to say no; a refused request must then leave no
 scan-tracking trace, or `pending` points at a seq the wire will never carry and the live run's
-correlation is lost. Exactly the three fields `requestScan` writes are restored — `seq`, `pending`,
+correlation is lost. Exactly the three fields `requestWrite` writes are restored — `seq`, `pending`,
 `scanState`.
 
 Everything else the press did deliberately stands. `startScan` is confirm-gated, and accepting the
@@ -494,7 +515,7 @@ settleScanState id state model =
 
 
 {-| Drop the optimistic state of rows whose requests will now never be written — the targets left in
-a batch that was stopped. `requestScan` flips every selected row to `queued` up front so the press
+a batch that was stopped. `requestWrite` flips every selected row to `queued` up front so the press
 reads as accepted; if the batch is then abandoned, those rows have no run coming and no terminal
 state ever arrives to overwrite them, so they would sit on a spinning `queued` badge forever.
 
