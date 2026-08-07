@@ -52,7 +52,7 @@ parseLine varName line =
             line |> String.trim
 
         lineWithoutExport =
-            if String.startsWith "export " trimmedLine then
+            if String.startsWith "export " trimmedLine || String.startsWith "export\t" trimmedLine then
                 String.dropLeft 7 trimmedLine |> String.trimLeft
 
             else
