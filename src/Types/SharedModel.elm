@@ -40,7 +40,8 @@ type alias SharedModel =
 
 
 type alias ScopedAuthTokenWaitingRegionSelection =
-    { authToken : OSTypes.ScopedAuthToken
+    { keystoneUrl : OSTypes.KeystoneUrl
+    , authToken : OSTypes.ScopedAuthToken
     , appCredential : Maybe OSTypes.ApplicationCredential
     }
 
