@@ -27,6 +27,28 @@ cloudsYaml =
 """
 
 
+{-| A shell script may write out a clouds.yaml, which puts a column zero `clouds:` line inside
+a file that is unambiguously an OpenRC file.
+-}
+openrcWithCloudsYamlHereDoc : String
+openrcWithCloudsYamlHereDoc =
+    """#!/usr/bin/env bash
+
+export OS_AUTH_URL=https://cell.alliance.rebel:5000/v3
+export OS_APPLICATION_CREDENTIAL_ID=abcd-efgh
+export OS_APPLICATION_CREDENTIAL_SECRET=supersecret
+
+cat > ~/.config/openstack/clouds.yaml <<EOF
+clouds:
+  openstack:
+    auth:
+      auth_url: https://elsewhere:5000/v3
+      application_credential_id: ijkl-mnop
+      application_credential_secret: alsosecret
+EOF
+"""
+
+
 withWindowsLineEndings : String -> String
 withWindowsLineEndings =
     String.replace "\n" "\u{000D}\n"
@@ -71,6 +93,10 @@ credentialFileSuite =
             \() ->
                 OpenStack.CredentialFile.detect "servers:\n  one:\n    name: bespin\n"
                     |> Expect.equal UnrecognizedFile
+        , test "classifies a shell script that writes a clouds.yaml as OpenRC" <|
+            \() ->
+                OpenStack.CredentialFile.detect openrcWithCloudsYamlHereDoc
+                    |> Expect.equal OpenRcFile
         , test "rejects a private key" <|
             \() ->
                 OpenStack.CredentialFile.detect "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAA\n-----END OPENSSH PRIVATE KEY-----\n"

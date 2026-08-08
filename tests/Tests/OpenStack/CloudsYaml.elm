@@ -98,6 +98,44 @@ passwordCloudsYaml =
 """
 
 
+{-| The same auth URL, application credential and region filed under two names.
+-}
+duplicateLogins : String
+duplicateLogins =
+    """clouds:
+  alpha:
+    region_name: IU
+    auth:
+      auth_url: https://cell.alliance.rebel:5000/v3
+      application_credential_id: abcd-efgh
+      application_credential_secret: supersecret
+  zulu:
+    region_name: IU
+    auth:
+      auth_url: https://cell.alliance.rebel:5000/v3
+      application_credential_id: abcd-efgh
+      application_credential_secret: supersecret
+"""
+
+
+sameCredentialTwoRegions : String
+sameCredentialTwoRegions =
+    """clouds:
+  alpha:
+    region_name: IU
+    auth:
+      auth_url: https://cell.alliance.rebel:5000/v3
+      application_credential_id: abcd-efgh
+      application_credential_secret: supersecret
+  zulu:
+    region_name: TACC
+    auth:
+      auth_url: https://cell.alliance.rebel:5000/v3
+      application_credential_id: abcd-efgh
+      application_credential_secret: supersecret
+"""
+
+
 openrcNotCloudsYaml : String
 openrcNotCloudsYaml =
     """#!/usr/bin/env bash
@@ -220,6 +258,16 @@ cloudsYamlSuite =
       application_credential_secret: ""
 """
                         |> Expect.equal (Err OpenStack.CloudsYaml.NoAppCredentials)
+            , test "collapses two entries that are the same login under different names" <|
+                \() ->
+                    OpenStack.CloudsYaml.parse duplicateLogins
+                        |> Result.map (List.map .name)
+                        |> Expect.equal (Ok [ "alpha" ])
+            , test "keeps entries that share a credential but name different regions" <|
+                \() ->
+                    OpenStack.CloudsYaml.parse sameCredentialTwoRegions
+                        |> Result.map (List.map .regionName)
+                        |> Expect.equal (Ok [ Just "IU", Just "TACC" ])
             , test "rejects an OpenRC file" <|
                 \() ->
                     OpenStack.CloudsYaml.parse openrcNotCloudsYaml

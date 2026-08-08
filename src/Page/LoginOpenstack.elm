@@ -1,4 +1,4 @@
-module Page.LoginOpenstack exposing (CredentialFileError, EntryType, FoundCredential, Model, Msg, defaultCreds, headerView, init, selectedClouds, update, view)
+module Page.LoginOpenstack exposing (CredentialFileError(..), CredentialFileOutcome(..), EntryType, FoundCredential, Model, Msg, defaultCreds, headerView, init, maxCredentialFileBytes, readCredentialFile, selectedClouds, update, view)
 
 import Element
 import Element.Background as Background
@@ -56,6 +56,8 @@ type EntryType
 type CredentialFileError
     = UnrecognizedFile
     | NoApplicationCredentials
+    | IncompleteAppCredential
+    | FileTooLarge
 
 
 {-| A single application credential read out of a file, ready to log in with. There is no form
@@ -66,7 +68,18 @@ type alias FoundCredential =
     { name : String
     , authUrl : OSTypes.KeystoneUrl
     , appCredential : OSTypes.ApplicationCredential
+    , regionName : Maybe OSTypes.RegionId
     }
+
+
+{-| Everything a credential file can turn out to be. Kept separate from the model so that the
+reading is a pure function of the text, and so that the model update below is only bookkeeping.
+-}
+type CredentialFileOutcome
+    = LogInWith FoundCredential
+    | ChooseAmongClouds (List OpenStack.CloudsYaml.CloudEntry)
+    | FillInPasswordForm OSTypes.OpenstackLogin
+    | CredentialFileProblem CredentialFileError
 
 
 type Msg
@@ -112,6 +125,14 @@ defaultCreds =
 credentialFileHelpPopoverId : String
 credentialFileHelpPopoverId =
     "loginOpenstackCredentialFileHelp"
+
+
+{-| A real openrc.sh or clouds.yaml is a few hundred bytes. This is generous enough to never
+reject a genuine one and small enough that a mistaken drop is caught before it is read.
+-}
+maxCredentialFileBytes : Int
+maxCredentialFileBytes =
+    256 * 1024
 
 
 update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -160,10 +181,23 @@ update msg _ model =
             ( model, File.Select.file [] GotCredentialFile, SharedMsg.NoOp )
 
         GotCredentialFile file ->
-            ( { model | fileIsOverDropZone = False }
-            , Task.perform GotCredentialFileContents (File.toString file)
-            , SharedMsg.NoOp
-            )
+            if File.size file > maxCredentialFileBytes then
+                -- Refuse before reading, so a wrong file cannot be pulled into memory or into
+                -- the paste box at whatever size the user happened to drop.
+                ( { model
+                    | fileIsOverDropZone = False
+                    , credentialFileError = Just FileTooLarge
+                    , foundCredential = Nothing
+                  }
+                , Cmd.none
+                , SharedMsg.NoOp
+                )
+
+            else
+                ( { model | fileIsOverDropZone = False }
+                , Task.perform GotCredentialFileContents (File.toString file)
+                , SharedMsg.NoOp
+                )
 
         GotCredentialFileContents contents ->
             -- Reading a file processes it right away, so a drop is one gesture rather than two.
@@ -210,71 +244,80 @@ update msg _ model =
 {-| Reads whatever the user pasted or dropped, and routes it by what the text contains rather
 than by where it came from, so pasting and dropping behave identically.
 -}
-processCredentialFile : Model -> Model
-processCredentialFile model =
-    case OpenStack.CredentialFile.detect model.credentialFileText of
+readCredentialFile : OSTypes.OpenstackLogin -> String -> CredentialFileOutcome
+readCredentialFile existingCreds contents =
+    case OpenStack.CredentialFile.detect contents of
         OpenStack.CredentialFile.OpenRcFile ->
-            processOpenRc model
+            readOpenRc existingCreds contents
 
         OpenStack.CredentialFile.CloudsYamlFile ->
-            processCloudsYaml model
+            readCloudsYaml contents
 
         OpenStack.CredentialFile.UnrecognizedFile ->
-            { model | credentialFileError = Just UnrecognizedFile, foundCredential = Nothing }
+            CredentialFileProblem UnrecognizedFile
 
 
-processOpenRc : Model -> Model
-processOpenRc model =
+readOpenRc : OSTypes.OpenstackLogin -> String -> CredentialFileOutcome
+readOpenRc existingCreds contents =
     let
         newCreds =
-            OpenStack.OpenRc.processOpenRc model.creds model.credentialFileText
+            OpenStack.OpenRc.processOpenRc existingCreds contents
     in
-    case OpenStack.OpenRc.parseOpenRcAppCredential model.credentialFileText of
+    case OpenStack.OpenRc.parseOpenRcAppCredential contents of
         Just appCredential ->
-            { model
-                | creds = newCreds
-                , foundCredential =
-                    Just
-                        { name =
-                            OpenStack.OpenRc.parseOpenRcProjectName model.credentialFileText
-                                |> Maybe.withDefault (Helpers.Url.hostnameFromUrl newCreds.authUrl)
-                        , authUrl = newCreds.authUrl
-                        , appCredential = appCredential
-                        }
-                , credentialFileError = Nothing
-            }
+            LogInWith
+                { name =
+                    OpenStack.OpenRc.parseOpenRcProjectName contents
+                        |> Maybe.withDefault (Helpers.Url.hostnameFromUrl newCreds.authUrl)
+                , authUrl = newCreds.authUrl
+                , appCredential = appCredential
+
+                -- OS_REGION_NAME is deliberately not read here. Unlike a clouds.yaml entry, an
+                -- OpenRC file is one login that the user may well want in several regions.
+                , regionName = Nothing
+                }
 
         Nothing ->
-            -- No application credential in the file, so this is a username and password login.
-            { model
-                | creds = newCreds
-                , entryType = CredsEntry
-                , foundCredential = Nothing
-                , credentialFileError = Nothing
-            }
+            if OpenStack.OpenRc.openRcUsesAppCredentialAuth contents then
+                -- The file says it authenticates with an application credential but does not
+                -- carry a whole one, usually because the secret is only shown once and was lost.
+                -- Falling back to the password form would silently ask for the wrong thing.
+                CredentialFileProblem IncompleteAppCredential
+
+            else
+                FillInPasswordForm newCreds
 
 
-processCloudsYaml : Model -> Model
-processCloudsYaml model =
-    case OpenStack.CloudsYaml.parse model.credentialFileText of
+readCloudsYaml : String -> CredentialFileOutcome
+readCloudsYaml contents =
+    case OpenStack.CloudsYaml.parse contents of
         Err OpenStack.CloudsYaml.NoAppCredentials ->
-            { model | credentialFileError = Just NoApplicationCredentials, foundCredential = Nothing }
+            CredentialFileProblem NoApplicationCredentials
 
         Err OpenStack.CloudsYaml.NotCloudsYaml ->
-            { model | credentialFileError = Just UnrecognizedFile, foundCredential = Nothing }
+            CredentialFileProblem UnrecognizedFile
 
         Ok [ cloud ] ->
-            { model
-                | foundCredential =
-                    Just
-                        { name = cloud.name
-                        , authUrl = cloud.authUrl
-                        , appCredential = cloud.appCredential
-                        }
-                , credentialFileError = Nothing
-            }
+            LogInWith
+                { name = cloud.name
+                , authUrl = cloud.authUrl
+                , appCredential = cloud.appCredential
+                , regionName = cloud.regionName
+                }
 
         Ok clouds ->
+            ChooseAmongClouds clouds
+
+
+{-| Applies an outcome to the model. Bookkeeping only: every decision was made above.
+-}
+processCredentialFile : Model -> Model
+processCredentialFile model =
+    case readCredentialFile model.creds model.credentialFileText of
+        LogInWith found ->
+            { model | foundCredential = Just found, credentialFileError = Nothing }
+
+        ChooseAmongClouds clouds ->
             { model
                 | clouds = clouds
                 , selectedClouds = clouds |> List.map .name |> Set.fromList
@@ -282,6 +325,17 @@ processCloudsYaml model =
                 , foundCredential = Nothing
                 , credentialFileError = Nothing
             }
+
+        FillInPasswordForm creds ->
+            { model
+                | creds = creds
+                , entryType = CredsEntry
+                , foundCredential = Nothing
+                , credentialFileError = Nothing
+            }
+
+        CredentialFileProblem error ->
+            { model | credentialFileError = Just error, foundCredential = Nothing }
 
 
 headerView : View.Types.Context -> Element.Element msg
@@ -562,6 +616,16 @@ credentialFileErrorText context error =
                 , Helpers.String.pluralize context.localization.credential
                 , "."
                 ]
+
+        IncompleteAppCredential ->
+            String.concat
+                [ "This openrc file is set up for application "
+                , Helpers.String.pluralize context.localization.credential
+                , " but does not contain an ID and a secret."
+                ]
+
+        FileTooLarge ->
+            "This file is too large to be an openrc or clouds.yaml."
 
 
 fileDropZone : View.Types.Context -> Model -> Element.Element Msg
