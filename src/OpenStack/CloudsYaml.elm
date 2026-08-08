@@ -16,6 +16,7 @@ to authenticate with application credentials.
 
 import Dict
 import Helpers.String exposing (normalizeLineEndings)
+import List.Extra
 import OpenStack.Types as OSTypes
 import Yaml.Decode as YD
 
@@ -58,8 +59,14 @@ isTopLevelCloudsKey line =
     String.trimRight beforeComment == "clouds:"
 
 
-{-| Returns every cloud in the file that carries a complete application credential, or an
-error when there is no such cloud.
+{-| Returns every distinct cloud in the file that carries a complete application credential, or
+an error when there is no such cloud.
+
+Two entries that name the same auth URL, application credential and region are the same login
+filed under two names. Returning both would ask the user to pick between identical options and
+would then fire two logins that land on one project, so they are collapsed here, where the
+duplicate can never reach the picker or the login batch in the first place.
+
 -}
 parse : String -> Result Error (List CloudEntry)
 parse contents =
@@ -68,12 +75,23 @@ parse contents =
             Err NotCloudsYaml
 
         Ok entries ->
-            case List.filterMap identity entries of
+            case entries |> List.filterMap identity |> List.Extra.uniqueBy loginIdentity of
                 [] ->
                     Err NoAppCredentials
 
                 usableEntries ->
                     Ok usableEntries
+
+
+{-| What makes two entries the same login. The cloud name is deliberately absent: it is a label
+the file's author chose, not part of what Keystone is asked for.
+-}
+loginIdentity : CloudEntry -> ( String, String, String )
+loginIdentity entry =
+    ( entry.authUrl
+    , entry.appCredential.uuid
+    , Maybe.withDefault "" entry.regionName
+    )
 
 
 cloudsDecoder : YD.Decoder (List (Maybe CloudEntry))

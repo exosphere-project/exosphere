@@ -15,13 +15,18 @@ type Kind
     | UnrecognizedFile
 
 
+{-| OpenRC is checked first because a shell script can legitimately contain a line reading
+`clouds:` at column zero, inside a here-document that writes out a clouds.yaml. A clouds.yaml
+can never assign an `OS_` variable, so there is no mirror image of that ambiguity and the order
+is safe.
+-}
 detect : String -> Kind
 detect contents =
-    if OpenStack.CloudsYaml.looksLikeCloudsYaml contents then
-        CloudsYamlFile
-
-    else if OpenStack.OpenRc.looksLikeOpenRc contents then
+    if OpenStack.OpenRc.looksLikeOpenRc contents then
         OpenRcFile
+
+    else if OpenStack.CloudsYaml.looksLikeCloudsYaml contents then
+        CloudsYamlFile
 
     else
         UnrecognizedFile
