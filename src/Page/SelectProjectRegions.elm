@@ -60,8 +60,13 @@ views : View.Types.Context -> SharedModel -> Model -> ( Maybe (Element.Element m
 views context sharedModel model =
     let
         maybeScopedAuthTokenWaitingSelection =
+            -- A queued question is addressed by cloud as well as by project, because a batch of
+            -- logins can span clouds and two clouds can hand out the same project UUID.
             sharedModel.scopedAuthTokensWaitingRegionSelection
-                |> List.filter (\t -> t.authToken.project.uuid == model.projectUuid)
+                |> List.filter
+                    (\t ->
+                        t.keystoneUrl == model.providerKeystoneUrl && t.authToken.project.uuid == model.projectUuid
+                    )
                 |> List.head
     in
     case maybeScopedAuthTokenWaitingSelection of
