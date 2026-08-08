@@ -2,6 +2,7 @@ module Types.HelperTypes exposing
     ( CloudSpecificConfig
     , CloudSpecificConfigMap
     , CreateServerPageModel
+    , CustomResource
     , DefaultLoginView(..)
     , DnsZoneConfig
     , FlavorGroup
@@ -177,6 +178,7 @@ type alias CloudSpecificConfig =
     , featuredImageNamePrefix : Maybe String
     , instanceTypes : List InstanceType
     , flavorGroups : List FlavorGroup
+    , customResources : List CustomResource
     , securityGroups : Maybe (Dict.Dict String OSTypes.SecurityGroupTemplate)
     , desktopMessage : Maybe String
     }
@@ -222,6 +224,12 @@ type alias FlavorGroup =
 
 type alias FlavorGroupTitle =
     String
+
+
+type alias CustomResource =
+    { resource : String
+    , friendlyName : String
+    }
 
 
 type alias UnscopedProvider =

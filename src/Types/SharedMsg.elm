@@ -46,7 +46,8 @@ type SharedMsg
     | Logout
     | Batch (List SharedMsg)
     | RequestUnscopedToken OSTypes.OpenstackLogin
-    | ReceiveProjectScopedToken OSTypes.KeystoneUrl ( Http.Metadata, String )
+    | RequestProjectScopedTokenWithAppCredential OSTypes.KeystoneUrl OSTypes.ApplicationCredential (Maybe OSTypes.RegionId)
+    | ReceiveProjectScopedToken OSTypes.KeystoneUrl (Maybe OSTypes.ApplicationCredential) (Maybe OSTypes.RegionId) ( Http.Metadata, String )
     | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl ( Http.Metadata, String )
     | ReceiveUnscopedProjects OSTypes.KeystoneUrl ErrorContext (Result HttpErrorWithBody (List HelperTypes.UnscopedProviderProject))
     | ReceiveUnscopedRegions OSTypes.KeystoneUrl ErrorContext (Result HttpErrorWithBody (List HelperTypes.UnscopedProviderRegion))
@@ -119,6 +120,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveServerImage (Maybe OSTypes.Image)
     | ReceiveServer InteractionLevel OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody OSTypes.Server)
     | ReceiveServerEvents OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerEvent))
+    | ReceiveUserRequestedConsoleLog OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody String)
     | ReceiveServerSecurityGroups OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerSecurityGroup))
     | ReceiveServerVolumeAttachments OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody (List OSTypes.VolumeAttachment))
     | ReceiveServers ErrorContext (Result HttpErrorWithBody (List OSTypes.Server))
@@ -164,6 +166,9 @@ type ProjectSpecificMsgConstructor
     | ReceiveDeleteVolumeSnapshot
     | ReceiveAttachVolume ErrorContext ( OSTypes.ServerUuid, OSTypes.VolumeUuid ) (Result HttpErrorWithBody OSTypes.VolumeAttachment)
     | ReceiveDetachVolume ErrorContext ( OSTypes.ServerUuid, OSTypes.VolumeUuid ) (Result HttpErrorWithBody ())
+    | ReceiveRegisteredLimits ErrorContext (Result HttpErrorWithBody (List OSTypes.RegisteredLimit))
+    | ReceiveProjectLimits ErrorContext (Result HttpErrorWithBody (List OSTypes.ProjectLimit))
+    | ReceiveProjectUsages ErrorContext (Result HttpErrorWithBody (List OSTypes.ProjectUsage))
     | ReceiveComputeQuota ErrorContext (Result HttpErrorWithBody OSTypes.ComputeQuota)
     | ReceiveVolumeQuota ErrorContext (Result HttpErrorWithBody OSTypes.VolumeQuota)
     | ReceiveNetworkQuota ErrorContext (Result HttpErrorWithBody OSTypes.NetworkQuota)

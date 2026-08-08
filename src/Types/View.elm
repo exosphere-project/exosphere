@@ -24,6 +24,7 @@ import Page.SecurityGroupDetail
 import Page.SecurityGroupList
 import Page.SelectProjectRegions
 import Page.SelectProjects
+import Page.ServerConsoleLog
 import Page.ServerCreateImage
 import Page.ServerDetail
 import Page.ServerList
@@ -82,6 +83,7 @@ type ProjectViewConstructor
     | SecurityGroupList Page.SecurityGroupList.Model
     | ServerCreate HelperTypes.CreateServerPageModel
     | ServerCreateImage Page.ServerCreateImage.Model
+    | ServerConsoleLog Page.ServerConsoleLog.Model
     | ServerDetail Page.ServerDetail.Model
     | ServerList Page.ServerList.Model
     | ServerResize Page.ServerResize.Model

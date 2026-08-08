@@ -7,6 +7,7 @@ module Helpers.GetterSetters exposing
     , floatingIpLookup
     , getBootVolume
     , getCatalogRegionIds
+    , getCustomResources
     , getDefaultZone
     , getExternalNetwork
     , getFloatingIpServer
@@ -36,6 +37,7 @@ module Helpers.GetterSetters exposing
     , isSnapshotOfVolume
     , isVolumeCurrentlyBackingServer
     , isVolumeReservedForShelvedInstance
+    , loginAlreadyImported
     , modelUpdateProject
     , modelUpdateUnscopedProvider
     , projectAddSecurityGroupRule
@@ -388,6 +390,29 @@ getCatalogRegionIds catalog =
         |> List.Extra.unique
 
 
+{-| Whether a scoped login has already been imported, given the regions of the projects that
+already carry its project UUID.
+
+When the region of the incoming login is settled, the same project UUID in another region is a
+different project that still needs importing, so only a match in that region counts. A project
+stored before Exosphere recorded regions has no region to compare against, so it counts as a
+match rather than being imported a second time.
+
+When the region is not settled, any project with the UUID counts, which is what token refreshes
+rely on.
+
+-}
+loginAlreadyImported : Maybe OSTypes.RegionId -> List (Maybe OSTypes.RegionId) -> Bool
+loginAlreadyImported maybeIncomingRegionId existingProjectRegionIds =
+    case maybeIncomingRegionId of
+        Just incomingRegionId ->
+            existingProjectRegionIds
+                |> List.any (\existingRegionId -> existingRegionId == Nothing || existingRegionId == Just incomingRegionId)
+
+        Nothing ->
+            not (List.isEmpty existingProjectRegionIds)
+
+
 getServicePublicUrl : OSTypes.ServiceCatalog -> Maybe OSTypes.RegionId -> String -> Maybe HelperTypes.Url
 getServicePublicUrl catalog maybeRegionId serviceType =
     getServiceFromCatalog serviceType catalog
@@ -671,6 +696,16 @@ getServerFlavorGroup project context server =
 
         _ ->
             Nothing
+
+
+getCustomResources : Project -> View.Types.Context -> List HelperTypes.CustomResource
+getCustomResources project context =
+    let
+        maybeCustomResources =
+            cloudSpecificConfigLookup context.cloudSpecificConfigs project
+                |> Maybe.map .customResources
+    in
+    Maybe.withDefault [] maybeCustomResources
 
 
 getVolsAttachedToServer : Project -> Server -> List OSTypes.Volume
@@ -1129,10 +1164,7 @@ projectSetShareTypesLoading project =
     { project | shareTypes = RDPP.setLoading project.shareTypes }
 
 
-{-| Update the status of the queued upload whose unique `id` matches, leaving every other entry
-untouched. A no-op if no such entry exists — which is exactly the stale-result guard: a completion
-for a superseded (re-enqueued) upload carries the OLD id and is correctly ignored (see
-`OpenStack.ObjectStorage.setUploadStatusById`).
+{-| Update the status of the queued upload whose unique `id` matches.
 -}
 projectSetUploadStatusById : Int -> ObjectStorage.UploadStatus -> Project -> Project
 projectSetUploadStatusById id status project =

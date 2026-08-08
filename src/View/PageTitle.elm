@@ -200,6 +200,14 @@ pageTitle outerModel =
                         , serverName maybeProject pageModel.serverUuid
                         ]
 
+                ServerConsoleLog pageModel ->
+                    String.join " "
+                        [ "Console Log for"
+                        , localization.virtualComputer
+                            |> Helpers.String.toTitleCase
+                        , serverName maybeProject pageModel.serverUuid
+                        ]
+
                 ServerDetail pageModel ->
                     String.join " "
                         [ localization.virtualComputer

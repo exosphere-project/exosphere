@@ -51,6 +51,7 @@ import Page.SecurityGroupForm
 import Page.SecurityGroupList
 import Page.SelectProjectRegions
 import Page.SelectProjects
+import Page.ServerConsoleLog
 import Page.ServerCreate
 import Page.ServerCreateImage
 import Page.ServerDetail
@@ -506,6 +507,21 @@ updateUnderlying outerMsg outerModel =
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
 
+                        ( ServerConsoleLogMsg pageMsg, ServerConsoleLog pageModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.ServerConsoleLog.update pageMsg project pageModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId <|
+                                        ServerConsoleLog newSharedModel
+                              }
+                            , Cmd.map ServerConsoleLogMsg cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
                         ( ServerDetailMsg pageMsg, ServerDetail pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
@@ -945,7 +961,20 @@ processSharedMsg sharedMsg outerModel =
             ( outerModel, Rest.Keystone.requestUnscopedAuthToken sharedModel.cloudCorsProxyUrl creds )
                 |> mapToOuterMsg
 
-        ReceiveProjectScopedToken keystoneUrl ( metadata, response ) ->
+        RequestProjectScopedTokenWithAppCredential authUrl appCredential maybeRegionId ->
+            let
+                correctedAuthUrl =
+                    State.Auth.authUrlWithPortAndVersion authUrl
+            in
+            ( outerModel
+            , Rest.Keystone.requestScopedAuthToken
+                sharedModel.cloudCorsProxyUrl
+                maybeRegionId
+                (OSTypes.AppCreds correctedAuthUrl appCredential.uuid appCredential)
+            )
+                |> mapToOuterMsg
+
+        ReceiveProjectScopedToken keystoneUrl maybeAppCredential maybeRequestedRegionId ( metadata, response ) ->
             case Rest.Keystone.decodeScopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
                     State.Error.processStringError
@@ -967,88 +996,146 @@ processSharedMsg sharedMsg outerModel =
                                 |> List.filter (\p -> p.auth.project.uuid == authToken.project.uuid)
                                 |> List.map
                                     (\p ->
+                                        let
+                                            -- If this token came from an application credential login, store that
+                                            -- credential so future token refreshes use it instead of a stale one
+                                            projectWithFreshSecret =
+                                                case maybeAppCredential of
+                                                    Just appCredential ->
+                                                        { p | secret = ApplicationCredential appCredential }
+
+                                                    Nothing ->
+                                                        p
+                                        in
                                         \outerModel__ ->
-                                            State.Auth.projectUpdateAuthToken outerModel__ p authToken
+                                            State.Auth.projectUpdateAuthToken outerModel__ projectWithFreshSecret authToken
                                                 |> mapToOuterMsg
                                     )
                                 |> List.foldl pipelineCmdOuterModelMsg ( outerModel_, Cmd.none )
 
                         handleCaseOfNewProject : OuterModel -> ( OuterModel, Cmd OuterMsg )
                         handleCaseOfNewProject outerModel_ =
-                            -- If there is an unscoped provider project in the model, we either create the full project right away (if there is only one region) or direct user to the SelectProjectRegions page
-                            case
-                                GetterSetters.unscopedProviderLookup outerModel_.sharedModel keystoneUrl
-                                    |> Maybe.andThen (\provider -> GetterSetters.unscopedProjectLookup provider authToken.project.uuid)
-                            of
-                                Nothing ->
-                                    ( outerModel_, Cmd.none )
+                            let
+                                maybeUnscopedProject =
+                                    GetterSetters.unscopedProviderLookup outerModel_.sharedModel keystoneUrl
+                                        |> Maybe.andThen (\provider -> GetterSetters.unscopedProjectLookup provider authToken.project.uuid)
 
-                                Just unscopedProject ->
-                                    case GetterSetters.getCatalogRegionIds authToken.catalog of
-                                        [] ->
-                                            State.Error.processStringError
-                                                outerModel_.sharedModel
-                                                (ErrorContext
-                                                    ("Get " ++ viewContext.localization.unitOfTenancy ++ " " ++ pluralize viewContext.localization.openstackSharingKeystoneWithAnother)
-                                                    ErrorCrit
-                                                    (Just ("Please check with your " ++ viewContext.localization.openstackWithOwnKeystone ++ " administrator or the Exosphere developers."))
-                                                )
-                                                ("Could not find any endpoints with " ++ Helpers.String.indefiniteArticle viewContext.localization.openstackSharingKeystoneWithAnother ++ " " ++ viewContext.localization.openstackSharingKeystoneWithAnother ++ " ID.")
-                                                |> mapToOuterMsg
-                                                |> mapToOuterModel outerModel_
+                                matchingProjectRegionIds =
+                                    outerModel_.sharedModel.projects
+                                        |> List.filter (\p -> p.auth.project.uuid == authToken.project.uuid)
+                                        |> List.map (\p -> p.region |> Maybe.map .id)
 
+                                catalogRegionIds =
+                                    GetterSetters.getCatalogRegionIds authToken.catalog
+
+                                -- A credential file can name the region its project lives in. When
+                                -- it does, and the catalog agrees that region exists, use it rather
+                                -- than asking a question we were handed the answer to.
+                                maybeResolvedRegionId =
+                                    case catalogRegionIds of
                                         [ singleRegionId ] ->
-                                            -- Only one region in the catalog so create the project right now
-                                            let
-                                                navigateToCorrectPage : OuterModel -> ( OuterModel, Cmd OuterMsg )
-                                                navigateToCorrectPage outerModel__ =
-                                                    -- send user to Home page, except if there are unscoped providers remaining to choose projects for, then send user to SelectProjects page
-                                                    -- This can likely go away after Jetstream1 is decommissioned.
-                                                    case outerModel__.sharedModel.unscopedProviders of
-                                                        [] ->
-                                                            ( outerModel__
-                                                            , case outerModel__.viewState of
-                                                                NonProjectView (Home _) ->
-                                                                    Cmd.none
-
-                                                                _ ->
-                                                                    Route.pushUrl outerModel__.sharedModel.viewContext Route.Home
-                                                            )
-
-                                                        firstUnscopedProvider :: _ ->
-                                                            ( outerModel__
-                                                            , Route.pushUrl
-                                                                outerModel__.sharedModel.viewContext
-                                                                (Route.SelectProjects firstUnscopedProvider.authUrl)
-                                                            )
-                                            in
-                                            createProject keystoneUrl authToken singleRegionId outerModel_
-                                                |> pipelineCmdOuterModelMsg
-                                                    (removeUnscopedProject
-                                                        keystoneUrl
-                                                        unscopedProject.project.uuid
-                                                    )
-                                                |> pipelineCmdOuterModelMsg navigateToCorrectPage
+                                            Just singleRegionId
 
                                         _ ->
-                                            -- Multiple regions, ask the user to choose from among them
-                                            let
-                                                newTokens =
-                                                    authToken :: outerModel_.sharedModel.scopedAuthTokensWaitingRegionSelection
+                                            maybeRequestedRegionId
+                                                |> Maybe.andThen
+                                                    (\requestedRegionId ->
+                                                        if List.member requestedRegionId catalogRegionIds then
+                                                            Just requestedRegionId
 
-                                                oldSharedmodel =
-                                                    outerModel_.sharedModel
+                                                        else
+                                                            Nothing
+                                                    )
+                            in
+                            if
+                                GetterSetters.loginAlreadyImported maybeResolvedRegionId matchingProjectRegionIds
+                                    && maybeUnscopedProject
+                                    == Nothing
+                                    && maybeAppCredential
+                                    /= Nothing
+                            then
+                                -- Token refresh for an app-credential project we already hold in
+                                -- this region: don't recreate project state. The same project in
+                                -- another region is a different project and is imported below.
+                                ( outerModel_, Cmd.none )
 
-                                                newModel =
-                                                    { oldSharedmodel | scopedAuthTokensWaitingRegionSelection = newTokens }
-                                            in
-                                            ( newModel
-                                            , Route.pushUrl
-                                                outerModel_.sharedModel.viewContext
-                                                (Route.SelectProjectRegions keystoneUrl authToken.project.uuid)
+                            else
+                                case ( catalogRegionIds, maybeResolvedRegionId ) of
+                                    ( [], _ ) ->
+                                        State.Error.processStringError
+                                            outerModel_.sharedModel
+                                            (ErrorContext
+                                                ("Get " ++ viewContext.localization.unitOfTenancy ++ " " ++ pluralize viewContext.localization.openstackSharingKeystoneWithAnother)
+                                                ErrorCrit
+                                                (Just ("Please check with your " ++ viewContext.localization.openstackWithOwnKeystone ++ " administrator or the Exosphere developers."))
                                             )
-                                                |> mapToOuterMsg
-                                                |> mapToOuterModel outerModel_
+                                            ("Could not find any endpoints with " ++ Helpers.String.indefiniteArticle viewContext.localization.openstackSharingKeystoneWithAnother ++ " " ++ viewContext.localization.openstackSharingKeystoneWithAnother ++ " ID.")
+                                            |> mapToOuterMsg
+                                            |> mapToOuterModel outerModel_
+
+                                    ( _, Just resolvedRegionId ) ->
+                                        -- The region is settled, so create the project right now
+                                        let
+                                            navigateToCorrectPage : OuterModel -> ( OuterModel, Cmd OuterMsg )
+                                            navigateToCorrectPage outerModel__ =
+                                                -- If we're in an unscoped project selection flow, proceed there.
+                                                -- Otherwise answer any region question still queued before going
+                                                -- Home, because responses to a batch of logins interleave.
+                                                case maybeUnscopedProject of
+                                                    Just _ ->
+                                                        case outerModel__.sharedModel.unscopedProviders of
+                                                            [] ->
+                                                                dealWithNextWaitingToken outerModel__
+
+                                                            firstUnscopedProvider :: _ ->
+                                                                ( outerModel__
+                                                                , Route.pushUrl
+                                                                    outerModel__.sharedModel.viewContext
+                                                                    (Route.SelectProjects firstUnscopedProvider.authUrl)
+                                                                )
+
+                                                    Nothing ->
+                                                        dealWithNextWaitingToken outerModel__
+
+                                            removeMaybeUnscopedProject : OuterModel -> ( OuterModel, Cmd OuterMsg )
+                                            removeMaybeUnscopedProject outerModel__ =
+                                                case maybeUnscopedProject of
+                                                    Just unscopedProject ->
+                                                        removeUnscopedProject
+                                                            keystoneUrl
+                                                            unscopedProject.project.uuid
+                                                            outerModel__
+
+                                                    Nothing ->
+                                                        ( outerModel__, Cmd.none )
+                                        in
+                                        createProject keystoneUrl maybeAppCredential authToken resolvedRegionId outerModel_
+                                            |> pipelineCmdOuterModelMsg removeMaybeUnscopedProject
+                                            |> pipelineCmdOuterModelMsg navigateToCorrectPage
+
+                                    ( _, Nothing ) ->
+                                        -- Multiple regions and nothing to settle them, ask the user
+                                        let
+                                            newTokens =
+                                                { keystoneUrl = keystoneUrl
+                                                , authToken = authToken
+                                                , appCredential = maybeAppCredential
+                                                }
+                                                    :: outerModel_.sharedModel.scopedAuthTokensWaitingRegionSelection
+
+                                            oldSharedmodel =
+                                                outerModel_.sharedModel
+
+                                            newModel =
+                                                { oldSharedmodel | scopedAuthTokensWaitingRegionSelection = newTokens }
+                                        in
+                                        ( newModel
+                                        , Route.pushUrl
+                                            outerModel_.sharedModel.viewContext
+                                            (Route.SelectProjectRegions keystoneUrl authToken.project.uuid)
+                                        )
+                                            |> mapToOuterMsg
+                                            |> mapToOuterModel outerModel_
                     in
                     ( outerModel, Cmd.none )
                         |> pipelineCmdOuterModelMsg updateTokenForExistingProjects
@@ -1075,20 +1162,24 @@ processSharedMsg sharedMsg outerModel =
                             )
 
                         Nothing ->
-                            -- no more unscoped projects to choose regions for, go to home page
-                            ( outerModel_, Route.pushUrl outerModel_.sharedModel.viewContext Route.Home )
-                                |> pipelineCmdOuterModelMsg (removeScopedAuthTokenWaitingRegionSelection projectUuid)
+                            -- no more unscoped projects to choose regions for
+                            dealWithNextWaitingToken outerModel_
             in
             case
                 List.Extra.find
-                    (\token -> token.project.uuid == projectUuid)
+                    (\tokenWithCred ->
+                        tokenWithCred.keystoneUrl == keystoneUrl && tokenWithCred.authToken.project.uuid == projectUuid
+                    )
                     sharedModel.scopedAuthTokensWaitingRegionSelection
             of
-                Just authToken ->
+                Just tokenWithCred ->
                     regionIds
-                        |> List.map (createProject keystoneUrl authToken)
+                        |> List.map (createProject keystoneUrl tokenWithCred.appCredential tokenWithCred.authToken)
                         |> List.foldl pipelineCmdOuterModelMsg ( outerModel, Cmd.none )
                         |> pipelineCmdOuterModelMsg (removeUnscopedProject keystoneUrl projectUuid)
+                        -- This question has now been answered, so retire its token before looking
+                        -- for the next one. Leaving it parked would ask it again.
+                        |> pipelineCmdOuterModelMsg (removeScopedAuthTokenWaitingRegionSelection keystoneUrl projectUuid)
                         |> pipelineCmdOuterModelMsg dealWithNextProject
 
                 Nothing ->
@@ -1220,6 +1311,7 @@ processSharedMsg sharedMsg outerModel =
                         buildLoginRequest project =
                             Rest.Keystone.requestScopedAuthToken
                                 sharedModel.cloudCorsProxyUrl
+                                Nothing
                             <|
                                 OSTypes.TokenCreds
                                     keystoneUrl
@@ -2019,13 +2111,39 @@ processProjectSpecificMsg outerModel project msg =
                                                     ++ " -- 404 means server may have been deleted"
                                         }
 
-                                    newProject =
-                                        GetterSetters.projectDeleteServer project serverUuid
+                                    -- Get the deletion flag before we remove the server.
+                                    deletionAttempted =
+                                        GetterSetters.serverLookup project serverUuid
+                                            |> Maybe.map (\s -> s.exoProps.deletionAttempted)
+                                            |> Maybe.withDefault False
 
-                                    newModel =
-                                        GetterSetters.modelUpdateProject sharedModel newProject
+                                    ( newSharedModel, quotaCmd ) =
+                                        -- Deletion seemingly succeeded, so refresh quotas.
+                                        if deletionAttempted then
+                                            ( sharedModel, Cmd.none )
+                                                |> Helpers.pipelineCmd (ApiModelHelpers.requestComputeQuota (GetterSetters.projectIdentifier project))
+                                                |> Helpers.pipelineCmd
+                                                    (ApiModelHelpers.requestProjectUsages (GetterSetters.projectIdentifier project))
+
+                                        else
+                                            ( sharedModel, Cmd.none )
+
+                                    newProject =
+                                        let
+                                            updatedProject =
+                                                -- The new shared model has loading states on the project.
+                                                GetterSetters.projectLookup newSharedModel (GetterSetters.projectIdentifier project)
+                                                    |> Maybe.withDefault project
+                                        in
+                                        GetterSetters.projectDeleteServer updatedProject serverUuid
+
+                                    newerSharedModel =
+                                        GetterSetters.modelUpdateProject newSharedModel newProject
+
+                                    ( newestSharedModel, errCmd ) =
+                                        processProjectSynchronousApiError newerSharedModel newErrorContext httpErrorWithBody
                                 in
-                                processProjectSynchronousApiError newModel newErrorContext httpErrorWithBody
+                                ( newestSharedModel, Cmd.batch [ errCmd, quotaCmd ] )
                                     |> mapToOuterMsg
                                     |> mapToOuterModel outerModel
 
@@ -2062,6 +2180,37 @@ processProjectSpecificMsg outerModel project msg =
                     processProjectSynchronousApiError sharedModel errorContext httpErrorWithBody
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
+
+        ReceiveUserRequestedConsoleLog serverId errorContext result ->
+            let
+                newViewState =
+                    case outerModel.viewState of
+                        ProjectView projectId (ServerConsoleLog pageModel) ->
+                            if pageModel.serverUuid == serverId then
+                                ProjectView projectId <|
+                                    ServerConsoleLog <|
+                                        Page.ServerConsoleLog.receiveConsoleLog
+                                            result
+                                            sharedModel.clientCurrentTime
+                                            pageModel
+
+                            else
+                                outerModel.viewState
+
+                        _ ->
+                            outerModel.viewState
+
+                newOuterModel =
+                    { outerModel | viewState = newViewState }
+            in
+            case result of
+                Ok _ ->
+                    ( newOuterModel, Cmd.none )
+
+                Err httpErrorWithBody ->
+                    processProjectSynchronousApiError sharedModel errorContext httpErrorWithBody
+                        |> mapToOuterMsg
+                        |> mapToOuterModel newOuterModel
 
         ReceiveServerSecurityGroups serverId errorContext result ->
             case result of
@@ -3599,6 +3748,87 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
+        ReceiveRegisteredLimits errorContext result ->
+            case result of
+                Ok registeredLimits ->
+                    let
+                        newProject =
+                            { project
+                                | registeredLimits =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave registeredLimits sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newProject =
+                            { project | registeredLimits = RDPP.setNotLoading (Just ( httpError, sharedModel.clientCurrentTime )) project.registeredLimits }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    processProjectSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveProjectLimits errorContext result ->
+            case result of
+                Ok projectLimits ->
+                    let
+                        newProject =
+                            { project
+                                | projectLimits =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave projectLimits sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newProject =
+                            { project | projectLimits = RDPP.setNotLoading (Just ( httpError, sharedModel.clientCurrentTime )) project.projectLimits }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    processProjectSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveProjectUsages errorContext result ->
+            case result of
+                Ok usages ->
+                    let
+                        newProject =
+                            { project
+                                | projectUsages =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave usages sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newProject =
+                            { project | projectUsages = RDPP.setNotLoading (Just ( httpError, sharedModel.clientCurrentTime )) project.projectUsages }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    processProjectSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
         ReceiveVolumeQuota errorContext result ->
             case result of
                 Ok quota ->
@@ -4653,12 +4883,60 @@ processNewFloatingIp time project floatingIp =
     }
 
 
-removeScopedAuthTokenWaitingRegionSelection : OSTypes.ProjectUuid -> OuterModel -> ( OuterModel, Cmd OuterMsg )
-removeScopedAuthTokenWaitingRegionSelection projectUuid outerModel =
+{-| Several logins can be in flight at once, for instance when a clouds.yaml names more than one
+project, and each one whose region could not be settled parks a token. Sending the user Home while
+tokens are still parked would strand them with no way back to the question, so ask the next
+question instead and reach Home only once nothing is waiting.
+-}
+dealWithNextWaitingToken : OuterModel -> ( OuterModel, Cmd OuterMsg )
+dealWithNextWaitingToken outerModel =
+    case outerModel.sharedModel.scopedAuthTokensWaitingRegionSelection of
+        nextWaitingToken :: _ ->
+            ( outerModel
+            , Route.pushUrl
+                outerModel.sharedModel.viewContext
+                (Route.SelectProjectRegions
+                    nextWaitingToken.keystoneUrl
+                    nextWaitingToken.authToken.project.uuid
+                )
+            )
+
+        [] ->
+            ( outerModel
+            , case outerModel.viewState of
+                NonProjectView (Home _) ->
+                    Cmd.none
+
+                _ ->
+                    Route.pushUrl outerModel.sharedModel.viewContext Route.Home
+            )
+
+
+{-| Retires one waiting token, not every token for that cloud and project. Two logins can land on
+the same project, and dropping both here would discard a question the user has not answered yet.
+
+Known limitation: a pathological file can list one credential twice, once with a region that the
+catalog does not have and once with no region at all, which queues two entries under the same
+cloud and project and so asks the same question twice. Parse time removes genuine duplicates, and
+this residue is not worth engineering around.
+
+-}
+removeScopedAuthTokenWaitingRegionSelection : OSTypes.KeystoneUrl -> OSTypes.ProjectUuid -> OuterModel -> ( OuterModel, Cmd OuterMsg )
+removeScopedAuthTokenWaitingRegionSelection keystoneUrl projectUuid outerModel =
     let
-        newScopedAuthTokensWaitingRegionSelection =
+        waitingTokens =
             outerModel.sharedModel.scopedAuthTokensWaitingRegionSelection
-                |> List.filter (\t -> t.project.uuid /= projectUuid)
+
+        matchesQuestion t =
+            t.keystoneUrl == keystoneUrl && t.authToken.project.uuid == projectUuid
+
+        newScopedAuthTokensWaitingRegionSelection =
+            case List.Extra.findIndex matchesQuestion waitingTokens of
+                Just index ->
+                    List.Extra.removeAt index waitingTokens
+
+                Nothing ->
+                    waitingTokens
 
         oldSharedModel =
             outerModel.sharedModel
@@ -4717,8 +4995,8 @@ removeUnscopedProject keystoneUrl projectUuid outerModel =
                     ( outerModel, Cmd.none )
 
 
-createProject : OSTypes.KeystoneUrl -> OSTypes.ScopedAuthToken -> OSTypes.RegionId -> OuterModel -> ( OuterModel, Cmd OuterMsg )
-createProject keystoneUrl token regionId outerModel =
+createProject : OSTypes.KeystoneUrl -> Maybe OSTypes.ApplicationCredential -> OSTypes.ScopedAuthToken -> OSTypes.RegionId -> OuterModel -> ( OuterModel, Cmd OuterMsg )
+createProject keystoneUrl maybeAppCredential token regionId outerModel =
     let
         { sharedModel } =
             outerModel
@@ -4746,37 +5024,50 @@ createProject keystoneUrl token regionId outerModel =
             GetterSetters.unscopedProviderLookup outerModel.sharedModel keystoneUrl
 
         maybeRegion =
-            maybeUnscopedProvider
-                |> Maybe.andThen (\provider -> GetterSetters.unscopedRegionLookup provider regionId)
+            case
+                maybeUnscopedProvider
+                    |> Maybe.andThen (\provider -> GetterSetters.unscopedRegionLookup provider regionId)
+            of
+                Just region ->
+                    Just region
 
-        maybeDescription =
-            maybeUnscopedProvider
-                |> Maybe.andThen (\provider -> GetterSetters.unscopedProjectLookup provider token.project.uuid)
-                |> Maybe.map .description
+                Nothing ->
+                    token.catalog
+                        |> List.concatMap .endpoints
+                        |> List.Extra.find (\endpoint -> endpoint.regionId == regionId)
+                        |> Maybe.map (\_ -> OSTypes.Region regionId "")
     in
-    case ( endpointsResult, maybeRegion, maybeDescription ) of
-        ( Ok endpoints, Just region, Just description ) ->
-            createProject_ outerModel description token region endpoints
+    case ( endpointsResult, maybeRegion ) of
+        ( Ok endpoints, Just region ) ->
+            let
+                maybeDescription =
+                    maybeUnscopedProvider
+                        |> Maybe.andThen (\provider -> GetterSetters.unscopedProjectLookup provider token.project.uuid)
+                        |> Maybe.andThen .description
+            in
+            createProject_ outerModel maybeAppCredential maybeDescription token region endpoints
 
-        ( Err e, _, _ ) ->
+        ( Err e, _ ) ->
             processError e
 
-        ( _, Nothing, _ ) ->
+        ( _, Nothing ) ->
             processError ("Could not look up Keystone " ++ viewContext.localization.openstackSharingKeystoneWithAnother ++ " with ID " ++ regionId)
 
-        ( _, _, Nothing ) ->
-            processError ("Could not look up description of " ++ viewContext.localization.unitOfTenancy ++ " with ID " ++ token.project.uuid)
 
-
-createProject_ : OuterModel -> Maybe OSTypes.ProjectDescription -> OSTypes.ScopedAuthToken -> OSTypes.Region -> Endpoints -> ( OuterModel, Cmd OuterMsg )
-createProject_ outerModel description authToken region endpoints =
+createProject_ : OuterModel -> Maybe OSTypes.ApplicationCredential -> Maybe OSTypes.ProjectDescription -> OSTypes.ScopedAuthToken -> OSTypes.Region -> Endpoints -> ( OuterModel, Cmd OuterMsg )
+createProject_ outerModel maybeAppCredential description authToken region endpoints =
     let
-        sharedModel =
-            outerModel.sharedModel
+        projectSecret =
+            case maybeAppCredential of
+                Just appCredential ->
+                    ApplicationCredential appCredential
+
+                Nothing ->
+                    NoProjectSecret
 
         newProject : Project
         newProject =
-            { secret = NoProjectSecret
+            { secret = projectSecret
             , auth = authToken
             , region = Just region
 
@@ -4808,6 +5099,9 @@ createProject_ outerModel description authToken region endpoints =
             , ports = RDPP.empty
             , securityGroups = RDPP.empty
             , securityGroupActions = Dict.empty
+            , registeredLimits = RDPP.empty
+            , projectLimits = RDPP.empty
+            , projectUsages = RDPP.empty
             , computeQuota = RDPP.empty
             , volumeQuota = RDPP.empty
             , networkQuota = RDPP.empty
@@ -4819,13 +5113,22 @@ createProject_ outerModel description authToken region endpoints =
         newSharedModel =
             GetterSetters.modelUpdateProject outerModel.sharedModel newProject
 
+        initialCmds =
+            case maybeAppCredential of
+                Just _ ->
+                    [ Rest.Nova.requestServers newProject ]
+
+                Nothing ->
+                    [ Rest.Nova.requestServers newProject
+                    , Rest.Keystone.requestAppCredential
+                        outerModel.sharedModel.clientUuid
+                        outerModel.sharedModel.clientCurrentTime
+                        newProject
+                    ]
+
         ( newNewSharedModel, newCmd ) =
             ( newSharedModel
-            , [ Rest.Nova.requestServers
-              , Rest.Keystone.requestAppCredential sharedModel.clientUuid sharedModel.clientCurrentTime
-              ]
-                |> List.map (\x -> x newProject)
-                |> Cmd.batch
+            , Cmd.batch initialCmds
             )
                 |> Helpers.pipelineCmd
                     (ApiModelHelpers.requestShares (GetterSetters.projectIdentifier newProject))

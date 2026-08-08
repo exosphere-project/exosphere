@@ -165,7 +165,7 @@ sampleUpload id objectName status =
     }
 
 
-{-| Task 1b — the stale-result guard. Re-enqueueing an in-flight target mints a NEW id; a late
+{-| The stale-result guard: re-enqueueing an in-flight target mints a NEW id; a late
 completion for the OLD id must find no match and leave the replacement untouched. `nextUploadId`
 gives distinct, monotonically increasing ids so this guard holds.
 -}
@@ -189,9 +189,8 @@ uploadIdGuardSuite =
                         Succeeded
                         [ sampleUpload 1 "a" Queued, sampleUpload 2 "b" Uploading ]
                     )
-        , test "a completion for a superseded (absent) id is ignored — the replacement is untouched" <|
+        , test "a completion for a superseded (absent) id is ignored and the replacement is untouched" <|
             \_ ->
-                -- Entry id=1 (same target "report.csv") was replaced by id=2 on re-enqueue; the stale
                 let
                     afterReenqueue =
                         [ sampleUpload 2 "report.csv" Uploading ]

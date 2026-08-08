@@ -31,6 +31,7 @@ import Page.SecurityGroupDetail
 import Page.SecurityGroupList
 import Page.SelectProjectRegions
 import Page.SelectProjects
+import Page.ServerConsoleLog
 import Page.ServerCreate
 import Page.ServerCreateImage
 import Page.ServerDetail
@@ -361,6 +362,10 @@ projectContentView model context p viewConstructor =
         ServerCreateImage pageModel ->
             Page.ServerCreateImage.view context pageModel
                 |> Element.map ServerCreateImageMsg
+
+        ServerConsoleLog pageModel ->
+            Page.ServerConsoleLog.view context p model.clientCurrentTime pageModel
+                |> Element.map ServerConsoleLogMsg
 
         ServerDetail pageModel ->
             Page.ServerDetail.view context p ( model.clientCurrentTime, model.timeZone ) pageModel

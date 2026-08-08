@@ -238,6 +238,28 @@ breadcrumb_ outerModel context =
                                       }
                                     ]
 
+                                ServerConsoleLog pageModel ->
+                                    [ { route = Just <| Route.ProjectRoute projectId <| Route.ServerList
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.virtualComputer
+                                                    |> Helpers.String.pluralize
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    , { route = Just <| Route.ProjectRoute projectId <| Route.ServerDetail pageModel.serverUuid
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.virtualComputer
+                                                    |> Helpers.String.toTitleCase
+                                                , View.PageTitle.serverName (GetterSetters.projectLookup outerModel.sharedModel projectId) pageModel.serverUuid
+                                                ]
+                                      }
+                                    , { route = Nothing
+                                      , label = "Console Log"
+                                      }
+                                    ]
+
                                 ServerDetail pageModel ->
                                     [ { route = Just <| Route.ProjectRoute projectId <| Route.ServerList
                                       , label =

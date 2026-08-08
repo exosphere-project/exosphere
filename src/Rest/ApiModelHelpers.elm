@@ -10,7 +10,10 @@ module Rest.ApiModelHelpers exposing
     , requestNetworkQuota
     , requestNetworks
     , requestPorts
+    , requestProjectLimits
+    , requestProjectUsages
     , requestRecordSets
+    , requestRegisteredLimits
     , requestSecurityGroups
     , requestServer
     , requestServerEvents
@@ -34,6 +37,7 @@ import OpenStack.Quotas
 import OpenStack.ServerVolumes
 import OpenStack.Shares
 import OpenStack.Types as OSTypes
+import OpenStack.UnifiedLimits
 import OpenStack.Volumes
 import Orchestration.Helpers
 import Orchestration.Types
@@ -381,12 +385,18 @@ requestComputeQuota : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd Sha
 requestComputeQuota projectUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
-            ( { project
-                | computeQuota = RDPP.setLoading project.computeQuota
-              }
-                |> GetterSetters.modelUpdateProject model
-            , OpenStack.Quotas.requestComputeQuota project
-            )
+            -- If a request is in flight, wait for it to finish.
+            -- (Otherwise deleting 10x servers would trigger 10x requests.)
+            if project.computeQuota |> RDPP.isLoading then
+                ( model, Cmd.none )
+
+            else
+                ( { project
+                    | computeQuota = RDPP.setLoading project.computeQuota
+                  }
+                    |> GetterSetters.modelUpdateProject model
+                , OpenStack.Quotas.requestComputeQuota project
+                )
 
         Nothing ->
             ( model, Cmd.none )
@@ -417,6 +427,62 @@ requestNetworkQuota projectUuid model =
                 |> GetterSetters.modelUpdateProject model
             , OpenStack.Quotas.requestNetworkQuota project
             )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestRegisteredLimits : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestRegisteredLimits projectUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            ( { project
+                | registeredLimits = RDPP.setLoading project.registeredLimits
+              }
+                |> GetterSetters.modelUpdateProject model
+            , OpenStack.UnifiedLimits.requestRegisteredLimits project
+            )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestProjectLimits : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestProjectLimits projectUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            ( { project
+                | projectLimits = RDPP.setLoading project.projectLimits
+              }
+                |> GetterSetters.modelUpdateProject model
+            , OpenStack.UnifiedLimits.requestLimits project
+            )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestProjectUsages : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestProjectUsages projectUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            case project.endpoints.placement of
+                Just _ ->
+                    -- If a request is in flight, wait for it to finish.
+                    -- (Otherwise deleting 10x servers would trigger 10x requests.)
+                    if project.projectUsages |> RDPP.isLoading then
+                        ( model, Cmd.none )
+
+                    else
+                        ( { project
+                            | projectUsages = RDPP.setLoading project.projectUsages
+                          }
+                            |> GetterSetters.modelUpdateProject model
+                        , OpenStack.UnifiedLimits.requestUsages project
+                        )
+
+                Nothing ->
+                    ( model, Cmd.none )
 
         Nothing ->
             ( model, Cmd.none )

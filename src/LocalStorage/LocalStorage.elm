@@ -10,6 +10,7 @@ import Helpers.Helpers as Helpers
 import Helpers.Json exposing (resultToDecoder)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Json.Decode as Decode
+import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
 import LocalStorage.Types exposing (StoredProject, StoredProject2, StoredProject3, StoredProject4, StoredProject5, StoredProject6, StoredState)
 import OpenStack.Types as OSTypes
@@ -143,6 +144,9 @@ hydrateProjectFromStoredProject storedProject =
     , ports = RDPP.empty
     , securityGroups = RDPP.empty
     , securityGroupActions = Dict.empty
+    , registeredLimits = RDPP.empty
+    , projectLimits = RDPP.empty
+    , projectUsages = RDPP.empty
     , computeQuota = RDPP.empty
     , volumeQuota = RDPP.empty
     , networkQuota = RDPP.empty
@@ -303,6 +307,11 @@ encodeExoEndpoints endpoints =
           )
         , ( "nova", Encode.string endpoints.nova )
         , ( "neutron", Encode.string endpoints.neutron )
+        , ( "placement"
+          , endpoints.placement
+                |> Maybe.map Encode.string
+                |> Maybe.withDefault Encode.null
+          )
         , ( "jetstream2Accounting"
           , endpoints.jetstream2Accounting
                 |> Maybe.map Encode.string
@@ -592,38 +601,32 @@ regionDecoder =
 
 endpointsDecoder : Decode.Decoder Types.Project.Endpoints
 endpointsDecoder =
-    Decode.map2 (<|)
-        (Decode.map8 Types.Project.Endpoints
-            (Decode.field "cinder" Decode.string)
-            (Decode.field "glance" Decode.string)
-            (Decode.field "keystone" Decode.string)
-            (Decode.oneOf
-                -- This decodes projects which do not have Manila support.
-                [ Decode.field "manila" Decode.string |> Decode.nullable
-                , Decode.succeed Nothing
-                ]
-            )
-            (Decode.field "nova" Decode.string)
-            (Decode.field "neutron" Decode.string)
-            (Decode.oneOf
-                -- This decodes earlier stored projects which do not have the jetstream2Accounting field in encoded endpoints
-                [ Decode.field "jetstream2Accounting" Decode.string |> Decode.nullable
-                , Decode.succeed Nothing
-                ]
-            )
-            (Decode.oneOf
-                -- This decodes earlier stored projects which do not have the designate field in encoded endpoints
-                [ Decode.field "designate" Decode.string |> Decode.nullable
-                , Decode.succeed Nothing
-                ]
-            )
-        )
-        (Decode.oneOf
+    Decode.succeed Types.Project.Endpoints
+        |> Pipeline.required "cinder" Decode.string
+        |> Pipeline.required "glance" Decode.string
+        |> Pipeline.required "keystone" Decode.string
+        |> Pipeline.optional "manila"
+            -- This decodes projects which do not have Manila support.
+            (Decode.nullable Decode.string)
+            Nothing
+        |> Pipeline.required "nova" Decode.string
+        |> Pipeline.required "neutron" Decode.string
+        |> Pipeline.optional "placement"
+            -- This decodes earlier stored projects which do not have the placement field in encoded endpoints
+            (Decode.nullable Decode.string)
+            Nothing
+        |> Pipeline.optional "jetstream2Accounting"
+            -- This decodes earlier stored projects which do not have the jetstream2Accounting field in encoded endpoints
+            (Decode.nullable Decode.string)
+            Nothing
+        |> Pipeline.optional "designate"
+            -- This decodes earlier stored projects which do not have the designate field in encoded endpoints
+            (Decode.nullable Decode.string)
+            Nothing
+        |> Pipeline.optional "swift"
             -- This decodes earlier stored projects which do not have the swift (object-store) field in encoded endpoints
-            [ Decode.field "swift" Decode.string |> Decode.nullable
-            , Decode.succeed Nothing
-            ]
-        )
+            (Decode.nullable Decode.string)
+            Nothing
 
 
 nameAndIdDecoder : Decode.Decoder OSTypes.NameAndUuid

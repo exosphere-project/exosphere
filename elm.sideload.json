@@ -34,6 +34,17 @@
           "sha": "f5de544c8033d934285501f78f09e2eaf0171d55"
         }
       }
+    },
+    {
+      "originalPackageName": "vito/elm-ansi",
+      "originalPackageVersion": "12.0.0",
+      "sideloadedPackage": {
+        "type": "github",
+        "url": "https://github.com/LordParsley/elm-ansi",
+        "pinTo": {
+          "sha": "c2fe2c1fc93e2ee972ecdc01c1687409abaf0cba"
+        }
+      }
     }
   ]
 }

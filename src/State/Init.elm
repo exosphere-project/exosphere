@@ -387,6 +387,7 @@ cloudSpecificConfigDecoder =
         |> Pipeline.optional "featuredImageNamePrefix" (Decode.nullable Decode.string) Nothing
         |> Pipeline.optional "instanceTypes" (Decode.list instanceTypeDecoder) []
         |> Pipeline.optional "flavorGroups" (Decode.list flavorGroupDecoder) []
+        |> Pipeline.optional "customResources" (Decode.list customResourceDecoder) []
         |> Pipeline.optional "securityGroups" (Decode.nullable securityGroupsRegionConfigDecoder) Nothing
         |> Pipeline.optional "desktopMessage" (Decode.nullable Decode.string) Nothing
         |> Decode.andThen
@@ -522,3 +523,10 @@ flavorGroupDecoder =
         (Decode.field "title" Decode.string)
         (Decode.field "description" (Decode.nullable Decode.string))
         (Decode.field "disallowedActions" (Decode.list Decode.string))
+
+
+customResourceDecoder : Decode.Decoder HelperTypes.CustomResource
+customResourceDecoder =
+    Decode.map2 HelperTypes.CustomResource
+        (Decode.field "resource" Decode.string)
+        (Decode.field "friendlyName" Decode.string)
