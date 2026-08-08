@@ -442,6 +442,7 @@ view context _ model =
                                                             SharedMsg.RequestProjectScopedTokenWithAppCredential
                                                                 cloud.authUrl
                                                                 cloud.appCredential
+                                                                cloud.regionName
                                                         )
                                                         clouds
                                             )
@@ -461,7 +462,10 @@ credentialFileLoginMsg model =
         Just found ->
             Just
                 (SharedMsg <|
-                    SharedMsg.RequestProjectScopedTokenWithAppCredential found.authUrl found.appCredential
+                    SharedMsg.RequestProjectScopedTokenWithAppCredential
+                        found.authUrl
+                        found.appCredential
+                        found.regionName
                 )
 
         Nothing ->

@@ -99,7 +99,10 @@ requestAuthToken model project =
 
         ApplicationCredential appCred ->
             Ok <|
-                Rest.Keystone.requestScopedAuthToken model.cloudCorsProxyUrl <|
+                Rest.Keystone.requestScopedAuthToken
+                    model.cloudCorsProxyUrl
+                    (project.region |> Maybe.map .id)
+                <|
                     OSTypes.AppCreds project.endpoints.keystone project.auth.project.name appCred
 
 
