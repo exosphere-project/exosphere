@@ -992,44 +992,46 @@ processSharedMsg sharedMsg outerModel =
                                     GetterSetters.unscopedProviderLookup outerModel_.sharedModel keystoneUrl
                                         |> Maybe.andThen (\provider -> GetterSetters.unscopedProjectLookup provider authToken.project.uuid)
 
-                                matchingProjects =
+                                matchingProjectRegionIds =
                                     outerModel_.sharedModel.projects
                                         |> List.filter (\p -> p.auth.project.uuid == authToken.project.uuid)
+                                        |> List.map (\p -> p.region |> Maybe.map .id)
+
+                                catalogRegionIds =
+                                    GetterSetters.getCatalogRegionIds authToken.catalog
+
+                                -- A credential file can name the region its project lives in. When
+                                -- it does, and the catalog agrees that region exists, use it rather
+                                -- than asking a question we were handed the answer to.
+                                maybeResolvedRegionId =
+                                    case catalogRegionIds of
+                                        [ singleRegionId ] ->
+                                            Just singleRegionId
+
+                                        _ ->
+                                            maybeRequestedRegionId
+                                                |> Maybe.andThen
+                                                    (\requestedRegionId ->
+                                                        if List.member requestedRegionId catalogRegionIds then
+                                                            Just requestedRegionId
+
+                                                        else
+                                                            Nothing
+                                                    )
                             in
                             if
-                                not (List.isEmpty matchingProjects)
+                                GetterSetters.loginAlreadyImported maybeResolvedRegionId matchingProjectRegionIds
                                     && maybeUnscopedProject
                                     == Nothing
                                     && maybeAppCredential
                                     /= Nothing
                             then
-                                -- Token refresh for an existing app-credential project: don't recreate project state.
+                                -- Token refresh for an app-credential project we already hold in
+                                -- this region: don't recreate project state. The same project in
+                                -- another region is a different project and is imported below.
                                 ( outerModel_, Cmd.none )
 
                             else
-                                let
-                                    catalogRegionIds =
-                                        GetterSetters.getCatalogRegionIds authToken.catalog
-
-                                    -- A credential file can name the region its project lives in.
-                                    -- When it does, and the catalog agrees that region exists, use
-                                    -- it rather than asking a question we were handed the answer to.
-                                    maybeResolvedRegionId =
-                                        case catalogRegionIds of
-                                            [ singleRegionId ] ->
-                                                Just singleRegionId
-
-                                            _ ->
-                                                maybeRequestedRegionId
-                                                    |> Maybe.andThen
-                                                        (\requestedRegionId ->
-                                                            if List.member requestedRegionId catalogRegionIds then
-                                                                Just requestedRegionId
-
-                                                            else
-                                                                Nothing
-                                                        )
-                                in
                                 case ( catalogRegionIds, maybeResolvedRegionId ) of
                                     ( [], _ ) ->
                                         State.Error.processStringError
@@ -1048,19 +1050,14 @@ processSharedMsg sharedMsg outerModel =
                                         let
                                             navigateToCorrectPage : OuterModel -> ( OuterModel, Cmd OuterMsg )
                                             navigateToCorrectPage outerModel__ =
-                                                -- If we're in an unscoped project selection flow, proceed there; otherwise send user to Home.
+                                                -- If we're in an unscoped project selection flow, proceed there.
+                                                -- Otherwise answer any region question still queued before going
+                                                -- Home, because responses to a batch of logins interleave.
                                                 case maybeUnscopedProject of
                                                     Just _ ->
                                                         case outerModel__.sharedModel.unscopedProviders of
                                                             [] ->
-                                                                ( outerModel__
-                                                                , case outerModel__.viewState of
-                                                                    NonProjectView (Home _) ->
-                                                                        Cmd.none
-
-                                                                    _ ->
-                                                                        Route.pushUrl outerModel__.sharedModel.viewContext Route.Home
-                                                                )
+                                                                dealWithNextWaitingToken outerModel__
 
                                                             firstUnscopedProvider :: _ ->
                                                                 ( outerModel__
@@ -1070,14 +1067,7 @@ processSharedMsg sharedMsg outerModel =
                                                                 )
 
                                                     Nothing ->
-                                                        ( outerModel__
-                                                        , case outerModel__.viewState of
-                                                            NonProjectView (Home _) ->
-                                                                Cmd.none
-
-                                                            _ ->
-                                                                Route.pushUrl outerModel__.sharedModel.viewContext Route.Home
-                                                        )
+                                                        dealWithNextWaitingToken outerModel__
 
                                             removeMaybeUnscopedProject : OuterModel -> ( OuterModel, Cmd OuterMsg )
                                             removeMaybeUnscopedProject outerModel__ =
@@ -1146,31 +1136,12 @@ processSharedMsg sharedMsg outerModel =
                         Nothing ->
                             -- no more unscoped projects to choose regions for
                             dealWithNextWaitingToken outerModel_
-
-                {- Several logins can be in flight at once, for instance when a clouds.yaml names
-                   more than one project, and each one whose region could not be settled parks a
-                   token here. Sending the user Home while tokens are still parked would strand
-                   them with no way back to the question, so ask the next question instead.
-                -}
-                dealWithNextWaitingToken : OuterModel -> ( OuterModel, Cmd OuterMsg )
-                dealWithNextWaitingToken outerModel_ =
-                    case outerModel_.sharedModel.scopedAuthTokensWaitingRegionSelection of
-                        nextWaitingToken :: _ ->
-                            ( outerModel_
-                            , Route.pushUrl
-                                outerModel_.sharedModel.viewContext
-                                (Route.SelectProjectRegions
-                                    nextWaitingToken.keystoneUrl
-                                    nextWaitingToken.authToken.project.uuid
-                                )
-                            )
-
-                        [] ->
-                            ( outerModel_, Route.pushUrl outerModel_.sharedModel.viewContext Route.Home )
             in
             case
                 List.Extra.find
-                    (\tokenWithCred -> tokenWithCred.authToken.project.uuid == projectUuid)
+                    (\tokenWithCred ->
+                        tokenWithCred.keystoneUrl == keystoneUrl && tokenWithCred.authToken.project.uuid == projectUuid
+                    )
                     sharedModel.scopedAuthTokensWaitingRegionSelection
             of
                 Just tokenWithCred ->
@@ -1180,7 +1151,7 @@ processSharedMsg sharedMsg outerModel =
                         |> pipelineCmdOuterModelMsg (removeUnscopedProject keystoneUrl projectUuid)
                         -- This question has now been answered, so retire its token before looking
                         -- for the next one. Leaving it parked would ask it again.
-                        |> pipelineCmdOuterModelMsg (removeScopedAuthTokenWaitingRegionSelection projectUuid)
+                        |> pipelineCmdOuterModelMsg (removeScopedAuthTokenWaitingRegionSelection keystoneUrl projectUuid)
                         |> pipelineCmdOuterModelMsg dealWithNextProject
 
                 Nothing ->
@@ -4827,17 +4798,55 @@ processNewFloatingIp time project floatingIp =
     }
 
 
-{-| Retires one waiting token, not every token for that project. Two logins can land on the
-same project, and dropping both here would discard a question the user has not answered yet.
+{-| Several logins can be in flight at once, for instance when a clouds.yaml names more than one
+project, and each one whose region could not be settled parks a token. Sending the user Home while
+tokens are still parked would strand them with no way back to the question, so ask the next
+question instead and reach Home only once nothing is waiting.
 -}
-removeScopedAuthTokenWaitingRegionSelection : OSTypes.ProjectUuid -> OuterModel -> ( OuterModel, Cmd OuterMsg )
-removeScopedAuthTokenWaitingRegionSelection projectUuid outerModel =
+dealWithNextWaitingToken : OuterModel -> ( OuterModel, Cmd OuterMsg )
+dealWithNextWaitingToken outerModel =
+    case outerModel.sharedModel.scopedAuthTokensWaitingRegionSelection of
+        nextWaitingToken :: _ ->
+            ( outerModel
+            , Route.pushUrl
+                outerModel.sharedModel.viewContext
+                (Route.SelectProjectRegions
+                    nextWaitingToken.keystoneUrl
+                    nextWaitingToken.authToken.project.uuid
+                )
+            )
+
+        [] ->
+            ( outerModel
+            , case outerModel.viewState of
+                NonProjectView (Home _) ->
+                    Cmd.none
+
+                _ ->
+                    Route.pushUrl outerModel.sharedModel.viewContext Route.Home
+            )
+
+
+{-| Retires one waiting token, not every token for that cloud and project. Two logins can land on
+the same project, and dropping both here would discard a question the user has not answered yet.
+
+Known limitation: a pathological file can list one credential twice, once with a region that the
+catalog does not have and once with no region at all, which queues two entries under the same
+cloud and project and so asks the same question twice. Parse time removes genuine duplicates, and
+this residue is not worth engineering around.
+
+-}
+removeScopedAuthTokenWaitingRegionSelection : OSTypes.KeystoneUrl -> OSTypes.ProjectUuid -> OuterModel -> ( OuterModel, Cmd OuterMsg )
+removeScopedAuthTokenWaitingRegionSelection keystoneUrl projectUuid outerModel =
     let
         waitingTokens =
             outerModel.sharedModel.scopedAuthTokensWaitingRegionSelection
 
+        matchesQuestion t =
+            t.keystoneUrl == keystoneUrl && t.authToken.project.uuid == projectUuid
+
         newScopedAuthTokensWaitingRegionSelection =
-            case List.Extra.findIndex (\t -> t.authToken.project.uuid == projectUuid) waitingTokens of
+            case List.Extra.findIndex matchesQuestion waitingTokens of
                 Just index ->
                     List.Extra.removeAt index waitingTokens
 
