@@ -148,8 +148,8 @@ view context project currentTime _ =
                 Route.VolumeList
                 (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Volume ( project.volumeQuota, project.volumeSnapshots )))
                 (volumeTileContents context project)
-            , case ( context.experimentalFeaturesEnabled, project.endpoints.manila ) of
-                ( True, Just _ ) ->
+            , case project.endpoints.manila of
+                Just _ ->
                     renderTile
                         (Icon.featherIcon [] Icons.share2)
                         (context.localization.share
