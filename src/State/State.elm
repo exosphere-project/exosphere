@@ -93,7 +93,7 @@ import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Endpoints, Project, ProjectSecret(..))
 import Types.SecurityGroupActions as SecurityGroupActions
-import Types.Server exposing (ExoSetupStatus(..), NewServerNetworkOptions(..), Server, ServerFromExoProps, ServerOrigin(..), currentExoServerVersion)
+import Types.Server as Server exposing (ExoSetupStatus(..), NewServerNetworkOptions(..), Server, ServerFromExoProps, ServerOrigin(..), currentExoServerVersion, shouldRefreshQuotaOnTargetStatus)
 import Types.ServerActionRequestQueue as ServerActionRequestQueue
 import Types.ServerResourceUsage
 import Types.ServerVolumeActions as ServerVolumeActions
@@ -1884,6 +1884,11 @@ processProjectSpecificMsg outerModel project msg =
             case result of
                 Ok server ->
                     let
+                        shouldRefreshQuota =
+                            shouldRefreshQuotaOnTargetStatus
+                                (GetterSetters.getServerExoActions project serverUuid)
+                                server.details.openstackStatus
+
                         ( newProject, cmd ) =
                             Rest.Nova.receiveServer sharedModel project interactionLevel server
 
@@ -1903,8 +1908,17 @@ processProjectSpecificMsg outerModel project msg =
 
                             else
                                 ( newSharedModel, cmd )
+
+                        ( newestSharedModel, newestCmd ) =
+                            if shouldRefreshQuota then
+                                ( newerSharedModel, newCmd )
+                                    |> Helpers.pipelineCmd
+                                        (ApiModelHelpers.requestComputeQuotaAndProjectUsages (GetterSetters.projectIdentifier project))
+
+                            else
+                                ( newerSharedModel, newCmd )
                     in
-                    ( newerSharedModel, newCmd )
+                    ( newestSharedModel, newestCmd )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -3926,7 +3940,8 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         server.osProps.uuid
                         (\exoActions ->
                             { exoActions
-                                | targetOpenstackStatus = Just [ OSTypes.ServerResize ]
+                                | targetOpenstackStatus = Server.resizeTargetOpenstackStatus
+                                , quotaRefreshTargetOpenstackStatus = Server.resizeQuotaRefreshTargetOpenstackStatus
                                 , request = RDPP.setLoading exoActions.request
                             }
                         )
@@ -4930,15 +4945,13 @@ createUnscopedProvider model authToken authUrl =
 requestShelveServer : Project -> Server -> { deleteFloatingIps : Bool } -> ( Project, Cmd SharedMsg )
 requestShelveServer project server { deleteFloatingIps } =
     let
-        targetStatus =
-            Just [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
-
         newProject =
             GetterSetters.projectUpdateServerExoActions project
                 server.osProps.uuid
                 (\exoActions ->
                     { exoActions
-                        | targetOpenstackStatus = targetStatus
+                        | targetOpenstackStatus = Server.shelveTargetOpenstackStatus
+                        , quotaRefreshTargetOpenstackStatus = Server.shelveQuotaRefreshTargetOpenstackStatus
                         , request = RDPP.setLoading exoActions.request
                     }
                 )
@@ -4990,35 +5003,6 @@ requestShelveServer project server { deleteFloatingIps } =
 requestServerAction : Project -> Server -> ServerActions.ServerAction -> ( Project, Cmd SharedMsg )
 requestServerAction project server action =
     let
-        targetStatuses =
-            case action of
-                Unshelve ->
-                    Just [ OSTypes.ServerActive ]
-
-                ServerActions.ConfirmResize ->
-                    Just [ OSTypes.ServerActive ]
-
-                ServerActions.RevertResize ->
-                    Just [ OSTypes.ServerActive ]
-
-                Start ->
-                    Just [ OSTypes.ServerActive ]
-
-                ServerActions.Unpause ->
-                    Just [ OSTypes.ServerActive ]
-
-                ServerActions.Resume ->
-                    Just [ OSTypes.ServerActive ]
-
-                ServerActions.Suspend ->
-                    Just [ OSTypes.ServerSuspended ]
-
-                ServerActions.Reboot ->
-                    Just [ OSTypes.ServerActive ]
-
-                _ ->
-                    Nothing
-
         oldExoProps =
             server.exoProps
 
@@ -5043,7 +5027,8 @@ requestServerAction project server action =
                 server.osProps.uuid
                 (\exoActions ->
                     { exoActions
-                        | targetOpenstackStatus = targetStatuses
+                        | targetOpenstackStatus = Server.serverActionTargetOpenstackStatus action
+                        , quotaRefreshTargetOpenstackStatus = Server.serverActionQuotaRefreshTargetOpenstackStatus action
                         , request = RDPP.setLoading exoActions.request
                     }
                 )
