@@ -13,12 +13,21 @@
     filename: "{{ item.name }}.list"
     repo: '{{ item.repo }}'
     state: present
+  # Adding a repository refreshes the package lists, which needs the APT lock
+  register: 'apt_status'
+  until: 'apt_status is success'
+  delay: 10
+  retries: 60
 
 - name: 'VNC server packages installed'
-  loop: '{{ vncserver_packages }}'
   package:
-    name: '{{ item }}'
+    name: '{{ vncserver_packages }}'
     state: 'present'
+  # This stuff waits for APT/dpkg lock if unattended upgrades are running
+  register: 'apt_status'
+  until: 'apt_status is success'
+  delay: 10
+  retries: 60
 
 - name: "TurboVNC security settings created"
   copy:

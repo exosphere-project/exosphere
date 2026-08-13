@@ -13,9 +13,14 @@
 
 - name: 'graphical environment installed'
   package:
-    name: '{{ item }}'
+    name: '{{ desktop_environment_package_names }}'
     state: 'present'
-  loop: '{{ desktop_environment_package_names }}'
+  # Retry while another process (on Debian, typically unattended-upgrades)
+  # holds the package manager lock
+  register: 'package_status'
+  until: 'package_status is success'
+  delay: 10
+  retries: 60
 
 # https://askubuntu.com/questions/1048774/disabling-lock-screen-18-04
 # https://people.gnome.org/~pmkovar/system-admin-guide/screen-locking.html
