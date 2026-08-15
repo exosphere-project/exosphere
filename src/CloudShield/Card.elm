@@ -30,6 +30,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Events
 import Element.Font as Font
+import Exoext.Health as Health
 import Exoext.Lifecycle as Lifecycle
 import Exoext.RendererStyle as RendererStyle
 import Helpers.Time
@@ -1194,6 +1195,17 @@ type alias ViewConfig =
     -- separate from the catalog's origin-pinned Iframe element and is for the program-officer
     -- demo only. `Nothing` disables the panel entirely.
     , demoIframeUrl : Maybe String
+
+    -- the publishing server's `exoext.v1.health.*` report (`Exoext.Health.read`), `Nothing` when it
+    -- publishes no health keys at all. It is read straight off the same metadata poll as the
+    -- sentinel, so it is available the moment the VM starts booting — before, and independently of,
+    -- any manifest. When there IS no renderable manifest this REPLACES the card body with the
+    -- host's boot checklist / failure piece; when there is one it rides underneath as the health
+    -- strip. Either way it is system chrome, never extension content.
+    , health : Maybe Health.Health
+
+    -- the shared client clock, for the health strip's freshness line and its staleness threshold.
+    , now : Time.Posix
     }
 
 
@@ -1231,6 +1243,52 @@ deployer chose and Exosphere uses nowhere else.
 view : ExoPalette -> HelperTypes.Localization -> Time.Zone -> ViewConfig -> List Instance -> Model -> Element.Element Msg
 view palette localization zone config instances model =
     if config.approved then
+        let
+            -- The extension's own region: the rendered manifest and the host's quiet lines about it.
+            extensionRegion =
+                [ rendererView palette localization zone config instances model
+                , embedStateView palette config.embedState config.erroredResultId
+                , transportWarningView palette config.transportWarning
+                , scanTimerView palette config.scanTimer
+                , demoIframePanel palette config.demoIframeUrl model.showDemoIframe
+                ]
+
+            -- Staleness is a modifier over whatever is on screen: the publisher may be off, wedged
+            -- or out of credentials, so nothing it last wrote can be read as current. It dims the
+            -- CONTENT only — the strip that says so has to stay legible (`Health.placeholder` dims
+            -- its own body for the same reason).
+            staleAttrs =
+                if config.health |> Maybe.map (Health.isStale config.now) |> Maybe.withDefault False then
+                    [ Element.alpha 0.62 ]
+
+                else
+                    []
+
+            region attrs children =
+                Element.column
+                    ([ Element.width Element.fill, Element.spacing spacer.px8 ] ++ attrs)
+                    children
+
+            -- With health keys but no renderable manifest, the health chrome IS the card: the boot
+            -- checklist or the failure piece, drawn entirely from metadata, carrying its own status
+            -- line. With a manifest, the strip rides underneath it instead. Without health keys
+            -- nothing changes — the card keeps its previous loading / unavailable chrome.
+            ( body, healthStrip ) =
+                case ( config.manifest, config.health ) of
+                    ( ManifestReady _, Just health ) ->
+                        ( region staleAttrs extensionRegion, Health.strip palette config.now health )
+
+                    ( _, Just health ) ->
+                        ( region []
+                            [ Health.placeholder palette localization.virtualComputer config.now health
+                            , transportWarningView palette config.transportWarning
+                            ]
+                        , Element.none
+                        )
+
+                    ( _, Nothing ) ->
+                        ( region staleAttrs extensionRegion, Element.none )
+        in
         -- The card is now a two-column desktop layout (scan targets | scan history, with the
         -- results region full-width below), so it wants room. Cap the whole column at ~1300px so it
         -- doesn't stretch absurdly on ultra-wide displays; below that it fills the page column and
@@ -1239,11 +1297,8 @@ view palette localization zone config instances model =
         Element.column
             [ Element.width (Element.fill |> Element.maximum 1300), Element.spacing spacer.px8 ]
             [ provenanceMarker palette localization.virtualComputer config.sourceName
-            , rendererView palette localization zone config instances model
-            , embedStateView palette config.embedState config.erroredResultId
-            , transportWarningView palette config.transportWarning
-            , scanTimerView palette config.scanTimer
-            , demoIframePanel palette config.demoIframeUrl model.showDemoIframe
+            , body
+            , healthStrip
             , disableAffordance palette
             ]
 

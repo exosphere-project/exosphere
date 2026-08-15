@@ -9,6 +9,7 @@ import Element
 import Element.Font as Font
 import Element.Input as Input
 import Exoext.Discovery
+import Exoext.Health
 import Exoext.Lifecycle
 import Exoext.Transport
 import FeatherIcons as Icons
@@ -1528,6 +1529,12 @@ exoextViewConfig approved project model currentTime server =
     -- result's embedUrl). The old raw/unpinned demo panel is disabled to avoid a second, confusing
     -- iframe; `Nothing` hides the panel and its toggle entirely.
     , demoIframeUrl = Nothing
+
+    -- The publishing instance's own `exoext.v1.health.*` report, read off the same metadata poll
+    -- everything else here comes from. It is what the card falls back to when there is no manifest
+    -- to render, and what the health strip under a rendered card is drawn from.
+    , health = Exoext.Health.read metadata
+    , now = currentTime
     }
 
 
@@ -2752,8 +2759,14 @@ exoextCardView context project ( currentTime, timeZone ) server model =
     let
         sentinel =
             Exoext.Discovery.readSentinel server.osProps.details.metadata
+
+        -- The health keys are a discovery signal in their own right: an extension can fail (or
+        -- still be booting) before it ever writes a sentinel, and those are exactly the states the
+        -- page used to render as nothing at all. Either signal opens the card.
+        health =
+            Exoext.Health.read server.osProps.details.metadata
     in
-    if context.experimentalFeaturesEnabled && sentinel /= Nothing then
+    if context.experimentalFeaturesEnabled && (sentinel /= Nothing || health /= Nothing) then
         let
             -- Approval is matched by the publishing instance's UUID only (a persisted
             -- `exoext.approval.v1` record). No record => the card shows its opt-in affordance.

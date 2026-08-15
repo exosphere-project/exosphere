@@ -10,6 +10,7 @@ only the fields it is actually about.
 -}
 
 import CloudShield.Card as Card
+import Time
 
 
 {-| An approved card in its quiet state: history loaded and empty, no run, no session, nothing in
@@ -40,4 +41,6 @@ cardViewConfig =
     , embedUrl = ""
     , embedState = Card.EmbedIdle
     , demoIframeUrl = Nothing
+    , health = Nothing
+    , now = Time.millisToPosix 0
     }
