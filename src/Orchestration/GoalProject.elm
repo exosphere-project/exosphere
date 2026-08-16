@@ -1,15 +1,21 @@
-module Orchestration.GoalProject exposing (goalPollProject)
+module Orchestration.GoalProject exposing
+    ( computeQuotaPollInterval
+    , goalPollProject
+    , projectUsagesPollInterval
+    )
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import List
-import OpenStack.Quotas exposing (requestVolumeQuota)
+import OpenStack.Quotas exposing (requestComputeQuota, requestVolumeQuota)
 import OpenStack.Types as OSTypes
+import OpenStack.UnifiedLimits exposing (requestUsages)
 import OpenStack.VolumeSnapshots
 import OpenStack.Volumes as OSVolumes exposing (requestVolumeSnapshots)
 import Orchestration.Helpers exposing (applyProjectStep, pollIntervalToMs, pollRDPP)
 import Orchestration.Types exposing (PollInterval(..))
 import Time
+import Types.HelperTypes exposing (ProjectIdentifier, Url)
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (SharedMsg)
 import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
@@ -21,12 +27,113 @@ goalPollProject time viewState project =
         steps =
             [ stepSnapshotPoll time viewState
             , stepVolumePoll time viewState
+            , stepComputeQuotaPoll time viewState
+            , stepProjectUsagesPoll time viewState
             ]
     in
     List.foldl
         applyProjectStep
         ( project, Cmd.none )
         steps
+
+
+computeQuotaPollInterval : ViewState -> ProjectIdentifier -> Maybe PollInterval
+computeQuotaPollInterval viewState projectIdentifier =
+    projectPollInterval viewState projectIdentifier <|
+        \projectViewState ->
+            case projectViewState of
+                ProjectOverview _ ->
+                    Regular
+
+                ServerList _ ->
+                    Regular
+
+                ServerCreate _ ->
+                    Regular
+
+                ServerResize _ ->
+                    Regular
+
+                KeypairList _ ->
+                    Regular
+
+                _ ->
+                    Seldom
+
+
+projectUsagesPollInterval : ViewState -> ProjectIdentifier -> Maybe Url -> Maybe PollInterval
+projectUsagesPollInterval viewState projectIdentifier maybePlacementEndpoint =
+    maybePlacementEndpoint
+        |> Maybe.andThen
+            (\_ ->
+                projectPollInterval viewState projectIdentifier <|
+                    \projectViewState ->
+                        case projectViewState of
+                            ProjectOverview _ ->
+                                Regular
+
+                            ServerList _ ->
+                                Regular
+
+                            ServerCreate _ ->
+                                Regular
+
+                            ServerResize _ ->
+                                Regular
+
+                            _ ->
+                                Seldom
+            )
+
+
+projectPollInterval : ViewState -> ProjectIdentifier -> (ProjectViewConstructor -> PollInterval) -> Maybe PollInterval
+projectPollInterval viewState projectIdentifier intervalForView =
+    case viewState of
+        ProjectView activeProjectIdentifier projectViewState ->
+            if activeProjectIdentifier == projectIdentifier then
+                Just (intervalForView projectViewState)
+
+            else
+                Nothing
+
+        NonProjectView _ ->
+            Nothing
+
+
+stepComputeQuotaPoll : Time.Posix -> ViewState -> Project -> ( Project, Cmd SharedMsg )
+stepComputeQuotaPoll time viewState project =
+    case computeQuotaPollInterval viewState (GetterSetters.projectIdentifier project) of
+        Just pollInterval ->
+            if pollRDPP project.computeQuota time (pollIntervalToMs pollInterval) then
+                let
+                    newProject =
+                        { project | computeQuota = RDPP.setLoading project.computeQuota }
+                in
+                ( newProject, requestComputeQuota newProject )
+
+            else
+                ( project, Cmd.none )
+
+        Nothing ->
+            ( project, Cmd.none )
+
+
+stepProjectUsagesPoll : Time.Posix -> ViewState -> Project -> ( Project, Cmd SharedMsg )
+stepProjectUsagesPoll time viewState project =
+    case projectUsagesPollInterval viewState (GetterSetters.projectIdentifier project) project.endpoints.placement of
+        Just pollInterval ->
+            if pollRDPP project.projectUsages time (pollIntervalToMs pollInterval) then
+                let
+                    newProject =
+                        { project | projectUsages = RDPP.setLoading project.projectUsages }
+                in
+                ( newProject, requestUsages newProject )
+
+            else
+                ( project, Cmd.none )
+
+        Nothing ->
+            ( project, Cmd.none )
 
 
 stepSnapshotPoll : Time.Posix -> ViewState -> Project -> ( Project, Cmd SharedMsg )

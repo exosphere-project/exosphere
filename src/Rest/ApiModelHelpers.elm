@@ -3,6 +3,7 @@ module Rest.ApiModelHelpers exposing
     , requestAppVersion
     , requestAutoAllocatedNetwork
     , requestComputeQuota
+    , requestComputeQuotaAndProjectUsages
     , requestEc2Credentials
     , requestFlavors
     , requestFloatingIps
@@ -36,6 +37,7 @@ module Rest.ApiModelHelpers exposing
     )
 
 import Helpers.GetterSetters as GetterSetters
+import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.ObjectStorage
 import OpenStack.Quotas
@@ -530,6 +532,13 @@ requestComputeQuota projectUuid model =
 
         Nothing ->
             ( model, Cmd.none )
+
+
+requestComputeQuotaAndProjectUsages : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestComputeQuotaAndProjectUsages projectUuid model =
+    ( model, Cmd.none )
+        |> Helpers.pipelineCmd (requestComputeQuota projectUuid)
+        |> Helpers.pipelineCmd (requestProjectUsages projectUuid)
 
 
 requestVolumeQuota : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )

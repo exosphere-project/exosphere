@@ -56,7 +56,7 @@ import Types.Guacamole as GuacTypes
 import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url)
 import Types.Interactivity as Interactivity exposing (InteractionLevel(..))
 import Types.Project exposing (Project)
-import Types.Server exposing (ExoServerProps, ExoSetupStatus(..), Server, ServerOrigin(..))
+import Types.Server as Server exposing (ExoServerProps, ExoSetupStatus(..), Server, ServerOrigin(..))
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import View.Types exposing (Context)
@@ -925,11 +925,17 @@ receiveServer model project interactionLevel osServer =
             { newServer | exoProps = newExoProps }
 
         -- Update server target statuses if they have been reached.
-        updatedProject =
+        projectWithClearedExoActions =
             clearServerExoActionsIfTargetStatusReached project osServer.uuid osServer.details.openstackStatus
 
+        projectWithClearedQuotaRefreshIntent =
+            clearServerQuotaRefreshIntentIfTargetStatusReached
+                projectWithClearedExoActions
+                osServer.uuid
+                osServer.details.openstackStatus
+
         newProject =
-            GetterSetters.projectUpdateServer updatedProject newServerUpdatedSomeExoProps
+            GetterSetters.projectUpdateServer projectWithClearedQuotaRefreshIntent newServerUpdatedSomeExoProps
     in
     ( newProject, cmd )
 
@@ -938,34 +944,14 @@ clearServerExoActionsIfTargetStatusReached : Project -> OSTypes.ServerUuid -> OS
 clearServerExoActionsIfTargetStatusReached project serverId currentStatus =
     GetterSetters.projectUpdateServerExoActions project
         serverId
-        (\exoActions ->
-            let
-                maybeTargetReached =
-                    exoActions.targetOpenstackStatus
-                        |> Maybe.map
-                            (\statuses ->
-                                List.member currentStatus statuses
-                            )
-            in
-            { exoActions
-                | targetOpenstackStatus =
-                    exoActions.targetOpenstackStatus
-                        |> Maybe.andThen
-                            (\statuses ->
-                                if maybeTargetReached == Just True then
-                                    Nothing
+        (\exoActions -> Server.clearActionTargetIfTargetStatusReached exoActions currentStatus)
 
-                                else
-                                    Just statuses
-                            )
-                , request =
-                    if maybeTargetReached == Just True then
-                        RDPP.empty
 
-                    else
-                        exoActions.request
-            }
-        )
+clearServerQuotaRefreshIntentIfTargetStatusReached : Project -> OSTypes.ServerUuid -> OSTypes.ServerStatus -> Project
+clearServerQuotaRefreshIntentIfTargetStatusReached project serverId currentStatus =
+    GetterSetters.projectUpdateServerExoActions project
+        serverId
+        (\exoActions -> Server.clearQuotaRefreshIntentIfTargetStatusReached exoActions currentStatus)
 
 
 receiveServer_ : Project -> InteractionLevel -> OSTypes.Server -> ( Server, Cmd SharedMsg )
