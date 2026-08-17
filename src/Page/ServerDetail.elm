@@ -1,4 +1,4 @@
-module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, adoptRestoredExoextBatch, adoptStoredExoextBatch, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextAbandonStaleRun, exoextBatchSharedMsg, exoextCancelRequested, exoextCancellableRun, exoextCardTitle, exoextDismissSession, exoextDropFromTail, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextReaderProjection, exoextRequestsPending, exoextRunControl, exoextScanBlocked, exoextScanRequestPending, exoextStatusOverride, exoextStopRequested, exoextStoppingTarget, exoextViewConfig, init, recoverExoextRun, update, view)
+module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, adoptRestoredExoextBatch, adoptStoredExoextBatch, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextAbandonStaleRun, exoextBatchSharedMsg, exoextCancelRequested, exoextCancellableRun, exoextCardTitle, exoextDismissSession, exoextDropFromTail, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextNavigation, exoextReaderProjection, exoextRemovalState, exoextRequestBlocked, exoextRequestsPending, exoextRunControl, exoextScanRequestPending, exoextStatusOverride, exoextStopRequested, exoextStoppingTarget, exoextViewConfig, init, recoverExoextRun, update, view)
 
 import CloudShield.Card
 import CloudShield.Reader
@@ -110,6 +110,28 @@ type alias Model =
     -- view lives in the card model (`CloudShield.Card.Model.pending`).
     , exoextPendingEmbed : Maybe Exoext.Lifecycle.PendingRequest
 
+    -- the in-flight `deleteResult` request, the removal twin of `exoextPendingEmbed`
+    -- (`kind == "deleteResult"`, `subject` = the archived result being removed). Recorded when its
+    -- req slot is written so the row can read "Removing…" from the press, and cleared by the
+    -- publisher's acknowledgement (`resolveExoextRemoval`) or by the §7.1 request timeout.
+    , exoextPendingDelete : Maybe Exoext.Lifecycle.PendingRequest
+
+    -- the last removal the publisher REFUSED, with the reason it gave. Retained until the next
+    -- removal is written, so a refusal survives the polls that follow it and stays on the row the
+    -- researcher pressed. `Nothing` when no removal has failed.
+    , exoextDeleteError :
+        Maybe
+            { resultId : String
+            , message : String
+            }
+
+    -- the shared client clock as of the last read sync. The in-flight predicate has to be able to
+    -- tell a request that is still coming from one that never will (`Exoext.Lifecycle.requestTimedOut`),
+    -- and it is consulted from `update`, which has no clock of its own. A poll-old timestamp is
+    -- ample for a 30-second bound and is honest about what it is: the clock as of the last time the
+    -- host actually looked at the wire.
+    , exoextClock : Time.Posix
+
     -- which archived result the last getEmbed asked for, keyed by that request's own `requestId`.
     -- The host's own correlation record — the request id matches the response, the result id names
     -- the resource — and unlike `exoextPendingEmbed` it survives the response (which clears the
@@ -187,6 +209,7 @@ type Msg
     | CloudShieldMsg CloudShield.Card.Msg
     | ExoextWriteRequest { kind : String, subject : String, batchId : Maybe String } Time.Posix
     | ExoextWriteEmbedRequest { kind : String, resultId : String, batchId : String } Time.Posix
+    | ExoextWriteDeleteRequest { kind : String, resultId : String, batchId : String } Time.Posix
     | ExoextWriteApproval Time.Posix
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
@@ -209,6 +232,9 @@ init serverUuid =
     , exoextHistory = RDPP.empty
     , exoextHistoryRequestKey = Nothing
     , exoextPendingEmbed = Nothing
+    , exoextPendingDelete = Nothing
+    , exoextDeleteError = Nothing
+    , exoextClock = Time.millisToPosix 0
     , exoextEmbedResultId = Nothing
     , exoextBatch = Nothing
     , exoextCancelRequestId = Nothing
@@ -320,7 +346,7 @@ update msg project model =
                 card =
                     case outMsg of
                         Just (CloudShield.Card.WriteRequested _) ->
-                            if exoextScanBlocked project model then
+                            if exoextRequestBlocked project model then
                                 CloudShield.Card.rollbackScanRequest model.exoextCard cloudModel
 
                             else
@@ -347,7 +373,7 @@ update msg project model =
                     -- placeholder epoch would be treated as expired and never run).
                     -- A press that would disturb an in-flight request or a draining batch
                     -- is silently ignored, same convention as the getEmbed guard below.
-                    case ( exoextScanBlocked project model, req.targetIds ) of
+                    case ( exoextRequestBlocked project model, req.targetIds ) of
                         ( True, _ ) ->
                             ( baseModel, Cmd.none, SharedMsg.NoOp )
 
@@ -370,11 +396,25 @@ update msg project model =
                     -- the seq bump would cancel that scan bridge-side. Silently ignore the
                     -- press when blocked (spec behavior). Otherwise stamp a genuine
                     -- wall-clock seq/`createdAt` (same as a scan request).
-                    if exoextGetEmbedBlocked project model then
+                    if exoextRequestBlocked project model then
                         ( baseModel, Cmd.none, SharedMsg.NoOp )
 
                     else
                         ( baseModel, Task.perform (ExoextWriteEmbedRequest req) Time.now, SharedMsg.NoOp )
+
+                Just (CloudShield.Card.DeletionRequested req) ->
+                    -- The same §7.1 slot and therefore the same guard as every other request. A
+                    -- blocked press is silently ignored, exactly as a blocked View is: the manifest
+                    -- disables the control while the guard holds, so a press that gets through and
+                    -- does nothing is a race, not a state to explain.
+                    if exoextRequestBlocked project model then
+                        ( baseModel, Cmd.none, SharedMsg.NoOp )
+
+                    else
+                        ( baseModel, Task.perform (ExoextWriteDeleteRequest req) Time.now, SharedMsg.NoOp )
+
+                Just (CloudShield.Card.NavigationRequested req) ->
+                    ( baseModel, Cmd.none, exoextNavigation project req.instanceId )
 
                 Just (CloudShield.Card.CancelRequested req) ->
                     exoextStopRequested project req baseModel
@@ -494,6 +534,41 @@ update msg project model =
             , SharedMsg.NoOp
             )
 
+        ExoextWriteDeleteRequest req now ->
+            -- The removal twin of `ExoextWriteEmbedRequest`, and deliberately its mirror image: the
+            -- same §7.1 slot, the same seq-derived `requestId` (so the acknowledgement correlates),
+            -- and the same single-marker discipline. It touches no scan state and no run: a removal
+            -- is about the archive, not about a run, so `run.state` is none of its business.
+            let
+                requestId =
+                    exoextRequestId (Time.posixToMillis now)
+            in
+            ( { model
+                | exoextPendingDelete =
+                    Just
+                        { seq = Time.posixToMillis now
+                        , requestId = requestId
+                        , kind = req.kind
+                        , subject = req.resultId
+                        , since = now
+                        }
+
+                -- A fresh attempt retires the previous refusal: the row is being asked again, so
+                -- the old reason is no longer what is happening to it.
+                , exoextDeleteError = Nothing
+
+                -- Same reasoning as the other two request writers: this write clears the cancel
+                -- channel on the wire, so the host's memory of that cancel has to go with it.
+                , exoextCancelRequestId = Nothing
+              }
+            , writeExoextRequestCmd project
+                model
+                (exoextInstances project model)
+                { kind = req.kind, seq = Time.posixToMillis now, subject = req.resultId, batchId = emptyToNothing req.batchId }
+                now
+            , SharedMsg.NoOp
+            )
+
         ExoextWriteApproval now ->
             -- Build the `exoext.approval.v1` record with a genuine wall-clock `approvedAt`, then
             -- hand it to the shared model for persistence. A missing server (nothing to approve)
@@ -538,46 +613,87 @@ exoextInstances project model =
         |> Exoext.Discovery.eligibleInstances model.serverUuid
 
 
-{-| The §7.1 single-req-slot guard for a `getEmbed`: block only when writing it would cancel a
-genuinely in-flight SCAN — a `queued`/`running` run, or a scan this reader just wrote whose req is
-still unclaimed on the wire (correlated by the scan's `pending.seq`). Crucially it does NOT block
-just because a prior _getEmbed_ left the req slot unclaimed (e.g. after a timeout), so one View can
-always supersede another and a timed-out getEmbed never wedges future clicks. No server (nothing to
-write against) counts as blocked. See `CloudShield.Wire.getEmbedBlocked`.
+{-| The §7.1 single-slot guard: whether writing ANY request right now would disturb one that is
+already in flight.
+
+There is ONE predicate rather than one per verb, because there is one request slot. The old pair
+each guarded its own verb against the other's requests and neither guarded a verb against its own
+kind, so the two ways a press could destroy work were exactly the two nobody was watching: a Scan
+pressed while a View was in flight bumped the slot out from under it, and a View pressed while a
+Scan was still unclaimed did the same in reverse. The bridge drops the superseded request with no
+terminal state, so the tracker then waits out the six-hour stale bound — a lost request that looks
+like a running one.
+
+The five clauses are the five ways a request can be outstanding:
+
+  - a tracked scan whose correlated run has not settled (`exoextScanRequestPending`);
+  - an inline-answer request still within its timeout — a session mint, or a removal;
+  - a batch still draining: subjects left to write, or a decided write not yet issued. Not redundant
+    with the first clause — between two siblings the tracked run reads terminal, which is precisely
+    the window in which a press corrupts a live batch;
+  - a request the publisher has not claimed yet, read off the wire
+    ([`Exoext.Transport.reqSlotUnclaimedSeq`](Exoext-Transport#reqSlotUnclaimedSeq)). This is the
+    only clause that can see a request a DIFFERENT browser tab wrote, and the only one that covers
+    the window between a write and the poll that reports it.
+
+Every clause that could otherwise never clear is bounded: the inline markers by the request timeout,
+the unclaimed slot by the same bound against its own wall-clock seq. A guard that outlives the
+request it protects is not a guard, it is a page nobody can press anything on.
+
+No server to write against counts as blocked, which is the fail-closed answer.
+
 -}
-exoextGetEmbedBlocked : Project -> Model -> Bool
-exoextGetEmbedBlocked project model =
+exoextRequestBlocked : Project -> Model -> Bool
+exoextRequestBlocked project model =
     case GetterSetters.serverLookup project model.serverUuid of
         Just server ->
-            CloudShield.Wire.getEmbedBlocked
-                (Maybe.map .seq model.exoextCard.pending)
-                server.osProps.details.metadata
+            let
+                inlineRequestPending pending =
+                    pending
+                        |> Maybe.map (\p -> not (Exoext.Lifecycle.requestTimedOut model.exoextClock p))
+                        |> Maybe.withDefault False
+            in
+            exoextScanRequestPending project model
+                || inlineRequestPending model.exoextPendingEmbed
+                || inlineRequestPending model.exoextPendingDelete
+                || (case model.exoextBatch of
+                        Just batch ->
+                            not (List.isEmpty batch.remaining) || batch.awaitingWrite
+
+                        Nothing ->
+                            False
+                   )
+                || exoextSlotUnclaimed model.exoextClock server.osProps.details.metadata
 
         Nothing ->
             True
 
 
-{-| The §7.1 single-req-slot guard for a user-initiated scan, the sibling of
-`exoextGetEmbedBlocked`. Writing a scan request bumps the req-slot seq, which cancels whatever the
-publisher is running, and it also replaces the batch being drained — stranding that batch's
-untouched targets at `queued` with nothing left to advance them. Blocked when EITHER:
+{-| Whether the publishing instance's request slot holds a request the publisher has not claimed
+yet, and recently enough to still be worth protecting.
 
-  - a tracked scan's correlated run has not reached a terminal state (`exoextScanRequestPending`), or
-  - a batch is still draining — subjects left to write, or a decided write not yet issued. This
-    second clause is not redundant: between two siblings the tracked run reads terminal, so the run
-    check alone would leave exactly the window in which a press corrupts a live batch.
+The freshness bound is the point. The seq IS the wall-clock moment the request was written (§7.1),
+so an unclaimed slot older than the request timeout belongs to a publisher that is not answering —
+and the answer to a publisher that is not answering is to let the researcher act, never to keep the
+page locked on its behalf.
 
 -}
-exoextScanBlocked : Project -> Model -> Bool
-exoextScanBlocked project model =
-    exoextScanRequestPending project model
-        || (case model.exoextBatch of
-                Just batch ->
-                    not (List.isEmpty batch.remaining) || batch.awaitingWrite
-
-                Nothing ->
-                    False
-           )
+exoextSlotUnclaimed : Time.Posix -> List OSTypes.MetadataItem -> Bool
+exoextSlotUnclaimed now metadata =
+    Exoext.Transport.reqSlotUnclaimedSeq metadata
+        |> Maybe.map
+            (\seq ->
+                not
+                    (Exoext.Lifecycle.requestTimedOut now
+                        { seq = seq
+                        , requestId = ""
+                        , kind = ""
+                        , subject = ""
+                        , since = Time.millisToPosix seq
+                        }
+                    )
+            )
+        |> Maybe.withDefault False
 
 
 {-| True when any exoext request on this ServerDetail page is still worth fast-polling for.
@@ -641,7 +757,9 @@ syncExoextReads now project model =
                     { model
                         | exoextPendingEmbed =
                             clearResolvedPendingEmbed metadata model.exoextPendingEmbed
+                        , exoextClock = now
                     }
+                        |> resolveExoextRemoval metadata
 
                 -- Four steps that must run in this order, because each feeds the next.
                 --
@@ -712,7 +830,7 @@ page model, so the precedence rule lives in one generic place:
     [stale](Exoext-Lifecycle#staleRunAfterMillis), which is why `now` is threaded in here.
 
 A recovered run does NOT pre-fill the row's optimistic `scanState`, so the card's own dedup does not
-see it and its Scan button stays pressable. `exoextScanBlocked` is the guard that catches such a
+see it and its Scan button stays pressable. `exoextRequestBlocked` is the guard that catches such a
 press (and rolls the card back), which is where a duplicate request has always been stopped.
 
 -}
@@ -743,18 +861,18 @@ contract argument live).
 
 It exists because two correct behaviors compose into a trap. A publisher whose daemon is restarted
 mid-run never settles `exoext.v1.run.state`, so the host reads a scan that is live forever; and the
-host correctly withholds every Scan affordance while a run is in flight (`exoextScanBlocked`, and
+host correctly withholds every Scan affordance while a run is in flight (`exoextRequestBlocked`, and
 `/scanBusy` through it). The researcher is then left with a row that says scanning, no way to start
 a new scan, and no way to clear the old one. The publisher-side bug is fixed on its own side; this
 is the host's defense in depth, because the host cannot assume every publisher is healthy.
 
 Three things go at once, because releasing any subset leaves the trap half-shut:
 
-  - **the tracked request**, which is what `exoextScanBlocked`, `exoextStatusOverride`, the elapsed
+  - **the tracked request**, which is what `exoextRequestBlocked`, `exoextStatusOverride`, the elapsed
     timer, and the 5 s fast poll are all keyed on. Dropping it is what makes the row read `idle` and
     the Scan controls live again, and it is why no consumer needed a staleness check of its own.
   - **the batch**, stored record included. A tail waiting behind the wedged run is the OTHER half of
-    `exoextScanBlocked`, so leaving it would keep the press blocked with the tracker already gone.
+    `exoextRequestBlocked`, so leaving it would keep the press blocked with the tracker already gone.
     The tail is dropped rather than resumed on purpose: its head died at an unknown hour, and
     silently starting scans on an unattended page would spend the researcher's snapshot quota on
     work they are no longer watching. Re-selecting the targets is one press; an unwatched batch is
@@ -1000,6 +1118,103 @@ clearResolvedPendingEmbed metadata pending =
             )
 
 
+{-| Fold a fresh poll's response slot into the in-flight removal.
+
+An acknowledgement that matches the tracked request's id settles it, and the two outcomes are
+genuinely different pieces of work:
+
+  - **Removed.** Drop the row from the loaded history immediately, and clear the history refresh key
+    so the next poll refetches the index rather than waiting for a run transition that a removal
+    never causes. The local drop is what makes the row disappear at the acknowledgement instead of a
+    poll later; the refetch is what makes the publisher's archive, not this browser, the last word.
+  - **Refused.** Keep the row and record the publisher's reason against the result it named, so the
+    card can put it on that row with a way to try again.
+
+An acknowledgement for some other request is ignored: the slot is single-occupancy but a stale
+answer can still be sitting in it when a new request goes out.
+
+-}
+resolveExoextRemoval : List OSTypes.MetadataItem -> Model -> Model
+resolveExoextRemoval metadata model =
+    case ( model.exoextPendingDelete, exoextRemovalAck metadata ) of
+        ( Just pending, Just ack ) ->
+            if ack.requestId /= pending.requestId then
+                model
+
+            else if ack.ok then
+                { model
+                    | exoextPendingDelete = Nothing
+                    , exoextDeleteError = Nothing
+                    , exoextHistory =
+                        RDPP.setData
+                            (RDPP.DoHave
+                                (RDPP.withDefault [] model.exoextHistory
+                                    |> List.filter (\entry -> exoextRowResultId entry /= pending.subject)
+                                )
+                                pending.since
+                            )
+                            model.exoextHistory
+                    , exoextHistoryRequestKey = Nothing
+                }
+
+            else
+                { model
+                    | exoextPendingDelete = Nothing
+                    , exoextDeleteError = Just { resultId = pending.subject, message = ack.message }
+                }
+
+        _ ->
+            model
+
+
+{-| The removal acknowledgement sitting in the §7.1 response slot, if there is one. The host pulls
+the body out of the envelope; recognizing it as an answer to a removal is the adapter's
+([`CloudShield.Reader.removalAck`](CloudShield-Reader#removalAck)).
+-}
+exoextRemovalAck : List OSTypes.MetadataItem -> Maybe { requestId : String, resultId : Maybe String, ok : Bool, message : String }
+exoextRemovalAck metadata =
+    Exoext.Transport.resultBodyFromMetadata metadata
+        |> Maybe.andThen CloudShield.Reader.removalAck
+
+
+{-| A history row's own result id: its `requestId`, falling back to `batchId` for a legacy row that
+carries none. The same identity the card projects rows under and the same one a removal names, kept
+in step so a removed row is the row that disappears.
+-}
+exoextRowResultId : CloudShield.Wire.IndexEntry -> String
+exoextRowResultId entry =
+    Maybe.withDefault entry.batchId entry.requestId
+
+
+{-| The removal state the card projects: which row is being removed right now, and the last refusal.
+
+A removal that has waited past the §7.1 request timeout is reported as a failure rather than as
+still in flight ([`Exoext.Lifecycle.requestTimedOut`](Exoext-Lifecycle#requestTimedOut)). Without
+that, a publisher that never answers leaves a row reading "Removing…" forever — and, worse, leaves
+the single request slot looking occupied, so every later press is refused to protect a request that
+is not coming back.
+
+-}
+exoextRemovalState :
+    Time.Posix
+    -> Model
+    ->
+        ( Maybe String
+        , Maybe { resultId : String, message : String }
+        )
+exoextRemovalState now model =
+    case model.exoextPendingDelete of
+        Just pending ->
+            if Exoext.Lifecycle.requestTimedOut now pending then
+                ( Nothing, Just { resultId = pending.subject, message = Exoext.Lifecycle.requestTimedOutMessage } )
+
+            else
+                ( Just pending.subject, model.exoextDeleteError )
+
+        Nothing ->
+            ( Nothing, model.exoextDeleteError )
+
+
 syncExoextManifest : Project -> Exoext.Discovery.Sentinel -> String -> Model -> ( Model, Cmd Msg )
 syncExoextManifest project sentinel etag model =
     case ( project.endpoints.swift, Exoext.Discovery.manifestObjectLocation sentinel ) of
@@ -1027,6 +1242,7 @@ syncExoextManifest project sentinel etag model =
                     swiftUrl
                     location.container
                     location.objectName
+                    Nothing
                     Exoext.Transport.manifestCapBytes
                     (\result ->
                         SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
@@ -1084,6 +1300,7 @@ syncExoextResultRef project sentinel etag metadata ( model, manifestCmd ) =
                                 swiftUrl
                                 container
                                 objectName
+                                Nothing
                                 Exoext.Transport.resultCapBytes
                                 (\result ->
                                     SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
@@ -1125,6 +1342,7 @@ syncExoextIndex project sentinel refreshKey ( model, priorCmd ) =
                         swiftUrl
                         container
                         (CloudShield.Wire.indexObjectName (Maybe.withDefault "" sentinel.prefix))
+                        (Just refreshKey)
                         CloudShield.Wire.indexCapBytes
                         (\result ->
                             SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
@@ -1158,19 +1376,30 @@ exoextIndexNeedsFetch refreshKey model =
 resolve to fetched empty history (`[]`) rather than an error state. Refresh errors keep any stale
 loaded rows visible. Stamped by the refresh key it was fetched for, and dropped if the current key
 (etag + run slot) has since moved on.
+
+**A failed fetch does NOT stamp the key**, and that is the fix for history that froze until a
+reload. The key is a "this generation has been fetched" marker, so stamping it on a failure recorded
+a fetch that never happened: nothing asked again until the run slot moved, which for a settled scan
+can be hours away, or never. Leaving it unstamped makes the next poll retry, which is exactly what
+the reload a researcher resorts to is doing by hand.
+
 -}
 receiveExoextIndex : Project -> Time.Posix -> String -> Result HttpErrorWithBody String -> Model -> Model
 receiveExoextIndex project receivedTime refreshKey result model =
     if currentExoextHistoryKey project model == Just refreshKey then
-        let
-            nextHistory =
-                case result of
-                    Ok body ->
+        case result of
+            Ok body ->
+                { model
+                    | exoextHistory =
                         RDPP.RemoteDataPlusPlus
                             (RDPP.DoHave (CloudShield.Wire.decodeIndex body) receivedTime)
                             (RDPP.NotLoading Nothing)
+                    , exoextHistoryRequestKey = Just refreshKey
+                }
 
-                    Err _ ->
+            Err _ ->
+                { model
+                    | exoextHistory =
                         case model.exoextHistory.data of
                             RDPP.DoHave _ _ ->
                                 RDPP.setNotLoading Nothing model.exoextHistory
@@ -1179,11 +1408,8 @@ receiveExoextIndex project receivedTime refreshKey result model =
                                 RDPP.RemoteDataPlusPlus
                                     (RDPP.DoHave [] receivedTime)
                                     (RDPP.NotLoading Nothing)
-        in
-        { model
-            | exoextHistory = nextHistory
-            , exoextHistoryRequestKey = Just refreshKey
-        }
+                    , exoextHistoryRequestKey = Nothing
+                }
 
     else
         model
@@ -1418,7 +1644,7 @@ exoextViewConfig approved project model currentTime server =
                     ( CloudShield.Card.ManifestUnavailable, Nothing )
 
         statusOverride =
-            exoextStatusOverride metadata model
+            exoextEffectiveStatusOverride currentTime metadata model
 
         resultBody =
             Exoext.Transport.resultBodyFromMetadata metadata
@@ -1465,12 +1691,16 @@ exoextViewConfig approved project model currentTime server =
             CloudShield.Reader.rowStatus statusOverride
                 (Maybe.map .seq model.exoextCard.pending)
                 (Time.posixToMillis currentTime)
+
+        ( removingResultId, removeError ) =
+            exoextRemovalState currentTime model
     in
     { approved = approved
     , sourceName = server.osProps.name
     , manifest = manifestSource
     , transportLabel = transportLabel
     , transportWarning = exoextTransportWarning project model metadata maybeSentinel resultBody
+    , runOutcome = exoextRunOutcome metadata statusOverride
     , scanTimer = elapsedTimer
     , statusOverride = displayStatusOverride
 
@@ -1499,18 +1729,19 @@ exoextViewConfig approved project model currentTime server =
     , pendingResultId = readerProjection.pendingResultId
     , erroredResultId = readerProjection.erroredResultId
     , expiredResultId = readerProjection.expiredResultId
+    , removingResultId = removingResultId
+    , removeError = removeError
 
-    -- The §7.1 guard, projected so the manifest can disable the affordance it would swallow.
-    -- Same predicate the `SessionRequested` branch of `update` applies, read from the same live wire
-    -- state — the button is greyed exactly when (and only when) a press would do nothing.
-    , requestBusy = exoextGetEmbedBlocked project model
-
-    -- The other §7.1 guard, and deliberately a SEPARATE signal: `requestBusy` protects a scan from a
-    -- View press, this one is when a Scan press would itself be swallowed (`exoextScanBlocked` — a
-    -- run still going, or a batch still draining). The two are true at overlapping but different
-    -- times, and binding one control to the other's guard would grey a button that works and leave
-    -- one that does not.
-    , scanBusy = exoextScanBlocked project model
+    -- The §7.1 guard, projected so the manifest can disable the affordances it would swallow.
+    -- Exactly the predicate `update` applies to every request press, read from the same live wire
+    -- state, so a control is greyed when (and only when) pressing it would do nothing.
+    --
+    -- The two keys carry the same value and stay two keys anyway: they are the manifest's names for
+    -- two groups of controls, and one guard answering both is a fact about this host's §7.1
+    -- transport rather than a promise to the manifest. A transport with more than one slot would
+    -- separate them again without a manifest change.
+    , requestBusy = exoextRequestBlocked project model
+    , scanBusy = exoextRequestBlocked project model
 
     -- Which row can be stopped, and the request id a stop must name. Derived from the RAW
     -- `statusOverride`, never the display-composed one: the decision is about the run's real state,
@@ -1536,6 +1767,55 @@ exoextViewConfig approved project model currentTime server =
     , health = Exoext.Health.read metadata
     , now = currentTime
     }
+
+
+{-| How the tracked run ended, paired with the publisher's own reason when it has one.
+
+The state comes from the correlated status override — so this reports the run the page is actually
+tracking and never some other run's leftover slot — and the reason from `exoext.v1.run.error` on the
+same slot. The host neither reads the sentence nor writes one: it carries the publisher's words to
+the adapter, which decides which states are worth a line and what to call them.
+
+`Nothing` when no run is correlated, which is also what keeps a fresh page quiet.
+
+-}
+exoextRunOutcome : List OSTypes.MetadataItem -> Maybe { targetId : String, state : String } -> Maybe { state : String, error : Maybe String }
+exoextRunOutcome metadata statusOverride =
+    statusOverride
+        |> Maybe.map
+            (\override ->
+                { state = override.state
+                , error =
+                    Exoext.Transport.runStatusFromMetadata metadata
+                        |> Maybe.andThen .error
+                }
+            )
+
+
+{-| The run state a row should show, from whichever of the two sources can name one.
+
+The wire is preferred and unchanged ([`exoextStatusOverride`](#exoextStatusOverride)). What is new is
+the fallback, and it closes a contradiction rather than adding a feature: between writing a request
+and the publisher echoing its seq, the wire says nothing about that run, so the row fell through to
+its durable state and read **idle** — while the very same host record was simultaneously offering
+that row a **Stop** control and greying every Scan button on the card. Three controls, three
+different accounts of what was happening, and the one the eye lands on said nothing was.
+
+So when the wire cannot name the run, the host's own pre-echo record does
+([`exoextPreEchoRun`](#exoextPreEchoRun)) — the same record the Stop control is already derived from,
+which is what makes the three agree by construction. It carries all of that function's guards, a
+stale request included, so a run the host has stopped believing cannot reappear as a badge.
+
+-}
+exoextEffectiveStatusOverride : Time.Posix -> List OSTypes.MetadataItem -> Model -> Maybe { targetId : String, state : String }
+exoextEffectiveStatusOverride now metadata model =
+    case exoextStatusOverride metadata model of
+        Just override ->
+            Just override
+
+        Nothing ->
+            exoextPreEchoRun now metadata model
+                |> Maybe.map (\run -> { targetId = run.targetId, state = run.state })
 
 
 {-| The live run projected onto its own row: the tracked request says WHICH row, the §7.1 status
@@ -1829,6 +2109,31 @@ exoextStoppingTarget now metadata statusOverride model =
                 else
                     Nothing
             )
+
+
+{-| Where an `exoext.navigate` press actually goes.
+
+§5.4 applied to navigation: the id is re-resolved against Exosphere's OWN server list before
+anything moves, so an extension can send the researcher to a page of their own project and nowhere
+else. An id this project does not have is ignored, which is both the fail-closed answer and the
+honest one — there is no page to go to.
+
+Naming the destination is deliberately all the extension may do. It supplies an instance id, not a
+URL and not a route, so the reachable set is exactly the set of pages the researcher could have
+reached by clicking around their own project.
+
+-}
+exoextNavigation : Project -> String -> SharedMsg.SharedMsg
+exoextNavigation project instanceId =
+    case GetterSetters.serverLookup project instanceId of
+        Just _ ->
+            SharedMsg.NavigateToRoute
+                (Route.ProjectRoute (GetterSetters.projectIdentifier project)
+                    (Route.ServerDetail instanceId)
+                )
+
+        Nothing ->
+            SharedMsg.NoOp
 
 
 {-| The §4.1 `requestId` this host writes for a request-slot seq. Deterministic in the seq (which is

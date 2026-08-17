@@ -396,6 +396,7 @@ cloudShieldEmbedProjectionSuite =
                         , completedAt = "2026-07-01T00:00:00Z"
                         , status = "done"
                         , counts = { critical = 0, high = 1, medium = 0, low = 0, info = 0 }
+                        , error = Nothing
                         }
 
                     rowStates_ =
@@ -471,7 +472,7 @@ cloudShieldScanTimerSuite =
 
 {-| The two §7.1 guards as the manifest sees them, through the whole host path: `exoextViewConfig`
 projected by `CloudShield.Card.projection`. This is the wiring test — that `/scanBusy` is genuinely
-`exoextScanBlocked` (the predicate that gates a SCAN press) and not the View guard beside it.
+`exoextRequestBlocked` (the predicate that gates a SCAN press) and not the View guard beside it.
 -}
 cloudShieldBusyProjectionSuite : Test
 cloudShieldBusyProjectionSuite =
@@ -491,16 +492,17 @@ cloudShieldBusyProjectionSuite =
         draining =
             writeRequestAt 1700 { subject = "i-1", batchId = Nothing } modelAfterStartScan
     in
-    describe "ServerDetail /scanBusy (WP10 bug 4)"
+    describe "ServerDetail /scanBusy and /requestBusy"
         [ test "a live run makes both guards busy" <|
             \_ ->
                 Expect.equal (Ok ( True, True )) (busyFlags (runSlot 1700 "running") draining)
-        , test "between two siblings only the SCAN guard is busy, which is why it is its own flag" <|
+        , test "between two siblings BOTH guards stay busy — the slot is still spoken for" <|
             \_ ->
-                -- The case that would be wrong if the manifest bound its Scan controls to
-                -- `requestBusy`: the tracked run reads terminal, so the View guard has lifted, but
-                -- the batch still has targets parked and a Scan press would strand them.
-                Expect.equal (Ok ( True, False )) (busyFlags (runSlot 1700 "done") draining)
+                -- The tracked run reads terminal, so the run clause has lifted, but the batch still
+                -- has targets parked. Both flags must stay set: a Scan press here strands the
+                -- batch's remaining targets, and a View press bumps the slot out from under the
+                -- sibling that is about to be written. One slot, one answer.
+                Expect.equal (Ok ( True, True )) (busyFlags (runSlot 1700 "done") draining)
         , test "an idle card is busy on neither" <|
             \_ ->
                 Expect.equal (Ok ( False, False ))
@@ -523,28 +525,28 @@ cloudShieldScanBlockedSuite =
                 |> writeRequestAt 3000 { subject = "i-3", batchId = Just "exoext-batch-1000" }
                 |> advance 3000 "done"
     in
-    describe "ServerDetail exoextScanBlocked (§7.1 guard on a user-initiated scan)"
+    describe "ServerDetail exoextRequestBlocked (§7.1 guard on a user-initiated scan)"
         [ test "blocked while the tracked run is still going" <|
             \_ ->
                 Expect.equal True
-                    (ServerDetail.exoextScanBlocked (projectPublishing (runSlot 1000 "running")) afterFirstWrite)
+                    (ServerDetail.exoextRequestBlocked (projectPublishing (runSlot 1000 "running")) afterFirstWrite)
         , test "blocked between two siblings, when the tracked run already reads terminal" <|
             \_ ->
                 -- The clause the run check alone would miss: target 1 is done, but targets 2 and 3
                 -- are still parked, so a new scan here would replace the batch and strand them.
                 Expect.equal True
-                    (ServerDetail.exoextScanBlocked (projectPublishing (runSlot 1000 "done")) afterFirstWrite)
+                    (ServerDetail.exoextRequestBlocked (projectPublishing (runSlot 1000 "done")) afterFirstWrite)
         , test "blocked while a decided continuation's write is still on its way" <|
             \_ ->
                 -- Last subject popped (`remaining` empty) but not yet written.
                 Expect.equal True
-                    (ServerDetail.exoextScanBlocked (projectPublishing (runSlot 2000 "done"))
+                    (ServerDetail.exoextRequestBlocked (projectPublishing (runSlot 2000 "done"))
                         { afterFirstWrite | exoextBatch = Just { batchId = Just "exoext-batch-1000", remaining = [], awaitingWrite = True } }
                     )
         , test "not blocked once the batch has drained — a completed batch must allow a new scan" <|
             \_ ->
                 Expect.equal False
-                    (ServerDetail.exoextScanBlocked (projectPublishing (runSlot 3000 "done")) drained)
+                    (ServerDetail.exoextRequestBlocked (projectPublishing (runSlot 3000 "done")) drained)
         ]
 
 

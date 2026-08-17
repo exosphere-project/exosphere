@@ -333,7 +333,7 @@ staleRunSuite =
         -- What the researcher can actually do and see: may they start a scan, is a run still
         -- tracked, is a batch still draining, and what badge does target 1 carry.
         outcome metadata model =
-            { blocked = ServerDetail.exoextScanBlocked (projectPublishing metadata) model
+            { blocked = ServerDetail.exoextRequestBlocked (projectPublishing metadata) model
             , tracked = model.exoextCard.pending |> Maybe.map (\p -> ( p.subject, p.seq ))
             , batch = model.exoextBatch |> Maybe.map .remaining
             , rowState = Dict.get "i-1" model.exoextCard.scanState
@@ -370,7 +370,7 @@ staleRunSuite =
                 in
                 Expect.equal ( Just ( "i-1", 1700 ), True )
                     ( recovered.exoextCard.pending |> Maybe.map (\p -> ( p.subject, p.seq ))
-                    , ServerDetail.exoextScanBlocked (projectPublishing wedgedRun) recovered
+                    , ServerDetail.exoextRequestBlocked (projectPublishing wedgedRun) recovered
                     )
         , test "a stale run releases the tracker, the tail and the row badges, and unblocks a new scan" <|
             \_ ->
@@ -398,9 +398,9 @@ staleRunSuite =
         , test "the boundary in both directions: at the threshold the run still blocks, one ms past it does not" <|
             \_ ->
                 Expect.equal ( True, False )
-                    ( ServerDetail.exoextScanBlocked (projectPublishing wedgedRun)
+                    ( ServerDetail.exoextRequestBlocked (projectPublishing wedgedRun)
                         (polledAt (clockAfter 1700 Lifecycle.staleRunAfterMillis) wedgedRun wedged)
-                    , ServerDetail.exoextScanBlocked (projectPublishing wedgedRun)
+                    , ServerDetail.exoextRequestBlocked (projectPublishing wedgedRun)
                         (polledAt (clockAfter 1700 (Lifecycle.staleRunAfterMillis + 1)) wedgedRun wedged)
                     )
         , test "the manifest sees it: /scanBusy lifts once the run goes stale" <|
@@ -445,7 +445,7 @@ staleRunSuite =
                 in
                 Expect.equal ( Just ( "i-1", 9000 ), True )
                     ( polled.exoextCard.pending |> Maybe.map (\p -> ( p.subject, p.seq ))
-                    , ServerDetail.exoextScanBlocked (projectPublishing wedgedRun) polled
+                    , ServerDetail.exoextRequestBlocked (projectPublishing wedgedRun) polled
                     )
         , test "releasing a stale run also forgets the stored batch record, so a reload does not restore it" <|
             \_ ->
@@ -1009,7 +1009,7 @@ tailStopSuite =
                     (tailAndRows emptied)
         , test "a batch emptied by stops no longer blocks a fresh scan, exactly like a drained one" <|
             \_ ->
-                -- The observable consequence of "same state as a drained batch": `exoextScanBlocked`
+                -- The observable consequence of "same state as a drained batch": `exoextRequestBlocked`
                 -- keys on the tail, so a batch left behind as an empty record would wedge Scan.
                 let
                     emptied =
@@ -1018,7 +1018,7 @@ tailStopSuite =
                             |> stop { requestId = "", targetId = "i-3" }
                 in
                 Expect.equal False
-                    (ServerDetail.exoextScanBlocked (projectPublishing (runSlot 1700 "done")) emptied)
+                    (ServerDetail.exoextRequestBlocked (projectPublishing (runSlot 1700 "done")) emptied)
         , test "a decided-but-unwritten continuation keeps its §7.1 guard when the tail empties" <|
             \_ ->
                 -- `awaitingWrite` covers the window between deciding on a subject and issuing its
@@ -1031,7 +1031,7 @@ tailStopSuite =
                 Expect.equal
                     ( Just { batchId = Nothing, remaining = [], awaitingWrite = True }, True )
                     ( emptied.exoextBatch
-                    , ServerDetail.exoextScanBlocked (projectPublishing (runSlot 1700 "done")) emptied
+                    , ServerDetail.exoextRequestBlocked (projectPublishing (runSlot 1700 "done")) emptied
                     )
         , test "a target the tail is not holding changes nothing at all" <|
             \_ ->
