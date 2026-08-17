@@ -151,6 +151,27 @@ baseRules t =
     , ".jr-stack--row { flex-direction: row; align-items: center; }"
     , ".jr-stack--col { flex-direction: column; align-items: stretch; }"
     , ".jr-text { }"
+
+    -- Pressable non-button elements. The renderer puts `.jr-pressable` (plus `role="button"` and
+    -- `tabindex="0"`) on any Text / Badge / Stack that carries an `on.press`, and leaves the
+    -- styling to the host — so this block is the whole of what makes such an element READ as
+    -- pressable. Without it the researcher gets a control that works and looks inert, which is
+    -- worse than no control at all.
+    --
+    -- Deliberately quiet: a cursor, a faint palette-derived wash on hover, and a real focus ring
+    -- for the keyboard. A pressable ROW (a Stack) is the common case and must not turn into a
+    -- button-looking box, so there is no border and no fill of its own.
+    , ".jr-pressable { cursor: pointer; border-radius: 6px; }"
+    , ".jr-pressable:hover { background: " ++ t.primaryTint ++ "; }"
+    , ".jr-pressable:focus-visible { outline: 2px solid " ++ t.primaryLine ++ "; outline-offset: 2px; }"
+
+    -- A pressable inside a pressable (a target name inside a clickable row) must not double the
+    -- wash when the pointer is over the inner one: the renderer stops the click from reaching the
+    -- outer element, so the hover has to agree with where the press will land.
+    , ".jr-pressable:has(.jr-pressable:hover) { background: transparent; }"
+
+    -- Pressable TEXT reads as a link rather than as a surface, which is what a name in a row is.
+    , ".jr-text.jr-pressable:hover { background: transparent; text-decoration: underline; color: " ++ t.primary ++ "; }"
     , ".jr-button { padding: 4px 12px; border: 1px solid " ++ t.border ++ "; border-radius: 4px; background: " ++ t.frontBg ++ "; color: " ++ t.text ++ "; cursor: pointer; font-size: 0.9em; }"
     , ".jr-button:hover { border-color: " ++ t.primary ++ "; color: " ++ t.primary ++ "; }"
 
@@ -176,7 +197,7 @@ baseRules t =
     -- compressed when the line runs out of room, while the cross axis keeps its declared size, and
     -- a circle compressed on one axis is an oval. Nothing about `border-radius: 50%` prevents that
     -- — 50% of an oval is an oval.
-    , ".jr-badge[data-state^=\"queued\"]::before, .jr-badge[data-state^=\"running\"]::before, .jr-badge[data-state^=\"stopping\"]::before { content: \"\"; display: inline-block; flex: none; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: jr-badge-spin 0.7s linear infinite; }"
+    , ".jr-badge[data-state^=\"queued\"]::before, .jr-badge[data-state^=\"running\"]::before, .jr-badge[data-state^=\"stopping\"]::before, .jr-badge[data-state^=\"removing\"]::before, .jr-badge[data-state^=\"Removing\"]::before { content: \"\"; display: inline-block; flex: none; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: jr-badge-spin 0.7s linear infinite; }"
     , "@keyframes jr-badge-spin { to { transform: rotate(360deg); } }"
 
     -- A badge whose resolved `data-state` is empty draws nothing at all. This is how a manifest

@@ -12,6 +12,7 @@ module Exoext.Transport exposing
     , reqCancelKey
     , reqCancelMetadata
     , reqSlotMetadata
+    , reqSlotUnclaimedSeq
     , resolveResultBody
     , resultBody
     , resultBodyFromMetadata
@@ -204,6 +205,9 @@ older reader.
     host's own record of what it wrote does not.
   - `batchId` — the §2.2 batch the run belongs to, absent for a lone request.
   - `phase` / `pct` — optional coarse progress. Free-form token and 0-100 integer.
+  - `error` — the publisher's short, plain-language reason a run ended badly
+    (`exoext.v1.run.error`, ≤255 chars). Absent on a run that did not fail, and absent from a
+    publisher that predates the key, so the host must never require it to explain a failure.
 
 -}
 type alias RunStatus =
@@ -214,12 +218,18 @@ type alias RunStatus =
     , batchId : Maybe String
     , phase : Maybe String
     , pct : Maybe Int
+    , error : Maybe String
     }
 
 
 {-| Read the §7.1 status slot from metadata: `exoext.v1.run.seq` + `exoext.v1.run.state`, plus the
 optional §4.3 descriptors. `Nothing` unless the two required keys are present and `seq` parses; a
 missing descriptor is `Nothing` on the record and never fails the read.
+
+`error` is read with [`messageValue`](#messageValue) rather than
+[`identifierValue`](#identifierValue): it is prose, not an id, so the only value that means
+"nothing to say" is absent or empty.
+
 -}
 runStatusFromMetadata : List OSTypes.MetadataItem -> Maybe RunStatus
 runStatusFromMetadata metadata =
@@ -236,10 +246,20 @@ runStatusFromMetadata metadata =
             , batchId = identifierValue "exoext.v1.run.batchId" dict
             , phase = identifierValue "exoext.v1.run.phase" dict
             , pct = percentValue "exoext.v1.run.pct" dict
+            , error = messageValue "exoext.v1.run.error" dict
             }
         )
         (Dict.get "exoext.v1.run.seq" dict |> Maybe.andThen String.toInt)
         (Dict.get "exoext.v1.run.state" dict)
+
+
+{-| A free-text metadata value: absent or empty reads as nothing to say. Unlike
+[`identifierValue`](#identifierValue) it does NOT fold `"None"`, because a sentence is allowed to
+be any words at all and the host must not silently drop one.
+-}
+messageValue : String -> Dict String String -> Maybe String
+messageValue key dict =
+    Dict.get key dict |> Maybe.andThen emptyToNothing
 
 
 {-| A flat-metadata identifier value, read with the same discipline as
@@ -446,6 +466,38 @@ emptyToNothing value =
 
     else
         Just value
+
+
+{-| The seq of a §7.1 request the publisher has not claimed yet, or `Nothing` when the slot is
+empty, unreadable, or already claimed (`exoext.v1.req.claimed == exoext.v1.req.seq`).
+
+It exists because an unclaimed slot is the one window in which a write is genuinely destructive:
+until the publisher has picked a request up, the next write **replaces** it, and the request that
+was there is simply gone with no state anywhere to say so. A host that reads this can decline to
+write over one instead — including one written by another browser tab, which no session-local
+tracker can see.
+
+The value is the seq itself rather than a `Bool` because the seq is wall-clock millis (the host
+mints it that way, §7.1), so the caller can age it out. That bound is not optional: a publisher that
+is down never claims anything, and a guard with no expiry would turn a stopped VM into a page where
+nothing can be pressed again.
+
+-}
+reqSlotUnclaimedSeq : List OSTypes.MetadataItem -> Maybe Int
+reqSlotUnclaimedSeq metadata =
+    let
+        dict =
+            toDict metadata
+    in
+    Dict.get "exoext.v1.req.seq" dict
+        |> Maybe.andThen
+            (\seq ->
+                if Dict.get "exoext.v1.req.claimed" dict == Just seq then
+                    Nothing
+
+                else
+                    String.toInt seq
+            )
 
 
 {-| The cache key that decides when a reader should refetch a body derived from PAST requests

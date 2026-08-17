@@ -15,6 +15,7 @@ import OpenStack.SecurityGroupRule as SecurityGroupRule
 import OpenStack.ServerActions as ServerActions
 import OpenStack.Types as OSTypes
 import OpenStack.VolumeSnapshots exposing (VolumeSnapshot)
+import Route
 import Style.Types as ST
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Time
@@ -60,6 +61,11 @@ type SharedMsg
     | ReceiveAppVersion ErrorContext (Result HttpErrorWithBody AppVersion)
     | ProjectMsg HelperTypes.ProjectIdentifier ProjectSpecificMsgConstructor
     | OpenNewWindow String
+      -- Navigate to a route inside the app. It exists because a page's `update` is handed a
+      -- `Project` and not the shared view context, so a page that must move the app cannot push a
+      -- URL itself; `LinkClicked` is the browser's own event and needs a real `Url`, which a page
+      -- has no honest way to build.
+    | NavigateToRoute Route.Route
     | LinkClicked Browser.UrlRequest
     | UrlChanged Url.Url
     | ToastMsg (Toasty.Msg Toast)

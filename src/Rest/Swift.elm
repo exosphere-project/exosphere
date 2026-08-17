@@ -81,9 +81,23 @@ ever decoded into a `String` — see `expectCappedStringWithErrorBody`). This is
 primitive the extension card needs: it is a **programmatic** consumer of object storage (no
 upload queue, no save-to-disk), fetching `manifest.json` / result objects and handing the raw
 JSON string back to `toMsg` for the card to decode.
+
+`cacheKey` is an optional cache-buster for a **mutable** object — one that keeps its name while its
+contents change, which no `Last-Modified` heuristic can be trusted with. RGW answers these reads
+with a `Last-Modified` and no explicit freshness, so a browser is entitled to serve the previous
+body out of cache; the read then "succeeds" with stale content, which is worse than failing, because
+the caller stamps its refresh key and stops asking. Passing a key that moves whenever the content
+might have moved makes each generation a distinct URL. An immutable object (a write-once result, a
+manifest addressed by its etag) passes `Nothing` and stays cacheable, which is the point of it being
+immutable.
+
+A query parameter rather than a `Cache-Control` request header, deliberately: the read goes through
+the CORS proxy, and a parameter is carried by definition where a request header is carried only if
+the proxy is configured to forward it.
+
 -}
-requestGetObjectCapped : Project -> Url -> ObjectStorage.ContainerName -> ObjectStorage.ObjectName -> Int -> (Result HttpErrorWithBody String -> SharedMsg) -> Cmd SharedMsg
-requestGetObjectCapped project url containerName objectName capBytes toMsg =
+requestGetObjectCapped : Project -> Url -> ObjectStorage.ContainerName -> ObjectStorage.ObjectName -> Maybe String -> Int -> (Result HttpErrorWithBody String -> SharedMsg) -> Cmd SharedMsg
+requestGetObjectCapped project url containerName objectName cacheKey capBytes toMsg =
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
         Get
@@ -91,7 +105,9 @@ requestGetObjectCapped project url containerName objectName capBytes toMsg =
         []
         ( url
         , ObjectStorage.objectPath containerName objectName |> List.map Url.percentEncode
-        , []
+        , cacheKey
+            |> Maybe.map (\key -> [ Url.Builder.string "exoext_cache" key ])
+            |> Maybe.withDefault []
         )
         Http.emptyBody
         (expectCappedStringWithErrorBody capBytes toMsg)

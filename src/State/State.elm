@@ -1366,6 +1366,9 @@ processSharedMsg sharedMsg outerModel =
         OpenNewWindow url ->
             ( outerModel, Ports.openNewWindow url )
 
+        NavigateToRoute route ->
+            ( outerModel, Route.pushUrl viewContext route )
+
         LinkClicked urlRequest ->
             case urlRequest of
                 Browser.Internal url ->

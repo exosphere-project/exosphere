@@ -6,6 +6,9 @@ module Exoext.Lifecycle exposing
     , ResultInput
     , SessionState(..)
     , sessionState
+    , requestTimeoutMillis
+    , requestTimedOut
+    , requestTimedOutMessage
     , terminalRunStates
     , isTerminalRunState
     , correlatedRunState
@@ -22,6 +25,9 @@ module Exoext.Lifecycle exposing
     , verbCancelRequest
     , verbOpenSession
     , verbDismissSession
+    , verbDeleteResult
+    , verbNavigate
+    , verbShowDetail
     , verbRefresh
     , VerbAlias
     , resolveVerb
@@ -62,6 +68,9 @@ Two things live here that used to be duplicated in `Page.ServerDetail` and `Clou
 @docs ResultInput
 @docs SessionState
 @docs sessionState
+@docs requestTimeoutMillis
+@docs requestTimedOut
+@docs requestTimedOutMessage
 
 
 # Run status
@@ -90,6 +99,9 @@ Two things live here that used to be duplicated in `Page.ServerDetail` and `Clou
 @docs verbCancelRequest
 @docs verbOpenSession
 @docs verbDismissSession
+@docs verbDeleteResult
+@docs verbNavigate
+@docs verbShowDetail
 @docs verbRefresh
 @docs VerbAlias
 @docs resolveVerb
@@ -256,7 +268,7 @@ sessionState timeoutMillis now pending result =
 
         loadingOrTimeout p =
             if Time.posixToMillis now - Time.posixToMillis p.since > timeoutMillis then
-                Failed { subject = p.subject, message = "the request timed out" }
+                Failed { subject = p.subject, message = requestTimedOutMessage }
 
             else
                 Opening { subject = p.subject }
@@ -282,6 +294,45 @@ sessionState timeoutMillis now pending result =
 
                 Nothing ->
                     NoSession
+
+
+{-| How long a written request may wait for its acknowledgement before the host stops believing one
+is coming: 30 seconds.
+
+It applies to the request kinds the publisher answers **inline in the response slot** — a session
+mint, a removal — rather than to a run, which reports its own §4.4 states and has its own much wider
+bounds. Those inline answers normally arrive in one poll after the publisher claims the slot (~10 s),
+so 30 s leaves headroom for a slow publisher without leaving a dead "Opening…" / "Removing…" row up
+long enough to read as broken.
+
+The bound is not cosmetic. A marker that never clears is a request that is in flight forever, and
+with one §7.1 slot per publisher that is a wedge: every later press is refused to protect a request
+that is not coming back.
+
+-}
+requestTimeoutMillis : Int
+requestTimeoutMillis =
+    30 * 1000
+
+
+{-| Whether a written request has waited past [`requestTimeoutMillis`](#requestTimeoutMillis) for an
+answer, measured from the moment it was written (`since`).
+
+Only meaningful for the inline-answer kinds. A scan correlates by `seq` against the run slot and
+carries no `since`, so this must never be asked about one.
+
+-}
+requestTimedOut : Time.Posix -> PendingRequest -> Bool
+requestTimedOut now pending =
+    Time.posixToMillis now - Time.posixToMillis pending.since > requestTimeoutMillis
+
+
+{-| What a request that never came back is reported as. One sentence, shared by every path that can
+time one out, so a timeout reads the same wherever the researcher meets it.
+-}
+requestTimedOutMessage : String
+requestTimedOutMessage =
+    "the request timed out"
 
 
 
@@ -677,6 +728,60 @@ archived result — the same resource can be re-opened with [`verbOpenSession`](
 verbDismissSession : String
 verbDismissSession =
     "exoext.dismissSession"
+
+
+{-| The generic verb that removes one existing result (params: `{ resultId, batchId? }`). Always
+confirm-gated by the catalog's confirm rule: unlike [`verbDismissSession`](#verbDismissSession),
+which closes a view, this one destroys the thing being viewed.
+
+It is a request like any other and goes through the same single §7.1 slot, because only the
+publisher can act on its own archive. The host's half is entirely generic — write a request that
+names a result id, then read one acknowledgement back — and that is deliberately all the host knows:
+what "removing a result" costs, and whether it can be undone, are the publisher's to state in the
+confirm text its manifest supplies.
+
+-}
+verbDeleteResult : String
+verbDeleteResult =
+    "exoext.deleteResult"
+
+
+{-| The generic verb that asks the HOST to navigate to one of its own instances (params:
+`{ instanceId }`).
+
+This is the first verb through which an extension moves the app rather than describing it, so it is
+deliberately the narrowest one that is useful. It names an INSTANCE, not a URL and not a route: the
+host resolves the id against its own project and navigates to that instance's page, so the set of
+places an extension can send a researcher is exactly the set of pages they could have reached by
+clicking around the project themselves. An id the host does not recognize is ignored rather than
+guessed at.
+
+That framing is what keeps it benign. Navigation cannot exfiltrate, cannot write, and cannot be made
+to point outside the app, because there is nowhere in the grammar to put an outside address.
+
+-}
+verbNavigate : String
+verbNavigate =
+    "exoext.navigate"
+
+
+{-| The generic verb that asks the HOST to show a longer piece of text the extension already has
+on screen in short form (params: `{ title, text }`, both plain strings the manifest resolves like
+any other param).
+
+Host-local by definition: it writes nothing, requests nothing, and names no resource — it is the
+extension saying "there is more to read here" and Exosphere deciding how reading it looks. That
+split is the whole point. The extension owns the words, so a failure reason, a truncation notice or
+a policy note all reach the researcher in the publisher's own vocabulary; the host owns the surface,
+so every one of them is the same dismissible, bounded, keyboard-closable dialog drawn in Exosphere's
+chrome, and a manifest can neither style it nor make it unclosable.
+
+The text is publisher-authored and is rendered as plain text, never as markup.
+
+-}
+verbShowDetail : String
+verbShowDetail =
+    "exoext.showDetail"
 
 
 {-| The generic verb that refreshes the current session / view. No manifest verb aliases to it

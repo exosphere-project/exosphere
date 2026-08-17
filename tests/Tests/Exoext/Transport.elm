@@ -2,6 +2,7 @@ module Tests.Exoext.Transport exposing
     ( capBodySuite
     , historyRefreshKeySuite
     , reqCancelSuite
+    , reqSlotClaimSuite
     , resolveResultBodySuite
     , resultBodySuite
     , runStatusSuite
@@ -107,6 +108,30 @@ runStatusSuite =
                             )
                         )
                         |> Maybe.map descriptors
+                    )
+        , test "run.error is read as the publisher's own sentence" <|
+            \_ ->
+                Expect.equal (Just (Just "project disk quota full (600/600 GB); free 60 GB or request more"))
+                    (Transport.runStatusFromMetadata
+                        (meta (( "exoext.v1.run.error", "project disk quota full (600/600 GB); free 60 GB or request more" ) :: requiredKeys))
+                        |> Maybe.map .error
+                    )
+        , test "an absent or empty run.error is Nothing — a run that said nothing said nothing" <|
+            \_ ->
+                Expect.equal [ Nothing, Nothing ]
+                    ([ Transport.runStatusFromMetadata (meta requiredKeys)
+                     , Transport.runStatusFromMetadata (meta (( "exoext.v1.run.error", "" ) :: requiredKeys))
+                     ]
+                        |> List.map (Maybe.andThen .error)
+                    )
+        , test "run.error is prose, so the value \"None\" is kept rather than folded away" <|
+            \_ ->
+                -- The identifier reads fold `"None"` because it can never be a real id. A sentence
+                -- has no such guarantee, and dropping words a publisher chose is worse than showing
+                -- an odd one.
+                Expect.equal (Just (Just "None"))
+                    (Transport.runStatusFromMetadata (meta (( "exoext.v1.run.error", "None" ) :: requiredKeys))
+                        |> Maybe.map .error
                     )
         , test "pct outside 0-100 and a non-numeric pct both read as absent" <|
             \_ ->
@@ -230,4 +255,36 @@ historyRefreshKeySuite =
         , test "missing keys render as empty segments" <|
             \_ ->
                 Expect.equal "::" (Transport.historyRefreshKey (meta []))
+        ]
+
+
+{-| The §7.1 claim half of the request slot: whether a request is still sitting there unpicked-up.
+It is the one signal that can see a request a DIFFERENT browser tab wrote, which is why the host
+consults it before writing over the slot.
+-}
+reqSlotClaimSuite : Test
+reqSlotClaimSuite =
+    describe "reqSlotUnclaimedSeq"
+        [ test "a slot the publisher has not claimed yields its seq" <|
+            \_ ->
+                Expect.equal (Just 1700)
+                    (Transport.reqSlotUnclaimedSeq (meta [ ( "exoext.v1.req.seq", "1700" ) ]))
+        , test "a claimed slot yields nothing — the request is the publisher's now" <|
+            \_ ->
+                Expect.equal Nothing
+                    (Transport.reqSlotUnclaimedSeq
+                        (meta [ ( "exoext.v1.req.seq", "1700" ), ( "exoext.v1.req.claimed", "1700" ) ])
+                    )
+        , test "a claim of an EARLIER request leaves the current one unclaimed" <|
+            \_ ->
+                Expect.equal (Just 1800)
+                    (Transport.reqSlotUnclaimedSeq
+                        (meta [ ( "exoext.v1.req.seq", "1800" ), ( "exoext.v1.req.claimed", "1700" ) ])
+                    )
+        , test "an empty slot, and an unparseable seq, are both nothing to protect" <|
+            \_ ->
+                Expect.equal [ Nothing, Nothing ]
+                    [ Transport.reqSlotUnclaimedSeq (meta [])
+                    , Transport.reqSlotUnclaimedSeq (meta [ ( "exoext.v1.req.seq", "soon" ) ])
+                    ]
         ]
