@@ -1,6 +1,6 @@
-module Tests.JsonRender.ButtonTest exposing (emptyLabelSuite, suite)
+module Tests.JsonRender.ButtonTest exposing (emptyLabelSuite, iconSuite, suite)
 
-{-| Focused coverage for the Button `disabled` prop.
+{-| Focused coverage for the Button `disabled` and `icon` props.
 
 The rule: an optional `disabled` expression, when it resolves true, renders the button inert —
 the native `disabled` attribute, a `jr-button--disabled` class, and NO press handler; when absent
@@ -218,4 +218,111 @@ emptyLabelSuite =
                 in
                 render literal Encode.null
                     |> Query.hasNot [ Selector.tag "button" ]
+        ]
+
+
+{-| The `icon` prop: a name from a closed set, drawn inline by the renderer.
+
+Two rules carry the weight. An icon makes an empty label LEGITIMATE — a glyph is visible and
+meaningful with no text — so the empty-label suppression above stops applying, which is the one
+interaction between the two features. And an icon-only button is named by the RENDERER
+(`aria-label` / `title` per glyph), because a manifest has no way to name a shape and a control
+that is only a drawing is otherwise invisible to a screen reader.
+
+-}
+iconSuite : Test
+iconSuite =
+    let
+        iconButton props =
+            """
+            { "root": "b"
+            , "elements":
+                { "b":
+                    { "type": "Button"
+                    , "props": { """ ++ props ++ """ }
+                    , "on": { "press": { "action": "exoext.deleteResult", "params": {} } }
+                    , "children": []
+                    }
+                }
+            }
+            """
+    in
+    describe "JsonRender.Render Button icon"
+        [ test "an icon-only button renders, despite the empty label" <|
+            \_ ->
+                render (iconButton """ "label": "", "icon": "trash" """) Encode.null
+                    |> Query.has [ Selector.tag "button" ]
+        , test "the renderer names it: aria-label and title come from the glyph" <|
+            \_ ->
+                render (iconButton """ "label": "", "icon": "trash" """) Encode.null
+                    |> Query.has
+                        [ Selector.attribute (Html.Attributes.attribute "aria-label" "Remove")
+                        , Selector.attribute (Html.Attributes.title "Remove")
+                        ]
+        , test "each glyph carries its own name" <|
+            \_ ->
+                render (iconButton """ "label": "", "icon": "refresh" """) Encode.null
+                    |> Query.has [ Selector.attribute (Html.Attributes.attribute "aria-label" "Refresh") ]
+        , test "the glyph is drawn inline, decoratively, in currentColor" <|
+            \_ ->
+                render (iconButton """ "label": "", "icon": "trash" """) Encode.null
+                    |> Query.find [ Selector.tag "svg" ]
+                    |> Query.has
+                        [ Selector.attribute (Html.Attributes.attribute "stroke" "currentColor")
+                        , Selector.attribute (Html.Attributes.attribute "width" "16")
+                        , Selector.attribute (Html.Attributes.attribute "aria-hidden" "true")
+                        ]
+        , test "an icon BESIDE a label keeps the label as visible text and names nothing" <|
+            \_ ->
+                render (iconButton """ "label": "Retry", "icon": "refresh" """) Encode.null
+                    |> Expect.all
+                        [ Query.has [ Selector.text "Retry" ]
+                        , Query.hasNot
+                            [ Selector.attribute (Html.Attributes.attribute "aria-label" "Refresh") ]
+                        ]
+        , test "an icon-only button still emits its press" <|
+            \_ ->
+                render (iconButton """ "label": "", "icon": "trash" """) Encode.null
+                    |> Query.find [ Selector.tag "button" ]
+                    |> Event.simulate Event.click
+                    |> Event.toResult
+                    |> Expect.ok
+        , test "a disabled icon-only button emits nothing, as any disabled button" <|
+            \_ ->
+                render
+                    (iconButton """ "label": "", "icon": "trash", "disabled": { "$state": "/requestBusy" } """)
+                    (busy True)
+                    |> Query.find [ Selector.tag "button" ]
+                    |> Event.simulate Event.click
+                    |> Event.toResult
+                    |> Expect.err
+        , test "an empty label with NO icon is still suppressed — the rule is unchanged" <|
+            \_ ->
+                render (iconButton """ "label": "" """) Encode.null
+                    |> Query.hasNot [ Selector.tag "button" ]
+        , test "a button with no icon draws no glyph" <|
+            \_ ->
+                render (iconButton """ "label": "View" """) Encode.null
+                    |> Query.findAll [ Selector.tag "svg" ]
+                    |> Query.count (Expect.equal 0)
+        , test "an icon outside the closed set is refused at decode" <|
+            \_ ->
+                JsonRender.decodeString (iconButton """ "label": "", "icon": "skull" """)
+                    |> Result.map (always "accepted")
+                    |> Expect.err
+        , test "a non-string icon is refused at decode" <|
+            \_ ->
+                JsonRender.decodeString (iconButton """ "label": "", "icon": true """)
+                    |> Result.map (always "accepted")
+                    |> Expect.err
+        , test "icon is a Button prop only: it is refused on a Text" <|
+            \_ ->
+                JsonRender.decodeString
+                    """
+                    { "root": "t"
+                    , "elements": { "t": { "type": "Text", "props": { "value": "hi", "icon": "trash" } } }
+                    }
+                    """
+                    |> Result.map (always "accepted")
+                    |> Expect.err
         ]

@@ -150,6 +150,30 @@ baseRules t =
     , ".jr-stack { display: flex; gap: 10px; }"
     , ".jr-stack--row { flex-direction: row; align-items: center; }"
     , ".jr-stack--col { flex-direction: column; align-items: stretch; }"
+
+    -- A row stack is ONE LINE, and a line has to survive a narrow card. A flex item's default
+    -- `min-width: auto` refuses to shrink below its own content, so a row whose text is long, or
+    -- whose count pills are many, overflows instead of fitting — and the overflow lands on top of
+    -- the neighbors, which is how a row of pills came to paint over the timestamp beside it.
+    -- Letting every row child shrink is the whole fix; what each child does with the shrinking is
+    -- the next three rules.
+    , ".jr-stack--row > * { min-width: 0; }"
+
+    -- TEXT on a row line truncates rather than wrapping: a row is a line, and a name that wraps
+    -- moves everything else on the row. This reaches the row's own text children and the text of a
+    -- COLUMN nested one deep in it (the "two stacked lines then controls" row shape) — and stops
+    -- there, so prose in an ordinary column stack still wraps as it should.
+    , ".jr-stack--row > .jr-text, .jr-stack--row > .jr-stack--col > .jr-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }"
+
+    -- COUNT PILLS on a row line wrap to a second line instead of pushing the line wider, and they
+    -- wrap toward the controls they sit next to, so the group stays a block against the right of
+    -- the text rather than drifting.
+    , ".jr-stack--row > .jr-counts { justify-content: flex-end; row-gap: 4px; }"
+
+    -- CONTROLS on a row line never shrink. A squeezed button is a smaller hit target and a clipped
+    -- label; the text beside it is what gives way. Same for a badge, whose whole content is a
+    -- short state word.
+    , ".jr-stack--row > .jr-button, .jr-stack--row > .jr-badge, .jr-stack--row > .jr-checkbox { flex: none; }"
     , ".jr-text { }"
 
     -- Pressable non-button elements. The renderer puts `.jr-pressable` (plus `role="button"` and
@@ -179,6 +203,25 @@ baseRules t =
     -- the eye expects it and the press reads as temporarily unavailable, not missing. The hover
     -- rule is re-neutralized because `:hover` still fires over a disabled button.
     , ".jr-button--disabled, .jr-button--disabled:hover { opacity: 0.45; cursor: not-allowed; border-color: " ++ t.border ++ "; color: " ++ t.muted ++ "; }"
+
+    -- A button carrying a glyph. The flex box is what puts the icon and the label on one baseline;
+    -- the glyph itself is a 16px stroke drawing in `currentColor`, so it takes the button's color
+    -- (including the disabled and hover colors above) with nothing further to say here.
+    , ".jr-button--icon { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }"
+    , ".jr-icon { flex: none; }"
+
+    -- An ICON-ONLY button. Square and compact, because there is no label to give it width, and
+    -- muted at rest so a row of them reads as a column of quiet affordances rather than as a row
+    -- of buttons competing with the real action beside them. The square is sized in `em` against
+    -- the button's own 0.9em type, which lands it on the height of a text button on the same row
+    -- and keeps it there if the page type scales.
+    , ".jr-button--icon-only { box-sizing: border-box; width: 1.9em; height: 1.9em; padding: 0; color: " ++ t.muted ++ "; }"
+    , ".jr-button--icon-only:not(.jr-button--disabled):hover { color: " ++ t.primary ++ "; border-color: " ++ t.primary ++ "; background: " ++ t.primaryTint ++ "; }"
+
+    -- The destructive glyph gets the destructive hover. Keyed on the ICON, not on the manifest:
+    -- the renderer marks the shape it drew (`jr-icon--trash`) and the stylesheet decides what a
+    -- trash can means, so no extension can talk itself into a red button.
+    , ".jr-button--icon-only:not(.jr-button--disabled):has(.jr-icon--trash):hover { color: " ++ t.dangerText ++ "; border-color: " ++ t.dangerBorder ++ "; background: " ++ t.dangerTint ++ "; }"
     , ".jr-checkbox { display: inline-flex; align-items: center; gap: 6px; }"
     , ".jr-checkbox input { accent-color: " ++ t.primary ++ "; }"
     , ".jr-badge { padding: 1px 9px; border-radius: 999px; font-size: 0.8em; border: 1px solid transparent; }"

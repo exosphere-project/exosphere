@@ -490,7 +490,7 @@ shippedManifest =
                 "$item": "state",
                 "eq": "opening"
               },
-              "$then": "Opening…",
+              "$then": "",
               "$else": {
                 "$cond": {
                   "$item": "state",
@@ -626,23 +626,17 @@ shippedManifest =
     "history-remove-btn": {
       "type": "Button",
       "props": {
-        "label": {
+        "label": "",
+        "icon": "trash",
+        "disabled": {
           "$cond": {
             "$item": "state",
             "eq": "removing"
           },
-          "$then": "",
+          "$then": true,
           "$else": {
-            "$cond": {
-              "$item": "state",
-              "eq": "removeError"
-            },
-            "$then": "Retry",
-            "$else": "Remove"
+            "$state": "/requestBusy"
           }
-        },
-        "disabled": {
-          "$state": "/requestBusy"
         }
       },
       "on": {

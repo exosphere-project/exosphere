@@ -38,6 +38,12 @@ suite =
         , test "an unknown PROP key reads as version skew" <|
             \_ ->
                 -- The manifest wants a Button prop this catalog has not grown yet.
+                kindOf """{ "root": "b", "elements": { "b": { "type": "Button", "props": { "label": "Go", "tooltip": "Go now" }, "children": [] } } }"""
+                    |> Expect.equal (Ok Spec.UnknownCatalogSurface)
+        , test "an unknown icon NAME reads as version skew too" <|
+            \_ ->
+                -- The icon set is closed but grows, so a shape this build cannot draw is the same
+                -- situation as a component type it cannot render: a newer manifest, not a broken one.
                 kindOf """{ "root": "b", "elements": { "b": { "type": "Button", "props": { "label": "Go", "icon": "play" }, "children": [] } } }"""
                     |> Expect.equal (Ok Spec.UnknownCatalogSurface)
         , test "an unknown ELEMENT key reads as version skew" <|

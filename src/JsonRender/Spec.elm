@@ -201,13 +201,22 @@ type alias BadgeProps =
     }
 
 
-{-| `Button` props: the `label` expression and an optional `disabled` expression. When `disabled`
-resolves truthy the button renders inert (the native `disabled` attribute, a
-`jr-button--disabled` class, and no press handler at all); absent ⇒ enabled, the historical
-behavior.
+{-| `Button` props: the `label` expression, an optional `icon` name, and an optional `disabled`
+expression. When `disabled` resolves truthy the button renders inert (the native `disabled`
+attribute, a `jr-button--disabled` class, and no press handler at all); absent ⇒ enabled, the
+historical behavior.
+
+`icon` is a **name from a closed set** (`"trash"`, `"close"`, `"external"`, `"refresh"`), never
+markup and never an expression: the renderer draws the glyph itself, so a manifest can ask for one
+of a handful of shapes and cannot inject an image. Any other name is refused at decode time, like
+every other off-catalog value. When the resolved `label` is non-empty it stays visible next to the
+glyph; an empty label with an `icon` renders the button icon-only, with the renderer supplying the
+accessible name.
+
 -}
 type alias ButtonProps =
     { label : Expr
+    , icon : Maybe String
     , disabled : Maybe Expr
     }
 
@@ -416,7 +425,7 @@ about it.
 -}
 unknownCatalogSurfaceMarkers : List String
 unknownCatalogSurfaceMarkers =
-    [ unknownComponentTypeMarker, unsupportedKeyMarker ]
+    [ unknownComponentTypeMarker, unsupportedKeyMarker, unknownIconMarker ]
 
 
 unknownComponentTypeMarker : String
@@ -427,6 +436,15 @@ unknownComponentTypeMarker =
 unsupportedKeyMarker : String
 unsupportedKeyMarker =
     "key(s) (fail-closed; not implemented)"
+
+
+{-| An `icon` name the catalog does not draw is skew, not corruption: the icon set is closed and
+grows, so a manifest naming a shape this build has not learned yet is the same situation as a
+component type it has not learned yet.
+-}
+unknownIconMarker : String
+unknownIconMarker =
+    "Unknown Button icon"
 
 
 
@@ -645,7 +663,7 @@ allowedPropKeys ct =
             [ "value", "variant" ]
 
         Button ->
-            [ "label", "disabled" ]
+            [ "label", "icon", "disabled" ]
 
         Checkbox ->
             [ "label", "checked" ]
@@ -698,8 +716,9 @@ propsBodyDecoder ct =
                 (optionalField "variant" (Decode.map Just Expr.decoder) Nothing)
 
         Button ->
-            Decode.map2 (\l d -> ButtonP (ButtonProps l d))
+            Decode.map3 (\l i d -> ButtonP (ButtonProps l i d))
                 (Decode.field "label" Expr.decoder)
+                (optionalField "icon" (Decode.map Just iconDecoder) Nothing)
                 (optionalField "disabled" (Decode.map Just Expr.decoder) Nothing)
 
         Checkbox ->
@@ -746,6 +765,23 @@ columnDecoder =
             (Decode.field "key" Decode.string)
             (Decode.field "label" Decode.string)
         )
+
+
+{-| A `Button`'s `icon` name, closed over the four shapes the renderer knows how to draw. A
+manifest naming anything else is refused rather than rendered without a glyph, so a typo surfaces
+as a decode error instead of as a control that silently lost its meaning.
+-}
+iconDecoder : Decoder String
+iconDecoder =
+    Decode.string
+        |> Decode.andThen
+            (\s ->
+                if List.member s [ "trash", "close", "external", "refresh" ] then
+                    Decode.succeed s
+
+                else
+                    Decode.fail (unknownIconMarker ++ ": `" ++ s ++ "`")
+            )
 
 
 toneDecoder : Decoder Tone

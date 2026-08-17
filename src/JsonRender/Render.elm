@@ -62,6 +62,8 @@ import JsonRender.Spec as Spec
         , Spec
         , UIElement
         )
+import Svg
+import Svg.Attributes as SvgAttr
 import Url
 
 
@@ -465,8 +467,15 @@ phantom clickable: the empty-label case is exactly the one where the press carri
 
 The exclusion has to be structural, not a stylesheet rule. The badge equivalent IS CSS
 (`.jr-badge[data-state=""] { display: none }`) and that is fine, because a hidden badge is only
-unreadable — a hidden button is still clickable. There is also no icon support in this catalog, so a
-label-less button can never be a legitimate control being styled by other means.
+unreadable — a hidden button is still clickable.
+
+An **`icon` is the one exception**, and the only one: a button carrying a glyph is visible and
+meaningful with no text at all, so `label: ""` + `icon` renders icon-only rather than nothing. That
+is a manifest saying "this control is a shape", not "this control does not apply". Suppression
+still works for icon buttons the same way it works everywhere else — a manifest that wants the
+control gone on some rows uses a row where the button is not emitted, not an empty label. The
+glyph makes the accessible name the renderer's job: an icon-only control the manifest cannot name
+would be invisible to a screen reader, so `aria-label` and `title` come from the icon set.
 
 -}
 renderButton : Context -> UIElement -> Spec.ButtonProps -> Html Msg
@@ -474,37 +483,144 @@ renderButton ctx element props =
     let
         label =
             Expr.resolveDisplay ctx props.label
+
+        glyph =
+            Maybe.andThen iconGlyph props.icon
     in
-    if String.isEmpty label then
-        Html.text ""
+    case ( String.isEmpty label, glyph ) of
+        ( True, Nothing ) ->
+            Html.text ""
 
-    else
-        let
-            isDisabled =
-                props.disabled |> Maybe.map (Expr.resolveBool ctx) |> Maybe.withDefault False
+        _ ->
+            let
+                isDisabled =
+                    props.disabled |> Maybe.map (Expr.resolveBool ctx) |> Maybe.withDefault False
 
-            handler =
-                case ( isDisabled, pressEmit ctx element ) of
-                    ( False, Just emit ) ->
-                        [ pressClick emit ]
+                handler =
+                    case ( isDisabled, pressEmit ctx element ) of
+                        ( False, Just emit ) ->
+                            [ pressClick emit ]
 
-                    _ ->
-                        []
+                        _ ->
+                            []
 
-            disabledClass =
-                if isDisabled then
-                    " jr-button--disabled"
+                disabledClass =
+                    if isDisabled then
+                        " jr-button--disabled"
 
-                else
-                    ""
-        in
-        Html.button
-            (Attr.class ("jr-button" ++ disabledClass)
-                :: Attr.type_ "button"
-                :: Attr.disabled isDisabled
-                :: handler
-            )
-            [ Html.text label ]
+                    else
+                        ""
+
+                iconOnly =
+                    String.isEmpty label
+
+                iconClass =
+                    case ( glyph, iconOnly ) of
+                        ( Nothing, _ ) ->
+                            ""
+
+                        ( Just _, False ) ->
+                            " jr-button--icon"
+
+                        ( Just _, True ) ->
+                            " jr-button--icon jr-button--icon-only"
+
+                nameAttrs =
+                    case ( glyph, iconOnly ) of
+                        ( Just g, True ) ->
+                            [ Attr.attribute "aria-label" g.name, Attr.title g.name ]
+
+                        _ ->
+                            []
+
+                children =
+                    case glyph of
+                        Nothing ->
+                            [ Html.text label ]
+
+                        Just g ->
+                            if iconOnly then
+                                [ iconSvg g ]
+
+                            else
+                                [ iconSvg g, Html.text label ]
+            in
+            Html.button
+                (Attr.class ("jr-button" ++ iconClass ++ disabledClass)
+                    :: Attr.type_ "button"
+                    :: Attr.disabled isDisabled
+                    :: nameAttrs
+                    ++ handler
+                )
+                children
+
+
+{-| The closed icon set: the accessible name for each shape, and the path that draws it. The
+names match [`JsonRender.Spec`](JsonRender.Spec)'s decoder, which rejects anything else, so
+`Nothing` is unreachable through a decoded manifest — and if it were ever reached the button falls
+back to the plain label rendering rather than to a nameless empty control.
+
+The paths are Feather's, stroked rather than filled, on Feather's 24×24 grid. They are written out
+here rather than imported so the renderer keeps no icon-library dependency: the catalog owns its
+glyphs the same way it owns its components.
+
+-}
+iconGlyph : String -> Maybe { key : String, name : String, path : String }
+iconGlyph icon =
+    case icon of
+        "trash" ->
+            Just
+                { key = "trash"
+                , name = "Remove"
+                , path = "M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"
+                }
+
+        "close" ->
+            Just
+                { key = "close"
+                , name = "Close"
+                , path = "M18 6 6 18M6 6l12 12"
+                }
+
+        "external" ->
+            Just
+                { key = "external"
+                , name = "Open"
+                , path = "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3"
+                }
+
+        "refresh" ->
+            Just
+                { key = "refresh"
+                , name = "Refresh"
+                , path = "M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+                }
+
+        _ ->
+            Nothing
+
+
+{-| A glyph as inline SVG: 16px, `currentColor`, stroked, so it takes the button's own color in
+both the light and the dark theme without the host shipping an icon font or a sprite.
+`aria-hidden` keeps it out of the accessibility tree — the BUTTON carries the name, the drawing is
+decoration. The `jr-icon--<name>` modifier is the host's per-glyph hook, so the stylesheet can
+give the destructive shape a destructive hover without the manifest saying so.
+-}
+iconSvg : { key : String, name : String, path : String } -> Html Msg
+iconSvg glyph =
+    Svg.svg
+        [ SvgAttr.class ("jr-icon jr-icon--" ++ glyph.key)
+        , SvgAttr.width "16"
+        , SvgAttr.height "16"
+        , SvgAttr.viewBox "0 0 24 24"
+        , SvgAttr.fill "none"
+        , SvgAttr.stroke "currentColor"
+        , SvgAttr.strokeWidth "2"
+        , SvgAttr.strokeLinecap "round"
+        , SvgAttr.strokeLinejoin "round"
+        , Attr.attribute "aria-hidden" "true"
+        ]
+        [ Svg.path [ SvgAttr.d glyph.path ] [] ]
 
 
 {-| Attributes that turn a non-`Button` element carrying an `on.press` binding into a
