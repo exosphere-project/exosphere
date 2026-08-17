@@ -1,4 +1,4 @@
-module Tests.CloudShield.TrustChrome exposing (suite)
+module Tests.Exoext.TrustChrome exposing (suite)
 
 {-| The two sentences Exosphere says in its OWN voice around a published card: the §5.3 opt-in
 prompt (shown before anything the publisher wrote is rendered at all) and the §5.2 provenance
@@ -11,14 +11,14 @@ that word in the prompt that asks for their trust.
 
 -}
 
-import CloudShield.Card as Card
 import Element
+import Exoext.Card as Card
 import Style.Helpers as SH
 import Style.Types as ST
 import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector
-import Tests.CloudShield.Fixtures exposing (cardViewConfig)
+import Tests.Exoext.CardFixtures exposing (cardViewConfig)
 import Time
 import Types.Defaults
 import Types.HelperTypes as HelperTypes
@@ -55,22 +55,22 @@ suite =
             \_ ->
                 render Types.Defaults.localization False
                     |> Query.has
-                        [ Selector.text "The instance “cloudshield-vm” offers an extension UI. Extensions are off until you enable them. Enabling is remembered for this instance; you can forget it any time." ]
+                        [ Selector.text "The instance “extension-vm” offers an extension UI. Extensions are off until you enable them. Enabling is remembered for this instance; you can forget it any time." ]
         , test "a deployer's own noun reaches the opt-in prompt, both times it appears" <|
             \_ ->
                 render customLocalization False
                     |> Query.has
-                        [ Selector.text "The cloud server “cloudshield-vm” offers an extension UI. Extensions are off until you enable them. Enabling is remembered for this cloud server; you can forget it any time." ]
+                        [ Selector.text "The cloud server “extension-vm” offers an extension UI. Extensions are off until you enable them. Enabling is remembered for this cloud server; you can forget it any time." ]
         , test "the provenance marker names the publisher with the configured noun" <|
             \_ ->
                 render Types.Defaults.localization True
                     |> Query.has
-                        [ Selector.text "Published by the \"cloudshield-vm\" instance, not verified by Exosphere." ]
+                        [ Selector.text "Published by the \"extension-vm\" instance, not verified by Exosphere." ]
         , test "a deployer's own noun reaches the provenance marker" <|
             \_ ->
                 render customLocalization True
                     |> Query.has
-                        [ Selector.text "Published by the \"cloudshield-vm\" cloud server, not verified by Exosphere." ]
+                        [ Selector.text "Published by the \"extension-vm\" cloud server, not verified by Exosphere." ]
         , test "the opt-in gate is the whole gate: an unapproved card draws no provenance marker" <|
             \_ ->
                 -- Guards the fixtures above rather than the copy: the two sentences are alternatives,

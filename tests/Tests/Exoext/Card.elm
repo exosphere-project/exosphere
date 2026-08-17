@@ -1,4 +1,4 @@
-module Tests.CloudShield.Card exposing
+module Tests.Exoext.Card exposing
     ( cancelDismissVerbSuite
     , detailDialogSuite
     , discoverySuite
@@ -14,7 +14,7 @@ module Tests.CloudShield.Card exposing
     , transportSuite
     )
 
-{-| Unit tests for the CloudShield browser-side dynamic-UI integration (Phase 1).
+{-| Unit tests for the browser-side dynamic-UI integration (Phase 1).
 
 Covers the pure host logic that carries over 100% to the Jetstream2 object-storage path:
 the frozen manifest still validates fail-closed, the §1.2 host projection, the §3.1 discovery
@@ -22,12 +22,12 @@ sentinel + §7.1 metadata transport framing, and the §2.4 `$instances` eligibil
 
 -}
 
-import CloudShield.Card as Card
-import CloudShield.Wire as Wire
 import Dict
 import Element
+import Exoext.Card as Card
 import Exoext.Discovery as Discovery
 import Exoext.Lifecycle as Lifecycle
+import Exoext.Messages as Wire
 import Exoext.Transport as Transport
 import Expect
 import Json.Decode as Decode
@@ -44,7 +44,7 @@ import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector
-import Tests.CloudShield.Fixtures exposing (cardViewConfig)
+import Tests.Exoext.CardFixtures exposing (cardViewConfig)
 import Time
 import Types.Defaults
 
@@ -56,12 +56,12 @@ import Types.Defaults
 {-| Manifest v3 as a MANUALLY-SYNCED copy of the bridge's authoritative card.json (the source of
 truth). Re-sync whenever the bridge card changes:
 
-    sed 's/\\\\/\\\\\\\\/g' ~/dev/cloudshield-bridge/cloudshield_bridge/card.json
+    sed 's/\\\\/\\\\\\\\/g' <path-to-the-publisher>/card.json
 
 (the only transform is doubling each JSON backslash for Elm's triple-quoted string literal.)
 
 The contract test below ties this manifest to the host: the SAME per-row `state` token and the
-SAME `/historyLoaded` + `/historyCount` + `/targetsCount` keys that `CloudShield.Card.projection`
+SAME `/historyLoaded` + `/historyCount` + `/targetsCount` keys that `Exoext.Card.projection`
 / `historyRow` project drive the manifest's `$cond` text/action chains and the badge `variant`, so
 the two sides cannot silently disagree. `cardJson` is no longer embedded in the host — this fixture
 is the only in-repo copy of the manifest, and it must decode fail-closed.
@@ -149,7 +149,7 @@ cardJsonV3 =
           },
           "confirm": {
             "title": "Scan selected instances?",
-            "message": "Queue CloudShield scans for the currently selected instances.",
+            "message": "Queue scans for the currently selected instances.",
             "variant": "default"
           }
         }
@@ -466,7 +466,7 @@ cardJsonV3 =
         "src": {
           "$state": "/embedUrl"
         },
-        "title": "CloudShield scan results"
+        "title": "Scan results"
       },
       "children": []
     }
@@ -567,7 +567,7 @@ rowTriple token =
 
 manifestSuite : Test
 manifestSuite =
-    describe "CloudShield manifest v3 (wire contract, synced from the bridge card.json)"
+    describe "the reference manifest, v3 (wire contract, synced from the publisher's card.json)"
         [ test "(a) the v2 manifest decodes fail-closed clean through the catalog" <|
             \_ ->
                 case JsonRender.decodeString cardJsonV3 of
@@ -762,7 +762,7 @@ loadingHistory =
     { rows = [], loading = True, loaded = False }
 
 
-{-| The host's `ViewConfig` in its quiet default (see `Tests.CloudShield.Fixtures`). Each projection
+{-| The host's `ViewConfig` in its quiet default (see `Tests.Exoext.CardFixtures`). Each projection
 test overrides only the fields it is actually about, so a test reads as the one situation it pins
 rather than a row of interchangeable `Nothing`s.
 -}
@@ -773,7 +773,7 @@ sampleConfig =
 
 projectionSuite : Test
 projectionSuite =
-    describe "CloudShield host projection (§1.2)"
+    describe "host projection (§1.2)"
         [ test "selected reflects the host selection set" <|
             \_ ->
                 let
@@ -1072,15 +1072,15 @@ cancelDismissVerbSuite =
                 , ( "targetId", Encode.string targetId )
                 ]
     in
-    describe "CloudShield cancel + dismiss verbs"
+    describe "cancel + dismiss verbs"
         [ test "a cancel press asks the host to stop the named request" <|
             \_ ->
                 Expect.equal (Just (Card.CancelRequested { requestId = "exoext-req-7", targetId = "i-1" }))
                     (dispatch Lifecycle.verbCancelRequest (stopParams "exoext-req-7" "i-1"))
-        , test "the v1 cloudshield.* alias reaches the same verb" <|
+        , test "a v1 namespaced alias reaches the same verb" <|
             \_ ->
                 Expect.equal (Just Lifecycle.verbCancelRequest)
-                    (Card.resolveAction "cloudshield.cancelScan" Encode.null |> Maybe.map .verb)
+                    (Card.resolveAction "acme.cancelScan" Encode.null |> Maybe.map .verb)
         , test "a cancel naming nothing at all is swallowed (both ids empty, and absent alike)" <|
             \_ ->
                 -- A non-stoppable row projects BOTH ids empty, so this is the press that would
@@ -1158,15 +1158,15 @@ meta pairs =
 
 discoverySuite : Test
 discoverySuite =
-    describe "CloudShield discovery"
+    describe "discovery"
         [ test "readSentinel returns Nothing without the exoext.v1.kind key" <|
             \_ ->
                 Expect.equal Nothing (Discovery.readSentinel (meta [ ( "foo", "bar" ) ]))
         , test "readSentinel reads kind + store + flags" <|
             \_ ->
-                case Discovery.readSentinel (meta [ ( "exoext.v1.kind", "cloudshield" ), ( "exoext.v1.store", "metadata" ), ( "exoext.v1.flags", "scan,results" ) ]) of
+                case Discovery.readSentinel (meta [ ( "exoext.v1.kind", "scanner" ), ( "exoext.v1.store", "metadata" ), ( "exoext.v1.flags", "scan,results" ) ]) of
                     Just s ->
-                        Expect.equal ( "cloudshield", Discovery.StoreMetadata, [ "scan", "results" ] )
+                        Expect.equal ( "scanner", Discovery.StoreMetadata, [ "scan", "results" ] )
                             ( s.kind, s.store, s.flags )
 
                     Nothing ->
@@ -1196,7 +1196,7 @@ discoverySuite =
             \_ ->
                 let
                     servers =
-                        [ candidate "self" "cloudshield-vm" OSTypes.ServerActive []
+                        [ candidate "self" "extension-vm" OSTypes.ServerActive []
                         , candidate "i-1" "alpha" OSTypes.ServerActive []
                         , candidate "i-2" "building" OSTypes.ServerBuild []
                         ]
@@ -1251,8 +1251,8 @@ candidate id name status metadata =
 
 transportSuite : Test
 transportSuite =
-    describe "CloudShield POC transport (§7.1)"
-        -- The §4.1 request bodies themselves are pinned as exact bytes in Tests.CloudShield.Wire;
+    describe "transport (§7.1)"
+        -- The §4.1 request bodies themselves are pinned as exact bytes in Tests.Exoext.Messages;
         -- what matters here is the framing they are chunked into.
         [ test "reqSlotMetadata emits seq + chunk-count + chunked body" <|
             \_ ->
@@ -1316,7 +1316,7 @@ transportSuite =
 
 
 -- EMBED (getEmbed action, Phase B). The single-req-slot guard is host-side (see
--- Tests.CloudShield.Wire getEmbedBlockedSuite); the card just emits the request.
+-- Tests.Exoext.Messages getEmbedBlockedSuite); the card just emits the request.
 
 
 idleModel : Card.Model
@@ -1330,7 +1330,7 @@ idleModel =
 
 embedSuite : Test
 embedSuite =
-    describe "cloudshield.getEmbed emits SessionRequested (guard is host-side)"
+    describe "a getEmbed alias emits SessionRequested (guard is host-side)"
         [ test "an exoext.deleteResult press dispatches to DeletionRequested (the verb is on the allowlist)" <|
             \_ ->
                 let
@@ -1824,7 +1824,7 @@ rollbackScanRequestSuite =
         rolledBack =
             Card.rollbackScanRequest beforePress afterPress
     in
-    describe "CloudShield rollbackScanRequest (host refused the §7.1 request)"
+    describe "rollbackScanRequest (host refused the §7.1 request)"
         [ test "the simulated press really opens the dialog (guards the fixture)" <|
             \_ ->
                 Expect.notEqual Render.init rendererWithOpenDialog

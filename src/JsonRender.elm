@@ -67,7 +67,7 @@ a manifest that did not validate. Never a partial tree.
 It prints the decoder's diagnostic verbatim, which suits a developer host and does not suit an
 end user. A host with a real audience should classify the failure with
 [`Spec.errorKind`](JsonRender-Spec#errorKind) and write its own copy instead — Exosphere's
-CloudShield card does exactly that, so nothing in this app calls this any more. Kept because it is
+extension card does exactly that, so nothing in this app calls this any more. Kept because it is
 part of this renderer's published surface and is the right default for a host that has none.
 
 -}

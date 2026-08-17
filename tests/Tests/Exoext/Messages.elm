@@ -1,4 +1,4 @@
-module Tests.CloudShield.Wire exposing
+module Tests.Exoext.Messages exposing
     ( actionResultSuite
     , countsLabelSuite
     , embedRequestSuite
@@ -9,13 +9,13 @@ module Tests.CloudShield.Wire exposing
     , requestKindSuite
     )
 
-{-| The CloudShield extension's own wire payloads: the bodies it puts inside the exoext envelope,
+{-| The reference extension's own wire payloads: the bodies it puts inside the exoext envelope,
 and the reads that make sense of what comes back. The envelope itself (§7.1 framing, run status,
 cancel channel, caps) is covered by `Tests.Exoext.Transport`.
 -}
 
-import CloudShield.Card as Card
-import CloudShield.Wire as Wire
+import Exoext.Card as Card
+import Exoext.Messages as Wire
 import Expect
 import Json.Decode as Decode
 import Json.Encode as Encode

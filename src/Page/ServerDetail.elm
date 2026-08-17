@@ -1,16 +1,16 @@
-module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, adoptRestoredExoextBatch, adoptStoredExoextBatch, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextAbandonStaleRun, exoextBatchSharedMsg, exoextCancelRequested, exoextCancellableRun, exoextCardTitle, exoextDismissSession, exoextDropFromTail, exoextForgetReads, exoextIndexNeedsFetch, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextNavigation, exoextReaderProjection, exoextRemovalState, exoextRequestBlocked, exoextRequestsPending, exoextRunControl, exoextScanRequestPending, exoextStatusOverride, exoextStopRequested, exoextStoppingTarget, exoextViewConfig, init, recoverExoextRun, update, view)
+module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, adoptRestoredExoextBatch, adoptStoredExoextBatch, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextAbandonStaleRun, exoextBatchSharedMsg, exoextCancelRequested, exoextCancellableRun, exoextDismissSession, exoextDropFromTail, exoextForgetReads, exoextIndexNeedsFetch, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextNavigation, exoextReaderProjection, exoextRemovalState, exoextRequestBlocked, exoextRequestsPending, exoextRunControl, exoextScanRequestPending, exoextStatusOverride, exoextStopRequested, exoextStoppingTarget, exoextViewConfig, init, recoverExoextRun, update, view)
 
-import CloudShield.Card
-import CloudShield.Reader
-import CloudShield.Wire
 import DateFormat.Relative
 import Dict
 import Element
 import Element.Font as Font
 import Element.Input as Input
+import Exoext.Card
 import Exoext.Discovery
 import Exoext.Health
 import Exoext.Lifecycle
+import Exoext.Messages
+import Exoext.Reader
 import Exoext.Transport
 import FeatherIcons as Icons
 import Helpers.Cidr as Cidr
@@ -78,7 +78,7 @@ type alias Model =
     , serverNamePendingConfirmation : Maybe String
     , retainFloatingIpsWhenDeleting : Bool
     , deleteFloatingIpsWhenShelving : Bool
-    , exoextCard : CloudShield.Card.Model
+    , exoextCard : Exoext.Card.Model
     , exoextManifest :
         RDPP.RemoteDataPlusPlus
             String
@@ -98,7 +98,7 @@ type alias Model =
             { etag : String
             , objectName : String
             }
-    , exoextHistory : RDPP.RemoteDataPlusPlus String (List CloudShield.Wire.IndexEntry)
+    , exoextHistory : RDPP.RemoteDataPlusPlus String (List Exoext.Messages.IndexEntry)
     , exoextHistoryRequestKey : Maybe String
 
     -- whether a "Check now" press is still waiting for a server read to come back, which is the
@@ -121,7 +121,7 @@ type alias Model =
     -- next poll) and can time the request out. Single-slot: a newer getEmbed replaces it; a
     -- matching-`requestId` result clears it (see `clearResolvedPendingEmbed`). `Nothing` when
     -- nothing is in flight. This is the session-request view of `PendingRequest`; the scan-request
-    -- view lives in the card model (`CloudShield.Card.Model.pending`).
+    -- view lives in the card model (`Exoext.Card.Model.pending`).
     , exoextPendingEmbed : Maybe Exoext.Lifecycle.PendingRequest
 
     -- the in-flight `deleteResult` request, the removal twin of `exoextPendingEmbed`
@@ -150,7 +150,7 @@ type alias Model =
     -- The host's own correlation record — the request id matches the response, the result id names
     -- the resource — and unlike `exoextPendingEmbed` it survives the response (which clears the
     -- pending marker), so a resolved session keeps its identity. Replaced by the next getEmbed.
-    -- It is the SECOND source `CloudShield.Reader.resultId` consults, behind the response's own echoed
+    -- It is the SECOND source `Exoext.Reader.resultId` consults, behind the response's own echoed
     -- `resultId`: it exists for a publisher that does not echo one, and being session-local it is
     -- gone after a page reload, which is exactly where the echoed field takes over.
     , exoextEmbedResultId :
@@ -220,7 +220,7 @@ type Msg
     | GotExoextManifestObject Time.Posix String (Result HttpErrorWithBody String)
     | GotExoextResultObject Time.Posix String String (Result HttpErrorWithBody String)
     | GotExoextIndexObject Time.Posix String (Result HttpErrorWithBody String)
-    | CloudShieldMsg CloudShield.Card.Msg
+    | ExtensionCardMsg Exoext.Card.Msg
     | ExoextWriteRequest { kind : String, subject : String, batchId : Maybe String } Time.Posix
     | ExoextWriteEmbedRequest { kind : String, resultId : String, batchId : String } Time.Posix
     | ExoextWriteDeleteRequest { kind : String, resultId : String, batchId : String } Time.Posix
@@ -238,7 +238,7 @@ init serverUuid =
     , serverNamePendingConfirmation = Nothing
     , retainFloatingIpsWhenDeleting = False
     , deleteFloatingIpsWhenShelving = True
-    , exoextCard = CloudShield.Card.init
+    , exoextCard = Exoext.Card.init
     , exoextManifest = RDPP.empty
     , exoextManifestRequestEtag = Nothing
     , exoextResultRef = RDPP.empty
@@ -345,13 +345,13 @@ update msg project model =
         GotExoextIndexObject receivedTime refreshKey result ->
             ( receiveExoextIndex project receivedTime refreshKey result model, Cmd.none, SharedMsg.NoOp )
 
-        CloudShieldMsg cloudMsg ->
+        ExtensionCardMsg cardMsg ->
             let
                 instances =
                     exoextInstances project model
 
-                ( cloudModel, outMsg ) =
-                    CloudShield.Card.update instances cloudMsg model.exoextCard
+                ( cardModel, outMsg ) =
+                    Exoext.Card.update instances cardMsg model.exoextCard
 
                 -- A blocked scan must also undo the card's optimistic mutation: `requestScan` has
                 -- already flipped its rows to `queued` and retargeted `pending`, and keeping that
@@ -361,15 +361,15 @@ update msg project model =
                 -- renderer having closed its confirm dialog.
                 card =
                     case outMsg of
-                        Just (CloudShield.Card.WriteRequested _) ->
+                        Just (Exoext.Card.WriteRequested _) ->
                             if exoextRequestBlocked project model then
-                                CloudShield.Card.rollbackScanRequest model.exoextCard cloudModel
+                                Exoext.Card.rollbackScanRequest model.exoextCard cardModel
 
                             else
-                                cloudModel
+                                cardModel
 
                         _ ->
-                            cloudModel
+                            cardModel
 
                 -- The card's own state is settled above; each outcome below decides what the HOST
                 -- state does about it. Every branch returns the whole model rather than one field,
@@ -379,7 +379,7 @@ update msg project model =
                     { model | exoextCard = card }
             in
             case outMsg of
-                Just (CloudShield.Card.WriteRequested req) ->
+                Just (Exoext.Card.WriteRequested req) ->
                     -- §2.2/§4.1: N targets are N sibling requests, not one request with N
                     -- targets, and §7.1 admits one at a time — so write the head now and
                     -- park the tail for `advanceExoextBatch` to drain. The shared `batchId`
@@ -406,7 +406,7 @@ update msg project model =
                             , exoextBatchSharedMsg project started
                             )
 
-                Just (CloudShield.Card.SessionRequested req) ->
+                Just (Exoext.Card.SessionRequested req) ->
                     -- §7.1 single-req-slot guard, from the live wire state: don't write a
                     -- getEmbed while a scan is active or its request is still unclaimed —
                     -- the seq bump would cancel that scan bridge-side. Silently ignore the
@@ -418,7 +418,7 @@ update msg project model =
                     else
                         ( baseModel, Task.perform (ExoextWriteEmbedRequest req) Time.now, SharedMsg.NoOp )
 
-                Just (CloudShield.Card.DeletionRequested req) ->
+                Just (Exoext.Card.DeletionRequested req) ->
                     -- The same §7.1 slot and therefore the same guard as every other request. A
                     -- blocked press is silently ignored, exactly as a blocked View is: the manifest
                     -- disables the control while the guard holds, so a press that gets through and
@@ -429,13 +429,13 @@ update msg project model =
                     else
                         ( baseModel, Task.perform (ExoextWriteDeleteRequest req) Time.now, SharedMsg.NoOp )
 
-                Just (CloudShield.Card.NavigationRequested req) ->
+                Just (Exoext.Card.NavigationRequested req) ->
                     ( baseModel, Cmd.none, exoextNavigation project req.instanceId )
 
-                Just (CloudShield.Card.CancelRequested req) ->
+                Just (Exoext.Card.CancelRequested req) ->
                     exoextStopRequested project req baseModel
 
-                Just CloudShield.Card.ReloadRequested ->
+                Just Exoext.Card.ReloadRequested ->
                     -- "Check now": ask Nova for this server's details right away, and drop the
                     -- markers that record which object-storage reads have already been asked for.
                     -- Both halves are needed. The metadata poll alone would return a fresh envelope
@@ -451,16 +451,16 @@ update msg project model =
                             SharedMsg.RequestServerRefresh
                     )
 
-                Just CloudShield.Card.SessionDismissed ->
+                Just Exoext.Card.SessionDismissed ->
                     -- Host-local, and deliberately so: no Cmd, no SharedMsg, nothing written.
                     ( exoextDismissSession baseModel, Cmd.none, SharedMsg.NoOp )
 
-                Just CloudShield.Card.ApprovalGranted ->
+                Just Exoext.Card.ApprovalGranted ->
                     -- Stamp a genuine wall-clock `approvedAt`, same idiom as a scan request:
                     -- fetch `Time.now`, then build and persist the approval record.
                     ( baseModel, Task.perform ExoextWriteApproval Time.now, SharedMsg.NoOp )
 
-                Just CloudShield.Card.ApprovalForgotten ->
+                Just Exoext.Card.ApprovalForgotten ->
                     -- Forgetting needs no timestamp; drop the record for this instance.
                     ( baseModel, Cmd.none, SharedMsg.ForgetExtensionApproval model.serverUuid )
 
@@ -630,7 +630,7 @@ Each server's own Nova metadata rides along because eligibility now reads one ke
 here, so all of §2.4 keeps living in one place.
 
 -}
-exoextInstances : Project -> Model -> List CloudShield.Card.Instance
+exoextInstances : Project -> Model -> List Exoext.Card.Instance
 exoextInstances project model =
     project.servers
         |> RDPP.withDefault []
@@ -745,7 +745,7 @@ exoextRequestsPending project model =
         || exoextScanRequestPending project model
 
 
-{-| True when the CloudShield scan marker is present and the publishing server's correlated
+{-| True when the run marker is present and the publishing server's correlated
 exoext run state is not terminal. An absent/uncorrelated run slot defaults to queued because the
 request was just written and the bridge may not have claimed it yet.
 -}
@@ -960,7 +960,7 @@ exoextAbandonStaleRun now metadata model =
                         model.exoextCard
                 in
                 { model
-                    | exoextCard = CloudShield.Card.abandonScanState abandoned { card | pending = Nothing }
+                    | exoextCard = Exoext.Card.abandonScanState abandoned { card | pending = Nothing }
                     , exoextBatch = Nothing
                     , exoextRestoredBatch = Nothing
                 }
@@ -1083,7 +1083,7 @@ its optimistic `queued` badge the moment the tracker retargets. Then write the n
 request, carrying the batch's shared `batchId`.
 
 An exhausted batch clears `exoextBatch` but deliberately leaves `exoextCard.pending` set — the
-completion timer (`CloudShield.Reader.completionTimer`) and the settled-run projection are both
+completion timer (`Exoext.Reader.completionTimer`) and the settled-run projection are both
 keyed on it.
 
 -}
@@ -1098,7 +1098,7 @@ advanceExoextBatch metadata model =
                 settledModel =
                     { model
                         | exoextCard =
-                            CloudShield.Card.settleScanState settled.subject settled.state model.exoextCard
+                            Exoext.Card.settleScanState settled.subject settled.state model.exoextCard
                     }
             in
             case settled.next of
@@ -1125,7 +1125,7 @@ out-message to carry it.
 wire after a reload has no verb to recover (§4.3 carries none, and
 [`Exoext.Lifecycle.recoverRun`](Exoext-Lifecycle#recoverRun) refuses to invent one). The host does
 not resolve that — it passes the empty kind on, and the adapter decides what an unnamed request
-means for its own wire (`CloudShield.Wire.encodeRequestBody`). Deciding here is exactly what would
+means for its own wire (`Exoext.Messages.encodeRequestBody`). Deciding here is exactly what would
 put one extension's default verb back in the host.
 
 -}
@@ -1140,7 +1140,7 @@ different (earlier) requestId leaves the marker in place — a newer request is 
 
 The host pulls the §7.1 res slot and owns the comparison, because the marker is its own; whether a
 body is a reply at all, and which request it replies to, is the adapter's read
-([`CloudShield.Reader.answeredRequestId`](CloudShield-Reader#answeredRequestId)).
+([`Exoext.Reader.answeredRequestId`](Exoext-Reader#answeredRequestId)).
 
 -}
 clearResolvedPendingEmbed : List OSTypes.MetadataItem -> Maybe Exoext.Lifecycle.PendingRequest -> Maybe Exoext.Lifecycle.PendingRequest
@@ -1150,7 +1150,7 @@ clearResolvedPendingEmbed metadata pending =
             (\p ->
                 if
                     (Exoext.Transport.resultBodyFromMetadata metadata
-                        |> Maybe.andThen CloudShield.Reader.answeredRequestId
+                        |> Maybe.andThen Exoext.Reader.answeredRequestId
                     )
                         == Just p.requestId
                 then
@@ -1213,19 +1213,19 @@ resolveExoextRemoval metadata model =
 
 {-| The removal acknowledgement sitting in the §7.1 response slot, if there is one. The host pulls
 the body out of the envelope; recognizing it as an answer to a removal is the adapter's
-([`CloudShield.Reader.removalAck`](CloudShield-Reader#removalAck)).
+([`Exoext.Reader.removalAck`](Exoext-Reader#removalAck)).
 -}
 exoextRemovalAck : List OSTypes.MetadataItem -> Maybe { requestId : String, resultId : Maybe String, ok : Bool, message : String }
 exoextRemovalAck metadata =
     Exoext.Transport.resultBodyFromMetadata metadata
-        |> Maybe.andThen CloudShield.Reader.removalAck
+        |> Maybe.andThen Exoext.Reader.removalAck
 
 
 {-| A history row's own result id: its `requestId`, falling back to `batchId` for a legacy row that
 carries none. The same identity the card projects rows under and the same one a removal names, kept
 in step so a removed row is the row that disappears.
 -}
-exoextRowResultId : CloudShield.Wire.IndexEntry -> String
+exoextRowResultId : Exoext.Messages.IndexEntry -> String
 exoextRowResultId entry =
     Maybe.withDefault entry.batchId entry.requestId
 
@@ -1302,14 +1302,14 @@ syncExoextManifest project sentinel etag model =
 
 {-| The object to fetch for the current res-slot body, if any. The host pulls the §7.1 res slot out
 of metadata and hands the body, plus its own request record and the §3.1 prefix, to the adapter that
-knows how its archive is laid out ([`CloudShield.Reader.resultObjectName`](CloudShield-Reader#resultObjectName)).
+knows how its archive is laid out ([`Exoext.Reader.resultObjectName`](Exoext-Reader#resultObjectName)).
 `Nothing` means nothing to fetch.
 -}
 exoextResultObjectName : Model -> Exoext.Discovery.Sentinel -> List OSTypes.MetadataItem -> Maybe String
 exoextResultObjectName model sentinel metadata =
     Exoext.Transport.resultBodyFromMetadata metadata
         |> Maybe.andThen
-            (CloudShield.Reader.resultObjectName model.exoextEmbedResultId (Maybe.withDefault "" sentinel.prefix))
+            (Exoext.Reader.resultObjectName model.exoextEmbedResultId (Maybe.withDefault "" sentinel.prefix))
 
 
 syncExoextResultRef : Project -> Exoext.Discovery.Sentinel -> String -> List OSTypes.MetadataItem -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
@@ -1385,9 +1385,9 @@ syncExoextIndex project sentinel refreshKey ( model, priorCmd ) =
                         project
                         swiftUrl
                         container
-                        (CloudShield.Wire.indexObjectName (Maybe.withDefault "" sentinel.prefix))
+                        (Exoext.Messages.indexObjectName (Maybe.withDefault "" sentinel.prefix))
                         (Just (refreshKey ++ ":" ++ String.fromInt model.exoextHistoryGeneration))
-                        CloudShield.Wire.indexCapBytes
+                        Exoext.Messages.indexCapBytes
                         (\result ->
                             SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                                 SharedMsg.ServerMsg model.serverUuid <|
@@ -1472,7 +1472,7 @@ receiveExoextIndex project receivedTime refreshKey result model =
                 { model
                     | exoextHistory =
                         RDPP.RemoteDataPlusPlus
-                            (RDPP.DoHave (CloudShield.Wire.decodeIndex body) receivedTime)
+                            (RDPP.DoHave (Exoext.Messages.decodeIndex body) receivedTime)
                             (RDPP.NotLoading Nothing)
                     , exoextHistoryRequestKey = Just refreshKey
                 }
@@ -1661,7 +1661,7 @@ demoable locally without a publishing VM). The fail-closed renderer validates wh
 is used. The live `statusOverride` is read from the §7.1 status slot on this instance's
 metadata and correlated to the in-flight request by `seq`.
 -}
-exoextViewConfig : Bool -> Project -> Model -> Time.Posix -> Server -> CloudShield.Card.ViewConfig
+exoextViewConfig : Bool -> Project -> Model -> Time.Posix -> Server -> Exoext.Card.ViewConfig
 exoextViewConfig approved project model currentTime server =
     let
         metadata =
@@ -1690,7 +1690,7 @@ exoextViewConfig approved project model currentTime server =
         ( manifestSource, transportLabel ) =
             case ( maybeSentinel, maybeTransportBody ) of
                 ( Just { store }, Just body ) ->
-                    ( CloudShield.Card.ManifestReady (unwrapManifestUi model.serverUuid body)
+                    ( Exoext.Card.ManifestReady (unwrapManifestUi model.serverUuid body)
                     , Just
                         (case store of
                             Exoext.Discovery.StoreSwift ->
@@ -1707,21 +1707,21 @@ exoextViewConfig approved project model currentTime server =
                             -- The object body has not resolved yet: still loading (fetch in flight
                             -- or not yet requested) until the fetch errors, then unavailable.
                             if exoextManifestErrored model then
-                                CloudShield.Card.ManifestUnavailable
+                                Exoext.Card.ManifestUnavailable
 
                             else
-                                CloudShield.Card.ManifestLoading
+                                Exoext.Card.ManifestLoading
 
                         _ ->
                             -- Metadata mode: the chunks ride the same server poll as the sentinel,
                             -- so an absent / undecodable body is genuinely unavailable, not loading.
-                            CloudShield.Card.ManifestUnavailable
+                            Exoext.Card.ManifestUnavailable
                     , Nothing
                     )
 
                 ( Nothing, _ ) ->
                     -- Unreachable in practice: the card is gated on the sentinel being present.
-                    ( CloudShield.Card.ManifestUnavailable, Nothing )
+                    ( Exoext.Card.ManifestUnavailable, Nothing )
 
         statusOverride =
             exoextEffectiveStatusOverride currentTime metadata model
@@ -1760,7 +1760,7 @@ exoextViewConfig approved project model currentTime server =
         -- The elapsed descriptor for the card's frozen confirmation line, keyed on the tracked
         -- request's wall-clock seq and the correlated run state.
         elapsedTimer =
-            CloudShield.Reader.completionTimer
+            Exoext.Reader.completionTimer
                 (Maybe.map .seq model.exoextCard.pending)
                 (statusOverride |> Maybe.map .state |> Maybe.withDefault "queued")
                 resultBody
@@ -1768,7 +1768,7 @@ exoextViewConfig approved project model currentTime server =
         -- The row display state (left column). The RAW status slot drives the reader logic above;
         -- what a row says while a run is live is the adapter's word to compose.
         displayStatusOverride =
-            CloudShield.Reader.rowStatus statusOverride
+            Exoext.Reader.rowStatus statusOverride
                 (Maybe.map .seq model.exoextCard.pending)
                 (Time.posixToMillis currentTime)
 
@@ -2245,16 +2245,16 @@ This is the read-side twin of the request seam: everything on this side of the c
 host owns — the §7.1 res slot pulled out of metadata, the §3.1 etag, the object it last fetched, the
 in-flight session request, the shared client clock, the researcher's dismissal — and nothing on this
 side decides what any of it means. Which body wins, when a session is stale, which row is being
-viewed and what it should say are all the adapter's (`CloudShield.Reader.projection`).
+viewed and what it should say are all the adapter's (`Exoext.Reader.projection`).
 
 `resultBody` is the res-slot body the host has already matched to the current manifest etag;
 `archivedResultObjectName` is what `exoextResultObjectName` resolved for it, passed rather than
 recomputed so the fetch side and the read side can never name two different objects.
 
 -}
-exoextReaderProjection : List OSTypes.MetadataItem -> Maybe String -> Time.Posix -> Maybe { targetId : String, state : String } -> Maybe String -> Model -> CloudShield.Reader.Projection
+exoextReaderProjection : List OSTypes.MetadataItem -> Maybe String -> Time.Posix -> Maybe { targetId : String, state : String } -> Maybe String -> Model -> Exoext.Reader.Projection
 exoextReaderProjection metadata archivedResultObjectName currentTime statusOverride resultBody model =
-    CloudShield.Reader.projection
+    Exoext.Reader.projection
         { resSlotBody = Exoext.Transport.resultBodyFromMetadata metadata
         , resultBody = resultBody
         , manifestEtag = exoextEtag metadata
@@ -2276,12 +2276,12 @@ exoextReaderProjection metadata archivedResultObjectName currentTime statusOverr
 
 {-| The one warning line under the card, whichever of two kinds it is. A publisher that had to cut
 its own payload down says so through the adapter
-([`CloudShield.Reader.truncationWarning`](CloudShield-Reader#truncationWarning)) and wins the slot;
+([`Exoext.Reader.truncationWarning`](Exoext-Reader#truncationWarning)) and wins the slot;
 otherwise the host reports its own transport failures (no Swift endpoint, a failed object read).
 -}
 exoextTransportWarning : Project -> Model -> List OSTypes.MetadataItem -> Maybe Exoext.Discovery.Sentinel -> Maybe String -> Maybe String
 exoextTransportWarning project model metadata maybeSentinel resultBody =
-    case resultBody |> Maybe.andThen CloudShield.Reader.truncationWarning of
+    case resultBody |> Maybe.andThen Exoext.Reader.truncationWarning of
         Just warning ->
             Just warning
 
@@ -2338,7 +2338,7 @@ exoextReadErrorForEtag etag model =
 
 {-| Extract the json-render `ui` body from a §1 manifest envelope for the renderer.
 
-The CloudShield agent publishes the full manifest envelope (`{schemaVersion, catalog,
+The publisher writes the full manifest envelope (`{schemaVersion, catalog,
 publisher, ui: {root, elements, state}}`, §1); the renderer wants the bare json-render spec.
 We unwrap `.ui`. Two host trust checks happen here, fail-closed:
 
@@ -2387,17 +2387,17 @@ for a body of `kind`, and chunks whatever comes back into the slot. It never com
 reads one, and holds no opinion about what any kind means — a kind the adapter declines to encode
 writes nothing at all, which is the fail-closed answer for a verb this build cannot speak.
 
-The `kind` reaches here from the press that started the request (`CloudShield.Card.OutMsg`) or, for
+The `kind` reaches here from the press that started the request (`Exoext.Card.OutMsg`) or, for
 a batch continuation, from the leg already in flight (`exoextTrackedKind`).
 
 POC limitations (dropped at `store=swift`, Phase 1b): `requestId` is seq-derived rather than a
 UUID, and a continuation whose request is never claimed has no per-request expiry of its own —
 the batch simply stops advancing. `createdAt` is a real wall-clock timestamp (`Time.now` via
 `ExoextWriteRequest`), so the publisher's §4.4 expiry guard works. The §4.1 JSON bytes are pinned
-in `Tests.CloudShield.Wire`; the §7.1 framing in `Tests.CloudShield.Card`.
+in `Tests.Exoext.Messages`; the §7.1 framing in `Tests.Exoext.Card`.
 
 -}
-writeExoextRequestCmd : Project -> Model -> List CloudShield.Card.Instance -> { kind : String, seq : Int, subject : String, batchId : Maybe String } -> Time.Posix -> Cmd Msg
+writeExoextRequestCmd : Project -> Model -> List Exoext.Card.Instance -> { kind : String, seq : Int, subject : String, batchId : Maybe String } -> Time.Posix -> Cmd Msg
 writeExoextRequestCmd project model instances req now =
     let
         context =
@@ -2419,7 +2419,7 @@ writeExoextRequestCmd project model instances req now =
                 }
             }
     in
-    case CloudShield.Wire.encodeRequestBody req.kind context of
+    case Exoext.Messages.encodeRequestBody req.kind context of
         Just body ->
             -- One atomic POST for all request-slot keys. Firing one request per key
             -- concurrently races on Nova's single metadata row and silently drops writes,
@@ -2540,7 +2540,7 @@ exoextDropFromTail targetId model =
 
                     else
                         Just { batch | remaining = remaining }
-                , exoextCard = CloudShield.Card.abandonScanState [ targetId ] model.exoextCard
+                , exoextCard = Exoext.Card.abandonScanState [ targetId ] model.exoextCard
             }
 
         Nothing ->
@@ -2564,7 +2564,7 @@ exoextCancelRequested requestId model =
         | exoextCancelRequestId = Just requestId
         , exoextBatch = Nothing
         , exoextCard =
-            CloudShield.Card.abandonScanState
+            Exoext.Card.abandonScanState
                 (model.exoextBatch |> Maybe.map .remaining |> Maybe.withDefault [])
                 model.exoextCard
     }
@@ -3178,7 +3178,7 @@ exoextCardView context project ( currentTime, timeZone ) server model =
             headerChip =
                 case config.transportLabel of
                     Just label ->
-                        [ Element.el [ Element.alignRight ] (CloudShield.Card.transportChip context.palette label) ]
+                        [ Element.el [ Element.alignRight ] (Exoext.Card.transportChip context.palette label) ]
 
                     Nothing ->
                         []
@@ -3186,47 +3186,28 @@ exoextCardView context project ( currentTime, timeZone ) server model =
         VH.tile
             context
             ([ Icon.featherIcon [] Icons.grid
-             , Element.text (exoextCardTitle sentinel)
+
+             -- The §3.1 sentinel's `kind` is publisher-controlled data read off a VM's own
+             -- metadata, so it is never painted into Exosphere's own chrome: an instance would
+             -- otherwise get to title a panel of the researcher's UI with whatever it liked. The
+             -- header is the generic word for every publisher.
+             , Element.text "Extension"
              , extensionExperimentalTag context
              ]
                 ++ headerChip
             )
-            [ CloudShield.Card.view
+            [ Exoext.Card.view
                 context.palette
                 context.localization
                 timeZone
                 config
                 (exoextInstances project model)
                 model.exoextCard
-                |> Element.map CloudShieldMsg
+                |> Element.map ExtensionCardMsg
             ]
 
     else
         Element.none
-
-
-{-| The card header's title, resolved from the §3.1 discovery sentinel's `kind` rather than
-hardcoded. `kind` is the one thing the sentinel already says about WHAT was published, and until now
-nothing read it — the header asserted one extension's name on behalf of every publisher.
-
-The resolution is a lookup, not a transformation of the publisher's string, and that is the point in
-two directions. A kind is a wire token (`cloudshield`), not a display name (`CloudShield`), and no
-general rule turns one into the other without guessing at capitalization. More importantly `kind`
-is publisher-controlled data read off a VM's own metadata: painting it straight into Exosphere's
-own chrome would let any instance title a panel of the researcher's UI with whatever it liked.
-
-So an adapter Exosphere ships supplies its own name, and everything else is the generic word. That
-is not a placeholder — it is the honest label for a card whose contents Exosphere cannot vouch for
-and whose publisher it does not recognize.
-
--}
-exoextCardTitle : Maybe Exoext.Discovery.Sentinel -> String
-exoextCardTitle sentinel =
-    if (sentinel |> Maybe.map .kind) == Just CloudShield.Card.sentinelKind then
-        CloudShield.Card.headerTitle
-
-    else
-        "Extension"
 
 
 {-| The "Experimental" tag for the extension card header (plan §C3). Same idiom as the

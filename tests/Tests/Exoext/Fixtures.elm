@@ -3,8 +3,8 @@ module Tests.Exoext.Fixtures exposing (advance, afterExpiry, archivedFindingsJso
 {-| Shared fixtures for the `exoext` host tests: the wire as a publisher writes it, and the host
 model at the points a test wants to start from.
 
-They live in one place because the generic host suites (`Tests.Exoext.Host`) and the CloudShield
-adapter suites (`Tests.CloudShield.ServerDetail`) drive the SAME host through different surfaces,
+They live in one place because the generic host suites (`Tests.Exoext.Host`) and the adapter
+suites (`Tests.Exoext.ServerDetail`) drive the SAME host through different surfaces,
 and a second copy of "what a §7.1 run slot looks like" is how the two would quietly drift apart.
 
 -}
@@ -29,7 +29,7 @@ receivedAt =
 
 {-| The client clock a poll reads. Every fixture run `seq` in this module is a small number below
 it, so no fixture run is anywhere near `Exoext.Lifecycle.staleRunAfterMillis` old — the safety valve
-is exercised deliberately in `cloudShieldStaleRunSuite` and never fires by accident elsewhere.
+is exercised deliberately in `extensionStaleRunSuite` and never fires by accident elsewhere.
 -}
 pollTime : Time.Posix
 pollTime =
@@ -130,13 +130,13 @@ project =
     }
 
 
-{-| The viewed CloudShield VM, publishing `metadata`. Only the uuid and the metadata are read by
+{-| The viewed publishing VM, writing `metadata`. Only the uuid and the metadata are read by
 anything under test; the rest is the inert filler a `Server` demands.
 -}
 serverPublishing : List OSTypes.MetadataItem -> Server
 serverPublishing metadata =
     { osProps =
-        { name = "cloudshield"
+        { name = "scanner"
         , uuid = "self"
         , details =
             { openstackStatus = OSTypes.ServerActive
@@ -198,7 +198,7 @@ runSlotFor seq state target =
            ]
 
 
-{-| The model exactly as the `CloudShieldMsg`/`ScanRequested` branch leaves it for a confirmed
+{-| The model exactly as the `ExtensionCardMsg`/`ScanRequested` branch leaves it for a confirmed
 3-target scan: all three rows optimistically `queued`, the card tracking the first target, and the
 undrained tail parked in `exoextBatch` (no `batchId` yet — it is minted on the first write).
 -}

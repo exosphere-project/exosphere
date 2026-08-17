@@ -1,4 +1,4 @@
-module Tests.CloudShield.ManifestError exposing (suite)
+module Tests.Exoext.ManifestError exposing (suite)
 
 {-| What a researcher actually sees when the fail-closed decoder refuses a manifest.
 
@@ -10,14 +10,14 @@ version-skew copy).
 
 -}
 
-import CloudShield.Card as Card
 import Element
+import Exoext.Card as Card
 import Style.Helpers as SH
 import Style.Types as ST
 import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector
-import Tests.CloudShield.Fixtures exposing (cardViewConfig)
+import Tests.Exoext.CardFixtures exposing (cardViewConfig)
 import Time
 import Types.Defaults
 
@@ -83,7 +83,7 @@ suite =
                 render offCatalogManifest False
                     |> Query.has
                         [ Selector.text "This extension needs a newer Exosphere"
-                        , Selector.text "The \"cloudshield-vm\" instance published interface features this version of Exosphere doesn't support yet. Updating Exosphere may fix this."
+                        , Selector.text "The \"extension-vm\" instance published interface features this version of Exosphere doesn't support yet. Updating Exosphere may fix this."
                         ]
         , test "a malformed manifest says the refusal is deliberate and points at the publisher" <|
             \_ ->

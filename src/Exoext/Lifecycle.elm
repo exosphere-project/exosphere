@@ -37,11 +37,11 @@ module Exoext.Lifecycle exposing
 `exoext.v1` wire contract. Everything here is generic: it knows only about wire requests
 (one in flight per §7.1, correlated by seq / requestId), the polled run status slot, and an
 open "result session" (a time-boxed, single-resource view minted in response to a request).
-It names no extension — CloudShield is only ever cited as the example consumer in doc
-comments. `CloudShield.Card` (the adapter) maps its own manifest verbs and wire result shapes
+It names no extension — the reference extension is only ever cited as the example consumer in
+doc comments. `Exoext.Card` (the adapter) maps its own manifest verbs and wire result shapes
 onto these types.
 
-Two things live here that used to be duplicated in `Page.ServerDetail` and `CloudShield.Card`:
+Two things live here that used to be duplicated in `Page.ServerDetail` and `Exoext.Card`:
 
 1.  **Request tracking + run correlation** — the single in-flight [`PendingRequest`](#PendingRequest),
     the run-status correlation ([`correlatedRunState`](#correlatedRunState)), and the terminal-state
@@ -52,7 +52,7 @@ Two things live here that used to be duplicated in `Page.ServerDetail` and `Clou
     [`SessionState`](#SessionState) token from (the pending request, the wire result, the current
     time, and the request timeout). The adapter maps that token onto its display strings and its
     per-row/per-region visuals. This is the single source of the "opening / open / stale / failed"
-    decision (today: the CloudShield history-View embed flow).
+    decision (today: the reference extension's history-View embed flow).
 
 
 # Requests
@@ -120,9 +120,9 @@ import Time
 {-| A single in-flight wire request (§7.1 allows exactly one at a time per publishing VM). It
 generalizes the two trackers this replaces:
 
-  - the scan tracker (was `CloudShield.Card.Model.pending : Maybe { seq, targetId }`):
+  - the scan tracker (was `Exoext.Card.Model.pending : Maybe { seq, targetId }`):
     `kind == "scan"`, `subject` = the target instance id, correlated to the run slot by `seq`.
-  - the session-request tracker (was `ServerDetail.Model.cloudShieldPendingEmbed :
+  - the session-request tracker (was `ServerDetail.Model.extensionPendingEmbed :
     Maybe { requestId, batchId, since }`): `kind == "getEmbed"`, `subject` = the archived
     result / batch id, correlated to its wire result by `requestId` and timed out client-side
     against `since`.
@@ -147,7 +147,7 @@ type alias PendingRequest =
 
 
 {-| An open result session parsed once from a wire result: a single-resource, time-boxed view
-(today: a CloudShield embed URL minted for one archived scan). `resultId` is the resource this
+(today: an embed URL minted for one archived scan). `resultId` is the resource this
 session views (the batch id); `url` is where it is served; `expiresAt` is the session's hard
 expiry, `Nothing` when the wire result carried no parseable expiry (treated as non-expiring —
 see [`sessionFreshness`](#sessionFreshness)).
@@ -227,7 +227,7 @@ type SessionState
 {-| Derive the generic [`SessionState`](#SessionState) from the pending request, the wire result
 currently sitting in the response slot, the current client clock, and the client-side request
 timeout (millis). This centralizes what used to be the `embedState` / `activeBatchId` /
-`pendingBatchId` / `erroredBatchId` cluster in `ServerDetail.cloudShieldEmbedProjection`:
+`pendingBatchId` / `erroredBatchId` cluster in `ServerDetail.extensionEmbedProjection`:
 
   - With a pending request whose `requestId` matches the slot result → resolve that result.
   - With a pending request and no matching result yet → `Opening`, unless `now - since` has passed
@@ -692,7 +692,7 @@ advanceBatch pending batch metadata =
 
 
 {-| The generic verb that frames and writes a §4.1 request (params: `{ kind, … }`). Always
-confirm-gated by the catalog's confirm rule. Today's `cloudshield.startScan` aliases to it.
+confirm-gated by the catalog's confirm rule. The reference extension's `startScan` aliases to it.
 -}
 verbWriteRequest : String
 verbWriteRequest =
@@ -714,7 +714,7 @@ verbCancelRequest =
 
 
 {-| The generic verb that opens a result session for an existing result (params: `{ resultId }`).
-Today's `cloudshield.getEmbed` aliases to it.
+The reference extension's `getEmbed` aliases to it.
 -}
 verbOpenSession : String
 verbOpenSession =
@@ -793,7 +793,7 @@ verbRefresh =
 
 
 {-| One entry of an adapter's action-name → generic-verb alias table. `name` is the manifest
-action name the (frozen) manifest still emits (e.g. `"cloudshield.startScan"`); `verb` is the
+action name the (frozen) manifest still emits (e.g. `"<publisher>.startScan"`); `verb` is the
 generic verb it maps to (one of the `verb*` constants above); `kind` is the wire request kind
 carried into a [`verbWriteRequest`](#verbWriteRequest) (e.g. `"scan"`), `""` for verbs that do
 not write a request. The table is pure data supplied by the adapter — there are no

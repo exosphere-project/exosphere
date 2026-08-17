@@ -1,15 +1,15 @@
-module Tests.CloudShield.Fixtures exposing (cardViewConfig)
+module Tests.Exoext.CardFixtures exposing (cardViewConfig)
 
-{-| Shared fixtures for the CloudShield card tests.
+{-| Shared fixtures for the extension card tests.
 
-`CloudShield.Card.ViewConfig` is the whole host-to-card interface, so it is wide by nature and grows
+`Exoext.Card.ViewConfig` is the whole host-to-card interface, so it is wide by nature and grows
 whenever the host learns to project something new. One definition of its quiet default lives here so
 that growth is a one-line change rather than an edit to every test module, and so each test can name
 only the fields it is actually about.
 
 -}
 
-import CloudShield.Card as Card
+import Exoext.Card as Card
 import Time
 
 
@@ -19,7 +19,7 @@ flight. Override with record update, e.g. `{ cardViewConfig | requestBusy = True
 cardViewConfig : Card.ViewConfig
 cardViewConfig =
     { approved = True
-    , sourceName = "cloudshield-vm"
+    , sourceName = "extension-vm"
     , manifest = Card.ManifestLoading
     , transportLabel = Nothing
     , scanTimer = Nothing

@@ -10,8 +10,8 @@ module Types.ExtensionBatch exposing
 
 {-| The undrained tail of a multi-request extension batch, persisted so a page reload does not
 abandon it. This is the `exoext` mechanism's own standard, the sibling of
-[`Types.ExtensionApproval`](Types-ExtensionApproval): CloudShield is merely its first consumer, so
-nothing here imports a CloudShield module.
+[`Types.ExtensionApproval`](Types-ExtensionApproval): the card adapter Exosphere ships is merely
+its first consumer, so nothing here imports an adapter module.
 
 **Why it has to be persisted at all.** A batch is N sibling requests paced through the ONE request
 slot the wire admits per publishing VM, so the requests that have not been written yet exist nowhere

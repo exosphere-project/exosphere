@@ -32,7 +32,7 @@ iframeManifest =
     , "elements":
         { "frame":
             { "type": "Iframe"
-            , "props": { "src": { "$state": "/embedUrl" }, "title": "CloudShield scan results" }
+            , "props": { "src": { "$state": "/embedUrl" }, "title": "Extension results" }
             }
         }
     }

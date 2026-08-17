@@ -1,4 +1,4 @@
-module CloudShield.Reader exposing
+module Exoext.Reader exposing
     ( Projection
     , ReadContext
     , answeredRequestId
@@ -11,15 +11,15 @@ module CloudShield.Reader exposing
     , truncationWarning
     )
 
-{-| The CloudShield extension's read side: what the wire says, turned into what its card shows.
+{-| The reference extension's read side: what the wire says, turned into what its card shows.
 
-The split against the host mirrors the one [`CloudShield.Wire`](CloudShield-Wire) draws on the
+The split against the host mirrors the one [`Exoext.Messages`](Exoext-Messages) draws on the
 write side. The host owns the **framing** — polling the instance, pulling the §7.1 res slot out of
 metadata, fetching a capped object, holding the etag and the client clock — and none of that knows
 what a result is ABOUT. This module owns the **reading**: that an ok embed result is a history pick
 which outranks the live run's own result, that a settled run auto-opens its findings, which
 archived object a session names (§4.2 `results/<resultId>.json`), how long a scan has been going,
-and which of those states earns which line of chrome. Those are CloudShield's judgements, and a
+and which of those states earns which line of chrome. Those are the extension's judgements, and a
 second extension would replace this module wholesale while reusing every line of host plumbing.
 
 The boundary is [`ReadContext`](#ReadContext): the host stamps the wire reads and its own session
@@ -28,9 +28,9 @@ It never decides what wins, what is stale, or what to call anything.
 
 -}
 
-import CloudShield.Card as Card
-import CloudShield.Wire as Wire
+import Exoext.Card as Card
 import Exoext.Lifecycle
+import Exoext.Messages as Wire
 import Exoext.Transport
 import Helpers.Time
 import ISO8601
@@ -110,7 +110,8 @@ An ok embed result in the res slot is a history pick and wins over the live scan
 the findings table and the iframe; otherwise the scan-result path is used. `embedUrl` is gated on
 `embedState`: only `EmbedReady` carries the live URL, so an expired (`embedExpiresAt <= currentTime`),
 errored, or in-flight embed emits `""` and the origin-pinned Iframe self-hides. That unmount is the
-resource-drain fix (an expired CloudShield+Clerk app kept mounted spins forever on auth retries).
+resource-drain fix (an embedded app whose session has expired, kept mounted, spins forever on
+auth retries).
 
 -}
 projection : ReadContext -> Projection

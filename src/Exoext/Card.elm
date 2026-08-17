@@ -1,6 +1,6 @@
-module CloudShield.Card exposing (Detail, EmbedState(..), Instance, ManifestSource(..), Model, Msg(..), OutMsg(..), ViewConfig, abandonScanState, cancelTargetOf, detailOf, dispatchVerb, headerTitle, init, projection, requestEmbed, resolveAction, resultIdOf, rollbackScanRequest, scanningRowLabel, sentinelKind, settleScanState, transportChip, update, view)
+module Exoext.Card exposing (Detail, EmbedState(..), Instance, ManifestSource(..), Model, Msg(..), OutMsg(..), ViewConfig, abandonScanState, cancelTargetOf, detailOf, dispatchVerb, init, projection, requestEmbed, resolveAction, resultIdOf, rollbackScanRequest, scanningRowLabel, settleScanState, transportChip, update, view)
 
-{-| Host wiring for the CloudShield dynamic-UI card (Phase 1, browser side).
+{-| Host wiring for the extension dynamic-UI card (Phase 1, browser side).
 
 This is the Exosphere-side **host** for the vendored native Elm json-render renderer
 (`JsonRender.*`). It owns the json-render `state`, projects it for the renderer
@@ -21,16 +21,16 @@ Everything here is gated by `context.experimentalFeaturesEnabled` at the call si
 
 -}
 
-import CloudShield.CardStyle as CardStyle
-import CloudShield.Wire as Wire
 import Dict exposing (Dict)
 import Element
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events
 import Element.Font as Font
+import Exoext.CardStyle as CardStyle
 import Exoext.Health as Health
 import Exoext.Lifecycle as Lifecycle
+import Exoext.Messages as Wire
 import Exoext.RendererStyle as RendererStyle
 import Helpers.Time
 import Html
@@ -51,28 +51,6 @@ import Style.Widgets.Spinner as Spinner
 import Style.Widgets.Text as Text
 import Time
 import Types.HelperTypes as HelperTypes
-
-
-
--- IDENTITY
-
-
-{-| The §3.1 `exoext.v1.kind` value this adapter is the view for. The host matches a published
-sentinel's `kind` against it to decide whether it recognizes the publisher at all, so the token
-lives here with the adapter that speaks it rather than in the host that merely compares it.
--}
-sentinelKind : String
-sentinelKind =
-    "cloudshield"
-
-
-{-| What the host draws in the card header for [`sentinelKind`](#sentinelKind). A display name is
-not derivable from a wire token, and it is the adapter, not the host, that knows how its own
-extension is spelled.
--}
-headerTitle : String
-headerTitle =
-    "CloudShield (extension)"
 
 
 
@@ -99,7 +77,7 @@ type alias Model =
     -- comes from the polled status object (applied via ViewConfig.statusOverride).
     , scanState : Dict String String
 
-    -- monotonic request seq for the §7.1 metadata req-slot (per CloudShield VM).
+    -- monotonic request seq for the §7.1 metadata req-slot (per publishing VM).
     , seq : Int
 
     -- the in-flight scan request (§7.1 single-in-flight), as the generic
@@ -109,7 +87,7 @@ type alias Model =
     -- the getEmbed tracker, the other view of `PendingRequest`).
     , pending : Maybe Lifecycle.PendingRequest
 
-    -- DEMO-ONLY: whether the embedded CloudShield live-UI iframe is expanded. This is a raw,
+    -- DEMO-ONLY: whether the extension's own live-UI iframe is expanded. This is a raw,
     -- unpinned host-chrome embed, distinct from the catalog's origin-pinned Iframe element.
     -- Off by default; toggled by a link, only when ViewConfig.demoIframeUrl is set.
     , showDemoIframe : Bool
@@ -153,18 +131,18 @@ OpenStack Cmds; the parent owns the Nova metadata write (it has `Rest.Nova` + th
 
 Both request out-messages carry a `kind`, and that field is the whole of what tells the host WHICH
 request it is about to write. The host never interprets it: it stamps the §7.1 seq, the ids and the
-timestamp, hands the kind straight back to `CloudShield.Wire.encodeRequestBody` for a body, and
-frames whatever comes back. So adding a verb is a change to this module and `CloudShield.Wire`, and
+timestamp, hands the kind straight back to `Exoext.Messages.encodeRequestBody` for a body, and
+frames whatever comes back. So adding a verb is a change to this module and `Exoext.Messages`, and
 to nothing in `Exoext.*` or `Page.ServerDetail`.
 
   - `WriteRequested { kind, seq, targetIds }` — a confirmed press on the per-target request path
-    (`exoext.writeRequest`, or the frozen manifest's `cloudshield.startScan` alias). The parent
+    (`exoext.writeRequest`, or a v1 manifest's namespaced `startScan` alias). The parent
     re-resolves the targets (§5.4), asks this extension for a body of `kind`, and writes the §7.1
     req-slot on the publishing instance's metadata. §7.1 admits one request at a time, so the full
     target list rides along and the parent paces it.
 
   - `SessionRequested { kind, resultId, batchId }` — an `exoext.openSession` press on a history row
-    (the `cloudshield.getEmbed` alias). Same req-slot, same encoder, a different kind. `resultId`
+    (a v1 manifest's `getEmbed` alias). Same req-slot, same encoder, a different kind. `resultId`
     is the row's own §4.2 result id (the selector); `batchId` is the shared §2.2 batch id, kept on
     the wire for a publisher that only knows how to select by batch.
 
@@ -279,8 +257,8 @@ applyEffect instances effect model =
         Just (Render.EmitAction action) ->
             -- Resolve the manifest's action name to a generic `Exoext.Lifecycle` verb, then
             -- dispatch. Manifest v2 emits the generic verbs directly (`exoext.writeRequest`,
-            -- `exoext.openSession`); manifest v1 emits the `cloudshield.*` names carried by the
-            -- pure-data alias table. Both resolve here; an off-table / off-verb action is ignored
+            -- `exoext.openSession`); manifest v1 emits the publisher's own namespaced names,
+            -- carried by the pure-data alias table. Both resolve here; an off-table / off-verb action is ignored
             -- (fail-closed).
             dispatchVerb (resolveAction action.verb action.params) action.params model
 
@@ -288,29 +266,39 @@ applyEffect instances effect model =
             ( applyStateChange instances change model, Nothing )
 
 
-{-| The CloudShield adapter's action-name → generic-verb alias table (pure data). The frozen
-manifest emits `cloudshield.startScan` (a §4.1 request, kind `"scan"`) and `cloudshield.getEmbed`
-(open a result session for an archived scan); both map onto `Exoext.Lifecycle`'s generic verbs.
-There are no `cloudshield.*`-named dispatch FUNCTIONS — only this table.
+{-| The adapter's action-name → generic-verb alias table (pure data). A v1 manifest emits
+`startScan` (a §4.1 request, kind `"scan"`), `getEmbed` (open a result session for an archived
+run) and `cancelScan`; all three map onto `Exoext.Lifecycle`'s generic verbs. There are no
+per-publisher dispatch FUNCTIONS — only this table.
 -}
 actionAliases : List Lifecycle.VerbAlias
 actionAliases =
-    [ { name = "cloudshield.startScan", verb = Lifecycle.verbWriteRequest, kind = "scan" }
-    , { name = "cloudshield.getEmbed", verb = Lifecycle.verbOpenSession, kind = "" }
-    , { name = "cloudshield.cancelScan", verb = Lifecycle.verbCancelRequest, kind = "" }
+    [ { name = "startScan", verb = Lifecycle.verbWriteRequest, kind = "scan" }
+    , { name = "getEmbed", verb = Lifecycle.verbOpenSession, kind = "" }
+    , { name = "cancelScan", verb = Lifecycle.verbCancelRequest, kind = "" }
     ]
 
 
+{-| The part of a manifest action name after the publisher's own namespace prefix, so
+`"acme.startScan"` and a bare `"startScan"` resolve alike. A v1 manifest namespaces its action
+names by publisher; the alias table above is keyed on the bare name instead of enumerating
+prefixes the host cannot know in advance.
+-}
+localActionName : String -> String
+localActionName name =
+    String.split "." name |> List.reverse |> List.head |> Maybe.withDefault name
+
+
 {-| Resolve a manifest action name to a generic [`Lifecycle.VerbAlias`](Exoext-Lifecycle#VerbAlias).
-Two ways in: the v1 [`actionAliases`](#actionAliases) table (the `cloudshield.*` names), and — for
-manifest v2 and later — a name that IS already a generic verb (`exoext.writeRequest`,
+Two ways in: the v1 [`actionAliases`](#actionAliases) table (matched on the unprefixed name), and
+— for manifest v2 and later — a name that IS already a generic verb (`exoext.writeRequest`,
 `exoext.openSession`, `exoext.cancelRequest`, `exoext.dismissSession`), accepted directly with its
 `kind` read from the emitted params. Anything else is `Nothing` (fail-closed). Keeping the alias
-table means a v1 manifest still dispatches against this host until the demo VM redeploys.
+table means a v1 manifest still dispatches against this host until its publisher redeploys.
 -}
 resolveAction : String -> Encode.Value -> Maybe Lifecycle.VerbAlias
 resolveAction name params =
-    case Lifecycle.resolveVerb actionAliases name of
+    case Lifecycle.resolveVerb actionAliases (localActionName name) of
         Just alias ->
             Just alias
 
@@ -337,7 +325,7 @@ kindOf params =
 {-| The generic verb dispatcher: interpret a resolved [`Lifecycle.VerbAlias`](Exoext-Lifecycle#VerbAlias)
 against this adapter's request/session handlers. `verbWriteRequest` frames + writes a request of
 the alias's own `kind` (targets resolved §5.4) — but only for a kind in
-[`Wire.writeRequestKinds`](CloudShield-Wire#writeRequestKinds); any other (or missing) kind is a
+[`Wire.writeRequestKinds`](Exoext-Messages#writeRequestKinds); any other (or missing) kind is a
 no-op, so a manifest can neither route an unknown kind onto the per-target request path nor leave
 rows queued for a body the encoder would decline. `verbOpenSession` opens a result session for the
 pressed row's result. `verbCancelRequest` asks the host to stop the named request.
@@ -422,12 +410,12 @@ requestWrite kind requested model =
             )
 
 
-{-| A `cloudshield.getEmbed` on a history row: ask the parent to mint a fresh embed URL for the
+{-| A `getEmbed` press on a history row: ask the parent to mint a fresh embed URL for the
 named archived scan. The card holds no run-state knowledge, so it does not guard here — the §7.1
 single-req-slot guard (don't disturb an active or unclaimed scan) is applied host-side in
 `Page.ServerDetail`, derived from the live wire metadata. Missing ids ⇒ no-op.
 
-The out-message names its own [`Wire.kindOpenSession`](CloudShield-Wire#kindOpenSession) rather
+The out-message names its own [`Wire.kindOpenSession`](Exoext-Messages#kindOpenSession) rather
 than leaving the host to assume one: the host writes this through the same §7.1 slot and the same
 adapter encoder as a scan, and the kind is all that distinguishes them.
 
@@ -625,7 +613,7 @@ resultIdOf params =
         (Maybe.Extra.or (stringParam "batchId") (stringParam "resultId"))
 
 
-{-| Resolve a `cloudshield.startScan` `targetInstanceIds` param: an empty array means "use
+{-| Resolve a `startScan` `targetInstanceIds` param: an empty array means "use
 the current selection" (the pinned host convention, host-renderer-interface.md §2.1); a
 non-empty array is the explicit per-row id(s).
 -}
@@ -1075,7 +1063,7 @@ historyRow zone { activeResultId, pendingResultId, erroredResultId, expiredResul
 
         -- The SAME precedence chain as `rowState`, projected as a stable token instead of a
         -- display string. Manifest v2 keys its badge `variant` (→ `data-state`) and its per-row
-        -- `$cond` text/action chains on this token, so the host owns no CloudShield display
+        -- `$cond` text/action chains on this token, so the host owns no publisher display
         -- strings. `rowState`/`actionLabel` above stay projected for manifest v1 until the demo VM
         -- redeploys v2 — one source of truth, two projections, so they can never disagree.
         state =
@@ -1480,7 +1468,7 @@ type alias ViewConfig =
     -- resource-drain fix). `EmbedIdle`/`EmbedReady` draw no line.
     , embedState : EmbedState
 
-    -- DEMO-ONLY: when set, the card shows a collapsible panel embedding the *real* CloudShield
+    -- DEMO-ONLY: when set, the card shows a collapsible panel embedding the extension's own
     -- web UI from this URL in a raw, unpinned host-chrome iframe (no origin allowlist). This is
     -- separate from the catalog's origin-pinned Iframe element and is for the program-officer
     -- demo only. `Nothing` disables the panel entirely.
@@ -1509,7 +1497,7 @@ type alias ViewConfig =
 
 
 {-| The state of a history-View embed round-trip, decided in
-[`CloudShield.Reader.projection`](CloudShield-Reader#projection) from (the pending getEmbed marker,
+[`Exoext.Reader.projection`](Exoext-Reader#projection) from (the pending getEmbed marker,
 the res-slot embed result, and the shared client clock). It drives the quiet affordance line and
 gates the iframe mount.
 
@@ -1517,7 +1505,7 @@ gates the iframe mount.
   - `EmbedLoading` — a getEmbed is in flight (pending set, no matching result yet).
   - `EmbedError` — the matching result reported `status == "error"`, or the request timed out.
   - `EmbedExpired` — an ok result whose `embedExpiresAt` is at/before the client clock; the
-    iframe is unmounted so an expired CloudShield+Clerk app can't keep spinning on auth retries.
+    iframe is unmounted so an app whose session has expired can't keep spinning on auth retries.
   - `EmbedReady` — an ok, unexpired result; the iframe shows it.
 
 -}
@@ -1641,7 +1629,7 @@ and never the renderer's old fail-closed "Embedded content is unavailable" place
     badge), so the region itself shows progress rather than sitting blank.
   - `EmbedError` — a danger-toned "Couldn't open these results." with a **Retry** affordance that
     re-fires getEmbed for the last-attempted result (`erroredResultId`).
-  - `EmbedExpired` — a gentle prompt to reopen (the iframe was unmounted so the dead CloudShield
+  - `EmbedExpired` — a gentle prompt to reopen (the iframe was unmounted so the dead embedded
     app stops spinning on auth retries).
   - `EmbedReady` — nothing; the iframe is on screen.
 
@@ -2207,7 +2195,7 @@ optInAffordance palette sourceNoun sourceName =
         ]
 
 
-{-| DEMO-ONLY panel embedding the real CloudShield web UI in a raw, unpinned iframe.
+{-| DEMO-ONLY panel embedding the extension's own web UI in a raw, unpinned iframe.
 
 This is a clearly-marked demo embed for the program-officer visit: it embeds a host-provided
 URL directly with no origin allowlist, so it lives in host chrome rather than the sandboxed
@@ -2232,7 +2220,7 @@ demoIframePanel palette maybeUrl expanded =
                       else
                         "▸ Show"
                      )
-                        ++ " CloudShield live UI (demo only, raw unpinned iframe outside the sandboxed manifest)"
+                        ++ " extension live UI (demo only, raw unpinned iframe outside the sandboxed manifest)"
                     )
                     GotToggleDemoIframe
                     :: (if expanded then
@@ -2249,7 +2237,7 @@ demoIframePanel palette maybeUrl expanded =
                                     , Html.Attributes.style "border" "1px solid rgba(255,255,255,0.2)"
                                     , Html.Attributes.style "border-radius" "4px"
                                     , Html.Attributes.attribute "sandbox" "allow-scripts allow-same-origin allow-forms"
-                                    , Html.Attributes.title "CloudShield live UI (demo)"
+                                    , Html.Attributes.title "Extension live UI (demo)"
                                     ]
                                     []
                                 )

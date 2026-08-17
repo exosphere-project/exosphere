@@ -11,12 +11,12 @@ verb, the removal round-trip, the pre-echo run reaching the row badge, and a his
 retries after a failure.
 
 These are host behaviors rather than adapter ones — what the host does with a slot, a marker and a
-clock — so they sit here beside the rest of `Tests.Exoext.Host` rather than with the CloudShield
+clock — so they sit here beside the rest of `Tests.Exoext.Host` rather than with the adapter
 payloads that happen to fill them.
 
 -}
 
-import CloudShield.Card as Card
+import Exoext.Card as Card
 import Exoext.Lifecycle as Lifecycle
 import Expect
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -244,7 +244,7 @@ removalSuite =
 
 {-| Two archived rows, the newer of which is the one the removal names.
 -}
-loadedHistory : RDPP.RemoteDataPlusPlus String (List CloudShieldRow)
+loadedHistory : RDPP.RemoteDataPlusPlus String (List HistoryRow)
 loadedHistory =
     RDPP.RemoteDataPlusPlus
         (RDPP.DoHave
@@ -254,7 +254,7 @@ loadedHistory =
         (RDPP.NotLoading Nothing)
 
 
-type alias CloudShieldRow =
+type alias HistoryRow =
     { batchId : String
     , requestId : Maybe String
     , targetId : String
@@ -266,7 +266,7 @@ type alias CloudShieldRow =
     }
 
 
-row : String -> CloudShieldRow
+row : String -> HistoryRow
 row requestId =
     { batchId = "b-1"
     , requestId = Just requestId

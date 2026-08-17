@@ -250,7 +250,7 @@ bytesToStringBestEffort bytes =
 
 {-| Fetch a JSON/text object body **fail-closed** above `capBytes`: `Bytes.width` is checked
 BEFORE the bytes are ever decoded into a `String`, so an oversized response is rejected without
-first allocating a full copy of it. Used for the CloudShield card's object-storage reads
+first allocating a full copy of it. Used for the extension card's object-storage reads
 (`manifest.json` / result objects, `phase-0-spec.md` §5.5 size caps) where the body must land in
 the app as a `String` for JSON decoding, not saved to disk (contrast `expectBytesWithErrorBody`,
 which is for `File.Download`).

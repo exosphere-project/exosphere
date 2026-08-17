@@ -1072,9 +1072,9 @@ iframeElement ctx props url =
         -- Force the embedded (cross-origin) app to render in light mode regardless
         -- of the viewer's OS `prefers-color-scheme`. Per the CSS Color Adjustment
         -- spec, Chromium derives the embedded page's used color-scheme from the
-        -- embedding iframe element, so this pins CloudShield's own UI to light while
-        -- Exosphere itself stays on the viewer's theme. (CloudShield's dark theme is
-        -- broken: dark text on dark bg.) This is a presentation-only attribute and
+        -- embedding iframe element, so this pins the embedded app's own UI to light
+        -- while Exosphere itself stays on the viewer's theme, which is what an embedded
+        -- app with a broken dark theme needs. This is a presentation-only attribute and
         -- does not touch the origin-pin, sandbox, referrerpolicy, or keyed remount.
         , Attr.style "color-scheme" "light"
         , Attr.style "width" "100%"

@@ -916,7 +916,7 @@ processSharedMsg sharedMsg outerModel =
 
         ClockTick time ->
             -- Pure clock update: advance `clientCurrentTime` with no orchestration. This is the
-            -- 1s CloudShield-scan-timer tick; it must not drive any API polling.
+            -- 1s extension-scan-timer tick; it must not drive any API polling.
             ( { sharedModel | clientCurrentTime = time }, Cmd.none )
                 |> mapToOuterModel outerModel
 

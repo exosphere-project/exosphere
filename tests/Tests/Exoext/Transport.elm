@@ -10,7 +10,7 @@ module Tests.Exoext.Transport exposing
 
 {-| The generic exoext envelope: §7.1 request-slot framing, the §4.3 run status, the cancel
 channel, the §5.5 caps and the result-pointer plumbing. Nothing here knows what a request is for;
-the payloads that fill it are covered by `Tests.CloudShield.Wire`.
+the payloads that fill it are covered by `Tests.Exoext.Messages`.
 -}
 
 import Exoext.Transport as Transport

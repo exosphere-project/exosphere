@@ -125,7 +125,7 @@ readSentinel metadata =
 {-| Reassemble the manifest body from metadata chunks `exoext.v1.man.body.*` (§7.1 chunk
 framing), honoring an explicit `exoext.v1.man.body.n` count when present and falling back to
 gapless concatenation otherwise. `Nothing` when no body is present. The `man.body.` key
-matches what the CloudShield agent publishes (`store/metadata.py` MAN\_BODY) and the sibling
+matches what the reference extension publishes and the sibling
 `req.body`/`res.body` slots.
 -}
 manifestBodyFromMetadata : List OSTypes.MetadataItem -> Maybe String

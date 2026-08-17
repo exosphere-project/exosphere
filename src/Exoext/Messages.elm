@@ -1,4 +1,4 @@
-module CloudShield.Wire exposing
+module Exoext.Messages exposing
     ( ActionResult
     , Counts
     , DeleteRequest
@@ -23,7 +23,7 @@ module CloudShield.Wire exposing
     , writeRequestKinds
     )
 
-{-| The CloudShield extension's own wire payloads: the bodies it puts inside the exoext envelope,
+{-| The reference extension's own wire payloads: the bodies it puts inside the exoext envelope,
 and the reads that make sense of what comes back.
 
 The split against [`Exoext.Transport`](Exoext-Transport) is the whole point of this module
@@ -31,7 +31,7 @@ existing. Transport owns the **envelope** — the §7.1 request slot, the chunk 
 status, the cancel channel, the §5.5 caps, the result-pointer plumbing — none of which knows what
 a request is FOR. This module owns the **contents**: the §4.1 body that says `snapshot-clone`, the
 `getEmbed` verb and its response, the severity vocabulary of an archived-scan row, and the object
-name a scan history lives at. Those are CloudShield's, not the host's, and a second extension
+name a scan history lives at. Those are the extension's, not the host's, and a second extension
 would replace this module wholesale while reusing every line of Transport unchanged.
 
 That boundary is what makes the request path extension-agnostic: the host stamps an
@@ -49,7 +49,7 @@ import OpenStack.Types as OSTypes
 
 
 
--- REQUESTS (Exosphere -> the CloudShield VM)
+-- REQUESTS (Exosphere -> the publishing VM)
 
 
 {-| The wire request kind for a scan (§4.1). The token the manifest routes an
@@ -101,7 +101,7 @@ into the §7.1 request body, or `Nothing` for a kind this adapter does not speak
 **This is the host↔adapter request boundary.** The host mints the ids and timestamps (only it has
 the wall clock and the §7.1 seq), re-resolves the subject against Exosphere's own instance list
 (§5.4), and then knows nothing else about what it is about to write: it asks here for a body and
-frames whatever comes back. Every word that is CloudShield's — `scan`, `snapshot-clone`, the
+frames whatever comes back. Every word that is the extension's — `scan`, `snapshot-clone`, the
 `quick` profile, `getEmbed` — is on this side of the call, and a second extension supplies its own
 version of this one function.
 
@@ -336,7 +336,7 @@ deleteRequestJson req =
 
 
 
--- EMBED RESULT (the CloudShield VM -> Exosphere)
+-- EMBED RESULT (the publishing VM -> Exosphere)
 
 
 {-| The bridge's embed result, written inline into the res slot in response to a `getEmbed`.

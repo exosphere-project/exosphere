@@ -10,8 +10,8 @@ module Types.ExtensionApproval exposing
 
 {-| A persisted user decision that one specific VM instance is allowed to render the extension
 UI it publishes (the `exoext` dynamic-UI mechanism). This is the mechanism's own standard, not
-CloudShield-specific: CloudShield is merely its first consumer, so nothing here imports a
-CloudShield module.
+adapter-specific: the card adapter Exosphere ships is merely its first consumer, so nothing here
+imports an adapter module.
 
 Approval is matched by `instanceUuid` ONLY. The name is display-only: a different VM that
 publishes an extension with the same name has a different UUID and therefore gets its own

@@ -106,7 +106,7 @@ readSuite =
         [ test "no health key at all is not a health signal" <|
             \_ ->
                 Expect.equal Nothing
-                    (Health.read (metadata [ ( "exoext.v1.kind", "cloudshield" ) ]))
+                    (Health.read (metadata [ ( "exoext.v1.kind", "scanner" ) ]))
         , test "one health key is enough — a VM that failed before publishing a sentinel still reports" <|
             \_ ->
                 Expect.notEqual Nothing

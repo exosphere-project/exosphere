@@ -9,7 +9,7 @@ sentinel :
     { store : Discovery.Store, container : Maybe String, prefix : Maybe String, manifest : Maybe String }
     -> Discovery.Sentinel
 sentinel { store, container, prefix, manifest } =
-    { kind = "cloudshield"
+    { kind = "scanner"
     , schema = Just "1.0"
     , store = store
     , flags = []

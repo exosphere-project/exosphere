@@ -31,7 +31,7 @@ the request/result _JSON_ and the run _states_ are identical to the Jetstream2 p
 
 **This module is the envelope, never the contents.** Nothing here knows what a request is FOR:
 bodies go in and come out as opaque strings, and the extension-specific payloads that fill them
-live with the adapter that speaks them (`CloudShield.Wire` today, cited only as the example
+live with the adapter that speaks them (`Exoext.Messages` today, cited only as the example
 consumer, the same convention `Exoext.Lifecycle` follows). That is what lets a second extension
 reuse this file unchanged — see [`RequestContext`](#RequestContext), which is the whole of what
 the host contributes to a request body.

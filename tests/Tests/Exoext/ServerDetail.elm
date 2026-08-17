@@ -1,22 +1,22 @@
-module Tests.CloudShield.ServerDetail exposing (cloudShieldBusyProjectionSuite, cloudShieldEmbedProjectionSuite, cloudShieldPendingEmbedSuite, cloudShieldScanBlockedSuite, cloudShieldScanTimerSuite)
+module Tests.Exoext.ServerDetail exposing (extensionBusyProjectionSuite, extensionEmbedProjectionSuite, extensionPendingEmbedSuite, extensionScanBlockedSuite, extensionScanTimerSuite)
 
-{-| The CloudShield ADAPTER's own host wiring: the history/embed projection, the scan-completion
-timer, the busy projections the CloudShield manifest binds against, and the pending-embed tracker.
+{-| The ADAPTER's own host wiring: the history/embed projection, the scan-completion timer, the
+busy projections the reference manifest binds against, and the pending-embed tracker.
 
 The generic host behavior these suites used to sit next to now lives in `Tests.Exoext.Host`, and the
 fixtures both share live in `Tests.Exoext.Fixtures`.
 
 -}
 
-import CloudShield.Card as Card
-import CloudShield.Reader as Reader
+import Exoext.Card as Card
+import Exoext.Reader as Reader
 import Expect
 import ISO8601
 import Json.Decode as Decode
 import Json.Encode as Encode
 import Page.ServerDetail as ServerDetail
 import Test exposing (Test, describe, test)
-import Tests.CloudShield.Fixtures exposing (cardViewConfig)
+import Tests.Exoext.CardFixtures exposing (cardViewConfig)
 import Tests.Exoext.Fixtures exposing (advance, afterExpiry, archivedFindingsJson, beforeExpiry, embedResultMetadata, errorEmbedBody, expiresAtIso, modelAfterStartScan, modelPendingEmbed, modelRecording, modelWithArchivedFindings, modelWithResultRef, objectFor, okEmbedBody, okEmbedBodyWithResultId, projectPublishing, runSlot, serverPublishing, writeRequestAt)
 import Time
 
@@ -35,9 +35,9 @@ liveScanFindingsJson =
     """[{"severity":"high"}]"""
 
 
-cloudShieldEmbedProjectionSuite : Test
-cloudShieldEmbedProjectionSuite =
-    describe "CloudShield.Reader.projection (history-View reader)"
+extensionEmbedProjectionSuite : Test
+extensionEmbedProjectionSuite =
+    describe "Exoext.Reader.projection (history-View reader)"
         [ test "an ok, unexpired embed result renders findings + the iframe url and reports EmbedReady" <|
             \_ ->
                 let
@@ -426,8 +426,8 @@ cloudShieldEmbedProjectionSuite =
 {-| The completion-timer descriptor: freeze to the full wall-clock flow (`completedAt - start`), and
 never to the scanner-only `summary.durationSec`. Covers spec item #2.
 -}
-cloudShieldScanTimerSuite : Test
-cloudShieldScanTimerSuite =
+extensionScanTimerSuite : Test
+extensionScanTimerSuite =
     let
         completedAtIso =
             "2026-07-20T21:02:10.000Z"
@@ -444,7 +444,7 @@ cloudShieldScanTimerSuite =
         bodyWith completedField =
             "{\"requestId\":\"exoext-req-42\"" ++ completedField ++ ",\"summary\":{\"durationSec\":22}}"
     in
-    describe "CloudShield.Reader.completionTimer (frozen completion time)"
+    describe "Exoext.Reader.completionTimer (frozen completion time)"
         [ test "no tracked run yields no descriptor" <|
             \_ ->
                 Expect.equal Nothing (Reader.completionTimer Nothing "done" Nothing)
@@ -471,11 +471,11 @@ cloudShieldScanTimerSuite =
 
 
 {-| The two §7.1 guards as the manifest sees them, through the whole host path: `exoextViewConfig`
-projected by `CloudShield.Card.projection`. This is the wiring test — that `/scanBusy` is genuinely
+projected by `Exoext.Card.projection`. This is the wiring test — that `/scanBusy` is genuinely
 `exoextRequestBlocked` (the predicate that gates a SCAN press) and not the View guard beside it.
 -}
-cloudShieldBusyProjectionSuite : Test
-cloudShieldBusyProjectionSuite =
+extensionBusyProjectionSuite : Test
+extensionBusyProjectionSuite =
     let
         busyFlags metadata model =
             Card.projection Time.utc
@@ -510,8 +510,8 @@ cloudShieldBusyProjectionSuite =
         ]
 
 
-cloudShieldScanBlockedSuite : Test
-cloudShieldScanBlockedSuite =
+extensionScanBlockedSuite : Test
+extensionScanBlockedSuite =
     let
         afterFirstWrite =
             writeRequestAt 1000 { subject = "i-1", batchId = Nothing } modelAfterStartScan
@@ -550,8 +550,8 @@ cloudShieldScanBlockedSuite =
         ]
 
 
-cloudShieldPendingEmbedSuite : Test
-cloudShieldPendingEmbedSuite =
+extensionPendingEmbedSuite : Test
+extensionPendingEmbedSuite =
     describe "ServerDetail clearResolvedPendingEmbed"
         [ test "a matching-requestId result clears the pending marker" <|
             \_ ->

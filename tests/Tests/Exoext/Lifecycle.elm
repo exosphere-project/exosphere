@@ -465,17 +465,17 @@ suite =
         , describe "declarative verbs"
             [ test "resolveVerb maps an aliased action name to its generic verb + kind" <|
                 \_ ->
-                    Lifecycle.resolveVerb aliases "cloudshield.startScan"
+                    Lifecycle.resolveVerb aliases "acme.startScan"
                         |> Maybe.map (\a -> ( a.verb, a.kind ))
                         |> Expect.equal (Just ( Lifecycle.verbWriteRequest, "scan" ))
             , test "resolveVerb maps getEmbed to openSession" <|
                 \_ ->
-                    Lifecycle.resolveVerb aliases "cloudshield.getEmbed"
+                    Lifecycle.resolveVerb aliases "acme.getEmbed"
                         |> Maybe.map .verb
                         |> Expect.equal (Just Lifecycle.verbOpenSession)
             , test "resolveVerb returns Nothing for an off-table action (fail-closed)" <|
                 \_ ->
-                    Lifecycle.resolveVerb aliases "cloudshield.deleteEverything"
+                    Lifecycle.resolveVerb aliases "acme.deleteEverything"
                         |> Expect.equal Nothing
             ]
         , describe "runStopping (a stop asked for and not yet answered)"
@@ -522,6 +522,6 @@ pendingWithSeq seq =
 
 aliases : List Lifecycle.VerbAlias
 aliases =
-    [ { name = "cloudshield.startScan", verb = Lifecycle.verbWriteRequest, kind = "scan" }
-    , { name = "cloudshield.getEmbed", verb = Lifecycle.verbOpenSession, kind = "" }
+    [ { name = "acme.startScan", verb = Lifecycle.verbWriteRequest, kind = "scan" }
+    , { name = "acme.getEmbed", verb = Lifecycle.verbOpenSession, kind = "" }
     ]

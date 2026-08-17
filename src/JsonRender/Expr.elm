@@ -18,7 +18,7 @@ module JsonRender.Expr exposing
     , validatedParams
     )
 
-{-| The json-render expression / binding dialect, scoped to the CloudShield card's
+{-| The json-render expression / binding dialect, scoped to the extension card's
 needs and pinned to `@json-render/core` v0.19.0 (see `contract/pinned-format-reference.md`).
 
 Every dynamic value in a manifest is a plain JSON object carrying a single

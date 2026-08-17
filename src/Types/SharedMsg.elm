@@ -36,7 +36,7 @@ type SharedMsg
     = Tick TickInterval Time.Posix
       -- A side-effect-free clock update: sets `clientCurrentTime` and nothing else (no
       -- orchestration/API polling, unlike `Tick`). Used by the conditional 1s subscription
-      -- that smooths the CloudShield scan timer only while a scan is actively counting.
+      -- that smooths the extension card's run timer only while a run is actively counting.
     | ClockTick Time.Posix
       -- Conditional exoext request poll: sets `clientCurrentTime` and asks the open
       -- ServerDetail page's publishing server to refresh, without running full orchestration.

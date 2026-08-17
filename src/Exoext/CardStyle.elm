@@ -1,6 +1,6 @@
-module CloudShield.CardStyle exposing (extraRules)
+module Exoext.CardStyle exposing (extraRules)
 
-{-| CloudShield's own block of the renderer stylesheet.
+{-| The extension card's own block of the renderer stylesheet.
 
 [`Exoext.RendererStyle`](Exoext-RendererStyle) styles the catalog — the components any manifest is
 built from. It cannot style THIS manifest's layout, because that layout is structure, not
@@ -32,7 +32,7 @@ row.
 import Exoext.RendererStyle as RendererStyle
 
 
-{-| The CloudShield card's structural and vocabulary rules, appended after the base stylesheet.
+{-| The extension card's structural and vocabulary rules, appended after the base stylesheet.
 -}
 extraRules : RendererStyle.Tokens -> List String
 extraRules t =
@@ -45,7 +45,7 @@ extraRules t =
       ".jr-badge[data-state^=\"scanning\"]::before { content: \"\"; display: inline-block; flex: none; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: jr-badge-spin 0.7s linear infinite; }"
     , ".jr-badge[data-state^=\"scanning\"] { background: " ++ t.infoBg ++ "; color: " ++ t.infoText ++ "; border-color: " ++ t.infoBorder ++ "; }"
 
-    -- Severity is CloudShield's grouping, so the per-group dot colors are CloudShield's too: the
+    -- Severity is the publisher's grouping, so the per-group dot colors are the publisher's too: the
     -- base draws a neutral dot and this maps the CVSS bands onto the palette's state families.
     , ".jr-counts__pill--critical .jr-counts__dot, .jr-counts__pill--high .jr-counts__dot { background: " ++ t.dangerDot ++ "; }"
     , ".jr-counts__pill--medium .jr-counts__dot { background: " ++ t.warningDot ++ "; }"

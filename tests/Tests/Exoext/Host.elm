@@ -1,25 +1,24 @@
-module Tests.Exoext.Host exposing (batchPersistenceSuite, batchSuite, cancelSuite, cardTitleSuite, dismissSuite, preEchoStopSuite, readDecisionSuite, recoverySuite, reloadSuite, staleRunSuite, stoppingSuite, tailStopSuite)
+module Tests.Exoext.Host exposing (batchPersistenceSuite, batchSuite, cancelSuite, dismissSuite, preEchoStopSuite, readDecisionSuite, recoverySuite, reloadSuite, staleRunSuite, stoppingSuite, tailStopSuite)
 
 {-| The generic `exoext` host: everything `Page.ServerDetail` does for ANY extension, driven through
 the public host functions rather than through a particular adapter's card.
 
 Batch pacing, run recovery, the stale-run valve, batch-tail persistence, cancel and the stopping
 state, stopping a queued target, the pre-echo stop window, session dismissal, the object-storage
-read decisions and the sentinel-derived card title are all §7.1 / §4.3 host behavior. None of it
+read decisions are all §7.1 / §4.3 host behavior. None of it
 knows what an extension DOES, and a second extension would need every one of these properties to
-hold unchanged — which is why they are here and not under `Tests.CloudShield`, where they used to
-sit only because CloudShield was the first thing to exercise them.
+hold unchanged — which is why they are here and not in the adapter suites, where they used to
+sit only because the card adapter was the first thing to exercise them.
 
 Adapter-specific behavior (the embed projection, the scan timer, the busy projections, the pending
-embed) stays in `Tests.CloudShield.ServerDetail`.
+embed) stays in `Tests.Exoext.ServerDetail`.
 
 -}
 
-import CloudShield.Card as Card
-import CloudShield.Wire as Wire
 import Dict
-import Exoext.Discovery
+import Exoext.Card as Card
 import Exoext.Lifecycle as Lifecycle
+import Exoext.Messages as Wire
 import Expect
 import Helpers.GetterSetters as GetterSetters
 import Json.Decode as Decode
@@ -1169,30 +1168,6 @@ preEchoStopSuite =
         ]
 
 
-cardTitleSuite : Test
-cardTitleSuite =
-    let
-        sentinelOfKind kind =
-            Exoext.Discovery.readSentinel [ { key = "exoext.v1.kind", value = kind } ]
-    in
-    describe "ServerDetail exoextCardTitle (the header reads the §3.1 sentinel)"
-        [ test "a kind this host ships an adapter for gets that adapter's own name" <|
-            \_ ->
-                Expect.equal Card.headerTitle
-                    (ServerDetail.exoextCardTitle (sentinelOfKind Card.sentinelKind))
-        , test "any other publisher gets the generic word, not its own kind painted into the chrome" <|
-            \_ ->
-                -- `kind` is publisher-controlled data read off a VM's metadata. Rendering it as a
-                -- title would let any instance name a panel of Exosphere's UI, so the header is a
-                -- lookup and never a transformation of the wire string.
-                Expect.equal [ "Extension", "Extension", "Extension" ]
-                    ([ "acme-scanner", "", "<script>" ] |> List.map (sentinelOfKind >> ServerDetail.exoextCardTitle))
-        , test "no sentinel at all is the generic word too" <|
-            \_ ->
-                Expect.equal "Extension" (ServerDetail.exoextCardTitle Nothing)
-        ]
-
-
 {-| "Check now": the whole round trip from the card's press to the host's two effects.
 
 It is generic host behavior in the strictest sense — the card carries no reads of its own, so all it
@@ -1215,7 +1190,7 @@ reloadSuite =
             }
 
         ( pressed, _, shared ) =
-            ServerDetail.update (ServerDetail.CloudShieldMsg Card.GotReloadRequested) (projectPublishing []) settled
+            ServerDetail.update (ServerDetail.ExtensionCardMsg Card.GotReloadRequested) (projectPublishing []) settled
     in
     describe "the health strip's Check now press"
         [ test "the card forwards the press and asks for nothing else" <|

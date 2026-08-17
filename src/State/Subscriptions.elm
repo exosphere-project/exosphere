@@ -41,7 +41,7 @@ subscriptionsValid outerModel =
          , updateNetworkConnectivity (\online -> SharedMsg (NetworkConnection online))
          , receiveWebLock (\result -> SharedMsg (ReceiveWebLock result))
          ]
-            -- A 1s clock tick ONLY while a CloudShield scan is actively counting on the open
+            -- A 1s clock tick ONLY while an extension run is actively counting on the open
             -- ServerDetail page, to smooth its elapsed timer (the shared 5s tick is visibly
             -- chunky). Gated tightly so it exists only during the ~scan window and drops away
             -- the moment the run is terminal; it sends the pure `ClockTick` (no API polling).
@@ -72,9 +72,9 @@ subscriptionsValid outerModel =
         )
 
 
-{-| True exactly when the open page is a ServerDetail whose CloudShield card has a tracked
+{-| True exactly when the open page is a ServerDetail whose extension card has a tracked
 scan (`pending` set) in a non-terminal state — i.e. `scanTimerView` is in its counting phase.
-Mirrors the host-side gate in `ServerDetail.cloudShieldViewConfig`: an absent/uncorrelated
+Mirrors the host-side gate in `ServerDetail.exoextViewConfig`: an absent/uncorrelated
 status defaults to "queued" (counting); done/error/cancelled/expired stop the tick.
 -}
 exoextScanCounting : OuterModel -> Bool

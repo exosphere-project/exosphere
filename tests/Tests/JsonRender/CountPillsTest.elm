@@ -47,7 +47,7 @@ render raw state =
         |> Query.fromHtml
 
 
-{-| The vocabulary the CloudShield adapter supplies, mirrored here so the wire-compatibility tests
+{-| The vocabulary the card adapter supplies, mirrored here so the wire-compatibility tests
 below are about the mechanism and not about importing the adapter.
 -}
 scannerOptions : Render.Options
