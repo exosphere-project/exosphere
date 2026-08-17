@@ -101,6 +101,13 @@ type alias Model =
     , exoextHistory : RDPP.RemoteDataPlusPlus String (List CloudShield.Wire.IndexEntry)
     , exoextHistoryRequestKey : Maybe String
 
+    -- how many times this session has changed the archive itself (today: removals the publisher
+    -- confirmed). It rides the index read's cache-buster, and it is the reason that buster is not
+    -- simply the refresh key: the key is the manifest etag plus the run slot, and a removal moves
+    -- NEITHER — so the refetch a removal asks for would go out on the same URL as the read before
+    -- it, and could be answered out of the browser's cache with the removed row still in it.
+    , exoextHistoryGeneration : Int
+
     -- the in-flight history-View getEmbed request, as the generic `Exoext.Lifecycle.PendingRequest`
     -- (`kind == "getEmbed"`, `subject` = the archived result id), recorded when its req slot is
     -- written so the card can show a spinner while the bridge mints a fresh embed (~10s over the
@@ -231,6 +238,7 @@ init serverUuid =
     , exoextResultRefRequest = Nothing
     , exoextHistory = RDPP.empty
     , exoextHistoryRequestKey = Nothing
+    , exoextHistoryGeneration = 0
     , exoextPendingEmbed = Nothing
     , exoextPendingDelete = Nothing
     , exoextDeleteError = Nothing
@@ -1155,6 +1163,7 @@ resolveExoextRemoval metadata model =
                             )
                             model.exoextHistory
                     , exoextHistoryRequestKey = Nothing
+                    , exoextHistoryGeneration = model.exoextHistoryGeneration + 1
                 }
 
             else
@@ -1342,7 +1351,7 @@ syncExoextIndex project sentinel refreshKey ( model, priorCmd ) =
                         swiftUrl
                         container
                         (CloudShield.Wire.indexObjectName (Maybe.withDefault "" sentinel.prefix))
-                        (Just refreshKey)
+                        (Just (refreshKey ++ ":" ++ String.fromInt model.exoextHistoryGeneration))
                         CloudShield.Wire.indexCapBytes
                         (\result ->
                             SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|

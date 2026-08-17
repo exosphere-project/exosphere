@@ -196,8 +196,14 @@ removalSuite =
                     settled =
                         polledAt (Time.millisToPosix 1800) (ack "ok" "\"error\":null") written
                 in
-                Expect.equal ( [ "exoext-req-8" ], Nothing, Nothing )
-                    ( rowIds settled, settled.exoextPendingDelete, settled.exoextHistoryRequestKey )
+                Expect.equal ( [ "exoext-req-8" ], Nothing, ( Nothing, 1 ) )
+                    ( rowIds settled
+                    , settled.exoextPendingDelete
+                      -- The generation is what makes that refetch a NEW URL: a removal moves
+                      -- neither the manifest etag nor the run slot, so without it the read would go
+                      -- out unchanged and could be answered from cache with the row still in it.
+                    , ( settled.exoextHistoryRequestKey, settled.exoextHistoryGeneration )
+                    )
         , test "a refused removal keeps the row and records the publisher's reason on it" <|
             \_ ->
                 let
