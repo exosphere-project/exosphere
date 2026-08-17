@@ -20,6 +20,7 @@ cardViewConfig : Card.ViewConfig
 cardViewConfig =
     { approved = True
     , sourceName = "extension-vm"
+    , publisherTitle = Nothing
     , manifest = Card.ManifestLoading
     , transportLabel = Nothing
     , scanTimer = Nothing

@@ -1,4 +1,4 @@
-module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, adoptRestoredExoextBatch, adoptStoredExoextBatch, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextAbandonStaleRun, exoextBatchSharedMsg, exoextCancelRequested, exoextCancellableRun, exoextDismissSession, exoextDropFromTail, exoextForgetReads, exoextIndexNeedsFetch, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextNavigation, exoextReaderProjection, exoextRemovalState, exoextRequestBlocked, exoextRequestsPending, exoextRunControl, exoextScanRequestPending, exoextStatusOverride, exoextStopRequested, exoextStoppingTarget, exoextViewConfig, init, recoverExoextRun, update, view)
+module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, adoptRestoredExoextBatch, adoptStoredExoextBatch, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextAbandonStaleRun, exoextBatchSharedMsg, exoextCancelRequested, exoextCancellableRun, exoextDismissSession, exoextDropFromTail, exoextForgetReads, exoextHeaderTitle, exoextIndexNeedsFetch, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextNavigation, exoextPublisherTitle, exoextReaderProjection, exoextRemovalState, exoextRequestBlocked, exoextRequestsPending, exoextRunControl, exoextScanRequestPending, exoextStatusOverride, exoextStopRequested, exoextStoppingTarget, exoextViewConfig, init, recoverExoextRun, update, view)
 
 import DateFormat.Relative
 import Dict
@@ -1777,6 +1777,7 @@ exoextViewConfig approved project model currentTime server =
     in
     { approved = approved
     , sourceName = server.osProps.name
+    , publisherTitle = maybeTransportBody |> Maybe.andThen (exoextPublisherTitle model.serverUuid)
     , manifest = manifestSource
     , transportLabel = transportLabel
     , transportWarning = exoextTransportWarning project model metadata maybeSentinel resultBody
@@ -2334,6 +2335,51 @@ exoextReadErrorForEtag etag model =
 
                 _ ->
                     Nothing
+
+
+{-| The publisher's own title for its extension (`publisher.title` in the manifest envelope),
+accepted only when the envelope passes the same §5.1 self-instance check as the UI body, trimmed
+and bounded so it cannot sprawl across the header. `Nothing` for a bare spec or a foreign envelope.
+-}
+exoextPublisherTitle : OSTypes.ServerUuid -> String -> Maybe String
+exoextPublisherTitle pageInstanceId body =
+    let
+        decoder =
+            Decode.map2 Tuple.pair
+                (Decode.at [ "publisher", "instanceId" ] Decode.string)
+                (Decode.at [ "publisher", "title" ] Decode.string)
+    in
+    case Decode.decodeString decoder body of
+        Ok ( pid, title ) ->
+            if pid == pageInstanceId then
+                let
+                    trimmed =
+                        String.trim title
+                in
+                if String.isEmpty trimmed then
+                    Nothing
+
+                else
+                    Just (String.left 40 trimmed)
+
+            else
+                Nothing
+
+        Err _ ->
+            Nothing
+
+
+{-| What the extension tile's header says: the publisher's own title when its manifest carries one,
+followed by the host's word for what this is, else just that word.
+-}
+exoextHeaderTitle : Maybe String -> String
+exoextHeaderTitle publisherTitle =
+    case publisherTitle of
+        Just title ->
+            title ++ " (extension)"
+
+        Nothing ->
+            "Extension"
 
 
 {-| Extract the json-render `ui` body from a §1 manifest envelope for the renderer.
@@ -3187,11 +3233,11 @@ exoextCardView context project ( currentTime, timeZone ) server model =
             context
             ([ Icon.featherIcon [] Icons.grid
 
-             -- The §3.1 sentinel's `kind` is publisher-controlled data read off a VM's own
-             -- metadata, so it is never painted into Exosphere's own chrome: an instance would
-             -- otherwise get to title a panel of the researcher's UI with whatever it liked. The
-             -- header is the generic word for every publisher.
-             , Element.text "Extension"
+             -- The publisher names itself in its manifest envelope (`publisher.title`); the host
+             -- adds its own word for what this is and keeps the provenance marker right below,
+             -- so a publisher's text never stands alone as Exosphere chrome. No manifest title
+             -- (or a foreign envelope) falls back to the generic word.
+             , Element.text (exoextHeaderTitle config.publisherTitle)
              , extensionExperimentalTag context
              ]
                 ++ headerChip

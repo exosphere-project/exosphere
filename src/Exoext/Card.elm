@@ -1305,6 +1305,12 @@ type alias ViewConfig =
       -- extension. The card keeps no approval state of its own — this is the whole gate.
       approved : Bool
     , sourceName : String
+
+    -- The name the publisher gave itself in its manifest envelope (`publisher.title`), read
+    -- only from a manifest that passed the §5.1 self-instance check. Publisher-authored text:
+    -- the host paints it in the tile header next to its own word for what this is, with the
+    -- provenance marker right underneath, and never lets it stand alone as Exosphere chrome.
+    , publisherTitle : Maybe String
     , manifest : ManifestSource
 
     -- a short, non-technical label for how the manifest was transported (e.g. "server

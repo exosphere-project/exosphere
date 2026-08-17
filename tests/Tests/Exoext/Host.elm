@@ -1,4 +1,4 @@
-module Tests.Exoext.Host exposing (batchPersistenceSuite, batchSuite, cancelSuite, dismissSuite, preEchoStopSuite, readDecisionSuite, recoverySuite, reloadSuite, staleRunSuite, stoppingSuite, tailStopSuite)
+module Tests.Exoext.Host exposing (batchPersistenceSuite, batchSuite, cancelSuite, dismissSuite, headerTitleSuite, preEchoStopSuite, readDecisionSuite, recoverySuite, reloadSuite, staleRunSuite, stoppingSuite, tailStopSuite)
 
 {-| The generic `exoext` host: everything `Page.ServerDetail` does for ANY extension, driven through
 the public host functions rather than through a particular adapter's card.
@@ -1234,4 +1234,38 @@ reloadSuite =
                     ( ServerDetail.exoextManifestNeedsFetch "etag-1" pressed
                     , ServerDetail.exoextManifestBodyForEtag "etag-1" pressed
                     )
+        ]
+
+
+headerTitleSuite : Test
+headerTitleSuite =
+    describe "the tile header takes the publisher's own title from its manifest envelope"
+        [ test "publisher.title of a self-placed envelope is shown with the host's word appended" <|
+            \_ ->
+                Expect.equal (Just "Widget Scanner")
+                    (ServerDetail.exoextPublisherTitle "vm-1"
+                        """{"publisher":{"instanceId":"vm-1","title":"  Widget Scanner "},"ui":{}}"""
+                    )
+        , test "a foreign envelope (§5.1) contributes no title" <|
+            \_ ->
+                Expect.equal Nothing
+                    (ServerDetail.exoextPublisherTitle "vm-1"
+                        """{"publisher":{"instanceId":"vm-2","title":"Widget Scanner"},"ui":{}}"""
+                    )
+        , test "a bare spec or an empty title falls back to the generic word" <|
+            \_ ->
+                Expect.equal ( Nothing, "Extension" )
+                    ( ServerDetail.exoextPublisherTitle "vm-1" """{"publisher":{"instanceId":"vm-1","title":""}}"""
+                    , ServerDetail.exoextHeaderTitle Nothing
+                    )
+        , test "long titles are bounded" <|
+            \_ ->
+                Expect.equal (Just 40)
+                    (ServerDetail.exoextPublisherTitle "vm-1"
+                        ("""{"publisher":{"instanceId":"vm-1","title":\"""" ++ String.repeat 60 "x" ++ """"}}""")
+                        |> Maybe.map String.length
+                    )
+        , test "header text composes the title with the host's word" <|
+            \_ ->
+                Expect.equal "Widget Scanner (extension)" (ServerDetail.exoextHeaderTitle (Just "Widget Scanner"))
         ]
