@@ -277,14 +277,14 @@ renderComponent countPillDefaults ctx element childrenHtml =
             renderCard ctx props childrenHtml
 
         StackP props ->
-            renderStack props childrenHtml
+            renderStack ctx element props childrenHtml
 
         TextP props ->
-            Html.span [ Attr.class "jr-text" ]
+            Html.span (Attr.class "jr-text" :: pressableAttrs ctx element)
                 [ Html.text (Expr.resolveDisplay ctx props.value) ]
 
         BadgeP props ->
-            renderBadge ctx props
+            renderBadge ctx element props
 
         ButtonP props ->
             renderButton ctx element props
@@ -324,8 +324,8 @@ renderCard ctx props childrenHtml =
     Html.div [ Attr.class "jr-card" ] (titleHtml ++ childrenHtml)
 
 
-renderStack : Spec.StackProps -> List (Html Msg) -> Html Msg
-renderStack props childrenHtml =
+renderStack : Context -> UIElement -> Spec.StackProps -> List (Html Msg) -> Html Msg
+renderStack ctx element props childrenHtml =
     let
         directionClass =
             case props.direction of
@@ -336,9 +336,10 @@ renderStack props childrenHtml =
                     "jr-stack--col"
     in
     Html.div
-        [ Attr.class ("jr-stack " ++ directionClass)
-        , Attr.attribute "data-gap" (String.fromInt props.gap)
-        ]
+        (Attr.class ("jr-stack " ++ directionClass)
+            :: Attr.attribute "data-gap" (String.fromInt props.gap)
+            :: pressableAttrs ctx element
+        )
         childrenHtml
 
 
@@ -364,8 +365,8 @@ renderDisclosure ctx props childrenHtml =
         ]
 
 
-renderBadge : Context -> Spec.BadgeProps -> Html Msg
-renderBadge ctx props =
+renderBadge : Context -> UIElement -> Spec.BadgeProps -> Html Msg
+renderBadge ctx element props =
     let
         label =
             Expr.resolveDisplay ctx props.value
@@ -382,9 +383,10 @@ renderBadge ctx props =
                     label
     in
     Html.span
-        [ Attr.class ("jr-badge jr-badge--" ++ badgeTone label)
-        , Attr.attribute "data-state" state
-        ]
+        (Attr.class ("jr-badge jr-badge--" ++ badgeTone label)
+            :: Attr.attribute "data-state" state
+            :: pressableAttrs ctx element
+        )
         [ Html.text label ]
 
 
@@ -484,7 +486,7 @@ renderButton ctx element props =
             handler =
                 case ( isDisabled, pressEmit ctx element ) of
                     ( False, Just emit ) ->
-                        [ Events.onClick (Pressed emit) ]
+                        [ pressClick emit ]
 
                     _ ->
                         []
@@ -503,6 +505,64 @@ renderButton ctx element props =
                 :: handler
             )
             [ Html.text label ]
+
+
+{-| Attributes that turn a non-`Button` element carrying an `on.press` binding into a
+keyboard-operable button: `role="button"`, `tabindex="0"`, the `jr-pressable` class (the
+host's styling hook for cursor / hover / focus), a click handler, and Enter/Space keydown
+wired to the same emit. `confirm` still runs through the usual `buildEmit` path.
+
+An element without a press binding gets **no** attributes at all, so it renders exactly as
+it did before this existed.
+
+Both handlers stop propagation, so a pressable nested inside a pressable (a row `Stack`
+holding a pressable `Text`, say) fires exactly one action: the innermost one. A `Checkbox`
+nested in a pressable `Stack` is the exception, since its click is not a press binding: it
+toggles _and_ presses the enclosing stack.
+
+-}
+pressableAttrs : Context -> UIElement -> List (Html.Attribute Msg)
+pressableAttrs ctx element =
+    case pressEmit ctx element of
+        Just emit ->
+            [ Attr.class "jr-pressable"
+            , Attr.attribute "role" "button"
+            , Attr.tabindex 0
+            , pressClick emit
+            , pressKeydown emit
+            ]
+
+        Nothing ->
+            []
+
+
+pressClick : Emit -> Html.Attribute Msg
+pressClick emit =
+    Events.stopPropagationOn "click" (Decode.succeed ( Pressed emit, True ))
+
+
+{-| Enter and Space activate a pressable, matching native button behavior. Any other key
+fails the decoder, so the event is left entirely alone (no emit, no `preventDefault`).
+Space is `" "` per the UI Events spec; `"Spacebar"` is the legacy name still emitted by
+older Edge/IE. `preventDefault` keeps Space from scrolling the page.
+-}
+pressKeydown : Emit -> Html.Attribute Msg
+pressKeydown emit =
+    Events.custom "keydown"
+        (Decode.field "key" Decode.string
+            |> Decode.andThen
+                (\key ->
+                    if key == "Enter" || key == " " || key == "Spacebar" then
+                        Decode.succeed
+                            { message = Pressed emit
+                            , stopPropagation = True
+                            , preventDefault = True
+                            }
+
+                    else
+                        Decode.fail "not an activation key"
+                )
+        )
 
 
 pressEmit : Context -> UIElement -> Maybe Emit
