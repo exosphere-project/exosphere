@@ -37,6 +37,7 @@ module Helpers.GetterSetters exposing
     , isSnapshotOfVolume
     , isVolumeCurrentlyBackingServer
     , isVolumeReservedForShelvedInstance
+    , loginAlreadyImported
     , modelUpdateProject
     , modelUpdateUnscopedProvider
     , projectAddSecurityGroupRule
@@ -387,6 +388,29 @@ getCatalogRegionIds catalog =
         |> List.concatMap .endpoints
         |> List.map .regionId
         |> List.Extra.unique
+
+
+{-| Whether a scoped login has already been imported, given the regions of the projects that
+already carry its project UUID.
+
+When the region of the incoming login is settled, the same project UUID in another region is a
+different project that still needs importing, so only a match in that region counts. A project
+stored before Exosphere recorded regions has no region to compare against, so it counts as a
+match rather than being imported a second time.
+
+When the region is not settled, any project with the UUID counts, which is what token refreshes
+rely on.
+
+-}
+loginAlreadyImported : Maybe OSTypes.RegionId -> List (Maybe OSTypes.RegionId) -> Bool
+loginAlreadyImported maybeIncomingRegionId existingProjectRegionIds =
+    case maybeIncomingRegionId of
+        Just incomingRegionId ->
+            existingProjectRegionIds
+                |> List.any (\existingRegionId -> existingRegionId == Nothing || existingRegionId == Just incomingRegionId)
+
+        Nothing ->
+            not (List.isEmpty existingProjectRegionIds)
 
 
 getServicePublicUrl : OSTypes.ServiceCatalog -> Maybe OSTypes.RegionId -> String -> Maybe HelperTypes.Url

@@ -84,8 +84,11 @@ requestUnscopedAuthToken maybeProxyUrl creds =
         (resultToMsgErrorBody errorContext (ReceiveUnscopedAuthToken creds.authUrl))
 
 
-requestScopedAuthToken : Maybe HelperTypes.Url -> OSTypes.CredentialsForAuthToken -> Cmd SharedMsg
-requestScopedAuthToken maybeProxyUrl input =
+{-| `maybeRegionId` is the region the caller already knows this token belongs to, when it knows
+one, so that receiving the token does not have to ask a question that was already answered.
+-}
+requestScopedAuthToken : Maybe HelperTypes.Url -> Maybe OSTypes.RegionId -> OSTypes.CredentialsForAuthToken -> Cmd SharedMsg
+requestScopedAuthToken maybeProxyUrl maybeRegionId input =
     let
         requestBody =
             case input of
@@ -164,7 +167,20 @@ requestScopedAuthToken maybeProxyUrl input =
         requestBody
         inputUrl
         maybeProxyUrl
-        (resultToMsgErrorBody errorContext (ReceiveProjectScopedToken inputUrl))
+        (resultToMsgErrorBody
+            errorContext
+            (ReceiveProjectScopedToken
+                inputUrl
+                (case input of
+                    OSTypes.AppCreds _ _ appCred ->
+                        Just appCred
+
+                    OSTypes.TokenCreds _ _ _ ->
+                        Nothing
+                )
+                maybeRegionId
+            )
+        )
 
 
 requestAuthTokenHelper : Encode.Value -> HelperTypes.Url -> Maybe HelperTypes.Url -> (Result HttpErrorWithBody ( Http.Metadata, String ) -> SharedMsg) -> Cmd SharedMsg
