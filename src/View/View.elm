@@ -537,8 +537,8 @@ createProjectResourcesButton context project =
                     )
                     (Route.ProjectRoute projectId <| Route.VolumeCreate)
                     closeDropdown
-                , case ( context.experimentalFeaturesEnabled, project.endpoints.manila ) of
-                    ( True, Just _ ) ->
+                , case project.endpoints.manila of
+                    Just _ ->
                         renderButton
                             (sizedFeatherIcon 18 Icons.share2)
                             (context.localization.share

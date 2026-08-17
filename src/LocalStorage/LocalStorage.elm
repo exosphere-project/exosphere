@@ -2,6 +2,7 @@ module LocalStorage.LocalStorage exposing
     ( endpointsDecoder
     , generateStoredState
     , hydrateModelFromStoredState
+    , serverExoActionDecoder
     , storedStateDecoder
     )
 
@@ -712,8 +713,13 @@ serverExoActionsDecoder =
 
 serverExoActionDecoder : Decode.Decoder Server.ServerExoActions
 serverExoActionDecoder =
-    Decode.map2 Server.ServerExoActions
+    Decode.map3 Server.ServerExoActions
         (Decode.field "targetOpenstackStatus" (Decode.nullable <| Decode.list serverStatusDecoder))
+        (Decode.oneOf
+            [ Decode.field "quotaRefreshTargetOpenstackStatus" (Decode.nullable <| Decode.list serverStatusDecoder)
+            , Decode.succeed Nothing
+            ]
+        )
         (Decode.field "request" (RDPP.decoder (Decode.succeed ()) httpErrorWithBodyDecoder))
 
 
@@ -734,6 +740,14 @@ encodeServerExoAction exoAction =
     Encode.object
         [ ( "targetOpenstackStatus"
           , case exoAction.targetOpenstackStatus of
+                Nothing ->
+                    Encode.null
+
+                Just statuses ->
+                    Encode.list (Encode.string << OSTypes.serverStatusToString) statuses
+          )
+        , ( "quotaRefreshTargetOpenstackStatus"
+          , case exoAction.quotaRefreshTargetOpenstackStatus of
                 Nothing ->
                     Encode.null
 
