@@ -309,7 +309,7 @@ resolveAction name params =
             if name == Lifecycle.verbWriteRequest then
                 Just { name = name, verb = Lifecycle.verbWriteRequest, kind = kindOf params }
 
-            else if List.member name [ Lifecycle.verbOpenSession, Lifecycle.verbCancelRequest, Lifecycle.verbDismissSession, Lifecycle.verbNavigate, Lifecycle.verbShowDetail ] then
+            else if List.member name [ Lifecycle.verbOpenSession, Lifecycle.verbDeleteResult, Lifecycle.verbCancelRequest, Lifecycle.verbDismissSession, Lifecycle.verbNavigate, Lifecycle.verbShowDetail ] then
                 Just { name = name, verb = name, kind = "" }
 
             else

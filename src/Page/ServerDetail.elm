@@ -704,14 +704,21 @@ exoextSlotUnclaimed now metadata =
         |> Maybe.withDefault False
 
 
-{-| True when any exoext request on this ServerDetail page is still worth fast-polling for.
-The CloudShield card currently exposes two browser-tracked in-flight paths: a history `getEmbed`
-request (`exoextPendingEmbed`) and a scan request (`exoextCard.pending`) whose correlated
-run slot has not reached a terminal state.
+{-| True when any exoext request on this ServerDetail page is still worth fast-polling for:
+an inline-answered request (`getEmbed`, `deleteResult`) that has not timed out, or a scan request
+(`exoextCard.pending`) whose correlated run slot has not reached a terminal state.
 -}
 exoextRequestsPending : Project -> Model -> Bool
 exoextRequestsPending project model =
-    (model.exoextPendingEmbed /= Nothing) || exoextScanRequestPending project model
+    let
+        inlineRequestPending pending =
+            pending
+                |> Maybe.map (\p -> not (Exoext.Lifecycle.requestTimedOut model.exoextClock p))
+                |> Maybe.withDefault False
+    in
+    inlineRequestPending model.exoextPendingEmbed
+        || inlineRequestPending model.exoextPendingDelete
+        || exoextScanRequestPending project model
 
 
 {-| True when the CloudShield scan marker is present and the publishing server's correlated

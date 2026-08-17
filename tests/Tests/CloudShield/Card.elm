@@ -1331,7 +1331,19 @@ idleModel =
 embedSuite : Test
 embedSuite =
     describe "cloudshield.getEmbed emits SessionRequested (guard is host-side)"
-        [ test "a getEmbed with a resultId emits SessionRequested regardless of card scan state" <|
+        [ test "an exoext.deleteResult press dispatches to DeletionRequested (the verb is on the allowlist)" <|
+            \_ ->
+                let
+                    params =
+                        Encode.object
+                            [ ( "resultId", Encode.string "r-1" )
+                            , ( "batchId", Encode.string "b-1" )
+                            ]
+                in
+                Expect.equal
+                    (Just (Card.DeletionRequested { kind = Wire.kindDeleteResult, resultId = "r-1", batchId = "b-1" }))
+                    (Card.dispatchVerb (Card.resolveAction Lifecycle.verbDeleteResult params) params idleModel |> Tuple.second)
+        , test "a getEmbed with a resultId emits SessionRequested regardless of card scan state" <|
             \_ ->
                 -- sampleModel carries a stale "queued" scan for i-2; the card no longer guards on it.
                 Expect.equal (Just (Card.SessionRequested { kind = Wire.kindOpenSession, resultId = "r-1", batchId = "b-1" }))
