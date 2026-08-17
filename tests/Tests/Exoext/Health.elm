@@ -93,6 +93,21 @@ readSuite =
             \_ ->
                 Expect.equal (Just (Time.millisToPosix 1000000000))
                     (health allOkPairs).seq
+        , test "a fresher exoext.v1.published stamp dates the record (the bridge refreshes it every 5 min, health.seq only on change)" <|
+            \_ ->
+                -- health.seq = 1000000 s = 1970-01-12T13:46:40Z; published is 20 min later.
+                Expect.equal (Just (Time.millisToPosix ((1000000 + 1200) * 1000)))
+                    (health (( "exoext.v1.published", "1970-01-12T14:06:40Z" ) :: allOkPairs)).seq
+        , test "an older published stamp does not push the record back in time" <|
+            \_ ->
+                Expect.equal (Just (Time.millisToPosix 1000000000))
+                    (health (( "exoext.v1.published", "1970-01-12T13:00:00Z" ) :: allOkPairs)).seq
+        , test "published alone dates a record that has no health.seq" <|
+            \_ ->
+                Expect.equal (Just (Time.millisToPosix ((1000000 + 1200) * 1000)))
+                    (Health.read (metadata [ ( "exoext.v1.health.bridge", "ok" ), ( "exoext.v1.published", "1970-01-12T14:06:40Z" ) ])
+                        |> Maybe.andThen .seq
+                    )
         , test "every check is always present, in boot order" <|
             \_ ->
                 Expect.equal

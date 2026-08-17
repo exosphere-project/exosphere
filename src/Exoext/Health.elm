@@ -61,6 +61,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons
+import Helpers.Time
 import Html.Attributes
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
@@ -120,9 +121,9 @@ type alias Check =
     }
 
 
-{-| A publishing server's health as of its last write: when it last spoke (`seq`, the
-`exoext.v1.health.seq` unix epoch), every check in boot order, and an optional publisher
-version string.
+{-| A publishing server's health as of its last write: when it last spoke (`seq`: the freshest of
+the `exoext.v1.health.seq` unix epoch and the `exoext.v1.published` envelope stamp), every check
+in boot order, and an optional publisher version string.
 -}
 type alias Health =
     { seq : Maybe Time.Posix
@@ -156,10 +157,27 @@ read metadata =
         checks =
             List.map (readCheck dict) checkIds
 
-        seq =
+        healthSeq =
             Dict.get (healthPrefix ++ "seq") dict
                 |> Maybe.andThen String.toInt
                 |> Maybe.map (\epochSeconds -> Time.millisToPosix (epochSeconds * 1000))
+
+        -- The publisher rewrites its manifest envelope on a timer (`exoext.v1.published`, an
+        -- ISO 8601 stamp) but stamps `health.seq` only when a check changes, so between events a
+        -- healthy, quiet publisher goes silent on the health keys for hours. "When it last spoke"
+        -- is therefore the freshest of the two writes the host already reads — no extra
+        -- heartbeat, no extra polling.
+        published =
+            Dict.get "exoext.v1.published" dict
+                |> Maybe.andThen (Helpers.Time.iso8601StringToPosix >> Result.toMaybe)
+
+        seq =
+            case ( healthSeq, published ) of
+                ( Just a, Just b ) ->
+                    Just (Time.millisToPosix (max (Time.posixToMillis a) (Time.posixToMillis b)))
+
+                ( a, b ) ->
+                    if a == Nothing then b else a
 
         reported =
             List.any (\check -> check.status /= CheckPending) checks
@@ -406,10 +424,12 @@ overall health =
         AllHealthy
 
 
-{-| How long a publisher may go without writing `exoext.v1.health.seq` before the host stops
-believing what it last said: ten minutes.
+{-| How long a publisher may go without writing anything the host dates it by (`health.seq` or
+the `exoext.v1.published` envelope stamp) before the host stops believing what it last said: ten
+minutes.
 
-The publisher writes health on a timer, so silence is itself a signal — the VM may be off, wedged,
+The publisher refreshes its envelope on a timer (every five minutes for the reference bridge), so
+silence is itself a signal — the VM may be off, wedged,
 or out of credentials, and in every one of those cases the last values are a snapshot of a moment
 that has passed. Ten minutes is comfortably longer than any sane health interval (so a slow or
 briefly-throttled publisher is never called stale) and short enough that a VM that died mid-morning
