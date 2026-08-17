@@ -1,17 +1,22 @@
 module CloudShield.Wire exposing
-    ( Counts
+    ( ActionResult
+    , Counts
+    , DeleteRequest
     , EmbedRequest
     , EmbedResult
     , IndexEntry
     , ScanRequest
+    , actionResultFromBody
     , countsLabel
     , decodeIndex
+    , deleteRequestJson
     , embedRequestJson
     , embedResultFromBody
     , encodeRequestBody
     , getEmbedBlocked
     , indexCapBytes
     , indexObjectName
+    , kindDeleteResult
     , kindOpenSession
     , kindScan
     , scanRequestJson
@@ -65,6 +70,17 @@ kindOpenSession =
     "getEmbed"
 
 
+{-| The wire request kind for a `deleteResult`: remove one already-archived result from the
+history. Like [`kindOpenSession`](#kindOpenSession) it is not a [`writeRequestKind`](#writeRequestKinds)
+— the manifest reaches it through the generic `exoext.deleteResult` verb rather than through the
+per-target request path — but it is written into the same §7.1 slot, so it is encoded here beside
+the others.
+-}
+kindDeleteResult : String
+kindDeleteResult =
+    "deleteResult"
+
+
 {-| The request kinds a manifest may route through `exoext.writeRequest`, i.e. the per-target
 request path with its optimistic row states and its batch pacing.
 
@@ -114,6 +130,20 @@ encodeRequestBody kind context =
                 , projectId = context.projectId
                 , target = { instanceId = context.subject.id, instanceName = context.subject.name }
                 , profile = "quick"
+                }
+            )
+
+    else if kind == kindDeleteResult then
+        -- Same shape as a session request and for the same reason: the subject is the §4.2 result
+        -- to act on, not an instance, so its re-resolved display name is unused. `batchId` rides
+        -- along for a publisher that can only select by batch; it is optional on this verb, so an
+        -- absent one is written as the empty string the publisher already reads as "not given".
+        Just
+            (deleteRequestJson
+                { requestId = context.requestId
+                , batchId = context.batchId |> Maybe.withDefault ""
+                , resultId = context.subject.id
+                , createdAt = context.createdAt
                 }
             )
 
@@ -271,6 +301,40 @@ getEmbedBlocked pendingScanSeq metadata =
     runActive || scanUnclaimed
 
 
+{-| A `deleteResult` request: ask the bridge to drop one already-archived scan from the mailbox —
+its result object and its history row. Written through the same §7.1 req slot as a scan or a
+`getEmbed`; the bridge claims the slot and answers with a small non-archived
+[`ActionResult`](#ActionResult) without touching `run.state`.
+
+Removal is the publisher's to perform, not the host's: the archive is in the researcher's own object
+store but it is the extension that knows its layout, so the host asks and the publisher acts.
+
+-}
+type alias DeleteRequest =
+    { requestId : String
+    , batchId : String
+    , resultId : String
+    , createdAt : String
+    }
+
+
+{-| Encode a `deleteResult` request to a compact JSON string. Shape:
+`{schemaVersion, requestId, action:"deleteResult", batchId, resultId, createdAt}` — deliberately the
+`getEmbed` shape with a different `action`, so the publisher parses both through one path.
+-}
+deleteRequestJson : DeleteRequest -> String
+deleteRequestJson req =
+    Encode.encode 0 <|
+        Encode.object
+            [ ( "schemaVersion", Encode.string "1.0" )
+            , ( "requestId", Encode.string req.requestId )
+            , ( "action", Encode.string kindDeleteResult )
+            , ( "batchId", Encode.string req.batchId )
+            , ( "resultId", Encode.string req.resultId )
+            , ( "createdAt", Encode.string req.createdAt )
+            ]
+
+
 
 -- EMBED RESULT (the CloudShield VM -> Exosphere)
 
@@ -328,6 +392,75 @@ embedResultDecoder =
         )
 
 
+{-| The bridge's acknowledgement of a non-session action, written inline into the res slot the same
+way an embed result is. Distinguished from both a scan result and an embed result by
+`"kind":"action"`, and self-describing about WHICH action it answers (`action`) and what that action
+was about (`resultId`).
+
+`status` is `"ok"` or `"error"`; `error` carries the publisher's plain-language reason for the
+latter. There is one shape for every action verb rather than one type per verb, because the host's
+half of the round-trip is identical for all of them: match the requestId, read a status, show a
+reason.
+
+-}
+type alias ActionResult =
+    { requestId : String
+    , action : String
+    , resultId : Maybe String
+    , status : String
+    , error : Maybe String
+    }
+
+
+{-| Recognize a res-slot body as an action acknowledgement: `Just` only when the body decodes with
+`"kind":"action"`. A scan result (no `kind`) and an embed result (`"kind":"embed"`) are both
+`Nothing`, so neither of those paths is disturbed by this one.
+-}
+actionResultFromBody : String -> Maybe ActionResult
+actionResultFromBody body =
+    case Decode.decodeString (Decode.field "kind" Decode.string) body of
+        Ok "action" ->
+            Decode.decodeString actionResultDecoder body
+                |> Result.toMaybe
+
+        _ ->
+            Nothing
+
+
+actionResultDecoder : Decode.Decoder ActionResult
+actionResultDecoder =
+    Decode.map5 ActionResult
+        (optionalString "requestId")
+        (optionalString "action")
+        (Transport.identifierField "resultId")
+        (optionalString "status")
+        (Decode.oneOf
+            [ Decode.field "error" (Decode.nullable Decode.value)
+                |> Decode.map (Maybe.map errorText)
+            , Decode.succeed Nothing
+            ]
+        )
+
+
+{-| The user-facing text of an action acknowledgement's `error`. The publisher may send a plain
+string or a `{code, message}` object; a `message` field wins, then a plain string, and anything else
+falls back to the raw JSON rather than to silence — an unreadable reason is still evidence.
+-}
+errorText : Encode.Value -> String
+errorText value =
+    case Decode.decodeValue (Decode.field "message" Decode.string) value of
+        Ok message ->
+            message
+
+        Err _ ->
+            case Decode.decodeValue Decode.string value of
+                Ok text ->
+                    text
+
+                Err _ ->
+                    Encode.encode 0 value
+
+
 
 -- SCAN HISTORY (the append-only results/index.json the bridge archives, Phase B)
 
@@ -350,6 +483,12 @@ type alias IndexEntry =
     , completedAt : String
     , status : String
     , counts : Counts
+
+    -- The publisher's short plain-language reason a `status == "error"` row failed. Optional in
+    -- both directions: a row that succeeded carries none, and a row archived by a publisher older
+    -- than the field carries none either, so "why did this fail?" has to degrade to a sentence the
+    -- card supplies rather than to a blank.
+    , error : Maybe String
     }
 
 
@@ -401,7 +540,7 @@ decodeIndex body =
 
 indexEntryDecoder : Decode.Decoder IndexEntry
 indexEntryDecoder =
-    Decode.map7 IndexEntry
+    Decode.map8 IndexEntry
         (optionalString "batchId")
         (Transport.identifierField "requestId")
         (optionalString "targetId")
@@ -409,6 +548,7 @@ indexEntryDecoder =
         (optionalString "completedAt")
         (optionalString "status")
         (Decode.oneOf [ Decode.field "counts" countsDecoder, Decode.succeed emptyCounts ])
+        (optionalMessage "error")
 
 
 countsDecoder : Decode.Decoder Counts
@@ -461,6 +601,28 @@ countsLabel counts =
 optionalString : String -> Decode.Decoder String
 optionalString key =
     Decode.oneOf [ Decode.field key Decode.string, Decode.succeed "" ]
+
+
+{-| An optional free-text field: absent, `null`, a non-string, or `""` all read as "the publisher
+said nothing here". Empty is folded because a blank sentence and a missing one are the same thing to
+a reader, and the card has one fallback for both.
+-}
+optionalMessage : String -> Decode.Decoder (Maybe String)
+optionalMessage key =
+    Decode.oneOf
+        [ Decode.field key (Decode.nullable Decode.string)
+        , Decode.succeed Nothing
+        ]
+        |> Decode.map
+            (Maybe.andThen
+                (\value ->
+                    if String.isEmpty value then
+                        Nothing
+
+                    else
+                        Just value
+                )
+            )
 
 
 optionalInt : String -> Decode.Decoder Int

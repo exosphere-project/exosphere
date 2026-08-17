@@ -1,5 +1,6 @@
 module Tests.CloudShield.Wire exposing
-    ( countsLabelSuite
+    ( actionResultSuite
+    , countsLabelSuite
     , embedRequestSuite
     , embedResultSuite
     , getEmbedBlockedSuite
@@ -61,6 +62,17 @@ requestBytesSuite =
                         , projectId = "proj-1"
                         , target = { instanceId = "i-2", instanceName = "beta" }
                         , profile = "quick"
+                        }
+                    )
+        , test "a deleteResult request" <|
+            \_ ->
+                Expect.equal
+                    """{"schemaVersion":"1.0","requestId":"exoext-req-1700000000000","action":"deleteResult","batchId":"b-1","resultId":"exoext-req-1699999999999","createdAt":"2026-08-16T00:00:00Z"}"""
+                    (Wire.deleteRequestJson
+                        { requestId = "exoext-req-1700000000000"
+                        , batchId = "b-1"
+                        , resultId = "exoext-req-1699999999999"
+                        , createdAt = "2026-08-16T00:00:00Z"
                         }
                     )
         , test "a getEmbed request" <|
@@ -213,6 +225,20 @@ indexSuite =
                 Expect.equal [ Nothing ]
                     (Wire.decodeIndex """[ { "batchId": "b-1", "requestId": "" } ]"""
                         |> List.map .requestId
+                    )
+        , test "a failed row's error is decoded as the reason to show" <|
+            \_ ->
+                Expect.equal [ Just "the target's root disk is encrypted; it cannot be scanned offline" ]
+                    (Wire.decodeIndex """[ { "batchId": "b-1", "status": "error", "error": "the target's root disk is encrypted; it cannot be scanned offline" } ]"""
+                        |> List.map .error
+                    )
+        , test "a row with no error, a null one, and an empty one all read as no reason" <|
+            \_ ->
+                -- Three ways a publisher says nothing, and the card has ONE fallback for all of
+                -- them. Rows archived before the field existed are the common case.
+                Expect.equal [ Nothing, Nothing, Nothing ]
+                    (Wire.decodeIndex """[ { "batchId": "b-1" }, { "batchId": "b-2", "error": null }, { "batchId": "b-3", "error": "" } ]"""
+                        |> List.map .error
                     )
         , test "unknown fields are tolerated and missing counts default to zero" <|
             \_ ->
@@ -400,4 +426,53 @@ getEmbedBlockedSuite =
         , test "allows when there is no run and no request slot" <|
             \_ ->
                 Expect.equal False (Wire.getEmbedBlocked Nothing (meta [ ( "foo", "bar" ) ]))
+        ]
+
+
+{-| The publisher's acknowledgement of a non-session action, and the discrimination that keeps the
+three kinds of res-slot body apart.
+
+Getting that wrong in either direction is a real failure: a removal acknowledgement read as an embed
+result would mount an iframe on a scan that no longer exists, and an embed result read as a removal
+would delete a row the researcher only asked to look at.
+
+-}
+actionResultSuite : Test
+actionResultSuite =
+    let
+        deleteAck =
+            """{"schemaVersion":"1.0","requestId":"exoext-req-1700000000000","batchId":"b-1","resultId":"exoext-req-9","completedAt":"2026-08-16T00:00:00Z","kind":"action","action":"deleteResult","status":"ok","embedUrl":null,"embedExpiresAt":null,"error":null}"""
+
+        refusedAck =
+            """{"schemaVersion":"1.0","requestId":"exoext-req-1700000000000","batchId":"b-1","resultId":"exoext-req-9","kind":"action","action":"deleteResult","status":"error","error":{"code":"active","message":"that scan is still running"}}"""
+
+        fields result =
+            ( result.requestId, result.action, ( result.resultId, result.status, result.error ) )
+    in
+    describe "actionResultFromBody reads a non-session acknowledgement"
+        [ test "an ok deleteResult acknowledgement decodes whole" <|
+            \_ ->
+                Expect.equal (Just ( "exoext-req-1700000000000", "deleteResult", ( Just "exoext-req-9", "ok", Nothing ) ))
+                    (Wire.actionResultFromBody deleteAck |> Maybe.map fields)
+        , test "a refusal carries the publisher's message, unwrapped from its {code, message}" <|
+            \_ ->
+                Expect.equal (Just ( "error", Just "that scan is still running" ))
+                    (Wire.actionResultFromBody refusedAck |> Maybe.map (\r -> ( r.status, r.error )))
+        , test "a bare-string error is taken as the message too" <|
+            \_ ->
+                Expect.equal (Just (Just "that scan is no longer in the history"))
+                    (Wire.actionResultFromBody """{"kind":"action","action":"deleteResult","status":"error","error":"that scan is no longer in the history"}"""
+                        |> Maybe.map .error
+                    )
+        , test "an embed result is NOT an action result, even though it names an action" <|
+            \_ ->
+                Expect.equal Nothing
+                    (Wire.actionResultFromBody """{"kind":"embed","action":"getEmbed","status":"ok","embedUrl":"https://vm.example/embed"}""")
+        , test "a scan result (no kind at all) is not one either" <|
+            \_ ->
+                Expect.equal Nothing
+                    (Wire.actionResultFromBody """{"schemaVersion":"1.0","requestId":"exoext-req-9","status":"ok","findings":[]}""")
+        , test "an action acknowledgement is not read as an embed result" <|
+            \_ ->
+                Expect.equal Nothing (Wire.embedResultFromBody deleteAck)
         ]

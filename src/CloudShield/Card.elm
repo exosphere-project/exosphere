@@ -1,4 +1,4 @@
-module CloudShield.Card exposing (EmbedState(..), Instance, ManifestSource(..), Model, Msg, OutMsg(..), ViewConfig, abandonScanState, cancelTargetOf, dispatchVerb, headerTitle, init, projection, requestEmbed, resolveAction, resultIdOf, rollbackScanRequest, scanningRowLabel, sentinelKind, settleScanState, transportChip, update, view)
+module CloudShield.Card exposing (Detail, EmbedState(..), Instance, ManifestSource(..), Model, Msg, OutMsg(..), ViewConfig, abandonScanState, cancelTargetOf, detailOf, dispatchVerb, headerTitle, init, projection, requestEmbed, resolveAction, resultIdOf, rollbackScanRequest, scanningRowLabel, sentinelKind, settleScanState, transportChip, update, view)
 
 {-| Host wiring for the CloudShield dynamic-UI card (Phase 1, browser side).
 
@@ -23,7 +23,6 @@ Everything here is gated by `context.experimentalFeaturesEnabled` at the call si
 
 import CloudShield.CardStyle as CardStyle
 import CloudShield.Wire as Wire
-import Color
 import Dict exposing (Dict)
 import Element
 import Element.Background as Background
@@ -36,6 +35,7 @@ import Exoext.RendererStyle as RendererStyle
 import Helpers.Time
 import Html
 import Html.Attributes
+import Html.Events
 import Json.Decode as Decode
 import Json.Encode as Encode
 import JsonRender
@@ -47,6 +47,7 @@ import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Code as Code
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Spinner as Spinner
 import Style.Widgets.Text as Text
 import Time
 import Types.HelperTypes as HelperTypes
@@ -117,6 +118,20 @@ type alias Model =
     -- default: the researcher gets a sentence, and the wall of decoder prose is one click away
     -- for whoever is actually debugging the publisher.
     , showManifestErrorDetail : Bool
+
+    -- the open `exoext.showDetail` dialog, if any: a title and a block of publisher-authored text
+    -- the extension asked the host to show in full. Purely host-local display state — opening one
+    -- writes nothing and requests nothing — so it lives here beside the other view toggles.
+    , detail : Maybe Detail
+    }
+
+
+{-| The contents of an open detail dialog: what the extension asked the host to show and what to
+head it with. Both strings are publisher-authored and are rendered as plain text.
+-}
+type alias Detail =
+    { title : String
+    , text : String
     }
 
 
@@ -126,6 +141,9 @@ type Msg
     | GotToggleDemoIframe
     | GotToggleManifestErrorDetail
     | GotRetryEmbed String
+    | GotShowDetail Detail
+    | GotCloseDetail
+    | GotDetailNoOp
     | RendererMsg Render.Msg
 
 
@@ -153,6 +171,11 @@ to nothing in `Exoext.*` or `Page.ServerDetail`.
 type OutMsg
     = WriteRequested { kind : String, seq : Int, targetIds : List String }
     | SessionRequested { kind : String, resultId : String, batchId : String }
+      -- `DeletionRequested { kind, resultId, batchId }` — a confirmed `exoext.deleteResult` press on
+      -- a history row. Same req slot and same encoder as the two above, a different kind: the card
+      -- names the result, the host writes the request and reads the acknowledgement, and neither of
+      -- them knows what removing one costs.
+    | DeletionRequested { kind : String, resultId : String, batchId : String }
       -- `CancelRequested { requestId, targetId }` — a confirmed `exoext.cancelRequest` on a row the
       -- host marked stoppable. BOTH ids ride along because the two stoppable cases are stopped in
       -- different ways: a run on the wire is stopped by writing the cancel channel
@@ -161,6 +184,10 @@ type OutMsg
       -- host-side. The card decides neither — it holds no run-state and no batch knowledge — it just
       -- carries what the row was projected with; see `cancelTargetOf`.
     | CancelRequested { requestId : String, targetId : String }
+      -- `NavigationRequested { instanceId }` — an `exoext.navigate` press. The host checks the id
+      -- against its own project and moves to that instance's page, or ignores it. The card carries
+      -- the id and holds no opinion about whether it names anything.
+    | NavigationRequested { instanceId : String }
       -- `SessionDismissed` — the researcher closed the open results session. Purely host-local
       -- display state: nothing is written to the wire and no archived scan is touched.
     | SessionDismissed
@@ -181,6 +208,7 @@ init =
     , pending = Nothing
     , showDemoIframe = False
     , showManifestErrorDetail = False
+    , detail = Nothing
     }
 
 
@@ -210,6 +238,20 @@ update instances msg model =
             -- state, so it doubles as the batch selector: the publisher prefers `resultId`, and where
             -- it does not (a row with no per-run id) the two ids are the same value anyway.
             requestEmbed (Just { resultId = resultId, batchId = resultId }) model
+
+        GotShowDetail detail ->
+            -- The host's OWN detail press (the live run's "Details" affordance). Same dialog the
+            -- generic `exoext.showDetail` verb opens, so there is one detail surface on the card
+            -- whether the text came off the run slot or out of a manifest press.
+            ( { model | detail = Just detail }, Nothing )
+
+        GotCloseDetail ->
+            ( { model | detail = Nothing }, Nothing )
+
+        GotDetailNoOp ->
+            -- A click inside the dialog box. It exists only to stop the overlay's
+            -- close-on-click-outside from firing; nothing about the model changes.
+            ( model, Nothing )
 
         RendererMsg rmsg ->
             let
@@ -267,7 +309,7 @@ resolveAction name params =
             if name == Lifecycle.verbWriteRequest then
                 Just { name = name, verb = Lifecycle.verbWriteRequest, kind = kindOf params }
 
-            else if List.member name [ Lifecycle.verbOpenSession, Lifecycle.verbCancelRequest, Lifecycle.verbDismissSession ] then
+            else if List.member name [ Lifecycle.verbOpenSession, Lifecycle.verbCancelRequest, Lifecycle.verbDismissSession, Lifecycle.verbNavigate, Lifecycle.verbShowDetail ] then
                 Just { name = name, verb = name, kind = "" }
 
             else
@@ -303,11 +345,20 @@ dispatchVerb maybeAlias params model =
             else if alias.verb == Lifecycle.verbOpenSession then
                 requestEmbed (resultIdOf params) model
 
+            else if alias.verb == Lifecycle.verbDeleteResult then
+                requestDelete (resultIdOf params) model
+
             else if alias.verb == Lifecycle.verbCancelRequest then
                 requestCancel (cancelTargetOf params) model
 
             else if alias.verb == Lifecycle.verbDismissSession then
                 ( model, Just SessionDismissed )
+
+            else if alias.verb == Lifecycle.verbNavigate then
+                requestNavigation (instanceIdOf params) model
+
+            else if alias.verb == Lifecycle.verbShowDetail then
+                ( showDetail (detailOf params) model, Nothing )
 
             else
                 ( model, Nothing )
@@ -382,6 +433,25 @@ requestEmbed maybeIds model =
             ( model, Nothing )
 
 
+{-| A confirmed `exoext.deleteResult` on a history row: ask the parent to remove that archived scan.
+Resolved from exactly the same two ids as a View press, which is why they share `resultIdOf` — a row
+identifies itself the same way whatever is being asked of it. Missing ids ⇒ no-op.
+
+The card changes nothing optimistically. The row's "Removing…" state is projected by the HOST from
+its own in-flight marker, so it survives the re-render the press causes and clears on the
+acknowledgement rather than on a guess.
+
+-}
+requestDelete : Maybe { resultId : String, batchId : String } -> Model -> ( Model, Maybe OutMsg )
+requestDelete maybeIds model =
+    case maybeIds of
+        Just ids ->
+            ( model, Just (DeletionRequested { kind = Wire.kindDeleteResult, resultId = ids.resultId, batchId = ids.batchId }) )
+
+        Nothing ->
+            ( model, Nothing )
+
+
 {-| A confirmed stop: ask the parent to stop what the pressed row named. The card optimistically
 changes NOTHING — no row state, no tracker. Stopping is the publisher's decision to honor (§7.1), and
 the run's own state is what reports it; a locally invented badge would either need a display string
@@ -401,6 +471,83 @@ requestCancel maybeTarget model =
 
         Nothing ->
             ( model, Nothing )
+
+
+{-| An `exoext.navigate` press: ask the parent to move to the named instance. A press naming nothing
+is a no-op, and whether the id names anything REAL is the host's question, not the card's — only the
+host has the project's instance list, and §5.4 is the rule that it must be the one to check.
+-}
+requestNavigation : Maybe String -> Model -> ( Model, Maybe OutMsg )
+requestNavigation maybeInstanceId model =
+    case maybeInstanceId of
+        Just instanceId ->
+            ( model, Just (NavigationRequested { instanceId = instanceId }) )
+
+        Nothing ->
+            ( model, Nothing )
+
+
+{-| Resolve an `exoext.navigate` press's `instanceId` param. `Nothing` when it is absent or blank
+(fail-closed: a press that names no instance must not reach the host at all).
+-}
+instanceIdOf : Encode.Value -> Maybe String
+instanceIdOf params =
+    case
+        Decode.decodeValue (Decode.field "instanceId" Decode.string) params
+            |> Result.withDefault ""
+            |> String.trim
+    of
+        "" ->
+            Nothing
+
+        instanceId ->
+            Just instanceId
+
+
+{-| Open the detail dialog for a resolved [`Detail`](#Detail), or leave the card untouched for
+`Nothing`.
+
+Fail-closed on the one thing that matters: a press with no `text` opens nothing. An empty dialog
+tells the researcher less than the badge they pressed already did, and it would be indistinguishable
+from a dialog whose content failed to arrive.
+
+-}
+showDetail : Maybe Detail -> Model -> Model
+showDetail maybeDetail model =
+    case maybeDetail of
+        Just detail ->
+            { model | detail = Just detail }
+
+        Nothing ->
+            model
+
+
+{-| Resolve an `exoext.showDetail` press's params: `text` (required, the block to show) and `title`
+(optional, defaulting to a neutral host heading — the extension supplies the words it cares about
+and the host never leaves a dialog unlabelled). `Nothing` when `text` is missing or blank.
+-}
+detailOf : Encode.Value -> Maybe Detail
+detailOf params =
+    let
+        stringParam key =
+            Decode.decodeValue (Decode.field key Decode.string) params
+                |> Result.withDefault ""
+    in
+    case String.trim (stringParam "text") of
+        "" ->
+            Nothing
+
+        text ->
+            Just
+                { title =
+                    case String.trim (stringParam "title") of
+                        "" ->
+                            "Details"
+
+                        title ->
+                            title
+                , text = text
+                }
 
 
 {-| Resolve a stop press's params: `requestId` — the §4.1 id of the run to stop, projected onto the
@@ -440,7 +587,14 @@ cancelTargetOf params =
 The manifest emits `resultId` (the row's own §4.2 result id, unique per run) and `batchId` (its
 §2.2 batch id, SHARED by siblings). Each falls back to the other, so a manifest that still emits
 only `batchId` keeps dispatching, and a legacy row with no per-run id of its own resolves both to
-the same value. `Nothing` when neither param is present (fail-closed).
+the same value. `Nothing` when neither param names anything (fail-closed).
+
+A **blank** id counts as naming nothing, exactly as an absent one does. That is the same discipline
+every other id on this wire is read with — an id that identifies nothing collides with every other
+one — and it is also the mechanism a manifest uses to withhold this press per row: a row that has
+nothing to open (a failed scan) resolves its ids to `""` through a `$cond`, and the press stops here
+instead of asking the publisher to open a result that does not exist.
+
 -}
 resultIdOf : Encode.Value -> Maybe { resultId : String, batchId : String }
 resultIdOf params =
@@ -448,6 +602,14 @@ resultIdOf params =
         stringParam key =
             Decode.decodeValue (Decode.field key Decode.string) params
                 |> Result.toMaybe
+                |> Maybe.andThen
+                    (\value ->
+                        if String.isEmpty (String.trim value) then
+                            Nothing
+
+                        else
+                            Just value
+                    )
     in
     Maybe.map2 (\resultId batchId -> { resultId = resultId, batchId = batchId })
         (Maybe.Extra.or (stringParam "resultId") (stringParam "batchId"))
@@ -662,7 +824,7 @@ projection zone config instances model =
         -- Not display copy: this is the §2.4 state path the manifest binds against
         -- (`$instances`), so it is contract data and localizing it would break the wire.
         , {- @nonlocalized -} ( "instances", Encode.list (instanceProjection config model) instances )
-        , ( "history", Encode.list (historyRow zone config.activeResultId config.pendingResultId config.erroredResultId config.expiredResultId) shown )
+        , ( "history", Encode.list (historyRow zone (rowSignals config)) shown )
         , ( "historyNote", Encode.string historyNote )
 
         -- Whether the host would SWALLOW an `exoext.openSession` press right now (the §7.1
@@ -692,6 +854,36 @@ projection zone config instances model =
         , ( "historyCount", Encode.int total )
         , ( "targetsCount", Encode.int (List.length instances) )
         ]
+
+
+{-| The per-row session and removal signals a history row is projected against, gathered out of the
+[`ViewConfig`](#ViewConfig) once so [`historyRow`](#projection) takes one named record instead of a
+row of interchangeable `Maybe String`s. Every one of them is keyed by **result id** — never a batch
+id, which §2.2 siblings share.
+-}
+type alias RowSignals =
+    { activeResultId : Maybe String
+    , pendingResultId : Maybe String
+    , erroredResultId : Maybe String
+    , expiredResultId : Maybe String
+    , removingResultId : Maybe String
+    , removeError :
+        Maybe
+            { resultId : String
+            , message : String
+            }
+    }
+
+
+rowSignals : ViewConfig -> RowSignals
+rowSignals config =
+    { activeResultId = config.activeResultId
+    , pendingResultId = config.pendingResultId
+    , erroredResultId = config.erroredResultId
+    , expiredResultId = config.expiredResultId
+    , removingResultId = config.removingResultId
+    , removeError = config.removeError
+    }
 
 
 {-| Project one history row for the `/history` render state. The index is append-only
@@ -742,13 +934,36 @@ exclusive (`OpenStale` sets one, `Open` the other), so they never contend for a 
 `countsLabel` is retained (unbound by the current manifest) as a stable plain-text fallback.
 
 -}
-historyRow : Time.Zone -> Maybe String -> Maybe String -> Maybe String -> Maybe String -> Wire.IndexEntry -> Encode.Value
-historyRow zone activeResultId pendingResultId erroredResultId expiredResultId entry =
+historyRow : Time.Zone -> RowSignals -> Wire.IndexEntry -> Encode.Value
+historyRow zone { activeResultId, pendingResultId, erroredResultId, expiredResultId, removingResultId, removeError } entry =
     let
         -- The row's identity for every session match below, and the `resultId` the View press
         -- sends back as the §4.2 selector. `batchId` is the fallback for a legacy index row.
         resultId =
             Maybe.withDefault entry.batchId entry.requestId
+
+        -- This row's removal is in flight. It outranks EVERY other row state, including a failed
+        -- scan: whatever else this row is, the thing happening to it right now is that it is being
+        -- taken away, and that is the only state that says the press landed.
+        isRemoving =
+            removingResultId == Just resultId
+
+        -- This row's removal came back refused, and the reason is the publisher's. It outranks the
+        -- rest for the same reason and is retained until the next attempt, so a refusal cannot be
+        -- lost behind a re-render.
+        removeErrorMessage =
+            removeError
+                |> Maybe.andThen
+                    (\failure ->
+                        if failure.resultId == resultId && not isRemoving then
+                            Just failure.message
+
+                        else
+                            Nothing
+                    )
+
+        isRemoveError =
+            removeErrorMessage /= Nothing
 
         isError =
             entry.status == "error"
@@ -792,15 +1007,24 @@ historyRow zone activeResultId pendingResultId erroredResultId expiredResultId e
         -- nothing and takes one more display string out of the host. The short batch id is appended
         -- only when there is one: §4.1 leaves `batchId` null for a single-target scan, and a bare
         -- "#" is noise.
-        subLabel =
+        batchLabel =
             if entry.batchId == "" then
-                entry.targetName
+                ""
 
             else
-                entry.targetName ++ " · #" ++ String.left 6 entry.batchId
+                " · #" ++ String.left 6 entry.batchId
+
+        subLabel =
+            entry.targetName ++ batchLabel
 
         rowState =
-            if isError then
+            if isRemoving then
+                "Removing…"
+
+            else if isRemoveError then
+                "Couldn't remove"
+
+            else if isError then
                 "failed"
 
             else if isEmbedErrorRow then
@@ -819,7 +1043,10 @@ historyRow zone activeResultId pendingResultId erroredResultId expiredResultId e
                 ""
 
         actionLabel =
-            if isError then
+            if isRemoving || isRemoveError then
+                ""
+
+            else if isError then
                 ""
 
             else if isEmbedErrorRow then
@@ -843,7 +1070,13 @@ historyRow zone activeResultId pendingResultId erroredResultId expiredResultId e
         -- strings. `rowState`/`actionLabel` above stay projected for manifest v1 until the demo VM
         -- redeploys v2 — one source of truth, two projections, so they can never disagree.
         state =
-            if isError then
+            if isRemoving then
+                "removing"
+
+            else if isRemoveError then
+                "removeError"
+
+            else if isError then
                 "failed"
 
             else if isEmbedErrorRow then
@@ -868,6 +1101,17 @@ historyRow zone activeResultId pendingResultId erroredResultId expiredResultId e
           ( "resultId", Encode.string resultId )
         , ( "batchId", Encode.string entry.batchId )
         , ( "targetName", Encode.string entry.targetName )
+
+        -- The instance the scan was OF, so a press on its name can ask the host to navigate there.
+        -- Projected raw: the host re-resolves it against its own instance list before it moves
+        -- anything, so a row naming an instance this project does not have goes nowhere.
+        , ( "targetId", Encode.string entry.targetId )
+
+        -- The batch suffix on its own (`" · #84a1c6"`, `""` for a lone scan), so a manifest can put
+        -- the target name in its own pressable element and still render the rest of the line. It is
+        -- the second half of `subLabel`, kept separate rather than re-derived, so the two can never
+        -- disagree about where the name ends.
+        , ( "batchLabel", Encode.string batchLabel )
         , ( "completedAt", Encode.string completedAtLabel )
         , ( "subLabel", Encode.string subLabel )
         , ( "status", Encode.string entry.status )
@@ -876,6 +1120,16 @@ historyRow zone activeResultId pendingResultId erroredResultId expiredResultId e
         , ( "rowState", Encode.string rowState )
         , ( "actionLabel", Encode.string actionLabel )
         , ( "state", Encode.string state )
+
+        -- The publisher's plain-language reason this row failed, `""` when it archived none. The
+        -- manifest binds it as the `exoext.showDetail` text and supplies its own sentence for the
+        -- empty case, so the host neither invents a reason nor decides how a missing one reads.
+        , ( "errorDetail", Encode.string (entry.error |> Maybe.withDefault "") )
+
+        -- The publisher's reason a removal was refused, `""` on every other row. The manifest binds
+        -- it into the row's state badge, so the researcher reads the refusal on the row they pressed
+        -- rather than in a line somewhere else on the card.
+        , ( "removeErrorMessage", Encode.string (removeErrorMessage |> Maybe.withDefault "") )
         ]
 
 
@@ -1078,6 +1332,18 @@ type alias ViewConfig =
     -- A muted host-drawn line for transport warnings/errors outside the sandboxed manifest.
     , transportWarning : Maybe String
 
+    -- how the tracked run ENDED, when it ended badly: the §7.1 `run.state` and the publisher's
+    -- short `run.error` (`exoext.v1.run.error`, `Nothing` from a publisher that reports none).
+    -- Only the three unhappy terminal states draw anything (see `runOutcomeView`); `done`, a live
+    -- run, and no tracked run at all draw nothing, because the row badge and the completion line
+    -- already say those. It is deliberately separate from `statusOverride`: that one says what a
+    -- ROW shows right now, this one is the card's one-line account of a run that is over.
+    , runOutcome :
+        Maybe
+            { state : String
+            , error : Maybe String
+            }
+
     -- the display state of the in-flight run, projected onto its target row (left column),
     -- overriding the optimistic local scanState. Read from the polled status object (§4.3); while
     -- the run is `running` the host composes the counting-up elapsed into it (`"scanning · m:ss"`),
@@ -1136,6 +1402,21 @@ type alias ViewConfig =
     -- `activeResultId` for the expired result, so the expired session no longer reads as active.
     -- `Nothing` when the open session (if any) is still fresh. This is the expired-session fix.
     , expiredResultId : Maybe String
+
+    -- the resultId of the `exoext.deleteResult` request that is in flight right now, so its row
+    -- reads "Removing…" from the press until the publisher answers. Host-tracked rather than
+    -- optimistic in the card, so it survives every re-render in between and clears only on the
+    -- acknowledgement. `Nothing` when no removal is in flight.
+    , removingResultId : Maybe String
+
+    -- the last removal the publisher REFUSED, with its reason. Retained until the next attempt so
+    -- the refusal cannot be lost behind a poll, and carried per row so the researcher reads it on
+    -- the row they pressed. `Nothing` when no removal has failed.
+    , removeError :
+        Maybe
+            { resultId : String
+            , message : String
+            }
 
     -- whether the host would SWALLOW an `exoext.openSession` press right now — the §7.1
     -- single-req-slot guard (`ServerDetail.exoextGetEmbedBlocked`) protecting an active or
@@ -1249,6 +1530,7 @@ view palette localization zone config instances model =
                 [ rendererView palette localization zone config instances model
                 , embedStateView palette config.embedState config.erroredResultId
                 , transportWarningView palette config.transportWarning
+                , runOutcomeView palette config.runOutcome
                 , scanTimerView palette config.scanTimer
                 , demoIframePanel palette config.demoIframeUrl model.showDemoIframe
                 ]
@@ -1300,6 +1582,7 @@ view palette localization zone config instances model =
             , body
             , healthStrip
             , disableAffordance palette
+            , detailDialog palette model.detail
             ]
 
     else
@@ -1379,38 +1662,202 @@ embedStateView palette embedState erroredResultId =
                 "This results session expired. Click View to reopen."
 
 
-{-| A small CSS-driven spinner ring for the results-region loading line, tinted to the subdued
-neutral text so it reads as quiet host chrome (matches the per-row "Opening…" ring idiom).
-The raw span is wrapped in a sized `Element.el` because elm-ui's row `spacing` only applies
-between its own wrapped children — a bare `Element.html` child gets no gap (and no measured
-box), which rendered the ring flush against the label.
+{-| The small activity indicator for the card's host-drawn loading lines.
+
+It is Exosphere's stock [`Style.Widgets.Spinner`](Style-Widgets-Spinner), and that is the whole
+point of this function existing. The hand-rolled ring it replaces was animated by a `@keyframes`
+rule living in the renderer stylesheet, which is only mounted in the manifest-loaded branch — so on
+the ONE screen the loading spinner matters most, "Loading extension UI…" before any manifest has
+resolved, the stylesheet was not on the page yet and the ring sat frozen. The stock widget animates
+with SVG `animateTransform` and depends on no stylesheet at all, so it cannot be broken by where it
+is mounted.
+
+The wrapper carries `flex: none` because this is a flex ITEM of the surrounding elm-ui row, and a
+shrunk circle is an oval (the same mechanism as the `.jr-badge` rings, see `Exoext.RendererStyle`).
+
 -}
 spinner : ExoPalette -> Element.Element msg
 spinner palette =
     Element.el
-        [ Element.width (Element.px 12)
-        , Element.height (Element.px 12)
+        [ Element.htmlAttribute (Html.Attributes.style "flex" "none") ]
+        (Spinner.sized 12 palette)
 
-        -- `flex: none`: this el is a flex ITEM of the elm-ui row, and a shrunk circle is an oval
-        -- (same mechanism as the .jr-badge rings, see Exoext.RendererStyle).
-        , Element.htmlAttribute (Html.Attributes.style "flex" "none")
-        ]
-    <|
-        Element.html
-            (Html.node "span"
-                -- `block` + `border-box` keep the ring exactly 12x12 inside its wrapper: inline-block
-                -- sits on the text baseline, and a content-box span grows past the wrapper by its
-                -- border width. Either one shows as a squashed ring.
-                [ Html.Attributes.style "display" "block"
-                , Html.Attributes.style "box-sizing" "border-box"
-                , Html.Attributes.style "width" "12px"
-                , Html.Attributes.style "height" "12px"
-                , Html.Attributes.style "border" ("2px solid " ++ Color.toCssString palette.neutral.text.subdued)
-                , Html.Attributes.style "border-top-color" "transparent"
-                , Html.Attributes.style "border-radius" "50%"
-                , Html.Attributes.style "animation" "jr-badge-spin 0.7s linear infinite"
+
+{-| The card's one-line account of a run that ended badly, drawn as host chrome under the rendered
+manifest (the same quiet slot as the transport warning and the completion line).
+
+Only the three unhappy terminal states say anything, and only one of them offers more:
+
+  - `error` — "Scan failed", plus a **Details** affordance opening the host dialog on the
+    publisher's own `run.error` sentence. This is the whole point of the line: a failed run used to
+    leave the researcher with a red badge and no way to find out why, while the reason sat unread on
+    the wire.
+  - `cancelled` — "Scan cancelled". The researcher pressed stop, so there is nothing to explain.
+  - `expired` — "Scan expired: the extension did not answer". §4.4's expiry means the publisher
+    never picked the request up, so there is no publisher-side reason to show either.
+
+Everything else draws nothing: `done` is reported by the completion line, and a live run is reported
+by its own row.
+
+The words are this adapter's — a run of ITS kind is a scan — while the sentence inside the dialog is
+the publisher's. The host contributes the surface and nothing else.
+
+-}
+runOutcomeView : ExoPalette -> Maybe { state : String, error : Maybe String } -> Element.Element Msg
+runOutcomeView palette outcome =
+    let
+        line tone label =
+            Element.el
+                [ Text.fontSize Text.Small
+                , Font.color (SH.toElementColor tone)
                 ]
-                []
+                (Text.body label)
+    in
+    case outcome of
+        Just { state, error } ->
+            if state == "error" then
+                Element.row
+                    [ Element.spacing spacer.px8 ]
+                    [ line palette.danger.textOnNeutralBG "Scan failed"
+                    , linkButton palette
+                        "Details"
+                        (GotShowDetail
+                            { title = "Scan failed"
+                            , text =
+                                error
+                                    |> Maybe.withDefault "The extension did not report a reason for this failure."
+                            }
+                        )
+                    ]
+
+            else if state == "cancelled" then
+                line palette.neutral.text.subdued "Scan cancelled"
+
+            else if state == "expired" then
+                line palette.neutral.text.subdued "Scan expired: the extension did not answer"
+
+            else
+                Element.none
+
+        Nothing ->
+            Element.none
+
+
+{-| The host's detail dialog: the surface behind the generic `exoext.showDetail` verb and behind the
+card's own "Details" affordance.
+
+It is drawn as raw Html rather than in elm-ui for one reason: it has to be a `position: fixed`
+overlay covering the page, and the card is already an Html island mounted inside an elm-ui tree, so
+an elm-ui `inFront` here would be pinned to the card's own box rather than to the viewport. Its
+colors come from [`Exoext.RendererStyle.tokens`](Exoext-RendererStyle#tokens) — the same
+palette-derived strings the renderer's confirm dialog uses — so the two dialogs on this page are
+visibly one thing in either theme.
+
+Four ways out, because a dialog a researcher cannot dismiss is a broken page: the Close button, Esc,
+a click on the backdrop, and (implicitly) any press that replaces its contents. `white-space:
+pre-wrap` keeps a publisher's line breaks without letting a long line escape the box, the body
+scrolls inside a bounded height, and the text is inserted as text so no manifest can smuggle markup
+through it.
+
+-}
+detailDialog : ExoPalette -> Maybe Detail -> Element.Element Msg
+detailDialog palette maybeDetail =
+    case maybeDetail of
+        Nothing ->
+            Element.none
+
+        Just detail ->
+            let
+                t =
+                    RendererStyle.tokens palette
+            in
+            Element.html
+                (Html.div
+                    [ Html.Attributes.style "position" "fixed"
+                    , Html.Attributes.style "inset" "0"
+                    , Html.Attributes.style "background" "rgba(0,0,0,0.55)"
+                    , Html.Attributes.style "display" "flex"
+                    , Html.Attributes.style "align-items" "center"
+                    , Html.Attributes.style "justify-content" "center"
+                    , Html.Attributes.style "z-index" "1000"
+                    , Html.Attributes.style "padding" "16px"
+
+                    -- Focusable (but not in the tab order) so the overlay itself receives the Esc
+                    -- key the moment it mounts, without stealing focus from anything on a page
+                    -- where it is closed.
+                    , Html.Attributes.tabindex -1
+                    , Html.Attributes.autofocus True
+                    , Html.Attributes.attribute "role" "dialog"
+                    , Html.Attributes.attribute "aria-modal" "true"
+                    , Html.Events.onClick GotCloseDetail
+                    , Html.Events.on "keydown" escapeKeyDecoder
+                    ]
+                    [ Html.div
+                        [ Html.Attributes.style "background" t.frontBg
+                        , Html.Attributes.style "color" t.text
+                        , Html.Attributes.style "border" ("1px solid " ++ t.border)
+                        , Html.Attributes.style "border-radius" "8px"
+                        , Html.Attributes.style "box-shadow" "0 8px 40px rgba(0,0,0,0.5)"
+                        , Html.Attributes.style "padding" "20px 22px"
+                        , Html.Attributes.style "width" "100%"
+                        , Html.Attributes.style "max-width" "36rem"
+                        , Html.Attributes.style "white-space" "normal"
+
+                        -- A click inside the box must not reach the backdrop's close handler.
+                        , Html.Events.stopPropagationOn "click" (Decode.succeed ( GotDetailNoOp, True ))
+                        ]
+                        [ Html.h3
+                            [ Html.Attributes.style "margin" "0 0 8px 0"
+                            , Html.Attributes.style "font-size" "1.1em"
+                            , Html.Attributes.style "font-weight" "600"
+                            ]
+                            [ Html.text detail.title ]
+                        , Html.p
+                            [ Html.Attributes.style "margin" "0"
+                            , Html.Attributes.style "color" t.muted
+                            , Html.Attributes.style "line-height" "1.45"
+                            , Html.Attributes.style "white-space" "pre-wrap"
+                            , Html.Attributes.style "overflow-wrap" "anywhere"
+                            , Html.Attributes.style "max-height" "50vh"
+                            , Html.Attributes.style "overflow-y" "auto"
+                            ]
+                            [ Html.text detail.text ]
+                        , Html.div
+                            [ Html.Attributes.style "display" "flex"
+                            , Html.Attributes.style "justify-content" "flex-end"
+                            , Html.Attributes.style "margin-top" "18px"
+                            ]
+                            [ Html.button
+                                [ Html.Attributes.type_ "button"
+                                , Html.Attributes.style "padding" "6px 16px"
+                                , Html.Attributes.style "border-radius" "4px"
+                                , Html.Attributes.style "cursor" "pointer"
+                                , Html.Attributes.style "font-size" "0.9em"
+                                , Html.Attributes.style "background" t.primary
+                                , Html.Attributes.style "color" "#fff"
+                                , Html.Attributes.style "border" ("1px solid " ++ t.primary)
+                                , Html.Events.onClick GotCloseDetail
+                                ]
+                                [ Html.text "Close" ]
+                            ]
+                        ]
+                    ]
+                )
+
+
+{-| Esc closes the detail dialog; every other key falls through untouched (a failed decoder is how
+an `on` handler declines an event).
+-}
+escapeKeyDecoder : Decode.Decoder Msg
+escapeKeyDecoder =
+    Decode.field "key" Decode.string
+        |> Decode.andThen
+            (\key ->
+                if key == "Escape" then
+                    Decode.succeed GotCloseDetail
+
+                else
+                    Decode.fail "not the Escape key"
             )
 
 

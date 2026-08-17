@@ -144,7 +144,6 @@ extraRules t =
     -- (nothing to view). The host also blanks its actionLabel; this hides the button.
     , ".jr-badge[data-state=\"failed\"] { background: " ++ t.dangerBg ++ "; color: " ++ t.dangerText ++ "; border-color: " ++ t.dangerBorder ++ "; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.7em; font-weight: 700; }"
     , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"failed\"]) { opacity: 0.72; }"
-    , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"failed\"]) .jr-button { display: none; }"
     , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"failed\"]) .jr-counts { display: none; }"
 
     -- Expired session row (the expired-session fix): the row's result session lapsed, so
@@ -155,6 +154,40 @@ extraRules t =
     , ".jr-badge[data-state=\"Expired\"], .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"expired\"] { background: " ++ t.frontBg ++ "; color: " ++ t.muted ++ "; border-color: " ++ t.border ++ "; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.7em; font-weight: 700; }"
     , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Expired\"]), .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"expired\"]) { background: color-mix(in srgb, " ++ t.primary ++ " 5%, transparent); border-left-color: " ++ t.primaryLine ++ "; }"
     , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"Expired\"]) .jr-button, .jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"expired\"]) .jr-button { background: transparent; border-color: " ++ t.border ++ "; color: " ++ t.muted ++ "; }"
+
+    -- Removal in flight / refused. Both are keyed on the history Badge's `data-state` like every
+    -- other row state, and both outrank what the row said before, because what is happening to the
+    -- row now is that it is being taken away.
+    --
+    -- "Removing…" borrows the neutral in-progress look rather than the primary one: it is not the
+    -- researcher opening something, it is the card letting go of a row, and it should read as
+    -- quietly leaving rather than as arriving. The base stylesheet gives it its spinning ring.
+    , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"removing\"]) { opacity: 0.7; }"
+    , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"removing\"] { display: inline-flex; align-items: center; background: " ++ t.frontBg ++ "; color: " ++ t.muted ++ "; border-color: " ++ t.border ++ "; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.7em; font-weight: 700; }"
+
+    -- A refused removal is danger-toned and keeps its Retry: the row is still there, and the reason
+    -- it is still there is on the badge.
+    , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"removeError\"]) { background: " ++ t.dangerTint ++ "; border-left-color: " ++ t.dangerDot ++ "; }"
+    , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-badge[data-state=\"removeError\"] { display: inline-flex; align-items: center; gap: 5px; background: " ++ t.dangerBg ++ "; color: " ++ t.dangerText ++ "; border-color: " ++ t.dangerBorder ++ "; font-size: 0.7em; font-weight: 700; }"
+    , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row:has(.jr-badge[data-state=\"removeError\"]) .jr-button { background: transparent; border-color: " ++ t.dangerLine ++ "; color: " ++ t.dangerDot ++ "; }"
+
+    -- The Remove control is secondary to View: same size, no border until it is reached for, and
+    -- danger-toned on hover so the destructive one is the one that changes color. It is the LAST
+    -- button of a history row.
+    , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-button:last-child { background: transparent; border-color: transparent; color: " ++ t.muted ++ "; }"
+    , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-button:last-child:hover { border-color: " ++ t.dangerLine ++ "; color: " ++ t.dangerDot ++ "; }"
+
+    -- The history row's main block (the timestamp and the target line) is what OPENS the scan, so
+    -- it spans the growing part of the row and its press is the row's press for every practical
+    -- purpose. The row's own `:hover` is the affordance for it — the generic `.jr-pressable` wash
+    -- stands down here, because two hovers on one gesture read as two controls.
+    , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-stack--col.jr-pressable:hover { background: transparent; }"
+
+    -- The sub line under the timestamp: the target name (its own pressable, which navigates to that
+    -- instance) followed by the short batch id. It replaced a single Text, so it inherits that
+    -- Text's muted, smaller treatment here rather than losing it.
+    , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-stack--col > .jr-stack--row { font-size: 0.82em; color: " ++ t.muted ++ "; align-items: baseline; gap: 0; }"
+    , ".jr-card > .jr-stack--row > .jr-stack--col:nth-child(2) > .jr-stack--col > .jr-stack--row > .jr-stack--col > .jr-stack--row > .jr-text { color: " ++ t.muted ++ "; }"
 
     -- Responsive: on a narrow card the two columns stack (targets, then history), each
     -- keeping its own bounded scroll. The divider moves from a left border to a top one.

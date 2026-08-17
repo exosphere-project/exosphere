@@ -1,11 +1,14 @@
 module Tests.CloudShield.Card exposing
     ( cancelDismissVerbSuite
+    , detailDialogSuite
     , discoverySuite
     , embedSuite
     , historySuite
     , historyViewParamsSuite
     , manifestSuite
+    , navigateVerbSuite
     , projectionSuite
+    , removalRowSuite
     , rollbackScanRequestSuite
     , rowTimerSuite
     , transportSuite
@@ -22,6 +25,7 @@ sentinel + §7.1 metadata transport framing, and the §2.4 `$instances` eligibil
 import CloudShield.Card as Card
 import CloudShield.Wire as Wire
 import Dict
+import Element
 import Exoext.Discovery as Discovery
 import Exoext.Lifecycle as Lifecycle
 import Exoext.Transport as Transport
@@ -34,12 +38,15 @@ import JsonRender.Render as Render
 import JsonRender.Spec as Spec exposing (Props(..))
 import OpenStack.Types as OSTypes
 import Set exposing (Set)
+import Style.Helpers as SH
+import Style.Types as ST
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector
 import Tests.CloudShield.Fixtures exposing (cardViewConfig)
 import Time
+import Types.Defaults
 
 
 
@@ -718,6 +725,7 @@ sampleModel selection =
     , pending = Nothing
     , showDemoIframe = False
     , showManifestErrorDetail = False
+    , detail = Nothing
     }
 
 
@@ -1373,6 +1381,7 @@ historyEntry batchId =
     , completedAt = "2026-07-01T00:00:00Z"
     , status = "done"
     , counts = { critical = 0, high = 2, medium = 0, low = 0, info = 0 }
+    , error = Nothing
     }
 
 
@@ -1468,6 +1477,7 @@ erroredEntry =
     , completedAt = "2026-07-01T00:00:00Z"
     , status = "error"
     , counts = { critical = 0, high = 0, medium = 0, low = 0, info = 0 }
+    , error = Nothing
     }
 
 
@@ -1782,6 +1792,7 @@ rollbackScanRequestSuite =
             , pending = Nothing
             , showDemoIframe = False
             , showManifestErrorDetail = False
+            , detail = Nothing
             }
 
         -- Accepting the dialog closes it (renderer back to `init`) and, in the same step, runs
@@ -1827,3 +1838,187 @@ rollbackScanRequestSuite =
                 Expect.equal ( afterPress.selection, afterPress.selectAll, afterPress.showDemoIframe )
                     ( rolledBack.selection, rolledBack.selectAll, rolledBack.showDemoIframe )
         ]
+
+
+{-| `exoext.showDetail`: the generic verb an extension uses to hand the host a longer piece of its
+own text, and the dialog the host draws for it.
+
+The split under test is the whole design: the extension supplies the words, the host owns the
+surface, and nothing about the surface is reachable from a manifest. So a press opens the host's
+dialog and writes nothing to the wire, a press with nothing to say opens nothing at all, and the
+dialog closes.
+
+-}
+detailDialogSuite : Test
+detailDialogSuite =
+    let
+        params title text =
+            Encode.object
+                [ ( "title", Encode.string title )
+                , ( "text", Encode.string text )
+                ]
+
+        press value model =
+            Card.dispatchVerb (Card.resolveAction Lifecycle.verbShowDetail value) value model
+
+        reason =
+            "project disk quota full (600/600 GB); free 60 GB or request more"
+
+        opened =
+            press (params "Scan failed" reason) idleModel
+
+        renderedWith model =
+            Card.view detailPalette Types.Defaults.localization Time.utc { sampleConfig | manifest = Card.ManifestUnavailable } sampleInstances model
+                |> Element.layout []
+                |> Query.fromHtml
+    in
+    describe "exoext.showDetail opens the host's detail dialog"
+        [ test "a press carrying text opens the dialog and asks the host for nothing else" <|
+            \_ ->
+                Expect.equal ( Just { title = "Scan failed", text = reason }, Nothing )
+                    ( (Tuple.first opened).detail, Tuple.second opened )
+        , test "a press with no text opens nothing — an empty dialog says less than the badge did" <|
+            \_ ->
+                Expect.equal Nothing
+                    (Tuple.first (press (params "Scan failed" "   ") idleModel)).detail
+        , test "a press with text but no title still opens, under a neutral host heading" <|
+            \_ ->
+                Expect.equal (Just { title = "Details", text = reason })
+                    (Tuple.first (press (Encode.object [ ( "text", Encode.string reason ) ]) idleModel)).detail
+        , test "detailOf is fail-closed on the same two cases" <|
+            \_ ->
+                Expect.equal ( Just { title = "Details", text = "why" }, Nothing )
+                    ( Card.detailOf (Encode.object [ ( "text", Encode.string "why" ) ])
+                    , Card.detailOf (Encode.object [ ( "title", Encode.string "Scan failed" ) ])
+                    )
+        , test "the open dialog puts the publisher's sentence on screen with a way out" <|
+            \_ ->
+                renderedWith (Tuple.first opened)
+                    |> Expect.all
+                        [ Query.has [ Selector.text reason ]
+                        , Query.has [ Selector.text "Scan failed" ]
+                        , Query.has [ Selector.text "Close" ]
+                        ]
+        , test "an idle card draws no dialog at all" <|
+            \_ ->
+                renderedWith idleModel
+                    |> Query.hasNot [ Selector.text reason ]
+        , test "pressing Close dismisses it, through the real handler on the real button" <|
+            \_ ->
+                renderedWith (Tuple.first opened)
+                    |> Query.find [ Selector.tag "button", Selector.containing [ Selector.text "Close" ] ]
+                    |> Event.simulate Event.click
+                    |> Event.toResult
+                    |> Result.map
+                        (\msg ->
+                            (Tuple.first (Card.update sampleInstances msg (Tuple.first opened))).detail
+                        )
+                    |> Expect.equal (Ok Nothing)
+        ]
+
+
+{-| `exoext.navigate`: the first verb through which an extension moves the app.
+
+The card's half is deliberately thin — it carries an instance id and holds no opinion about whether
+that id names anything, because only the host has the project's instance list (§5.4). What is tested
+here is that the id travels and that a press naming nothing never reaches the host.
+
+-}
+navigateVerbSuite : Test
+navigateVerbSuite =
+    let
+        dispatch value =
+            Card.dispatchVerb (Card.resolveAction Lifecycle.verbNavigate value) value idleModel |> Tuple.second
+
+        params instanceId =
+            Encode.object [ ( "instanceId", Encode.string instanceId ) ]
+    in
+    describe "exoext.navigate carries an instance id to the host"
+        [ test "a press names the instance to go to" <|
+            \_ ->
+                Expect.equal (Just (Card.NavigationRequested { instanceId = "i-7" }))
+                    (dispatch (params "i-7"))
+        , test "a press naming nothing is swallowed (absent and blank alike)" <|
+            \_ ->
+                Expect.equal ( Nothing, Nothing )
+                    ( dispatch (params "  "), dispatch (Encode.object []) )
+        ]
+
+
+{-| The two removal states a history row can be in, and their place in the row's precedence.
+
+Removal outranks everything else a row could be saying, including a failed scan, because whatever
+else is true of the row, what is happening to it NOW is that it is being taken away. And a failed
+row must keep its Remove control: it is the only affordance such a row has.
+
+-}
+removalRowSuite : Test
+removalRowSuite =
+    let
+        rowField removingResultId removeError entry field =
+            Card.projection Time.utc
+                { sampleConfig
+                    | history = loadedHistory [ entry ]
+                    , removingResultId = removingResultId
+                    , removeError = removeError
+                }
+                sampleInstances
+                idleModel
+                |> Decode.decodeValue (Decode.field "history" (Decode.index 0 (Decode.field field Decode.string)))
+                |> Result.mapError Decode.errorToString
+
+        refusal =
+            Just { resultId = "b-1", message = "that scan is still running" }
+    in
+    describe "the removal row states"
+        [ test "a row being removed reads as removing, with no action of its own" <|
+            \_ ->
+                Expect.equal ( Ok "removing", Ok "Removing…", Ok "" )
+                    ( rowField (Just "b-1") Nothing (historyEntry "b-1") "state"
+                    , rowField (Just "b-1") Nothing (historyEntry "b-1") "rowState"
+                    , rowField (Just "b-1") Nothing (historyEntry "b-1") "actionLabel"
+                    )
+        , test "a refused removal reads as removeError and carries the publisher's reason" <|
+            \_ ->
+                Expect.equal ( Ok "removeError", Ok "that scan is still running" )
+                    ( rowField Nothing refusal (historyEntry "b-1") "state"
+                    , rowField Nothing refusal (historyEntry "b-1") "removeErrorMessage"
+                    )
+        , test "the reason lands on the row it names and on no other" <|
+            \_ ->
+                Expect.equal ( Ok "", Ok "idle" )
+                    ( rowField Nothing refusal (historyEntry "b-2") "removeErrorMessage"
+                    , rowField Nothing refusal (historyEntry "b-2") "state"
+                    )
+        , test "a new attempt supersedes the old refusal on the same row" <|
+            \_ ->
+                Expect.equal (Ok "removing")
+                    (rowField (Just "b-1") refusal (historyEntry "b-1") "state")
+        , test "removal outranks a failed scan — a failed row can still be removed" <|
+            \_ ->
+                Expect.equal ( Ok "removing", Ok "removeError" )
+                    ( rowField (Just "b-err") Nothing erroredEntry "state"
+                    , rowField Nothing (Just { resultId = "b-err", message = "gone" }) erroredEntry "state"
+                    )
+        , test "a failed row projects its reason for the detail press, and its target for navigation" <|
+            \_ ->
+                Expect.equal ( Ok "the target's root disk is encrypted", Ok "i-1", Ok " · #b-err" )
+                    ( rowField Nothing Nothing { erroredEntry | error = Just "the target's root disk is encrypted" } "errorDetail"
+                    , rowField Nothing Nothing erroredEntry "targetId"
+                    , rowField Nothing Nothing erroredEntry "batchLabel"
+                    )
+        , test "a row archived with no reason projects an empty one, for the manifest to fall back from" <|
+            \_ ->
+                Expect.equal (Ok "") (rowField Nothing Nothing erroredEntry "errorDetail")
+        , test "batchLabel is empty for a lone scan, and subLabel still reads as before" <|
+            \_ ->
+                Expect.equal ( Ok "", Ok "alpha" )
+                    ( rowField Nothing Nothing { erroredEntry | batchId = "" } "batchLabel"
+                    , rowField Nothing Nothing { erroredEntry | batchId = "" } "subLabel"
+                    )
+        ]
+
+
+detailPalette : ST.ExoPalette
+detailPalette =
+    SH.toExoPalette ST.defaultColors { theme = ST.System, systemPreference = Nothing }

@@ -4,6 +4,7 @@ module CloudShield.Reader exposing
     , answeredRequestId
     , completionTimer
     , projection
+    , removalAck
     , resultId
     , resultObjectName
     , rowStatus
@@ -102,16 +103,6 @@ type alias Projection =
     }
 
 
-{-| How long a written getEmbed waits for its result before the pending marker is treated as a
-timeout error. getEmbed normally resolves in ~10s (one poll after the bridge claims the slot); 30s
-leaves headroom for a slow mint + CloudShield without leaving a dead "Opening…" row up so long it
-reads as broken.
--}
-sessionTimeoutMillis : Int
-sessionTimeoutMillis =
-    30 * 1000
-
-
 {-| The reader projection for the history-View embed flow, decided purely from the
 [`ReadContext`](#ReadContext) the host stamps.
 
@@ -166,7 +157,7 @@ projection context =
                     )
 
         session =
-            Exoext.Lifecycle.sessionState sessionTimeoutMillis context.currentTime context.pendingSession resultInput
+            Exoext.Lifecycle.sessionState Exoext.Lifecycle.requestTimeoutMillis context.currentTime context.pendingSession resultInput
 
         -- The host-side embed line + iframe gate, mapped 1:1 from the generic session token.
         embedState =
@@ -442,6 +433,37 @@ resultObjectName sessionRequest prefix body =
 
         Nothing ->
             Exoext.Transport.resultRefObjectName (Exoext.Transport.resolveResultBody body)
+
+
+{-| The removal acknowledgement a res-slot body carries, if it carries one: the request it answers,
+the result it was about, whether the publisher did it, and the reason if it did not.
+
+The host holds the in-flight removal marker and does the correlation; recognizing a body as a
+removal acknowledgement, and finding its verdict inside, is this extension's to do — a second
+extension's acknowledgements would be shaped differently. `Nothing` for a scan result, an embed
+result, or an acknowledgement of some other action.
+
+An `"ok"` status is the only success; anything else is a refusal, and its `message` falls back to a
+neutral sentence rather than to silence, because a refusal with no words reads as nothing having
+happened at all.
+
+-}
+removalAck : String -> Maybe { requestId : String, resultId : Maybe String, ok : Bool, message : String }
+removalAck body =
+    Wire.actionResultFromBody body
+        |> Maybe.andThen
+            (\result ->
+                if result.action == Wire.kindDeleteResult then
+                    Just
+                        { requestId = result.requestId
+                        , resultId = result.resultId
+                        , ok = result.status == "ok"
+                        , message = result.error |> Maybe.withDefault "the extension did not say why"
+                        }
+
+                else
+                    Nothing
+            )
 
 
 {-| The §4.1 `requestId` a res-slot body answers, if it answers one at all.
