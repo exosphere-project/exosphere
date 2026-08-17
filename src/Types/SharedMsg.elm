@@ -185,7 +185,11 @@ type ProjectSpecificMsgConstructor
 
 
 type ServerSpecificMsgConstructor
-    = RequestDeleteServer Bool
+    = -- Fetch this one server's details again, now. The generic "the user asked us to look again"
+      -- request: no interaction level, no side effects, just the single-server Nova read whose
+      -- response flows through `ReceiveServer` and everything already hanging off it.
+      RequestServerRefresh
+    | RequestDeleteServer Bool
     | RequestShelveServer Bool
     | RequestSetServerName String
     | RequestAttachVolume OSTypes.VolumeUuid

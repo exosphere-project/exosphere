@@ -1,4 +1,4 @@
-module Tests.Exoext.Host exposing (batchPersistenceSuite, batchSuite, cancelSuite, cardTitleSuite, dismissSuite, preEchoStopSuite, readDecisionSuite, recoverySuite, staleRunSuite, stoppingSuite, tailStopSuite)
+module Tests.Exoext.Host exposing (batchPersistenceSuite, batchSuite, cancelSuite, cardTitleSuite, dismissSuite, preEchoStopSuite, readDecisionSuite, recoverySuite, reloadSuite, staleRunSuite, stoppingSuite, tailStopSuite)
 
 {-| The generic `exoext` host: everything `Page.ServerDetail` does for ANY extension, driven through
 the public host functions rather than through a particular adapter's card.
@@ -21,6 +21,7 @@ import Dict
 import Exoext.Discovery
 import Exoext.Lifecycle as Lifecycle
 import Expect
+import Helpers.GetterSetters as GetterSetters
 import Json.Decode as Decode
 import Page.ServerDetail as ServerDetail
 import Test exposing (Test, describe, test)
@@ -1189,4 +1190,73 @@ cardTitleSuite =
         , test "no sentinel at all is the generic word too" <|
             \_ ->
                 Expect.equal "Extension" (ServerDetail.exoextCardTitle Nothing)
+        ]
+
+
+{-| "Check now": the whole round trip from the card's press to the host's two effects.
+
+It is generic host behavior in the strictest sense — the card carries no reads of its own, so all it
+can do is forward the press, and everything the press actually DOES belongs to `Page.ServerDetail`.
+
+-}
+reloadSuite : Test
+reloadSuite =
+    let
+        -- A page that has already fetched everything it can fetch: a manifest read recorded for the
+        -- current etag, a result body recorded, a history generation fetched.
+        settled =
+            let
+                base =
+                    modelWithManifest "etag-1" """{"ui":{}}"""
+            in
+            { base
+                | exoextHistoryRequestKey = Just "etag-1:none"
+                , exoextResultRefRequest = Just { etag = "etag-1", objectName = "results/b1.json" }
+            }
+
+        ( pressed, _, shared ) =
+            ServerDetail.update (ServerDetail.CloudShieldMsg Card.GotReloadRequested) (projectPublishing []) settled
+    in
+    describe "the health strip's Check now press"
+        [ test "the card forwards the press and asks for nothing else" <|
+            \_ ->
+                Expect.equal (Just Card.ReloadRequested)
+                    (Tuple.second (Card.update [] Card.GotReloadRequested Card.init))
+        , test "the press asks Nova for this server's details right away" <|
+            \_ ->
+                Expect.equal
+                    (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier (projectPublishing []))
+                        (SharedMsg.ServerMsg "self" SharedMsg.RequestServerRefresh)
+                    )
+                    shared
+        , test "the press forgets which object-storage reads have already been asked for" <|
+            \_ ->
+                Expect.equal ( Nothing, Nothing, Nothing )
+                    ( pressed.exoextManifestRequestEtag
+                    , pressed.exoextHistoryRequestKey
+                    , pressed.exoextResultRefRequest
+                    )
+        , test "the press is acknowledged until the server read that answers it lands" <|
+            \_ ->
+                let
+                    ( synced, _, _ ) =
+                        ServerDetail.update (ServerDetail.GotExoextSync pollTime) (projectPublishing []) pressed
+                in
+                Expect.equal ( True, False )
+                    ( pressed.exoextReloadPending, synced.exoextReloadPending )
+        , test "the history read gets a fresh cache-buster, since its key does not move on its own" <|
+            \_ ->
+                Expect.equal (settled.exoextHistoryGeneration + 1) pressed.exoextHistoryGeneration
+        , test "the cleared markers are what make the next sync fetch again" <|
+            \_ ->
+                Expect.equal ( False, True )
+                    ( ServerDetail.exoextIndexNeedsFetch "etag-1:none" settled
+                    , ServerDetail.exoextIndexNeedsFetch "etag-1:none" pressed
+                    )
+        , test "a body already held for the current etag is not refetched: identical bytes are not a refresh" <|
+            \_ ->
+                Expect.equal ( False, Just """{"ui":{}}""" )
+                    ( ServerDetail.exoextManifestNeedsFetch "etag-1" pressed
+                    , ServerDetail.exoextManifestBodyForEtag "etag-1" pressed
+                    )
         ]

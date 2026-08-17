@@ -1,4 +1,4 @@
-module Tests.Exoext.Health exposing (chromeSuite, detailSuite, discoverySuite, readSuite, stateSuite)
+module Tests.Exoext.Health exposing (chromeSuite, detailSuite, dimmingSuite, discoverySuite, readSuite, reloadSuite, stateSuite)
 
 {-| The `exoext.v1.health.*` read path and the chrome drawn from it.
 
@@ -12,10 +12,12 @@ the one thing that made the incident this exists for diagnosable.
 import Element
 import Exoext.Health as Health
 import Expect
+import Html.Attributes
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
 import Style.Types as ST
 import Test exposing (Test, describe, test)
+import Test.Html.Event as Event
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector
 import Time
@@ -76,6 +78,26 @@ detailOf id record =
 render : Element.Element () -> Query.Single ()
 render element =
     element |> Element.layout [] |> Query.fromHtml
+
+
+{-| The host chrome for a publisher whose server Nova reports as running, with nothing in flight and
+the reload control wired to a stand-in message. Override with record update.
+-}
+chrome : Health.Chrome ()
+chrome =
+    { sourceNoun = "instance"
+    , running = True
+    , checking = False
+    , onReload = Just ()
+    }
+
+
+{-| The same chrome with the one thing the host can corroborate: the publishing server is not
+running.
+-}
+stoppedChrome : Health.Chrome ()
+stoppedChrome =
+    { chrome | running = False }
 
 
 readSuite : Test
@@ -267,8 +289,8 @@ detailSuite =
                 in
                 render
                     (Health.placeholder palette
-                        "instance"
                         now
+                        chrome
                         (health
                             [ ( "exoext.v1.health.seq", "1000000" )
                             , ( "exoext.v1.health.objectstore", "fail" )
@@ -348,6 +370,55 @@ stateSuite =
                         (Time.millisToPosix (1000000 * 1000 - 60 * 60 * 1000))
                         (health allOkPairs)
                     )
+        , test "the threshold is three missed five-minute envelope refreshes, not two" <|
+            \_ ->
+                Expect.equal (3 * 5 * 60 * 1000) Health.staleAfterMillis
+        , test "twelve minutes of silence is a slow publisher, not a dead one" <|
+            \_ ->
+                -- Two missed refreshes plus jitter. Under the old ten-minute threshold this was
+                -- stale, and it greyed out extensions that were working.
+                Expect.equal False
+                    (Health.isStale
+                        (Time.millisToPosix (1000000 * 1000 + 12 * 60 * 1000))
+                        (health allOkPairs)
+                    )
+        , test "sixteen minutes of silence is stale" <|
+            \_ ->
+                Expect.equal True
+                    (Health.isStale
+                        (Time.millisToPosix (1000000 * 1000 + 16 * 60 * 1000))
+                        (health allOkPairs)
+                    )
+        ]
+
+
+{-| The dimming rule: staleness proposes, the host's Nova status disposes.
+-}
+dimmingSuite : Test
+dimmingSuite =
+    let
+        longSilence =
+            Time.millisToPosix (1000000 * 1000 + 40 * 60 * 1000)
+    in
+    describe "when the chrome dims the values"
+        [ test "a stale record from a RUNNING server is not dimmed — silence alone is not evidence" <|
+            \_ ->
+                Expect.equal False (Health.dimmed longSilence chrome (health allOkPairs))
+        , test "a stale record from a server the host knows is not running IS dimmed" <|
+            \_ ->
+                Expect.equal True (Health.dimmed longSilence stoppedChrome (health allOkPairs))
+        , test "a fresh record from a stopped server is not dimmed: the values really are current" <|
+            \_ ->
+                -- The instance stopped seconds ago and the last write is still inside the window.
+                -- Nothing on screen is out of date yet, so nothing is greyed out yet.
+                Expect.equal False (Health.dimmed now stoppedChrome (health allOkPairs))
+        , test "an undated record from a running server is not dimmed, but is still called stale" <|
+            \_ ->
+                -- The two decisions stay separate: the sentence always fires, the dimming does not.
+                Expect.equal ( True, False )
+                    ( Health.isStale now (health (allOkPairs |> List.drop 1))
+                    , Health.dimmed now chrome (health (allOkPairs |> List.drop 1))
+                    )
         ]
 
 
@@ -356,17 +427,18 @@ chromeSuite =
     describe "the chrome drawn from the health keys"
         [ test "a healthy strip is one quiet line" <|
             \_ ->
-                render (Health.strip palette now (health allOkPairs))
+                render (Health.strip palette now chrome (health allOkPairs))
                     |> Query.has [ Selector.text "Extension healthy" ]
         , test "a healthy strip draws no per-check chips — a row of chips for no information" <|
             \_ ->
-                render (Health.strip palette now (health allOkPairs))
+                render (Health.strip palette now chrome (health allOkPairs))
                     |> Query.hasNot [ Selector.text "storage" ]
         , test "a degraded results store says what is reduced, not that something broke" <|
             \_ ->
                 render
                     (Health.strip palette
                         now
+                        chrome
                         (health (allOkPairs ++ [ ( "exoext.v1.health.store", "warn" ) ]))
                     )
                     |> Query.has [ Selector.text "Limited storage — results are using the fallback transport" ]
@@ -375,6 +447,7 @@ chromeSuite =
                 render
                     (Health.strip palette
                         now
+                        chrome
                         (health (allOkPairs ++ [ ( "exoext.v1.health.store", "warn" ) ]))
                     )
                     |> Expect.all
@@ -386,6 +459,7 @@ chromeSuite =
                 render
                     (Health.strip palette
                         now
+                        chrome
                         (health
                             (allOkPairs
                                 ++ [ ( "exoext.v1.health.store", "warn" )
@@ -400,6 +474,7 @@ chromeSuite =
                 render
                     (Health.strip palette
                         (Time.millisToPosix (1000000 * 1000 + 23 * 60 * 1000))
+                        chrome
                         (health allOkPairs)
                     )
                     |> Expect.all
@@ -410,8 +485,8 @@ chromeSuite =
             \_ ->
                 render
                     (Health.placeholder palette
-                        "instance"
                         now
+                        chrome
                         (health
                             [ ( "exoext.v1.health.seq", "1000000" )
                             , ( "exoext.v1.health.objectstore", "ok" )
@@ -427,7 +502,7 @@ chromeSuite =
                         ]
         , test "all checks passing with no manifest says what it is actually waiting for" <|
             \_ ->
-                render (Health.placeholder palette "instance" now (health allOkPairs))
+                render (Health.placeholder palette now chrome (health allOkPairs))
                     |> Expect.all
                         [ Query.has [ Selector.text "Extension interface loading…" ]
                         , Query.has [ Selector.text "All checks passed — waiting for the extension's interface" ]
@@ -441,6 +516,7 @@ chromeSuite =
                 render
                     (Health.strip palette
                         now
+                        chrome
                         (health (allOkPairs |> List.drop 1))
                     )
                     |> Expect.all
@@ -452,6 +528,7 @@ chromeSuite =
                 render
                     (Health.strip palette
                         (Time.millisToPosix (1000000 * 1000 - 60 * 1000))
+                        chrome
                         (health allOkPairs)
                     )
                     |> Expect.all
@@ -462,8 +539,8 @@ chromeSuite =
             \_ ->
                 render
                     (Health.placeholder palette
-                        "instance"
                         now
+                        chrome
                         (health
                             [ ( "exoext.v1.health.seq", "1000000" )
                             , ( "exoext.v1.health.objectstore", "fail" )
@@ -480,12 +557,54 @@ chromeSuite =
                         , Query.has [ Selector.text "2 of 8 checks failing" ]
                         , Query.has [ Selector.text "The extension's instance reported an error during startup." ]
                         ]
+        , test "a stale record from a stopped server says WHY it went quiet, not how long ago" <|
+            \_ ->
+                render
+                    (Health.strip palette
+                        (Time.millisToPosix (1000000 * 1000 + 40 * 60 * 1000))
+                        stoppedChrome
+                        (health allOkPairs)
+                    )
+                    |> Expect.all
+                        [ Query.has [ Selector.text "This instance is not running — values are from before it stopped" ]
+                        , Query.hasNot [ Selector.text "Last heard from this extension" ]
+                        , Query.hasNot [ Selector.text "Extension healthy" ]
+                        ]
+        , test "the not-running sentence speaks the deployer's own noun too" <|
+            \_ ->
+                render
+                    (Health.strip palette
+                        (Time.millisToPosix (1000000 * 1000 + 40 * 60 * 1000))
+                        { stoppedChrome | sourceNoun = "cloud server" }
+                        (health allOkPairs)
+                    )
+                    |> Query.has [ Selector.text "This cloud server is not running — values are from before it stopped" ]
+        , test "a stopped server whose record is still fresh keeps the ordinary sentence" <|
+            \_ ->
+                render (Health.strip palette now stoppedChrome (health allOkPairs))
+                    |> Expect.all
+                        [ Query.has [ Selector.text "Extension healthy" ]
+                        , Query.hasNot [ Selector.text "is not running" ]
+                        ]
+        , test "the placeholder's failure piece carries the not-running sentence as well" <|
+            \_ ->
+                render
+                    (Health.placeholder palette
+                        (Time.millisToPosix (1000000 * 1000 + 40 * 60 * 1000))
+                        stoppedChrome
+                        (health
+                            [ ( "exoext.v1.health.seq", "1000000" )
+                            , ( "exoext.v1.health.objectstore", "fail" )
+                            ]
+                        )
+                    )
+                    |> Query.has [ Selector.text "This instance is not running — values are from before it stopped" ]
         , test "the failure piece speaks the deployer's own noun for a server" <|
             \_ ->
                 render
                     (Health.placeholder palette
-                        "cloud server"
                         now
+                        { chrome | sourceNoun = "cloud server" }
                         (health
                             [ ( "exoext.v1.health.seq", "1000000" )
                             , ( "exoext.v1.health.objectstore", "fail" )
@@ -493,4 +612,55 @@ chromeSuite =
                         )
                     )
                     |> Query.has [ Selector.text "The extension's cloud server reported an error during startup." ]
+        ]
+
+
+{-| The "Check now" control. It is host chrome for the host's own reads, so the only thing under
+test here is that it is offered whenever there is something to press and that pressing it says so.
+-}
+reloadSuite : Test
+reloadSuite =
+    let
+        checkNow =
+            Selector.attribute (Html.Attributes.attribute "aria-label" "Check now")
+    in
+    describe "the reload control on the strip line"
+        [ test "a healthy, entirely unremarkable strip still offers it" <|
+            \_ ->
+                -- The point of the decision: it is not a stale-only affordance. A control that only
+                -- appears once something is wrong teaches people it is an error button.
+                render (Health.strip palette now chrome (health allOkPairs))
+                    |> Query.has [ checkNow ]
+        , test "a stale strip offers it too" <|
+            \_ ->
+                render
+                    (Health.strip palette
+                        (Time.millisToPosix (1000000 * 1000 + 40 * 60 * 1000))
+                        chrome
+                        (health allOkPairs)
+                    )
+                    |> Query.has [ checkNow ]
+        , test "the no-manifest placeholder offers it, which is where waiting is most likely" <|
+            \_ ->
+                render (Health.placeholder palette now chrome (health allOkPairs))
+                    |> Query.has [ checkNow ]
+        , test "pressing it emits the host's message" <|
+            \_ ->
+                render (Health.strip palette now chrome (health allOkPairs))
+                    |> Query.find [ checkNow ]
+                    |> Event.simulate Event.click
+                    |> Event.expect ()
+        , test "a caller with nothing to refresh hides the control entirely" <|
+            \_ ->
+                render (Health.strip palette now { chrome | onReload = Nothing } (health allOkPairs))
+                    |> Query.hasNot [ checkNow ]
+        , test "while the host's refresh is in flight the press is disabled" <|
+            \_ ->
+                -- The spinner replaces the icon and the button stops accepting presses, so a second
+                -- click cannot queue a second read behind the one already running.
+                render (Health.strip palette now { chrome | checking = True } (health allOkPairs))
+                    |> Query.find [ checkNow ]
+                    |> Event.simulate Event.click
+                    |> Event.toResult
+                    |> Expect.err
         ]

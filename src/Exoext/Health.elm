@@ -8,6 +8,8 @@ module Exoext.Health exposing
     , overall
     , staleAfterMillis
     , isStale
+    , Chrome
+    , dimmed
     , strip
     , placeholder
     )
@@ -48,6 +50,8 @@ they can carry the whole "detected → starting → healthy / degraded / failed"
 
 # Chrome
 
+@docs Chrome
+@docs dimmed
 @docs strip
 @docs placeholder
 
@@ -60,6 +64,7 @@ import Element
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import Element.Input as Input
 import FeatherIcons
 import Helpers.Time
 import Html.Attributes
@@ -177,7 +182,11 @@ read metadata =
                     Just (Time.millisToPosix (max (Time.posixToMillis a) (Time.posixToMillis b)))
 
                 ( a, b ) ->
-                    if a == Nothing then b else a
+                    if a == Nothing then
+                        b
+
+                    else
+                        a
 
         reported =
             List.any (\check -> check.status /= CheckPending) checks
@@ -425,23 +434,28 @@ overall health =
 
 
 {-| How long a publisher may go without writing anything the host dates it by (`health.seq` or
-the `exoext.v1.published` envelope stamp) before the host stops believing what it last said: ten
+the `exoext.v1.published` envelope stamp) before the host stops believing what it last said: fifteen
 minutes.
 
-The publisher refreshes its envelope on a timer (every five minutes for the reference bridge), so
-silence is itself a signal — the VM may be off, wedged,
-or out of credentials, and in every one of those cases the last values are a snapshot of a moment
-that has passed. Ten minutes is comfortably longer than any sane health interval (so a slow or
-briefly-throttled publisher is never called stale) and short enough that a VM that died mid-morning
-is not still presenting its last green strip in the afternoon.
+The number is that shape for one reason: the publisher refreshes its envelope every five minutes
+(the reference bridge's timer), so fifteen minutes is three refreshes missed in a row. One missed
+refresh is a slow poll, a retried token or a busy VM; three consecutive misses is not a hiccup any
+more. Silence is itself the signal — the VM may be off, wedged, or out of credentials, and in every
+one of those cases the last values are a snapshot of a moment that has passed.
 
-Staleness is a modifier, not a state: it dims whatever is on screen and rewrites the strip's
-sentence, and it composes over healthy, degraded, failed and still-starting alike.
+Ten minutes was the earlier threshold and it read as two misses, which turned out to be inside the
+ordinary jitter of a healthy quiet publisher: pages went grey on VMs that were fine. Fifteen keeps
+the guarantee that matters (a VM that died mid-morning is not still presenting its last green strip
+in the afternoon) without calling a working extension dead.
+
+Staleness is a modifier, not a state: it rewrites the strip's sentence, and it composes over
+healthy, degraded, failed and still-starting alike. It does NOT by itself dim the values —
+see [`dimmed`](#dimmed), which needs corroboration from the host before greying anything out.
 
 -}
 staleAfterMillis : Int
 staleAfterMillis =
-    10 * 60 * 1000
+    15 * 60 * 1000
 
 
 {-| How far ahead of the browser's clock a publisher's `seq` may sit before the host stops treating
@@ -507,6 +521,48 @@ isStale now health =
 -- CHROME
 
 
+{-| What the HOST knows that the health keys cannot say for themselves, handed to the chrome as one
+small record. Nothing in it is extension-specific: it is Exosphere's own word about the publishing
+server and the deployer's own word for what a server is called.
+
+  - `sourceNoun` — the deployer's noun for a server (`localization.virtualComputer`). The chrome
+    speaks in Exosphere's voice, so it uses the deployer's word rather than inventing "VM".
+  - `running` — whether the host KNOWS the publishing server is running (Nova reports it `ACTIVE`).
+    False covers both "known to be off" and every other non-active state; the chrome only ever uses
+    it to corroborate silence, never as the primary signal. See [`dimmed`](#dimmed).
+  - `checking` — a host refresh of the publishing server is in flight right now, which the reload
+    control shows as a spinner. It is the real in-flight flag, not a decorative timer.
+  - `onReload` — the message to send when the researcher presses "Check now". `Nothing` hides the
+    control entirely, which is what a caller with nothing to refresh should pass.
+
+-}
+type alias Chrome msg =
+    { sourceNoun : String
+    , running : Bool
+    , checking : Bool
+    , onReload : Maybe msg
+    }
+
+
+{-| Whether the host should DIM the values on screen: they are stale AND the host knows the
+publishing server is not running.
+
+Staleness alone used to be enough, and it dimmed too much. A running publisher that has simply gone
+quiet — a slow poll, a wedged bridge, a token being renewed — still has values that are very
+probably current, and greying them out states something the host does not know. Silence is
+suggestive; silence from a server Nova reports as not running is corroborated. So the banner (which
+only ever says "this may be out of date") fires on staleness alone, and the dimming (which says "do
+not read these as current") waits for the second signal.
+
+The asymmetry is deliberate and it is the fail-closed direction: the sentence always appears, so a
+quietly-dead publisher is never presented as healthy, whatever the dimming does.
+
+-}
+dimmed : Time.Posix -> { a | running : Bool } -> Health -> Bool
+dimmed now chrome health =
+    isStale now health && not chrome.running
+
+
 {-| The health strip attached under a rendered extension card (§ the running / degraded / stale
 states).
 
@@ -518,8 +574,8 @@ naming the failing check is the entire added value, and on a healthy card it is 
 for no information.
 
 -}
-strip : ExoPalette -> Time.Posix -> Health -> Element.Element msg
-strip palette now health =
+strip : ExoPalette -> Time.Posix -> Chrome msg -> Health -> Element.Element msg
+strip palette now chrome health =
     let
         stale =
             isStale now health
@@ -533,7 +589,7 @@ strip palette now health =
         , Border.rounded 4
         , Element.clip
         ]
-        [ stripLine palette [] now health (stripSentence now health) (freshnessLabel "checked" now health)
+        [ stripLine palette [] now chrome health (stripSentence now chrome health) (freshnessLabel "checked" now health)
         , if stale || overall health == AllHealthy then
             Element.none
 
@@ -564,18 +620,19 @@ Three forms, chosen by what the checks say:
     verbatim in monospace, and one neutral sentence. No advice, because the host does not know the
     publisher's internals; no blame on the researcher's own server, because nothing on it changed.
 
-`sourceNoun` is the deployer's own word for a server (`localization.virtualComputer`), for the same
-reason the provenance marker uses it: this sentence is Exosphere speaking in its own voice.
+The chrome's `sourceNoun` is the deployer's own word for a server (`localization.virtualComputer`),
+for the same reason the provenance marker uses it: this sentence is Exosphere speaking in its own
+voice.
+
+It dims its own body under exactly the rule the card body uses — see [`dimmed`](#dimmed) — because
+a boot checklist from a server that is not running describes a boot that is not happening.
 
 -}
-placeholder : ExoPalette -> String -> Time.Posix -> Health -> Element.Element msg
-placeholder palette sourceNoun now health =
+placeholder : ExoPalette -> Time.Posix -> Chrome msg -> Health -> Element.Element msg
+placeholder palette now chrome health =
     let
-        stale =
-            isStale now health
-
         dim =
-            if stale then
+            if dimmed now chrome health then
                 [ Element.alpha 0.62 ]
 
             else
@@ -604,7 +661,7 @@ placeholder palette sourceNoun now health =
                             [ Text.fontSize Text.Small
                             , Font.color (SH.toElementColor palette.neutral.text.subdued)
                             ]
-                            [ Element.text ("The extension's " ++ sourceNoun ++ " reported an error during startup.") ]
+                            [ Element.text ("The extension's " ++ chrome.sourceNoun ++ " reported an error during startup.") ]
                         ]
                     , verb = "reported"
                     , borderStyle = Border.solid
@@ -647,25 +704,26 @@ placeholder palette sourceNoun now health =
             , Border.color (SH.toElementColor palette.neutral.border)
             ]
             now
+            chrome
             health
             -- Staleness always wins the sentence: an undated or long-silent record must not be
             -- described by what its checks last claimed, whatever this form would otherwise say.
             (if isStale now health then
-                stripSentence now health
+                stripSentence now chrome health
 
              else
-                sentence |> Maybe.withDefault (stripSentence now health)
+                sentence |> Maybe.withDefault (stripSentence now chrome health)
             )
             (freshnessLabel verb now health)
         ]
 
 
-{-| The strip's own line: a status dot (or a clock, when stale), the sentence, and the freshness.
-Tinted by the palette's state family so a degraded or failed strip reads at a glance, and left flat
-on the front layer when everything is fine.
+{-| The strip's own line: a status dot (or a clock, when stale), the sentence, the freshness, and
+the reload control at the right end. Tinted by the palette's state family so a degraded or failed
+strip reads at a glance, and left flat on the front layer when everything is fine.
 -}
-stripLine : ExoPalette -> List (Element.Attribute msg) -> Time.Posix -> Health -> String -> Maybe String -> Element.Element msg
-stripLine palette frameAttrs now health sentence freshness =
+stripLine : ExoPalette -> List (Element.Attribute msg) -> Time.Posix -> Chrome msg -> Health -> String -> Maybe String -> Element.Element msg
+stripLine palette frameAttrs now chrome health sentence freshness =
     let
         stale =
             isStale now health
@@ -709,20 +767,69 @@ stripLine palette frameAttrs now health sentence freshness =
           else
             statusDot palette (worstStatus health)
         , Element.paragraph [] [ Element.text sentence ]
-        , case freshness of
-            Just label ->
-                Element.el [ Element.alignRight ] (Element.text label)
+        , Element.row [ Element.alignRight, Element.spacing spacer.px8 ]
+            [ case freshness of
+                Just label ->
+                    Element.text label
 
-            Nothing ->
-                Element.none
+                Nothing ->
+                    Element.none
+            , reloadControl palette chrome
+            ]
         ]
+
+
+{-| The "Check now" control: one muted 14px icon at the right end of the strip line, present
+whether or not the record is stale.
+
+It is deliberately NOT a stale-only affordance. A researcher who wants to know what the extension is
+doing right now wants it while the strip is green as often as while it is grey, and a control that
+only appears once something is wrong teaches people it is an error button. It is the same press
+either way — ask the host to look again — so it is the same control either way.
+
+While the host's refresh is genuinely in flight the icon becomes a spinner and the press is
+disabled. That is the real in-flight flag rather than a fixed animation: the acknowledgement a press
+deserves is the truth about whether anything is happening, and a spinner that keeps turning after
+the answer arrived would be theatre.
+
+-}
+reloadControl : ExoPalette -> Chrome msg -> Element.Element msg
+reloadControl palette chrome =
+    case chrome.onReload of
+        Nothing ->
+            Element.none
+
+        Just msg ->
+            Input.button
+                [ Element.htmlAttribute (Html.Attributes.title "Check now")
+                , Element.htmlAttribute (Html.Attributes.attribute "aria-label" "Check now")
+                , Element.pointer
+                ]
+                { onPress =
+                    if chrome.checking then
+                        Nothing
+
+                    else
+                        Just msg
+                , label =
+                    if chrome.checking then
+                        Spinner.sized 14 palette
+
+                    else
+                        Icon.sizedFeatherIcon 14 FeatherIcons.refreshCw
+                }
 
 
 {-| The one plain sentence the collapsed strip carries. Staleness rewrites it outright: nothing the
 publisher last said can be trusted as current, so the only honest headline is when it last spoke.
+
+Where the host can corroborate the silence — Nova says the publishing server is not running — the
+sentence says THAT instead, because it is both the stronger claim and the more useful one: "last
+heard 40 minutes ago" leaves a researcher guessing at a cause that the page already knows.
+
 -}
-stripSentence : Time.Posix -> Health -> String
-stripSentence now health =
+stripSentence : Time.Posix -> Chrome msg -> Health -> String
+stripSentence now chrome health =
     let
         total =
             List.length health.checks
@@ -733,7 +840,11 @@ stripSentence now health =
         ofTotal n =
             String.fromInt n ++ " of " ++ String.fromInt total ++ " checks "
     in
-    if isStale now health then
+    if isStale now health && not chrome.running then
+        -- The host knows why it went quiet, so it says so rather than reporting a duration.
+        "This " ++ chrome.sourceNoun ++ " is not running — values are from before it stopped"
+
+    else if isStale now health then
         case ( ageMillis now health, health.seq ) of
             ( Just _, Just seq ) ->
                 "Last heard from this extension " ++ DateFormat.Relative.relativeTime now seq ++ " — values may be out of date"

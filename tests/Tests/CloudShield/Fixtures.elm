@@ -45,5 +45,7 @@ cardViewConfig =
     , embedState = Card.EmbedIdle
     , demoIframeUrl = Nothing
     , health = Nothing
+    , publisherRunning = True
+    , publisherChecking = False
     , now = Time.millisToPosix 0
     }

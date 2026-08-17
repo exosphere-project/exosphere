@@ -3986,6 +3986,11 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             State.Error.processProjectSynchronousApiError model project errorContext error
     in
     case serverMsgConstructor of
+        RequestServerRefresh ->
+            ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) NoInteraction server.osProps.uuid sharedModel
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
         RequestDeleteServer retainFloatingIps ->
             let
                 ( newProject, cmd ) =

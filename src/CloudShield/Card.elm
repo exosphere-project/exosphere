@@ -1,4 +1,4 @@
-module CloudShield.Card exposing (Detail, EmbedState(..), Instance, ManifestSource(..), Model, Msg, OutMsg(..), ViewConfig, abandonScanState, cancelTargetOf, detailOf, dispatchVerb, headerTitle, init, projection, requestEmbed, resolveAction, resultIdOf, rollbackScanRequest, scanningRowLabel, sentinelKind, settleScanState, transportChip, update, view)
+module CloudShield.Card exposing (Detail, EmbedState(..), Instance, ManifestSource(..), Model, Msg(..), OutMsg(..), ViewConfig, abandonScanState, cancelTargetOf, detailOf, dispatchVerb, headerTitle, init, projection, requestEmbed, resolveAction, resultIdOf, rollbackScanRequest, scanningRowLabel, sentinelKind, settleScanState, transportChip, update, view)
 
 {-| Host wiring for the CloudShield dynamic-UI card (Phase 1, browser side).
 
@@ -144,6 +144,7 @@ type Msg
     | GotShowDetail Detail
     | GotCloseDetail
     | GotDetailNoOp
+    | GotReloadRequested
     | RendererMsg Render.Msg
 
 
@@ -196,6 +197,10 @@ type OutMsg
       -- owns the persisted `exoext.approval.v1` record and stamps the wall-clock `approvedAt`.
     | ApprovalGranted
     | ApprovalForgotten
+      -- `ReloadRequested` — the health strip's "Check now" press. Host chrome, not extension
+      -- content: the card holds no reads of its own, so all it can do is ask the host to look at
+      -- the wire again. Nothing is written and no extension state changes.
+    | ReloadRequested
 
 
 init : Model
@@ -247,6 +252,10 @@ update instances msg model =
 
         GotCloseDetail ->
             ( { model | detail = Nothing }, Nothing )
+
+        GotReloadRequested ->
+            -- Pure pass-through: the reads the press refreshes are all the host's.
+            ( model, Just ReloadRequested )
 
         GotDetailNoOp ->
             -- A click inside the dialog box. It exists only to stop the overlay's
@@ -1485,6 +1494,15 @@ type alias ViewConfig =
     -- strip. Either way it is system chrome, never extension content.
     , health : Maybe Health.Health
 
+    -- whether the host KNOWS the publishing server is running (Nova reports it `ACTIVE`). It only
+    -- ever corroborates a stale health record — see `Exoext.Health.dimmed` — so a host that cannot
+    -- tell should pass True and let the strip's sentence carry the whole story.
+    , publisherRunning : Bool
+
+    -- whether a host refresh of the publishing server is in flight right now, which the strip's
+    -- reload control shows as a spinner.
+    , publisherChecking : Bool
+
     -- the shared client clock, for the health strip's freshness line and its staleness threshold.
     , now : Time.Posix
     }
@@ -1535,12 +1553,21 @@ view palette localization zone config instances model =
                 , demoIframePanel palette config.demoIframeUrl model.showDemoIframe
                 ]
 
-            -- Staleness is a modifier over whatever is on screen: the publisher may be off, wedged
-            -- or out of credentials, so nothing it last wrote can be read as current. It dims the
-            -- CONTENT only — the strip that says so has to stay legible (`Health.placeholder` dims
-            -- its own body for the same reason).
+            -- What the host knows that the health keys cannot say for themselves. Extension-agnostic
+            -- by construction: a noun, a Nova status, an in-flight flag and one message.
+            healthChrome =
+                { sourceNoun = localization.virtualComputer
+                , running = config.publisherRunning
+                , checking = config.publisherChecking
+                , onReload = Just GotReloadRequested
+                }
+
+            -- Dimming is the strong claim — "do not read these as current" — so it waits for two
+            -- signals: a stale record AND a publishing server the host knows is not running (see
+            -- `Health.dimmed`). It dims the CONTENT only; the strip that explains it has to stay
+            -- legible (`Health.placeholder` dims its own body for the same reason).
             staleAttrs =
-                if config.health |> Maybe.map (Health.isStale config.now) |> Maybe.withDefault False then
+                if config.health |> Maybe.map (Health.dimmed config.now healthChrome) |> Maybe.withDefault False then
                     [ Element.alpha 0.62 ]
 
                 else
@@ -1558,11 +1585,11 @@ view palette localization zone config instances model =
             ( body, healthStrip ) =
                 case ( config.manifest, config.health ) of
                     ( ManifestReady _, Just health ) ->
-                        ( region staleAttrs extensionRegion, Health.strip palette config.now health )
+                        ( region staleAttrs extensionRegion, Health.strip palette config.now healthChrome health )
 
                     ( _, Just health ) ->
                         ( region []
-                            [ Health.placeholder palette localization.virtualComputer config.now health
+                            [ Health.placeholder palette config.now healthChrome health
                             , transportWarningView palette config.transportWarning
                             ]
                         , Element.none

@@ -1,4 +1,4 @@
-module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, adoptRestoredExoextBatch, adoptStoredExoextBatch, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextAbandonStaleRun, exoextBatchSharedMsg, exoextCancelRequested, exoextCancellableRun, exoextCardTitle, exoextDismissSession, exoextDropFromTail, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextNavigation, exoextReaderProjection, exoextRemovalState, exoextRequestBlocked, exoextRequestsPending, exoextRunControl, exoextScanRequestPending, exoextStatusOverride, exoextStopRequested, exoextStoppingTarget, exoextViewConfig, init, recoverExoextRun, update, view)
+module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, adoptRestoredExoextBatch, adoptStoredExoextBatch, advanceExoextBatch, clearResolvedPendingEmbed, effectiveExoextResultBody, exoextAbandonStaleRun, exoextBatchSharedMsg, exoextCancelRequested, exoextCancellableRun, exoextCardTitle, exoextDismissSession, exoextDropFromTail, exoextForgetReads, exoextIndexNeedsFetch, exoextManifestBodyForEtag, exoextManifestNeedsFetch, exoextNavigation, exoextReaderProjection, exoextRemovalState, exoextRequestBlocked, exoextRequestsPending, exoextRunControl, exoextScanRequestPending, exoextStatusOverride, exoextStopRequested, exoextStoppingTarget, exoextViewConfig, init, recoverExoextRun, update, view)
 
 import CloudShield.Card
 import CloudShield.Reader
@@ -100,6 +100,13 @@ type alias Model =
             }
     , exoextHistory : RDPP.RemoteDataPlusPlus String (List CloudShield.Wire.IndexEntry)
     , exoextHistoryRequestKey : Maybe String
+
+    -- whether a "Check now" press is still waiting for a server read to come back, which is the
+    -- whole of the strip's spinner. It is deliberately NOT the server's own `loadingSeparately`
+    -- flag: that one is also raised by the 5-second fast poll during a scan, and a reload icon that
+    -- spins on its own every five seconds is not an acknowledgement of anything. Cleared by the
+    -- next read sync, i.e. by the first server response after the press, whoever asked for it.
+    , exoextReloadPending : Bool
 
     -- how many times this session has changed the archive itself (today: removals the publisher
     -- confirmed). It rides the index read's cache-buster, and it is the reason that buster is not
@@ -238,6 +245,7 @@ init serverUuid =
     , exoextResultRefRequest = Nothing
     , exoextHistory = RDPP.empty
     , exoextHistoryRequestKey = Nothing
+    , exoextReloadPending = False
     , exoextHistoryGeneration = 0
     , exoextPendingEmbed = Nothing
     , exoextPendingDelete = Nothing
@@ -426,6 +434,22 @@ update msg project model =
 
                 Just (CloudShield.Card.CancelRequested req) ->
                     exoextStopRequested project req baseModel
+
+                Just CloudShield.Card.ReloadRequested ->
+                    -- "Check now": ask Nova for this server's details right away, and drop the
+                    -- markers that record which object-storage reads have already been asked for.
+                    -- Both halves are needed. The metadata poll alone would return a fresh envelope
+                    -- and change nothing on screen, because the reads gated on those markers would
+                    -- decide they had already fetched this generation; clearing the markers alone
+                    -- would refetch against a metadata snapshot up to five minutes old. The server
+                    -- response re-enters `GotExoextSync`, which is where the cleared markers turn
+                    -- into actual fetches.
+                    ( { baseModel | exoextReloadPending = True } |> exoextForgetReads
+                    , Cmd.none
+                    , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                        SharedMsg.ServerMsg model.serverUuid <|
+                            SharedMsg.RequestServerRefresh
+                    )
 
                 Just CloudShield.Card.SessionDismissed ->
                     -- Host-local, and deliberately so: no Cmd, no SharedMsg, nothing written.
@@ -773,6 +797,10 @@ syncExoextReads now project model =
                         | exoextPendingEmbed =
                             clearResolvedPendingEmbed metadata model.exoextPendingEmbed
                         , exoextClock = now
+
+                        -- A sync only happens because a server read landed, which is exactly the
+                        -- answer a "Check now" press was waiting for.
+                        , exoextReloadPending = False
                     }
                         |> resolveExoextRemoval metadata
 
@@ -1383,9 +1411,45 @@ syncExoextIndex project sentinel refreshKey ( model, priorCmd ) =
             )
 
 
+{-| Whether the history index needs fetching for this refresh key. The key (manifest etag plus run
+slot) doubles as the "this generation has been fetched" marker, so a key that does not match the one
+on record is the whole of the decision.
+-}
 exoextIndexNeedsFetch : String -> Model -> Bool
 exoextIndexNeedsFetch refreshKey model =
     model.exoextHistoryRequestKey /= Just refreshKey
+
+
+{-| Forget which object-storage reads have already been asked for, so the next sync asks again.
+
+This is the model half of a manual "check now": the three request markers are the host's record of
+"this generation has been fetched", and every read is gated on one of them. Clearing them makes the
+next `syncExoextReads` re-decide from scratch.
+
+What that re-decision does is deliberately NOT uniform, because the three reads are keyed
+differently:
+
+  - **The manifest** is content-addressed by etag. Clearing its marker retries a fetch that errored,
+    but a body already held for the current etag is still the right body, so it is not refetched
+    until the etag moves. Refetching identical bytes is not a refresh.
+  - **The result body** is keyed by etag AND object name, and is left held for the same reason.
+  - **The history index** has no etag of its own — its refresh key is the manifest etag plus the run
+    slot, neither of which moves when the archive changes underneath. So the generation counter is
+    bumped as well: it rides the read's cache-buster, and without it the refetch would go out on a
+    URL the browser has already answered and could be served from cache.
+
+The held DATA is never cleared, only the markers. Blanking the card back to a spinner on the way to
+re-fetching the same values would make a press to check look like a press to lose what you had.
+
+-}
+exoextForgetReads : Model -> Model
+exoextForgetReads model =
+    { model
+        | exoextManifestRequestEtag = Nothing
+        , exoextResultRefRequest = Nothing
+        , exoextHistoryRequestKey = Nothing
+        , exoextHistoryGeneration = model.exoextHistoryGeneration + 1
+    }
 
 
 {-| Store the decoded history index, fail-closed. First-fetch errors and over-cap/malformed bodies
@@ -1781,6 +1845,19 @@ exoextViewConfig approved project model currentTime server =
     -- everything else here comes from. It is what the card falls back to when there is no manifest
     -- to render, and what the health strip under a rendered card is drawn from.
     , health = Exoext.Health.read metadata
+
+    -- Nova's word on whether the publishing instance is running, which is the only corroboration
+    -- the health chrome will accept before dimming values (`Exoext.Health.dimmed`). Only `ACTIVE`
+    -- counts: shut off, shelved, paused, suspended, resizing, building, errored and every other
+    -- status all mean the same thing here — the publisher is not writing right now — and the
+    -- chrome draws no distinction between them.
+    , publisherRunning = server.osProps.details.openstackStatus == OSTypes.ServerActive
+
+    -- Whether a "Check now" press is still waiting for its answer. It starts on the press and ends
+    -- on the server read that follows it, so the spinner is tied to a real request rather than to a
+    -- timer — and, unlike the server's own in-flight flag, it stays still during the routine
+    -- five-second scan poll.
+    , publisherChecking = model.exoextReloadPending
     , now = currentTime
     }
 
