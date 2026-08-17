@@ -77,13 +77,21 @@ import Time
 -- THE WIRE
 
 
-{-| The boot / liveness checks a publisher reports, in boot order. The host fixes the vocabulary:
-a publisher reports on these six or on none, so the chrome can always say which of a known set is
+{-| The boot / liveness checks a publisher reports, in boot order. The host fixes the vocabulary: a
+publisher reports on these eight or on none, so the chrome can always say which of a known set is
 missing rather than rendering whatever names a VM happens to invent.
+
+The set is HOST-owned on purpose — it is a trust boundary. An extension sets values and detail text;
+it never names a check, because a name the host has never seen is a name the host cannot render an
+opinion about. Growing the set is forward-compatible in both directions: an unknown name is ignored
+by an older host, and a check no publisher writes simply reads as pending.
+
 -}
 type CheckId
     = ObjectStore
     | WebPorts
+    | Fetch
+    | Network
     | Tls
     | Stack
     | Bridge
@@ -113,7 +121,7 @@ type alias Check =
 
 
 {-| A publishing server's health as of its last write: when it last spoke (`seq`, the
-`exoext.v1.health.seq` unix epoch), all six checks in boot order, and an optional publisher
+`exoext.v1.health.seq` unix epoch), every check in boot order, and an optional publisher
 version string.
 -}
 type alias Health =
@@ -127,7 +135,7 @@ type alias Health =
 this module recognizes, in which case no chrome is owed and — because this read is also a discovery
 signal — no extension card is opened either.
 
-**What counts as a health signal.** A parseable `seq`, or at least one of the six known checks
+**What counts as a health signal.** A parseable `seq`, or at least one of the known checks
 carrying a value this module recognizes (`ok` / `warn` / `fail`). Deliberately NOT "any key under
 the prefix": an orphan `<check>.detail`, a misspelled check name, or a key from some future
 revision of the contract would otherwise be enough to open extension chrome on an instance that
@@ -270,7 +278,7 @@ startup sequence, so the row that stops moving is the one that later fails.
 -}
 checkIds : List CheckId
 checkIds =
-    [ ObjectStore, WebPorts, Tls, Stack, Bridge, Store ]
+    [ ObjectStore, WebPorts, Fetch, Network, Tls, Stack, Bridge, Store ]
 
 
 wireName : CheckId -> String
@@ -281,6 +289,12 @@ wireName id =
 
         WebPorts ->
             "webports"
+
+        Fetch ->
+            "fetch"
+
+        Network ->
+            "network"
 
         Tls ->
             "tls"
@@ -307,6 +321,12 @@ chipLabel id =
         WebPorts ->
             "ports"
 
+        Fetch ->
+            "bundle"
+
+        Network ->
+            "network"
+
         Tls ->
             "TLS"
 
@@ -331,6 +351,12 @@ stageLabel id =
         WebPorts ->
             "Web ports open"
 
+        Fetch ->
+            "Software downloaded"
+
+        Network ->
+            "Public address assigned"
+
         Tls ->
             "TLS certificate issued"
 
@@ -353,7 +379,7 @@ stageLabel id =
   - `SomeFailing` — at least one check reports `fail`. Something is broken and named.
   - `SomeDegraded` — no failures, at least one `warn`. Reduced, not broken.
   - `StillStarting` — no failures or warnings, but at least one check has not reported.
-  - `AllHealthy` — all six reported `ok`.
+  - `AllHealthy` — every check reported `ok`.
 
 -}
 type Overall
@@ -466,9 +492,9 @@ states).
 
 Collapsed it is one quiet line — a status dot, one plain sentence, and the freshness right-aligned
 — because a healthy extension should read as furniture on a page that may host several of them.
-It expands to the six per-check chips exactly when a check is not `ok`, which is the moment
-"which of the six" becomes the question. That is one component with two forms, not two components:
-naming the failing check is the entire added value, and on a healthy card it is six things to read
+It expands to the per-check chips exactly when a check is not `ok`, which is the moment
+"which one" becomes the question. That is one component with two forms, not two components:
+naming the failing check is the entire added value, and on a healthy card it is a row of things to read
 for no information.
 
 -}
@@ -512,7 +538,7 @@ Three forms, chosen by what the checks say:
     that says what is actually being waited on. Every check passing while nothing renders is a
     REAL state (the manifest fetch is in flight, or the publisher wrote health before it wrote its
     UI), and it is the one the generic wording gets wrong in both directions: "Extension starting…"
-    contradicts six green ticks, and the strip's "Extension healthy" contradicts an empty card. So
+    contradicts a row of green ticks, and the strip's "Extension healthy" contradicts an empty card. So
     it gets its own headline and its own sentence, both saying the same thing.
   - **Failed** — the standardized error piece: which checks failed as chips, each `.detail` string
     verbatim in monospace, and one neutral sentence. No advice, because the host does not know the
@@ -778,7 +804,7 @@ freshnessLabel verb now health =
 -- PIECES
 
 
-{-| The six per-check chips, plus the publisher version at the right end when it published one.
+{-| The per-check chips, plus the publisher version at the right end when it published one.
 An `ok` chip is muted on purpose: the row exists to make the non-`ok` ones findable.
 -}
 chipRow : ExoPalette -> List (Element.Attribute msg) -> Health -> Element.Element msg

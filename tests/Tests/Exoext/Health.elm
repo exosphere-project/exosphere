@@ -47,6 +47,8 @@ allOkPairs =
     [ ( "exoext.v1.health.seq", "1000000" )
     , ( "exoext.v1.health.objectstore", "ok" )
     , ( "exoext.v1.health.webports", "ok" )
+    , ( "exoext.v1.health.fetch", "ok" )
+    , ( "exoext.v1.health.network", "ok" )
     , ( "exoext.v1.health.tls", "ok" )
     , ( "exoext.v1.health.stack", "ok" )
     , ( "exoext.v1.health.bridge", "ok" )
@@ -91,11 +93,20 @@ readSuite =
             \_ ->
                 Expect.equal (Just (Time.millisToPosix 1000000000))
                     (health allOkPairs).seq
-        , test "all six checks are always present, in boot order" <|
+        , test "every check is always present, in boot order" <|
             \_ ->
                 Expect.equal
-                    [ Health.ObjectStore, Health.WebPorts, Health.Tls, Health.Stack, Health.Bridge, Health.Store ]
+                    [ Health.ObjectStore, Health.WebPorts, Health.Fetch, Health.Network, Health.Tls, Health.Stack, Health.Bridge, Health.Store ]
                     ((health allOkPairs).checks |> List.map .id)
+        , test "the two checks the publisher added since the first release are read, not ignored" <|
+            \_ ->
+                -- `network` and `fetch` were written by the bridge for two releases before this
+                -- host knew their names, and an unknown name is silently pending — so a VM that
+                -- had failed to download its software reported a wholly green strip.
+                Expect.equal ( Just Health.CheckFail, Just Health.CheckWarn )
+                    ( statusOf Health.Fetch (health [ ( "exoext.v1.health.fetch", "fail" ) ])
+                    , statusOf Health.Network (health [ ( "exoext.v1.health.network", "warn" ) ])
+                    )
         , test "an unreported check is pending, not ok" <|
             \_ ->
                 Expect.equal (Just Health.CheckPending)
@@ -263,7 +274,7 @@ detailSuite =
 stateSuite : Test
 stateSuite =
     describe "the derived overall state and staleness"
-        [ test "all six ok is healthy" <|
+        [ test "every check ok is healthy" <|
             \_ ->
                 Expect.equal Health.AllHealthy (Health.overall (health allOkPairs))
         , test "an unreported check reads as still starting" <|
@@ -332,7 +343,7 @@ chromeSuite =
             \_ ->
                 render (Health.strip palette now (health allOkPairs))
                     |> Query.has [ Selector.text "Extension healthy" ]
-        , test "a healthy strip draws no per-check chips — six chips for no information" <|
+        , test "a healthy strip draws no per-check chips — a row of chips for no information" <|
             \_ ->
                 render (Health.strip palette now (health allOkPairs))
                     |> Query.hasNot [ Selector.text "storage" ]
@@ -397,7 +408,7 @@ chromeSuite =
                         [ Query.has [ Selector.text "Extension starting…" ]
                         , Query.has [ Selector.text "Object storage reachable" ]
                         , Query.has [ Selector.text "Results store ready" ]
-                        , Query.has [ Selector.text "2 of 6 checks passed" ]
+                        , Query.has [ Selector.text "2 of 8 checks passed" ]
                         ]
         , test "all checks passing with no manifest says what it is actually waiting for" <|
             \_ ->
@@ -451,7 +462,7 @@ chromeSuite =
                         [ Query.has [ Selector.text "Extension failed to start" ]
                         , Query.has [ Selector.text "objectstore: HTTP 409" ]
                         , Query.has [ Selector.text "store: no results container" ]
-                        , Query.has [ Selector.text "2 of 6 checks failing" ]
+                        , Query.has [ Selector.text "2 of 8 checks failing" ]
                         , Query.has [ Selector.text "The extension's instance reported an error during startup." ]
                         ]
         , test "the failure piece speaks the deployer's own noun for a server" <|
