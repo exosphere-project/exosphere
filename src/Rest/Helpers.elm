@@ -1,6 +1,7 @@
 module Rest.Helpers exposing
     ( encodeHttpErrorWithBody
     , expectBytesWithErrorBody
+    , expectCappedStringWithErrorBody
     , expectJsonWithErrorBody
     , expectStringWithErrorBody
     , expectVoidWithErrorBody
@@ -245,6 +246,58 @@ bytesToStringBestEffort : Bytes -> String
 bytesToStringBestEffort bytes =
     Bytes.Decode.decode (Bytes.Decode.string (Bytes.width bytes)) bytes
         |> Maybe.withDefault ""
+
+
+{-| Fetch a JSON/text object body **fail-closed** above `capBytes`: `Bytes.width` is checked
+BEFORE the bytes are ever decoded into a `String`, so an oversized response is rejected without
+first allocating a full copy of it. Used for the extension card's object-storage reads
+(`manifest.json` / result objects, `phase-0-spec.md` §5.5 size caps) where the body must land in
+the app as a `String` for JSON decoding, not saved to disk (contrast `expectBytesWithErrorBody`,
+which is for `File.Download`).
+
+An over-cap body and a body that fails UTF-8 decoding are both reported as `Http.BadBody` (with
+an empty error-toast body) so the existing generic HTTP-error handling covers them without a new
+error type.
+
+-}
+expectCappedStringWithErrorBody : Int -> (Result HttpErrorWithBody String -> msg) -> Http.Expect msg
+expectCappedStringWithErrorBody capBytes toMsg =
+    Http.expectBytesResponse toMsg <|
+        \response ->
+            case response of
+                Http.BadUrl_ url ->
+                    Err <| HttpErrorWithBody (Http.BadUrl url) ""
+
+                Http.Timeout_ ->
+                    Err <| HttpErrorWithBody Http.Timeout ""
+
+                Http.NetworkError_ ->
+                    Err <| HttpErrorWithBody Http.NetworkError ""
+
+                Http.BadStatus_ metadata body ->
+                    Err <| HttpErrorWithBody (Http.BadStatus metadata.statusCode) (bytesToStringBestEffort body)
+
+                Http.GoodStatus_ _ body ->
+                    if Bytes.width body > capBytes then
+                        Err <|
+                            HttpErrorWithBody
+                                (Http.BadBody
+                                    ("response body ("
+                                        ++ String.fromInt (Bytes.width body)
+                                        ++ " bytes) exceeds the "
+                                        ++ String.fromInt capBytes
+                                        ++ "-byte cap"
+                                    )
+                                )
+                                ""
+
+                    else
+                        case Bytes.Decode.decode (Bytes.Decode.string (Bytes.width body)) body of
+                            Just str ->
+                                Ok str
+
+                            Nothing ->
+                                Err <| HttpErrorWithBody (Http.BadBody "response body is not valid UTF-8") ""
 
 
 expectJsonWithErrorBody : (Result HttpErrorWithBody a -> msg) -> Decode.Decoder a -> Http.Expect msg

@@ -449,7 +449,15 @@ routeToViewStateModelCmd sharedModel route =
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestVolumes (GetterSetters.projectIdentifier project))
                             in
-                            ( projectViewProto <| ServerDetail (Page.ServerDetail.init serverId)
+                            ( projectViewProto <|
+                                ServerDetail
+                                    -- Take up an extension batch tail this project persisted for this
+                                    -- instance, if there is one: the requests a batch has not written
+                                    -- yet live nowhere but the browser, so page entry is where a
+                                    -- reload-interrupted batch gets its chance to resume.
+                                    (Page.ServerDetail.init serverId
+                                        |> Page.ServerDetail.adoptStoredExoextBatch project newNewSharedModel.viewContext.extensionBatches
+                                    )
                             , newNewSharedModel
                             , newCmd
                             )

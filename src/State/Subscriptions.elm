@@ -1,6 +1,8 @@
 module State.Subscriptions exposing (subscriptions)
 
 import Browser.Events
+import Helpers.GetterSetters as GetterSetters
+import Page.ServerDetail
 import Ports exposing (changeThemePreference, receiveWebLock, updateNetworkConnectivity)
 import Set
 import Style.Theme exposing (decodeThemePreference)
@@ -11,6 +13,7 @@ import Types.Error exposing (AppError)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.SharedMsg exposing (SharedMsg(..))
+import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
 
 
 subscriptions : Result AppError OuterModel -> Sub OuterMsg
@@ -38,6 +41,25 @@ subscriptionsValid outerModel =
          , updateNetworkConnectivity (\online -> SharedMsg (NetworkConnection online))
          , receiveWebLock (\result -> SharedMsg (ReceiveWebLock result))
          ]
+            -- A 1s clock tick ONLY while an extension run is actively counting on the open
+            -- ServerDetail page, to smooth its elapsed timer (the shared 5s tick is visibly
+            -- chunky). Gated tightly so it exists only during the ~scan window and drops away
+            -- the moment the run is terminal; it sends the pure `ClockTick` (no API polling).
+            ++ (if exoextScanCounting outerModel then
+                    [ Time.every 1000 (\x -> SharedMsg <| ClockTick x) ]
+
+                else
+                    []
+               )
+            -- A 5s server refresh ONLY while an exoext request is pending on the open
+            -- ServerDetail page. The handler fetches that one publishing server and dedupes on
+            -- the server's `loadingSeparately` flag.
+            ++ (if exoextRequestsPending outerModel then
+                    [ Time.every (5 * 1000) (\x -> SharedMsg <| ExoextPoll x) ]
+
+                else
+                    []
+               )
             -- Close popovers if clicked outside. Based on: https://dev.to/margaretkrutikova/elm-dom-node-decoder-to-detect-click-outside-3ioh
             ++ List.map
                 (\popoverId ->
@@ -48,6 +70,35 @@ subscriptionsValid outerModel =
                 )
                 (Set.toList outerModel.sharedModel.viewContext.showPopovers)
         )
+
+
+{-| True exactly when the open page is a ServerDetail whose extension card has a tracked
+scan (`pending` set) in a non-terminal state — i.e. `scanTimerView` is in its counting phase.
+Mirrors the host-side gate in `ServerDetail.exoextViewConfig`: an absent/uncorrelated
+status defaults to "queued" (counting); done/error/cancelled/expired stop the tick.
+-}
+exoextScanCounting : OuterModel -> Bool
+exoextScanCounting outerModel =
+    case outerModel.viewState of
+        ProjectView projectId (ServerDetail pageModel) ->
+            GetterSetters.projectLookup outerModel.sharedModel projectId
+                |> Maybe.map (\project -> Page.ServerDetail.exoextScanRequestPending project pageModel)
+                |> Maybe.withDefault False
+
+        _ ->
+            False
+
+
+exoextRequestsPending : OuterModel -> Bool
+exoextRequestsPending outerModel =
+    case outerModel.viewState of
+        ProjectView projectId (ServerDetail pageModel) ->
+            GetterSetters.projectLookup outerModel.sharedModel projectId
+                |> Maybe.map (\project -> Page.ServerDetail.exoextRequestsPending project pageModel)
+                |> Maybe.withDefault False
+
+        _ ->
+            False
 
 
 sendThemeUpdate : Maybe ST.Theme -> OuterMsg

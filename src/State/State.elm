@@ -86,6 +86,8 @@ import Task
 import Time
 import Types.Banner exposing (bannerId)
 import Types.Error as Error exposing (AppError, ErrorContext, ErrorLevel(..), HttpErrorWithBody)
+import Types.ExtensionApproval as ExtensionApproval
+import Types.ExtensionBatch as ExtensionBatch
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes exposing (UnscopedProviderProject)
 import Types.Interactivity as Interactivity exposing (InteractionLevel(..))
@@ -148,6 +150,14 @@ updateValid msg outerModel =
                     Cmd.none
 
                 SharedMsg (Tick _ _) ->
+                    Cmd.none
+
+                SharedMsg (ClockTick _) ->
+                    -- The pure scan-timer clock tick must not trigger orchestration/API polling.
+                    Cmd.none
+
+                SharedMsg (ExoextPoll _) ->
+                    -- The conditional exoext fast poll drives its own single-server refresh.
                     Cmd.none
 
                 _ ->
@@ -904,6 +914,24 @@ processSharedMsg sharedMsg outerModel =
             processTick outerModel interval time
                 |> mapToOuterModel outerModel
 
+        ClockTick time ->
+            -- Pure clock update: advance `clientCurrentTime` with no orchestration. This is the
+            -- 1s extension-scan-timer tick; it must not drive any API polling.
+            ( { sharedModel | clientCurrentTime = time }, Cmd.none )
+                |> mapToOuterModel outerModel
+
+        ExoextPoll time ->
+            let
+                timedSharedModel =
+                    { sharedModel | clientCurrentTime = time }
+
+                timedOuterModel =
+                    { outerModel | sharedModel = timedSharedModel }
+            in
+            exoextPollPublishingServer timedOuterModel
+                |> mapToOuterMsg
+                |> mapToOuterModel timedOuterModel
+
         DoOrchestration posixTime ->
             Orchestration.orchModel outerModel.viewState sharedModel posixTime
                 |> mapToOuterMsg
@@ -1338,6 +1366,9 @@ processSharedMsg sharedMsg outerModel =
         OpenNewWindow url ->
             ( outerModel, Ports.openNewWindow url )
 
+        NavigateToRoute route ->
+            ( outerModel, Route.pushUrl viewContext route )
+
         LinkClicked urlRequest ->
             case urlRequest of
                 Browser.Internal url ->
@@ -1382,6 +1413,22 @@ processSharedMsg sharedMsg outerModel =
             ( { sharedModel | viewContext = { viewContext | appVersionUpdateNotificationsEnabled = choice } }, Cmd.none )
                 |> mapToOuterModel outerModel
 
+        GrantExtensionApproval approval ->
+            ( { sharedModel | viewContext = { viewContext | extensionApprovals = ExtensionApproval.grant approval viewContext.extensionApprovals } }, Cmd.none )
+                |> mapToOuterModel outerModel
+
+        ForgetExtensionApproval instanceUuid ->
+            ( { sharedModel | viewContext = { viewContext | extensionApprovals = ExtensionApproval.forget instanceUuid viewContext.extensionApprovals } }, Cmd.none )
+                |> mapToOuterModel outerModel
+
+        RecordExtensionBatch batch ->
+            ( { sharedModel | viewContext = { viewContext | extensionBatches = ExtensionBatch.record batch viewContext.extensionBatches } }, Cmd.none )
+                |> mapToOuterModel outerModel
+
+        ForgetExtensionBatch instanceUuid ->
+            ( { sharedModel | viewContext = { viewContext | extensionBatches = ExtensionBatch.forget instanceUuid viewContext.extensionBatches } }, Cmd.none )
+                |> mapToOuterModel outerModel
+
         TogglePopover popoverId ->
             ( { sharedModel
                 | viewContext =
@@ -1415,6 +1462,39 @@ processTick outerModel interval time =
     ( { sharedModel | clientCurrentTime = time }
     , orchestrationCmd |> Cmd.map SharedMsg
     )
+
+
+{-| Fast-poll the single exoext publishing server while a request is pending on the open
+ServerDetail page. This reuses the existing request-server command so the response flows through
+`ReceiveServer` and the normal ServerDetail sync path. `loadingSeparately` is the in-flight dedupe
+flag set by `ApiModelHelpers.requestServer` and cleared when that single-server request returns.
+-}
+exoextPollPublishingServer : OuterModel -> ( SharedModel, Cmd SharedMsg )
+exoextPollPublishingServer outerModel =
+    case outerModel.viewState of
+        ProjectView projectId (ServerDetail pageModel) ->
+            case GetterSetters.projectLookup outerModel.sharedModel projectId of
+                Just project ->
+                    case GetterSetters.serverLookup project pageModel.serverUuid of
+                        Just server ->
+                            if server.exoProps.loadingSeparately || not (Page.ServerDetail.exoextRequestsPending project pageModel) then
+                                ( outerModel.sharedModel, Cmd.none )
+
+                            else
+                                ApiModelHelpers.requestServer
+                                    (GetterSetters.projectIdentifier project)
+                                    NoInteraction
+                                    pageModel.serverUuid
+                                    outerModel.sharedModel
+
+                        Nothing ->
+                            ( outerModel.sharedModel, Cmd.none )
+
+                Nothing ->
+                    ( outerModel.sharedModel, Cmd.none )
+
+        _ ->
+            ( outerModel.sharedModel, Cmd.none )
 
 
 processProjectSpecificMsg : OuterModel -> Project -> ProjectSpecificMsgConstructor -> ( OuterModel, Cmd OuterMsg )
@@ -1940,6 +2020,7 @@ processProjectSpecificMsg outerModel project msg =
                     Rest.Nova.receiveServers sharedModel project servers
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerDetailMsg (Page.ServerDetail.GotExoextSync sharedModel.clientCurrentTime)))
 
                 Err e ->
                     let
@@ -1997,6 +2078,7 @@ processProjectSpecificMsg outerModel project msg =
                     ( newestSharedModel, newestCmd )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerDetailMsg (Page.ServerDetail.GotExoextSync sharedModel.clientCurrentTime)))
 
                 Err httpErrorWithBody ->
                     let
@@ -3918,6 +4000,11 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             State.Error.processProjectSynchronousApiError model project errorContext error
     in
     case serverMsgConstructor of
+        RequestServerRefresh ->
+            ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) NoInteraction server.osProps.uuid sharedModel
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
         RequestDeleteServer retainFloatingIps ->
             let
                 ( newProject, cmd ) =
@@ -4521,6 +4608,27 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     in
                     ( newSharedModel, Cmd.none )
                         |> mapToOuterModel outerModel
+
+        ReceiveExoextManifestObject etag result ->
+            updateUnderlying
+                (ServerDetailMsg <|
+                    Page.ServerDetail.GotExoextManifestObject sharedModel.clientCurrentTime etag result
+                )
+                outerModel
+
+        ReceiveExoextResultObject etag objectName result ->
+            updateUnderlying
+                (ServerDetailMsg <|
+                    Page.ServerDetail.GotExoextResultObject sharedModel.clientCurrentTime etag objectName result
+                )
+                outerModel
+
+        ReceiveExoextIndexObject refreshKey result ->
+            updateUnderlying
+                (ServerDetailMsg <|
+                    Page.ServerDetail.GotExoextIndexObject sharedModel.clientCurrentTime refreshKey result
+                )
+                outerModel
 
         ReceiveGuacamoleAuthToken result ->
             let

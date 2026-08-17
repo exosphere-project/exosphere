@@ -15,6 +15,7 @@ import OpenStack.SecurityGroupRule as SecurityGroupRule
 import OpenStack.ServerActions as ServerActions
 import OpenStack.Types as OSTypes
 import OpenStack.VolumeSnapshots exposing (VolumeSnapshot)
+import Route
 import Style.Types as ST
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Time
@@ -22,6 +23,8 @@ import Toasty
 import Types.AppVersion exposing (AppVersion)
 import Types.Banner as BannerTypes
 import Types.Error exposing (ErrorContext, HttpErrorWithBody, Toast)
+import Types.ExtensionApproval exposing (ExtensionApproval)
+import Types.ExtensionBatch exposing (ExtensionBatch)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
 import Types.Interactivity exposing (InteractionLevel)
@@ -31,6 +34,13 @@ import Url
 
 type SharedMsg
     = Tick TickInterval Time.Posix
+      -- A side-effect-free clock update: sets `clientCurrentTime` and nothing else (no
+      -- orchestration/API polling, unlike `Tick`). Used by the conditional 1s subscription
+      -- that smooths the extension card's run timer only while a run is actively counting.
+    | ClockTick Time.Posix
+      -- Conditional exoext request poll: sets `clientCurrentTime` and asks the open
+      -- ServerDetail page's publishing server to refresh, without running full orchestration.
+    | ExoextPoll Time.Posix
     | ChangeSystemThemePreference ST.Theme
     | DoOrchestration Time.Posix
     | HandleApiErrorWithBody (Maybe HelperTypes.ProjectIdentifier) ErrorContext HttpErrorWithBody
@@ -51,6 +61,11 @@ type SharedMsg
     | ReceiveAppVersion ErrorContext (Result HttpErrorWithBody AppVersion)
     | ProjectMsg HelperTypes.ProjectIdentifier ProjectSpecificMsgConstructor
     | OpenNewWindow String
+      -- Navigate to a route inside the app. It exists because a page's `update` is handed a
+      -- `Project` and not the shared view context, so a page that must move the app cannot push a
+      -- URL itself; `LinkClicked` is the browser's own event and needs a real `Url`, which a page
+      -- has no honest way to build.
+    | NavigateToRoute Route.Route
     | LinkClicked Browser.UrlRequest
     | UrlChanged Url.Url
     | ToastMsg (Toasty.Msg Toast)
@@ -59,6 +74,17 @@ type SharedMsg
     | SelectTheme ST.ThemeChoice
     | SetExperimentalFeaturesEnabled Bool
     | SetAppVersionUpdateNotificationsEnabled Bool
+      -- Record an extension approval (append/replace by instanceUuid), or forget one (remove by
+      -- instanceUuid). Persisted on `viewContext.extensionApprovals` via the every-update
+      -- localStorage write, like the other user preferences.
+    | GrantExtensionApproval ExtensionApproval
+    | ForgetExtensionApproval String
+      -- Store an extension request batch's undrained tail (replace by instanceUuid), or drop one.
+      -- Persisted on `viewContext.extensionBatches` via the same every-update localStorage write.
+      -- Unlike an approval this is not a user preference but resumable work: the requests a batch has
+      -- not written yet live nowhere else, so a reload without them abandons those targets.
+    | RecordExtensionBatch ExtensionBatch
+    | ForgetExtensionBatch String
     | TogglePopover PopoverId
     | NetworkConnection Bool
     | ReceiveWebLock ( String, Bool )
@@ -159,7 +185,11 @@ type ProjectSpecificMsgConstructor
 
 
 type ServerSpecificMsgConstructor
-    = RequestDeleteServer Bool
+    = -- Fetch this one server's details again, now. The generic "the user asked us to look again"
+      -- request: no interaction level, no side effects, just the single-server Nova read whose
+      -- response flows through `ReceiveServer` and everything already hanging off it.
+      RequestServerRefresh
+    | RequestDeleteServer Bool
     | RequestShelveServer Bool
     | RequestSetServerName String
     | RequestAttachVolume OSTypes.VolumeUuid
@@ -178,6 +208,9 @@ type ServerSpecificMsgConstructor
     | ReceiveSetServerName ErrorContext (Result HttpErrorWithBody String)
     | ReceiveSetServerMetadata OSTypes.MetadataItem ErrorContext (Result HttpErrorWithBody (List OSTypes.MetadataItem))
     | ReceiveDeleteServerMetadata OSTypes.MetadataKey ErrorContext (Result HttpErrorWithBody String)
+    | ReceiveExoextManifestObject String (Result HttpErrorWithBody String)
+    | ReceiveExoextResultObject String String (Result HttpErrorWithBody String)
+    | ReceiveExoextIndexObject String (Result HttpErrorWithBody String)
     | ReceiveGuacamoleAuthToken (Result Http.Error GuacTypes.GuacamoleAuthToken)
     | RequestServerAction ServerActions.ServerAction
     | ReceiveConsoleLog ErrorContext (Result HttpErrorWithBody String)

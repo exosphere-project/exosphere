@@ -19,6 +19,8 @@ import Rest.Helpers exposing (encodeHttpErrorWithBody, httpErrorWithBodyDecoder)
 import Set exposing (Set)
 import Style.Types as ST
 import Time
+import Types.ExtensionApproval as ExtensionApproval
+import Types.ExtensionBatch as ExtensionBatch
 import Types.Project
 import Types.Server as Server
 import Types.SharedModel as Types
@@ -32,7 +34,7 @@ generateStoredState model =
         strippedProjects =
             List.map generateStoredProject model.projects
     in
-    encodeStoredState strippedProjects model.clientUuid model.style.styleMode model.viewContext.experimentalFeaturesEnabled model.viewContext.appVersionUpdateNotificationsEnabled model.banners.dismissedBanners
+    encodeStoredState strippedProjects model.clientUuid model.style.styleMode model.viewContext.experimentalFeaturesEnabled model.viewContext.appVersionUpdateNotificationsEnabled model.banners.dismissedBanners model.viewContext.extensionApprovals model.viewContext.extensionBatches
 
 
 generateStoredProject : Types.Project.Project -> StoredProject
@@ -103,6 +105,8 @@ hydrateModelFromStoredState emptyModel newClientUuid storedState =
             { viewContext
                 | experimentalFeaturesEnabled = experimentalFeaturesEnabled
                 , appVersionUpdateNotificationsEnabled = appVersionUpdateNotificationsEnabled
+                , extensionApprovals = storedState.extensionApprovals
+                , extensionBatches = storedState.extensionBatches
                 , palette = toExoPalette newStyle
             }
         , banners = newBanners
@@ -157,8 +161,8 @@ hydrateProjectFromStoredProject storedProject =
 -- Encoders
 
 
-encodeStoredState : List StoredProject -> UUID.UUID -> ST.StyleMode -> Bool -> Bool -> Set String -> Encode.Value
-encodeStoredState projects clientUuid styleMode experimentalFeaturesEnabled appVersionUpdateNotificationsEnabled dismissedBanners =
+encodeStoredState : List StoredProject -> UUID.UUID -> ST.StyleMode -> Bool -> Bool -> Set String -> List ExtensionApproval.ExtensionApproval -> List ExtensionBatch.ExtensionBatch -> Encode.Value
+encodeStoredState projects clientUuid styleMode experimentalFeaturesEnabled appVersionUpdateNotificationsEnabled dismissedBanners extensionApprovals extensionBatches =
     let
         secretEncode : Types.Project.ProjectSecret -> Encode.Value
         secretEncode secret =
@@ -198,6 +202,8 @@ encodeStoredState projects clientUuid styleMode experimentalFeaturesEnabled appV
                 , ( "experimentalFeaturesEnabled", Encode.bool experimentalFeaturesEnabled )
                 , ( "appVersionUpdateNotificationsEnabled", Encode.bool appVersionUpdateNotificationsEnabled )
                 , ( "dismissedBanners", Encode.list Encode.string (Set.toList dismissedBanners) )
+                , ( "exoextApprovals", Encode.list ExtensionApproval.encode extensionApprovals )
+                , ( "exoextBatches", Encode.list ExtensionBatch.encode extensionBatches )
                 ]
           )
         ]
@@ -428,8 +434,18 @@ storedStateDecoder =
         appVersionUpdateNotificationsEnabled =
             Decode.maybe
                 (Decode.at [ "9", "appVersionUpdateNotificationsEnabled" ] Decode.bool)
+
+        extensionApprovals =
+            Decode.maybe
+                (Decode.at [ "9", "exoextApprovals" ] ExtensionApproval.listDecoder)
+                |> Decode.map (Maybe.withDefault [])
+
+        extensionBatches =
+            Decode.maybe
+                (Decode.at [ "9", "exoextBatches" ] ExtensionBatch.listDecoder)
+                |> Decode.map (Maybe.withDefault [])
     in
-    Decode.map6 StoredState projects clientUuid styleMode experimentalFeaturesEnabled appVersionUpdateNotificationsEnabled dismissedBanners
+    Decode.map8 StoredState projects clientUuid styleMode experimentalFeaturesEnabled appVersionUpdateNotificationsEnabled dismissedBanners extensionApprovals extensionBatches
 
 
 storedProjectDecoder1 : Decode.Decoder StoredProject
