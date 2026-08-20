@@ -11,7 +11,8 @@ import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ServerActionRequestQueue exposing (marshalServerActionRequestQueue)
 import Helpers.ServerResourceUsage
-import Helpers.String exposing (pluralize, toTitleCase)
+import Helpers.String exposing (indefiniteArticle, pluralize, toTitleCase)
+import Helpers.UnifiedLimits
 import Helpers.WebLock
 import Http
 import Json.Decode as Decode
@@ -174,6 +175,44 @@ mapToOuterMsg ( model, cmdSharedMsg ) =
 mapToOuterModel : OuterModel -> ( SharedModel, Cmd a ) -> ( OuterModel, Cmd a )
 mapToOuterModel outerModel ( newSharedModel, cmd ) =
     ( { outerModel | sharedModel = newSharedModel }, cmd )
+
+
+logCustomResourceConfigProblems : Project -> List OSTypes.Flavor -> ( SharedModel, Cmd SharedMsg ) -> ( SharedModel, Cmd SharedMsg )
+logCustomResourceConfigProblems project flavors ( model, cmd ) =
+    let
+        { localization } =
+            model.viewContext
+
+        errorContext =
+            ErrorContext
+                (String.join " "
+                    [ "link"
+                    , pluralize localization.virtualComputerHardwareConfig
+                    , "to the " ++ localization.openstackWithOwnKeystone ++ "'s custom resources"
+                    ]
+                )
+                ErrorDebug
+                (Just <|
+                    String.join " "
+                        [ "Check that every custom resource alias in the"
+                        , localization.openstackWithOwnKeystone
+                        , "configuration matches an alias used by the pci_passthrough:alias extra spec of"
+                        , indefiniteArticle localization.virtualComputerHardwareConfig
+                        , localization.virtualComputerHardwareConfig ++ "."
+                        ]
+                )
+    in
+    Helpers.UnifiedLimits.customResourceConfigProblems
+        localization
+        (GetterSetters.getCustomResources project model.viewContext)
+        flavors
+        |> List.foldl
+            (\problem ( accModel, accCmds ) ->
+                State.Error.processProjectStringError accModel project errorContext problem
+                    |> Tuple.mapSecond (\problemCmd -> problemCmd :: accCmds)
+            )
+            ( model, [ cmd ] )
+        |> Tuple.mapSecond Cmd.batch
 
 
 pipelineCmdOuterModelMsg : (OuterModel -> ( OuterModel, Cmd OuterMsg )) -> ( OuterModel, Cmd OuterMsg ) -> ( OuterModel, Cmd OuterMsg )
@@ -2157,6 +2196,13 @@ processProjectSpecificMsg outerModel project msg =
 
         ReceiveFlavors flavors ->
             Rest.Nova.receiveFlavors sharedModel project flavors
+                |> (if RDPP.withDefault [] project.flavors == flavors then
+                        identity
+
+                    else
+                        -- Report custom resource-flavor config problems once/with changes.
+                        logCustomResourceConfigProblems project flavors
+                   )
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 

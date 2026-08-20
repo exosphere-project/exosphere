@@ -5,6 +5,7 @@ import Expect
 import Helpers.UnifiedLimits as UnifiedLimits
 import OpenStack.Types as OSTypes
 import Test exposing (Test, describe, test)
+import Types.Defaults
 import Types.HelperTypes as HelperTypes
 
 
@@ -164,6 +165,15 @@ unifiedLimitsSuite =
                             [ Ok { alias = "A100", count = 1 }
                             , Ok { alias = "NVMe", count = 2 }
                             ]
+            , test "treats blank entries as declaring no requirement" <|
+                \_ ->
+                    Expect.equalLists
+                        [ []
+                        , [ Ok { alias = "A100", count = 1 } ]
+                        ]
+                        [ flavorWithAliasSpec "  " |> UnifiedLimits.parseFlavorCustomResourceRequirements
+                        , flavorWithAliasSpec "A100:1," |> UnifiedLimits.parseFlavorCustomResourceRequirements
+                        ]
             , test "keeps malformed requirements unresolved" <|
                 \_ ->
                     flavorWithAliasSpec "A100:0, :2, malformed, H100:two"
@@ -209,6 +219,44 @@ unifiedLimitsSuite =
                                 , { resource = customResourceNVMe, count = 2 }
                                 ]
                             )
+            ]
+        , describe "customResourceConfigProblems"
+            [ test "reports nothing when every requirement resolves" <|
+                \_ ->
+                    [ namedFlavorWithAliasSpec "g1.small" "A100:1"
+                    , namedFlavorWithAliasSpec "m1.small" ""
+                    ]
+                        |> UnifiedLimits.customResourceConfigProblems
+                            Types.Defaults.localization
+                            [ customResourceA100
+                            , customResourceNVMe
+                            ]
+                        |> Expect.equal []
+            , test "groups the flavors affected by one unconfigured alias" <|
+                \_ ->
+                    [ namedFlavorWithAliasSpec "g1.small" "H100:1"
+                    , namedFlavorWithAliasSpec "g1.large" "H100:4"
+                    , namedFlavorWithAliasSpec "m1.small" "A100:1"
+                    ]
+                        |> UnifiedLimits.customResourceConfigProblems Types.Defaults.localization [ customResourceA100 ]
+                        |> Expect.equal
+                            [ "No custom resource is configured for alias: H100. Affected sizes: g1.small, g1.large." ]
+            , test "reports a malformed requirement against the flavor declaring it" <|
+                \_ ->
+                    [ namedFlavorWithAliasSpec "g1.broken" "A100:many" ]
+                        |> UnifiedLimits.customResourceConfigProblems Types.Defaults.localization [ customResourceA100 ]
+                        |> Expect.equal
+                            [ "Custom resource count is not an integer in requirement: A100:many. Affected sizes: g1.broken." ]
+            , test "reports aliases shared case insensitively, naming the resource that wins" <|
+                \_ ->
+                    []
+                        |> UnifiedLimits.customResourceConfigProblems
+                            Types.Defaults.localization
+                            [ customResourceA100
+                            , { resource = "CUSTOM_A100X_10C", friendlyName = "A100 vGPU", alias = Just "a100" }
+                            ]
+                        |> Expect.equal
+                            [ "Multiple custom resources are configured for alias A100, of which only CUSTOM_A100 is used. Also configured: CUSTOM_A100X_10C." ]
             ]
         , describe "flavorWarningMessages"
             [ test "returns no warnings when the flavor fits its custom resource quotas" <|
@@ -258,6 +306,15 @@ unifiedLimitsSuite =
                             ]
             ]
         ]
+
+
+namedFlavorWithAliasSpec : String -> String -> OSTypes.Flavor
+namedFlavorWithAliasSpec name value =
+    let
+        flavor =
+            flavorWithAliasSpec value
+    in
+    { flavor | id = name, name = name }
 
 
 flavorWithAliasSpec : String -> OSTypes.Flavor

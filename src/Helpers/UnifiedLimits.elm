@@ -4,6 +4,7 @@ module Helpers.UnifiedLimits exposing
     , ResourceLimitQuota
     , aggregateCustomResourceRequirements
     , comparableStringForLimitResourceName
+    , customResourceConfigProblems
     , customResourceRequirementsByFlavor
     , customResourceRequirementsForFlavor
     , flavorWarningMessages
@@ -49,6 +50,8 @@ parseCustomResourceRequirements : String -> List (Result String ResourceAliasReq
 parseCustomResourceRequirements value =
     value
         |> String.split ","
+        -- Filter out trailing commas.
+        |> List.filter (String.trim >> String.isEmpty >> not)
         |> List.map parseCustomResourceRequirement
 
 
@@ -156,6 +159,72 @@ customResourceRequirementsByFlavor customResources flavors =
     flavors
         |> List.map (\f -> ( f.id, customResourceRequirementsForFlavor customResources f |> List.filterMap Result.toMaybe ))
         |> Dict.fromList
+
+
+{-| This helps trace config problems:
+
+Requirements that cannot be resolved are dropped rather than enforced, so a
+mistyped alias exempts a flavor from its limits.
+
+-}
+customResourceConfigProblems : HelperTypes.Localization -> List HelperTypes.CustomResource -> List OSTypes.Flavor -> List String
+customResourceConfigProblems localization customResources flavors =
+    duplicateAliasProblems customResources
+        ++ unresolvedRequirementProblems localization customResources flavors
+
+
+duplicateAliasProblems : List HelperTypes.CustomResource -> List String
+duplicateAliasProblems customResources =
+    customResources
+        |> List.filterMap (\r -> r.alias |> Maybe.map (\a -> ( a, r.resource )))
+        |> List.Extra.gatherEqualsBy (Tuple.first >> String.toLower)
+        |> List.filterMap
+            (\( ( alias, preferredResource ), duplicates ) ->
+                if List.isEmpty duplicates then
+                    Nothing
+
+                else
+                    Just <|
+                        String.concat
+                            [ "Multiple custom resources are configured for alias "
+                            , alias
+                            , ", of which only "
+                            , preferredResource
+                            , " is used. Also configured: "
+                            , duplicates |> List.map Tuple.second |> String.join ", "
+                            , "."
+                            ]
+            )
+
+
+unresolvedRequirementProblems : HelperTypes.Localization -> List HelperTypes.CustomResource -> List OSTypes.Flavor -> List String
+unresolvedRequirementProblems localization customResources flavors =
+    flavors
+        |> List.concatMap
+            (\flavor ->
+                customResourceRequirementsForFlavor customResources flavor
+                    |> List.filterMap
+                        (\requirement ->
+                            case requirement of
+                                Err reason ->
+                                    Just ( reason, flavor.name )
+
+                                Ok _ ->
+                                    Nothing
+                        )
+            )
+        |> List.Extra.gatherEqualsBy Tuple.first
+        |> List.map
+            (\( ( reason, flavorName ), sameReason ) ->
+                String.concat
+                    [ reason
+                    , ". Affected "
+                    , Helpers.String.pluralize localization.virtualComputerHardwareConfig
+                    , ": "
+                    , (flavorName :: List.map Tuple.second sameReason) |> String.join ", "
+                    , "."
+                    ]
+            )
 
 
 {-| Describe each custom resource requirement that would exceed its quota.
