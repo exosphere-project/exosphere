@@ -258,11 +258,10 @@ unifiedLimitsSuite =
                         |> Expect.equal
                             [ "Multiple custom resources are configured for alias A100, of which only CUSTOM_A100 is used. Also configured: CUSTOM_A100X_10C." ]
             ]
-        , describe "flavorWarningMessages"
-            [ test "returns no warnings when the flavor fits its custom resource quotas" <|
+        , describe "customResourceCapacities"
+            [ test "reports the room remaining when the flavor fits its custom resource quotas" <|
                 \_ ->
-                    UnifiedLimits.flavorWarningMessages
-                        []
+                    UnifiedLimits.customResourceCapacities
                         [ { resourceName = customResourceA100.resource
                           , quota =
                                 { inUse = 1
@@ -271,11 +270,17 @@ unifiedLimitsSuite =
                           }
                         ]
                         [ { resource = customResourceA100, count = 1 } ]
-                        |> Expect.equal []
-            , test "returns friendly warnings for custom resource quotas the flavor would exceed" <|
+                        |> Expect.equal
+                            [ { resource = customResourceA100
+                              , capacity = 1
+                              , required = 2
+                              , inUse = 1
+                              , limit = 2
+                              }
+                            ]
+            , test "reports no capacity for a quota the flavor would exceed" <|
                 \_ ->
-                    UnifiedLimits.flavorWarningMessages
-                        []
+                    UnifiedLimits.customResourceCapacities
                         [ { resourceName = customResourceA100.resource
                           , quota =
                                 { inUse = 2
@@ -284,13 +289,17 @@ unifiedLimitsSuite =
                           }
                         ]
                         [ { resource = customResourceA100, count = 1 } ]
-                        |> Expect.equal [ "A100: 3 required, 2/2 in use." ]
-            , test "preserves compute quota warnings before custom resource warnings" <|
+                        |> Expect.equal
+                            [ { resource = customResourceA100
+                              , capacity = 0
+                              , required = 3
+                              , inUse = 2
+                              , limit = 2
+                              }
+                            ]
+            , test "counts a requirement the flavor consumes more than once against its limit" <|
                 \_ ->
-                    UnifiedLimits.flavorWarningMessages
-                        [ "Cores exceeded."
-                        , "RAM exceeded."
-                        ]
+                    UnifiedLimits.customResourceCapacities
                         [ { resourceName = customResourceNVMe.resource
                           , quota =
                                 { inUse = 3
@@ -300,9 +309,12 @@ unifiedLimitsSuite =
                         ]
                         [ { resource = customResourceNVMe, count = 2 } ]
                         |> Expect.equal
-                            [ "Cores exceeded."
-                            , "RAM exceeded."
-                            , "NVMe: 5 required, 3/4 in use."
+                            [ { resource = customResourceNVMe
+                              , capacity = 0
+                              , required = 5
+                              , inUse = 3
+                              , limit = 4
+                              }
                             ]
             ]
         ]

@@ -53,6 +53,7 @@ module OpenStack.Types exposing
     , ProjectUsage
     , ProjectUuid
     , PublicKey
+    , QuotaCapacity
     , QuotaItem
     , QuotaItemLimit(..)
     , Region
@@ -170,6 +171,32 @@ type alias QuotaItem =
 type QuotaItemLimit
     = Limit Int
     | Unlimited
+
+
+{-| The number of operations available for a quota e.g. launches, given some usage & limit.
+
+`capacity` counts whole operations, such as launching a server, so it is the
+limit's remaining headroom divided by what one operation consumes.
+
+`required` is what usage would become were one such operation carried out.
+
+`inUse` and `limit` are in the resource's own units, so that a constraint can be
+explained to a user.
+
+A capacity of zero says the operation does not fit, which is the same thing as
+its exceeding the quota: there is no room for even one.
+
+A quota with no limit yields no capacity value at all, since an absent limit
+constrains nothing.
+
+-}
+type alias QuotaCapacity resource =
+    { resource : resource
+    , capacity : Int
+    , required : Int
+    , inUse : Int
+    , limit : Int
+    }
 
 
 type LimitResourceName

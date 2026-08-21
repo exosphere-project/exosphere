@@ -4,10 +4,10 @@ module Helpers.UnifiedLimits exposing
     , ResourceLimitQuota
     , aggregateCustomResourceRequirements
     , comparableStringForLimitResourceName
+    , customResourceCapacities
     , customResourceConfigProblems
     , customResourceRequirementsByFlavor
     , customResourceRequirementsForFlavor
-    , flavorWarningMessages
     , parseFlavorCustomResourceRequirements
     , quotasFromUnifiedLimits
     )
@@ -227,49 +227,41 @@ unresolvedRequirementProblems localization customResources flavors =
             )
 
 
-{-| Describe each custom resource requirement that would exceed its quota.
+{-| Describe what each custom resource limit would permit to provision, given a flavor's requirements.
 
-A requirement with no matching quota is permitted, since an absent limit is not
-an exceeded one.
+A requirement with no matching quota, or one whose quota is unlimited, yields no
+capacity, since a resource that is not limited cannot constrain anything.
+
+(Usage in excess of the limit yields a capacity of zero rather than a negative count.)
 
 -}
-resourceLimitWarnings : List ResourceLimitQuota -> List CustomResourceRequirement -> List String
-resourceLimitWarnings quotas requirements =
+customResourceCapacities : List ResourceLimitQuota -> List CustomResourceRequirement -> List (OSTypes.QuotaCapacity HelperTypes.CustomResource)
+customResourceCapacities quotas requirements =
     requirements
         |> List.filterMap
-            (\r ->
-                quotas
-                    |> List.Extra.find (\q -> q.resourceName == r.resource.resource)
-                    |> Maybe.andThen
-                        (\{ quota } ->
-                            case quota.limit of
-                                Unlimited ->
-                                    Nothing
+            (\requirement ->
+                if requirement.count <= 0 then
+                    Nothing
 
-                                Limit limit ->
-                                    if quota.inUse + r.count > limit then
-                                        Just
-                                            (String.concat
-                                                [ r.resource.friendlyName
-                                                , ": "
-                                                , String.fromInt (quota.inUse + r.count)
-                                                , " required, "
-                                                , String.fromInt quota.inUse
-                                                , "/"
-                                                , String.fromInt limit
-                                                , " in use."
-                                                ]
-                                            )
-
-                                    else
+                else
+                    quotas
+                        |> List.Extra.find (\q -> q.resourceName == requirement.resource.resource)
+                        |> Maybe.andThen
+                            (\{ quota } ->
+                                case quota.limit of
+                                    Unlimited ->
                                         Nothing
-                        )
+
+                                    Limit limit ->
+                                        Just
+                                            { resource = requirement.resource
+                                            , capacity = max 0 ((limit - quota.inUse) // requirement.count)
+                                            , required = quota.inUse + requirement.count
+                                            , inUse = quota.inUse
+                                            , limit = limit
+                                            }
+                            )
             )
-
-
-flavorWarningMessages : List String -> List ResourceLimitQuota -> List CustomResourceRequirement -> List String
-flavorWarningMessages computeQuotaWarnings quotas requirements =
-    computeQuotaWarnings ++ resourceLimitWarnings quotas requirements
 
 
 quotasFromUnifiedLimits : List OSTypes.RegisteredLimit -> List OSTypes.ProjectLimit -> List OSTypes.ProjectUsage -> List ResourceLimitQuota

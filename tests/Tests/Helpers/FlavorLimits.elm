@@ -1,6 +1,7 @@
 module Tests.Helpers.FlavorLimits exposing (flavorLimitsSuite)
 
 import Expect
+import FormatNumber.Locales exposing (usLocale)
 import Helpers.FlavorLimits as FlavorLimits
 import OpenStack.Types as OSTypes
 import Test exposing (Test, describe, test)
@@ -23,12 +24,27 @@ flavorLimitsSuite =
                             |> Expect.equal []
                     , \_ ->
                         FlavorLimits.warningMessagesFor "resource-over" evaluation
-                            |> Expect.equal [ "A100: 3 required, 1/2 in use." ]
+                            |> Expect.equal [ "A100: 3 required, 1 / 2 in use." ]
                     , \_ ->
                         FlavorLimits.warningMessagesFor "compute-over" evaluation
-                            |> Expect.equal [ "Cores: 4 required, 1/3 in use." ]
+                            |> Expect.equal [ "Cores: 4 required, 1 / 3 in use." ]
                     ]
                     ()
+        , test "reports compute quota warnings before custom resource warnings" <|
+            \_ ->
+                let
+                    params =
+                        completeParams
+
+                    bothOver =
+                        flavor "both-over" "A100:2" 3 1024
+                in
+                FlavorLimits.evaluate { params | flavors = [ bothOver ] }
+                    |> FlavorLimits.warningMessagesFor bothOver.id
+                    |> Expect.equal
+                        [ "Cores: 4 required, 1 / 3 in use."
+                        , "A100: 3 required, 1 / 2 in use."
+                        ]
         , test "create counts the target flavor as a new instance" <|
             \_ ->
                 let
@@ -44,7 +60,7 @@ flavorLimitsSuite =
                 in
                 computeOnlyEvaluation FlavorLimits.Create computeQuota [ targetFlavor ]
                     |> FlavorLimits.warningMessagesFor targetFlavor.id
-                    |> Expect.equal [ "Instances: 2 required, 1/1 in use." ]
+                    |> Expect.equal [ "Instances: 2 required, 1 / 1 in use." ]
         , test "describes every compute resource that would exceed its quota" <|
             \_ ->
                 let
@@ -61,9 +77,9 @@ flavorLimitsSuite =
                 computeOnlyEvaluation FlavorLimits.Create computeQuota [ targetFlavor ]
                     |> FlavorLimits.warningMessagesFor targetFlavor.id
                     |> Expect.equal
-                        [ "Cores: 12 required, 8/10 in use."
-                        , "RAM: 12096 MiB required, 8000/10000 MiB in use."
-                        , "Instances: 2 required, 1/1 in use."
+                        [ "Cores: 12 required, 8 / 10 in use."
+                        , "RAM: 11.8 GB required, 7.8 GB / 9.8 GB in use."
+                        , "Instances: 2 required, 1 / 1 in use."
                         ]
         , test "localizes the instance quota resource name" <|
             \_ ->
@@ -86,7 +102,7 @@ flavorLimitsSuite =
                 in
                 computeOnlyEvaluationWithLocalization localization FlavorLimits.Create computeQuota [ targetFlavor ]
                     |> FlavorLimits.warningMessagesFor targetFlavor.id
-                    |> Expect.equal [ "Servers: 2 required, 1/1 in use." ]
+                    |> Expect.equal [ "Servers: 2 required, 1 / 1 in use." ]
         , test "resize computes the quota delta from the current flavor (legacy quota behavior)" <|
             \_ ->
                 let
@@ -111,6 +127,48 @@ flavorLimitsSuite =
                 in
                 FlavorLimits.exceedsLimit targetFlavor.id evaluation
                     |> Expect.equal False
+        , test "resize evaluates the target flavor's full custom resource requirement" <|
+            \_ ->
+                let
+                    params =
+                        completeParams
+
+                    -- Both flavors need one A100, so a delta would consume none.
+                    currentFlavor =
+                        flavor "current" "A100:1" 1 1024
+
+                    targetFlavor =
+                        flavor "target" "A100:1" 1 1024
+                in
+                FlavorLimits.evaluate
+                    { params
+                        | computeQuotaOperation = FlavorLimits.ResizeFrom (Just currentFlavor)
+                        , flavors = [ targetFlavor ]
+                        , projectUsages =
+                            Just
+                                [ { resourceName = OSTypes.UsageResourceName "CUSTOM_A100"
+                                  , resourceUsage = 2
+                                  }
+                                ]
+                    }
+                    |> FlavorLimits.warningMessagesFor targetFlavor.id
+                    |> Expect.equal [ "A100: 3 required, 2 / 2 in use." ]
+        , test "resize still evaluates custom resources when the current flavor is unknown" <|
+            \_ ->
+                let
+                    params =
+                        completeParams
+
+                    targetFlavor =
+                        flavor "target" "A100:2" 1 1024
+                in
+                FlavorLimits.evaluate
+                    { params
+                        | computeQuotaOperation = FlavorLimits.ResizeFrom Nothing
+                        , flavors = [ targetFlavor ]
+                    }
+                    |> FlavorLimits.warningMessagesFor targetFlavor.id
+                    |> Expect.equal [ "A100: 3 required, 1 / 2 in use." ]
         , test "resize fails open for compute quota when the current flavor is unknown" <|
             \_ ->
                 let
@@ -170,7 +228,7 @@ flavorLimitsSuite =
                         FlavorLimits.evaluate { completeParams | localization = localization }
                 in
                 Expect.equal
-                    { computeWarning = [ "Cores: 4 required, 1/3 in use." ]
+                    { computeWarning = [ "Cores: 4 required, 1 / 3 in use." ]
                     , guidance = "Please select a flavour that does not exceed your workspace's capacity caps."
                     , invalid = "Please select a valid flavour."
                     }
@@ -178,7 +236,142 @@ flavorLimitsSuite =
                     , guidance = FlavorLimits.selectionGuidanceMessage localization
                     , invalid = FlavorLimits.invalidSelectionMessage localization
                     }
+        , describe "capacities"
+            [ test "bounds the count by the tightest limit across every kind of quota" <|
+                \_ ->
+                    completeCapacityParams
+                        |> FlavorLimits.capacities
+                        |> FlavorLimits.maxCount
+                        |> Expect.equal (Just 3)
+            , test "reports every limit that bounds the count, not only the binding one" <|
+                \_ ->
+                    completeCapacityParams
+                        |> FlavorLimits.capacities
+                        |> List.map (FlavorLimits.capacityMessage usLocale Types.Defaults.localization)
+                        |> Expect.equal
+                            [ "Cores: 6 supported, 4 / 10 in use."
+                            , "RAM: 5 supported, 5 GB / 10 GB in use."
+                            , "Instances: 8 supported, 2 / 10 in use."
+                            , "A100: 3 supported, 1 / 4 in use."
+                            ]
+            , test "counts a custom resource a flavor consumes more than once" <|
+                \_ ->
+                    { completeCapacityParams | flavor = flavor "greedy" "A100:3" 1 1024 }
+                        |> FlavorLimits.capacities
+                        |> List.filter (\limit -> String.startsWith "A100" (FlavorLimits.capacityMessage usLocale Types.Defaults.localization limit))
+                        |> List.map (FlavorLimits.capacityMessage usLocale Types.Defaults.localization)
+                        |> Expect.equal [ "A100: 1 supported, 1 / 4 in use." ]
+            , test "ignores volume quotas unless the server is volume backed" <|
+                \_ ->
+                    Expect.equal
+                        { withoutVolume = Just 3
+                        , withVolume = Just 2
+                        }
+                        { withoutVolume =
+                            FlavorLimits.capacities completeCapacityParams
+                                |> FlavorLimits.maxCount
+                        , withVolume =
+                            FlavorLimits.capacities { completeCapacityParams | volumeBackedGb = Just 50 }
+                                |> FlavorLimits.maxCount
+                        }
+            , test "describes volume quotas with localized names and units" <|
+                \_ ->
+                    { completeCapacityParams | volumeBackedGb = Just 50 }
+                        |> FlavorLimits.capacities
+                        |> List.map (FlavorLimits.capacityMessage usLocale Types.Defaults.localization)
+                        |> List.filter (String.contains "olume")
+                        |> Expect.equal
+                            [ "Volumes: 4 supported, 6 / 10 in use."
+                            , "Volume storage: 2 supported, 400 GB / 500 GB in use."
+                            ]
+            , test "yields no limit when nothing constrains the count" <|
+                \_ ->
+                    { completeCapacityParams
+                        | computeQuota = unlimitedComputeQuota
+                        , customResources = []
+                        , registeredLimits = Nothing
+                        , projectLimits = Nothing
+                        , projectUsages = Nothing
+                    }
+                        |> FlavorLimits.capacities
+                        |> FlavorLimits.maxCount
+                        |> Expect.equal Nothing
+            , test "reports no capacity rather than a negative count when usage exceeds a limit" <|
+                \_ ->
+                    { completeCapacityParams
+                        | computeQuota =
+                            { cores = { inUse = 20, limit = OSTypes.Limit 10 }
+                            , instances = { inUse = 2, limit = OSTypes.Unlimited }
+                            , ram = { inUse = 1024, limit = OSTypes.Unlimited }
+                            , keypairsLimit = 10
+                            }
+                        , customResources = []
+                    }
+                        |> FlavorLimits.capacities
+                        |> FlavorLimits.maxCount
+                        |> Expect.equal (Just 0)
+            , test "fails open for custom resources until all unified limit data is available" <|
+                \_ ->
+                    { completeCapacityParams | projectUsages = Nothing }
+                        |> FlavorLimits.capacities
+                        |> List.map (FlavorLimits.capacityMessage usLocale Types.Defaults.localization)
+                        |> Expect.equal
+                            [ "Cores: 6 supported, 4 / 10 in use."
+                            , "RAM: 5 supported, 5 GB / 10 GB in use."
+                            , "Instances: 8 supported, 2 / 10 in use."
+                            ]
+            ]
         ]
+
+
+{-| A selection bounded by each kind of limit at once, so that a change to one
+kind of limit cannot silently stop being reported.
+
+The flavor consumes 1 vCPU, 1024 MiB, and one A100, against quotas that leave
+room for 6 by cores, 5 by RAM, 8 by instances, and 3 by A100 limit.
+
+-}
+completeCapacityParams : FlavorLimits.CapacityParams
+completeCapacityParams =
+    { computeQuota =
+        { cores = { inUse = 4, limit = OSTypes.Limit 10 }
+        , instances = { inUse = 2, limit = OSTypes.Limit 10 }
+        , ram = { inUse = 5120, limit = OSTypes.Limit 10240 }
+        , keypairsLimit = 10
+        }
+    , customResources = completeParams.customResources
+    , flavor = flavor "target" "A100:1" 1 1024
+    , registeredLimits =
+        Just
+            [ { id = "reg-a100"
+              , regionId = Just "RegionOne"
+              , resourceName = OSTypes.LimitResourceName "class:CUSTOM_A100"
+              , defaultLimit = 4
+              , description = Nothing
+              }
+            ]
+    , projectLimits = Just []
+    , projectUsages =
+        Just
+            [ { resourceName = OSTypes.UsageResourceName "CUSTOM_A100"
+              , resourceUsage = 1
+              }
+            ]
+    , volumeBackedGb = Nothing
+    , volumeQuota =
+        { volumes = { inUse = 6, limit = OSTypes.Limit 10 }
+        , gigabytes = { inUse = 400, limit = OSTypes.Limit 500 }
+        }
+    }
+
+
+unlimitedComputeQuota : OSTypes.ComputeQuota
+unlimitedComputeQuota =
+    { cores = { inUse = 4, limit = OSTypes.Unlimited }
+    , instances = { inUse = 2, limit = OSTypes.Unlimited }
+    , ram = { inUse = 5120, limit = OSTypes.Unlimited }
+    , keypairsLimit = 10
+    }
 
 
 completeParams : FlavorLimits.Params
@@ -210,6 +403,7 @@ completeParams =
         , flavor "resource-over" "A100:2" 1 1024
         , flavor "compute-over" "" 3 1024
         ]
+    , locale = usLocale
     , localization = Types.Defaults.localization
     , registeredLimits =
         Just

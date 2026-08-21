@@ -235,7 +235,7 @@ update msg { viewContext } project model =
             ( { model | serverName = name }, Cmd.none, SharedMsg.NoOp )
 
         GotCount count ->
-            ( enforceQuotaCompliance project { model | count = count }, Cmd.none, SharedMsg.NoOp )
+            ( enforceQuotaCompliance viewContext project { model | count = count }, Cmd.none, SharedMsg.NoOp )
 
         GotCreateServerButtonPressed netUuid flavorId ->
             ( { model | createServerAttempted = True }
@@ -250,10 +250,10 @@ update msg { viewContext } project model =
                     ( model, Cmd.none, SharedMsg.NoOp )
 
                 Just flavor ->
-                    ( enforceQuotaCompliance project { model | selectedFlavor = WithSelectedFlavor flavor }, Cmd.none, SharedMsg.NoOp )
+                    ( enforceQuotaCompliance viewContext project { model | selectedFlavor = WithSelectedFlavor flavor }, Cmd.none, SharedMsg.NoOp )
 
         GotVolSizeTextInput maybeVolSizeInput ->
-            ( enforceQuotaCompliance project { model | volSizeTextInput = maybeVolSizeInput }, Cmd.none, SharedMsg.NoOp )
+            ( enforceQuotaCompliance viewContext project { model | volSizeTextInput = maybeVolSizeInput }, Cmd.none, SharedMsg.NoOp )
 
         GotUserDataTemplate userData ->
             ( { model | userDataTemplate = userData }, Cmd.none, SharedMsg.NoOp )
@@ -429,10 +429,14 @@ getSelectedFlavor flavorSelection smallestFlavor =
             smallestFlavor
 
 
-enforceQuotaCompliance : Project -> Model -> Model
-enforceQuotaCompliance project model =
-    -- If user is trying to choose a combination of flavor, volume-backed disk size, and count
-    -- that would exceed quota, reduce count to comply with quota.
+{-| Bound the requested count by every limit that applies to the current selection.
+
+  - A count of one is always left since we cannot ask the form to create zero of something.
+  - The form does block us from trying to create 1 we cannot afford.
+
+-}
+enforceQuotaCompliance : View.Types.Context -> Project -> Model -> Model
+enforceQuotaCompliance context project model =
     case
         ( getSelectedFlavorMaybe model project.flavors
         , project.computeQuota.data
@@ -442,23 +446,14 @@ enforceQuotaCompliance project model =
         ( Just flavor, RDPP.DoHave computeQuota _, RDPP.DoHave volumeQuota _ ) ->
             let
                 availServers =
-                    OSQuotas.overallQuotaAvailServers
-                        (model.volSizeTextInput
-                            |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
-                        )
-                        flavor
-                        computeQuota
-                        volumeQuota
+                    capacitiesFor context project model flavor computeQuota volumeQuota
+                        |> FlavorLimits.maxCount
             in
             { model
                 | count =
                     case availServers of
                         Just availServers_ ->
-                            if model.count > availServers_ then
-                                availServers_
-
-                            else
-                                model.count
+                            min model.count (max 1 availServers_)
 
                         Nothing ->
                             model.count
@@ -466,6 +461,24 @@ enforceQuotaCompliance project model =
 
         ( _, _, _ ) ->
             model
+
+
+{-| What every applicable limit permits, given the current selection.
+-}
+capacitiesFor : View.Types.Context -> Project -> Model -> OSTypes.Flavor -> OSTypes.ComputeQuota -> OSTypes.VolumeQuota -> List FlavorLimits.ResourceCapacity
+capacitiesFor context project model flavor computeQuota volumeQuota =
+    FlavorLimits.capacities
+        { computeQuota = computeQuota
+        , customResources = GetterSetters.getCustomResources project context
+        , flavor = flavor
+        , registeredLimits = RDPP.toMaybe project.registeredLimits
+        , projectLimits = RDPP.toMaybe project.projectLimits
+        , projectUsages = RDPP.toMaybe project.projectUsages
+        , volumeBackedGb =
+            model.volSizeTextInput
+                |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
+        , volumeQuota = volumeQuota
+        }
 
 
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
@@ -561,6 +574,7 @@ view context project currentTime model =
                         , computeQuotaOperation = FlavorLimits.Create
                         , customResources = GetterSetters.getCustomResources project context
                         , flavors = flavorsToShow
+                        , locale = context.locale
                         , localization = context.localization
                         , registeredLimits = RDPP.toMaybe project.registeredLimits
                         , projectLimits = RDPP.toMaybe project.projectLimits
@@ -834,7 +848,7 @@ view context project currentTime model =
                 (Just flavor.id)
                 GotFlavorId
             , volBackedPrompt project context model volumeQuota flavor
-            , countPicker context model computeQuota volumeQuota flavor
+            , countPicker context project model computeQuota volumeQuota flavor
             , desktopEnvironmentPicker context project model
             , customWorkflowInput context project model
             , if hasAnyKeypairs then
@@ -1137,24 +1151,22 @@ volBackedPrompt project context model volumeQuota flavor =
 
 countPicker :
     View.Types.Context
+    -> Project
     -> Model
     -> OSTypes.ComputeQuota
     -> OSTypes.VolumeQuota
     -> OSTypes.Flavor
     -> Element.Element Msg
-countPicker context model computeQuota volumeQuota flavor =
+countPicker context project model computeQuota volumeQuota flavor =
     let
         { locale } =
             context
 
+        limits =
+            capacitiesFor context project model flavor computeQuota volumeQuota
+
         countAvailPerQuota =
-            OSQuotas.overallQuotaAvailServers
-                (model.volSizeTextInput
-                    |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
-                )
-                flavor
-                computeQuota
-                volumeQuota
+            FlavorLimits.maxCount limits
 
         -- Exosphere becomes slow and unresponsive in the browser if the user creates too many instances at a time, this prevents that.
         countAvailPerApp =
@@ -1193,30 +1205,43 @@ countPicker context model computeQuota volumeQuota flavor =
                 )
                 ST.PositionRight
             ]
+        , Element.paragraph []
+            [ Element.text <|
+                String.join " "
+                    [ "Exosphere can create up to"
+                    , String.fromInt countAvailPerApp
+                    , "at a time."
+                    ]
+            ]
         , case countAvailPerQuota of
             Just countAvailPerQuota_ ->
-                let
-                    text =
-                        Element.text <|
-                            String.join " " <|
-                                List.concat
-                                    [ [ "Your"
-                                      , context.localization.maxResourcesPerProject
-                                      , "supports up to"
-                                      , humanCount locale countAvailPerQuota_
-                                      , "of these."
-                                      ]
-                                    , if countAvailPerQuota_ > countAvailPerApp then
-                                        [ "Exosphere can create up to"
-                                        , String.fromInt countAvailPerApp
-                                        , "at a time."
-                                        ]
-
-                                      else
-                                        []
-                                    ]
-                in
-                Element.paragraph [] [ text ]
+                Element.row [ Element.spacing spacer.px8 ]
+                    [ Element.paragraph []
+                        [ Element.text <|
+                            String.join " "
+                                [ "Your"
+                                , context.localization.maxResourcesPerProject
+                                , "supports up to"
+                                , humanCount locale countAvailPerQuota_
+                                , "of these."
+                                ]
+                        ]
+                    , Style.Widgets.ToggleTip.toggleTip
+                        context
+                        (\countLimitsTipId -> SharedMsg <| SharedMsg.TogglePopover countLimitsTipId)
+                        "countLimitsToggleTip"
+                        (Element.column
+                            [ Element.width (Element.fill |> Element.minimum 300)
+                            , Element.spacing spacer.px8
+                            ]
+                            (Text.strong "Limited by:"
+                                :: List.map
+                                    (FlavorLimits.capacityMessage locale context.localization >> Text.body)
+                                    limits
+                            )
+                        )
+                        ST.PositionRight
+                    ]
 
             Nothing ->
                 Element.none
@@ -1244,6 +1269,9 @@ countPicker context model computeQuota volumeQuota flavor =
                     countAvailPerQuota
                         |> Maybe.map (\countAvailPerQuota_ -> min countAvailPerQuota_ countAvailPerApp)
                         |> Maybe.withDefault countAvailPerApp
+                        -- A limit with no headroom left yields a capacity of zero,
+                        -- which would otherwise put the maximum below the minimum.
+                        |> max 1
                         |> toFloat
                 , step = Just 1
                 , value = toFloat model.count

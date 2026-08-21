@@ -114,6 +114,7 @@ view_ context project model computeQuota =
                 , computeQuotaOperation = FlavorLimits.ResizeFrom currentFlavor
                 , customResources = GetterSetters.getCustomResources project context
                 , flavors = RDPP.withDefault [] project.flavors
+                , locale = context.locale
                 , localization = context.localization
                 , registeredLimits = RDPP.toMaybe project.registeredLimits
                 , projectLimits = RDPP.toMaybe project.projectLimits
@@ -136,7 +137,13 @@ view_ context project model computeQuota =
                     |> Helpers.String.toTitleCase
                 , case currentFlavor of
                     Just flavor ->
-                        "(Current Size: " ++ flavor.name ++ ")"
+                        String.concat
+                            [ "(Current "
+                            , Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig
+                            , ": "
+                            , flavor.name
+                            , ")"
+                            ]
 
                     Nothing ->
                         ""
@@ -147,7 +154,15 @@ view_ context project model computeQuota =
             , VH.flavorPicker context
                 project
                 restrictFlavorIds
-                (Just ("This flavor has a root disk smaller than your current " ++ context.localization.virtualComputer))
+                (Just
+                    (String.concat
+                        [ "This "
+                        , context.localization.virtualComputerHardwareConfig
+                        , " has a root disk smaller than your current "
+                        , context.localization.virtualComputer
+                        ]
+                    )
+                )
                 flavorLimitEvaluation
                 (\flavorGroupTipId -> SharedMsg <| SharedMsg.TogglePopover flavorGroupTipId)
                 (Helpers.String.hyphenate [ "serverResizeFlavorGroupTip", project.auth.project.uuid ])

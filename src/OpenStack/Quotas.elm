@@ -1,11 +1,11 @@
 module OpenStack.Quotas exposing
-    ( ComputeQuotaOverage
-    , ComputeQuotaResource(..)
+    ( ComputeQuotaResource(..)
+    , VolumeQuotaResource(..)
     , computeQuotaDecoder
     , computeQuotaFlavorAvailServers
-    , computeQuotaFlavorOverages
-    , computeQuotaFlavorResizeOverages
-    , overallQuotaAvailServers
+    , computeQuotaFlavorCapacities
+    , computeQuotaFlavorResizeCapacities
+    , exceedsQuota
     , requestComputeQuota
     , requestNetworkQuota
     , requestShareQuota
@@ -14,6 +14,7 @@ module OpenStack.Quotas exposing
     , shareQuotaDecoder
     , volumeQuotaAvail
     , volumeQuotaDecoder
+    , volumeQuotaFlavorCapacities
     )
 
 import Helpers.GetterSetters as GetterSetters
@@ -36,14 +37,6 @@ type ComputeQuotaResource
     = Cores
     | Instances
     | Ram
-
-
-type alias ComputeQuotaOverage =
-    { resource : ComputeQuotaResource
-    , required : Int
-    , inUse : Int
-    , limit : Int
-    }
 
 
 requestComputeQuota : Project -> Cmd SharedMsg
@@ -85,6 +78,11 @@ computeQuotaDecoder =
 
 
 -- Volume Quota
+
+
+type VolumeQuotaResource
+    = Volumes
+    | VolumeStorage
 
 
 requestVolumeQuota : Project -> Cmd SharedMsg
@@ -262,94 +260,102 @@ quotaItemLimitMap func limit =
             OSTypes.Unlimited
 
 
-{-| Given a compute quota and a flavor, determine how many servers of that flavor can be launched
+{-| Given a compute quota and a flavor, determine how many servers of that flavor can be launched.
 
-In the future this could use a refactor to return an OSTypes.QuotaItemLimit
+`Nothing` means no compute quota constrains the number of servers (not that none can be launched).
 
 -}
 computeQuotaFlavorAvailServers : OSTypes.ComputeQuota -> OSTypes.Flavor -> Maybe Int
 computeQuotaFlavorAvailServers computeQuota flavor =
-    [ case computeQuota.cores.limit of
-        OSTypes.Limit l ->
-            Just <| (l - computeQuota.cores.inUse) // flavor.vcpu
-
-        OSTypes.Unlimited ->
-            Nothing
-    , case computeQuota.ram.limit of
-        OSTypes.Limit l ->
-            Just <| (l - computeQuota.ram.inUse) // flavor.ram_mb
-
-        OSTypes.Unlimited ->
-            Nothing
-    , case computeQuota.instances.limit of
-        OSTypes.Limit l ->
-            Just <| l - computeQuota.instances.inUse
-
-        OSTypes.Unlimited ->
-            Nothing
-    ]
-        |> List.filterMap identity
+    computeQuotaFlavorCapacities computeQuota flavor
+        |> List.map .capacity
         |> List.minimum
 
 
-{-| List the compute quotas exceeded by launching a server with the given flavor.
+{-| Describe how many servers of the given flavor each compute quota permits.
+
+Every limited resource is reported, whether or not it is the one presently
+binding the count, so that a user can see the constraints they are approaching
+and not only the one they have reached.
+
 -}
-computeQuotaFlavorOverages : OSTypes.ComputeQuota -> OSTypes.Flavor -> List ComputeQuotaOverage
-computeQuotaFlavorOverages computeQuota flavor =
-    [ computeQuotaOverage Cores flavor.vcpu computeQuota.cores
-    , computeQuotaOverage Ram flavor.ram_mb computeQuota.ram
-    , computeQuotaOverage Instances 1 computeQuota.instances
+computeQuotaFlavorCapacities : OSTypes.ComputeQuota -> OSTypes.Flavor -> List (OSTypes.QuotaCapacity ComputeQuotaResource)
+computeQuotaFlavorCapacities computeQuota flavor =
+    [ quotaCapacity Cores flavor.vcpu computeQuota.cores
+    , quotaCapacity Ram flavor.ram_mb computeQuota.ram
+    , quotaCapacity Instances 1 computeQuota.instances
     ]
         |> List.filterMap identity
 
 
-{-| List the compute quotas exceeded by resizing from one flavor to another.
-
-This implements Nova's legacy quota behavior.
-
-Only positive changes in cores and RAM consume additional quota. Resizing an
-existing server does not consume another instance from the instance quota.
-
+{-| Describe how many volume-backed servers of the given root disk size each volume quota permits.
 -}
-computeQuotaFlavorResizeOverages : OSTypes.ComputeQuota -> OSTypes.Flavor -> OSTypes.Flavor -> List ComputeQuotaOverage
-computeQuotaFlavorResizeOverages computeQuota currentFlavor targetFlavor =
-    [ computeQuotaOverage Cores (targetFlavor.vcpu - currentFlavor.vcpu) computeQuota.cores
-    , computeQuotaOverage Ram (targetFlavor.ram_mb - currentFlavor.ram_mb) computeQuota.ram
+volumeQuotaFlavorCapacities : OSTypes.VolumeSize -> OSTypes.VolumeQuota -> List (OSTypes.QuotaCapacity VolumeQuotaResource)
+volumeQuotaFlavorCapacities volumeBackedGb volumeQuota =
+    [ quotaCapacity Volumes 1 volumeQuota.volumes
+    , quotaCapacity VolumeStorage volumeBackedGb volumeQuota.gigabytes
     ]
         |> List.filterMap identity
 
 
-computeQuotaOverage : ComputeQuotaResource -> Int -> OSTypes.QuotaItem -> Maybe ComputeQuotaOverage
-computeQuotaOverage resource requested quota =
-    if requested <= 0 then
+{-| What a single quota permits given the consumption per operation.
+
+An operation that does not draw on a resource cannot be constrained by it,
+so it yields no capacity.
+
+(Usage already in excess of the limit yields a capacity of zero rather than a negative count.)
+
+-}
+quotaCapacity : resource -> Int -> OSTypes.QuotaItem -> Maybe (OSTypes.QuotaCapacity resource)
+quotaCapacity resource consumedPerOperation quota =
+    if consumedPerOperation <= 0 then
         Nothing
 
     else
         case quota.limit of
             OSTypes.Limit limit ->
-                let
-                    required =
-                        quota.inUse + requested
-                in
-                if required > limit then
-                    Just
-                        { resource = resource
-                        , required = required
-                        , inUse = quota.inUse
-                        , limit = limit
-                        }
-
-                else
-                    Nothing
+                Just
+                    { resource = resource
+                    , capacity = max 0 ((limit - quota.inUse) // consumedPerOperation)
+                    , required = quota.inUse + consumedPerOperation
+                    , inUse = quota.inUse
+                    , limit = limit
+                    }
 
             OSTypes.Unlimited ->
                 Nothing
 
 
+{-| Whether a quota leaves no room for the operation it was measured against.
 
-{- Decode an OSTypes.QuotaItem from a pair of keys -}
+Having no capacity and exceeding the quota are the same condition: an operation
+fits only while the limit's remaining headroom covers what it consumes.
+
+-}
+exceedsQuota : OSTypes.QuotaCapacity resource -> Bool
+exceedsQuota capacity =
+    capacity.capacity == 0
 
 
+{-| Describe what each compute quota permits when resizing from one flavor to another.
+
+This implements Nova's legacy quota behavior.
+
+Only positive changes in cores and RAM consume additional quota, so a resize
+that shrinks or preserves a resource is unconstrained by it. Resizing an
+existing server does not consume another instance from the instance quota.
+
+-}
+computeQuotaFlavorResizeCapacities : OSTypes.ComputeQuota -> OSTypes.Flavor -> OSTypes.Flavor -> List (OSTypes.QuotaCapacity ComputeQuotaResource)
+computeQuotaFlavorResizeCapacities computeQuota currentFlavor targetFlavor =
+    [ quotaCapacity Cores (targetFlavor.vcpu - currentFlavor.vcpu) computeQuota.cores
+    , quotaCapacity Ram (targetFlavor.ram_mb - currentFlavor.ram_mb) computeQuota.ram
+    ]
+        |> List.filterMap identity
+
+
+{-| Decode an OSTypes.QuotaItem from a pair of keys.
+-}
 makeQuotaItemPairDecoder : String -> String -> Decode.Decoder OSTypes.QuotaItem
 makeQuotaItemPairDecoder usedKey totalKey =
     Decode.map2 OSTypes.QuotaItem
@@ -372,42 +378,3 @@ volumeQuotaAvail volumeQuota =
         |> quotaItemLimitMap
             (\l -> l - volumeQuota.gigabytes.inUse)
     )
-
-
-overallQuotaAvailServers : Maybe OSTypes.VolumeSize -> OSTypes.Flavor -> OSTypes.ComputeQuota -> OSTypes.VolumeQuota -> Maybe Int
-overallQuotaAvailServers maybeVolBackedGb flavor computeQuota volumeQuota =
-    let
-        computeQuotaAvailServers =
-            computeQuotaFlavorAvailServers computeQuota flavor
-    in
-    case maybeVolBackedGb of
-        Nothing ->
-            computeQuotaAvailServers
-
-        Just volBackedGb ->
-            let
-                ( volumeQuotaAvailVolumes, volumeQuotaAvailGb ) =
-                    volumeQuotaAvail volumeQuota
-
-                volumeQuotaAvailVolumesCount =
-                    case volumeQuotaAvailVolumes of
-                        OSTypes.Limit l ->
-                            Just l
-
-                        OSTypes.Unlimited ->
-                            Nothing
-
-                volumeQuotaAvailGbCount =
-                    case volumeQuotaAvailGb of
-                        OSTypes.Limit l ->
-                            Just <| l // volBackedGb
-
-                        OSTypes.Unlimited ->
-                            Nothing
-            in
-            [ computeQuotaAvailServers
-            , volumeQuotaAvailVolumesCount
-            , volumeQuotaAvailGbCount
-            ]
-                |> List.filterMap identity
-                |> List.minimum
