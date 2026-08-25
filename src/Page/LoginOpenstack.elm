@@ -1,4 +1,4 @@
-module Page.LoginOpenstack exposing (CredentialFileError(..), CredentialFileOutcome(..), EntryType, FoundCredential, Model, Msg, defaultCreds, headerView, init, maxCredentialFileBytes, readCredentialFile, selectedClouds, update, view)
+module Page.LoginOpenstack exposing (CredentialFileError(..), CredentialFileOutcome(..), EntryType, FoundCredential, Model, Msg, defaultCreds, headerView, init, maxCredentialFileBytes, noteProjectAlreadyAdded, processCredentialFile, readCredentialFile, selectedClouds, update, view)
 
 import Element
 import Element.Background as Background
@@ -44,6 +44,7 @@ type alias Model =
     , fileIsOverDropZone : Bool
     , clouds : List OpenStack.CloudsYaml.CloudEntry
     , selectedClouds : Set.Set String
+    , alreadyAddedProjects : List String
     }
 
 
@@ -110,6 +111,7 @@ init maybeCreds =
     , fileIsOverDropZone = False
     , clouds = []
     , selectedClouds = Set.empty
+    , alreadyAddedProjects = []
     }
 
 
@@ -159,11 +161,13 @@ update msg _ model =
             ( updateCreds model { oldCreds | password = password }, Cmd.none, SharedMsg.NoOp )
 
         GotCredentialFileText text ->
-            -- Editing the text invalidates whatever the last read of it found.
+            -- Editing the text invalidates whatever the last read of it found, and whatever the
+            -- last login with it reported.
             ( { model
                 | credentialFileText = text
                 , credentialFileError = Nothing
                 , foundCredential = Nothing
+                , alreadyAddedProjects = []
               }
             , Cmd.none
             , SharedMsg.NoOp
@@ -313,16 +317,35 @@ readCloudsYaml contents =
             ChooseAmongClouds clouds
 
 
+{-| Records that a login landed on a project the user already has. The login screen is the only
+place that can say so: the login itself succeeds, refreshes the token on the project already held
+and then has nothing left to do, which without a word looks exactly like a login that failed.
+-}
+noteProjectAlreadyAdded : String -> Model -> Model
+noteProjectAlreadyAdded projectName model =
+    if List.member projectName model.alreadyAddedProjects then
+        model
+
+    else
+        { model | alreadyAddedProjects = model.alreadyAddedProjects ++ [ projectName ] }
+
+
 {-| Applies an outcome to the model. Bookkeeping only: every decision was made above.
 -}
 processCredentialFile : Model -> Model
 processCredentialFile model =
-    case readCredentialFile model.creds model.credentialFileText of
+    let
+        -- Reading is a fresh start, so what the last login reported goes with it.
+        reading : Model
+        reading =
+            { model | alreadyAddedProjects = [] }
+    in
+    case readCredentialFile reading.creds reading.credentialFileText of
         LogInWith found ->
-            { model | foundCredential = Just found, credentialFileError = Nothing }
+            { reading | foundCredential = Just found, credentialFileError = Nothing }
 
         ChooseAmongClouds clouds ->
-            { model
+            { reading
                 | clouds = clouds
                 , selectedClouds = clouds |> List.map .name |> Set.fromList
                 , entryType = CloudSelectEntry
@@ -331,7 +354,7 @@ processCredentialFile model =
             }
 
         FillInPasswordForm creds ->
-            { model
+            { reading
                 | creds = creds
                 , entryType = CredsEntry
                 , foundCredential = Nothing
@@ -339,7 +362,7 @@ processCredentialFile model =
             }
 
         CredentialFileProblem error ->
-            { model | credentialFileError = Just error, foundCredential = Nothing }
+            { reading | credentialFileError = Just error, foundCredential = Nothing }
 
 
 headerView : View.Types.Context -> Element.Element msg
@@ -364,7 +387,8 @@ view context _ model =
                 |> not
     in
     Element.column (VH.formContainer ++ [ Element.spacing spacer.px16 ])
-        [ case model.entryType of
+        [ alreadyAddedNotice context model
+        , case model.entryType of
             CredsEntry ->
                 loginOpenstackCredsEntry context model allCredsEntered
 
@@ -567,6 +591,49 @@ pastePlaceholder =
             , "export OS_APPLICATION_CREDENTIAL_SECRET=e.g. hunter2"
             ]
         )
+
+
+{-| Says so when a login landed on something the user already has, which otherwise leaves them on
+this screen with nothing to show for the button they just pressed.
+-}
+alreadyAddedNotice : View.Types.Context -> Model -> Element.Element Msg
+alreadyAddedNotice context model =
+    case model.alreadyAddedProjects of
+        [] ->
+            Element.none
+
+        projectNames ->
+            Alert.alert [ Element.width Element.fill ]
+                context.palette
+                { state = Alert.Info
+                , showIcon = True
+                , showContainer = True
+                , content =
+                    Element.paragraph []
+                        [ Element.text (alreadyAddedText context projectNames) ]
+                }
+
+
+alreadyAddedText : View.Types.Context -> List String -> String
+alreadyAddedText context projectNames =
+    case projectNames of
+        [ projectName ] ->
+            String.concat
+                [ context.localization.unitOfTenancy |> Helpers.String.toTitleCase
+                , " "
+                , projectName
+                , " is already added."
+                ]
+
+        _ ->
+            String.concat
+                [ context.localization.unitOfTenancy
+                    |> Helpers.String.pluralize
+                    |> Helpers.String.toTitleCase
+                , " "
+                , String.join ", " projectNames
+                , " are already added."
+                ]
 
 
 {-| What the last read of the pasted or dropped text found, whether that is a credential to log

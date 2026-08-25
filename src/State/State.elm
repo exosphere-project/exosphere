@@ -1040,7 +1040,9 @@ processSharedMsg sharedMsg outerModel =
                                 -- Token refresh for an app-credential project we already hold in
                                 -- this region: don't recreate project state. The same project in
                                 -- another region is a different project and is imported below.
-                                ( outerModel_, Cmd.none )
+                                -- Nothing moves on screen either, so if this was a login rather
+                                -- than a refresh, say so where the user pressed the button.
+                                noteProjectAlreadyAdded authToken.project.name outerModel_
 
                             else
                                 case ( catalogRegionIds, maybeResolvedRegionId ) of
@@ -4807,6 +4809,27 @@ processNewFloatingIp time project floatingIp =
                 (RDPP.DoHave newIps time)
                 (RDPP.NotLoading Nothing)
     }
+
+
+{-| Tells the login screen that a login landed on a project already held. A token refresh reaches
+the same place and has nothing to report, so this only writes anything when the login screen is
+what the user is looking at.
+-}
+noteProjectAlreadyAdded : String -> OuterModel -> ( OuterModel, Cmd OuterMsg )
+noteProjectAlreadyAdded projectName outerModel =
+    case outerModel.viewState of
+        NonProjectView (Login (LoginOpenstack pageModel)) ->
+            ( { outerModel
+                | viewState =
+                    NonProjectView <|
+                        Login <|
+                            LoginOpenstack (Page.LoginOpenstack.noteProjectAlreadyAdded projectName pageModel)
+              }
+            , Cmd.none
+            )
+
+        _ ->
+            ( outerModel, Cmd.none )
 
 
 {-| Several logins can be in flight at once, for instance when a clouds.yaml names more than one

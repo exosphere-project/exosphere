@@ -1,4 +1,4 @@
-module Tests.Page.LoginOpenstack exposing (cloudSelectionSuite, readCredentialFileSuite)
+module Tests.Page.LoginOpenstack exposing (alreadyAddedSuite, cloudSelectionSuite, readCredentialFileSuite)
 
 import Expect
 import OpenStack.CloudsYaml
@@ -27,6 +27,42 @@ modelWithClouds names selected =
         | clouds = List.map cloud names
         , selectedClouds = Set.fromList selected
     }
+
+
+alreadyAddedSuite : Test
+alreadyAddedSuite =
+    describe "reporting that a login landed on a project already held"
+        [ test "starts with nothing to report" <|
+            \() ->
+                Page.LoginOpenstack.init Nothing
+                    |> .alreadyAddedProjects
+                    |> Expect.equal []
+        , test "keeps every project of a batch, in the order they came back" <|
+            \() ->
+                Page.LoginOpenstack.init Nothing
+                    |> Page.LoginOpenstack.noteProjectAlreadyAdded "cloud-riders"
+                    |> Page.LoginOpenstack.noteProjectAlreadyAdded "rogue-squadron"
+                    |> .alreadyAddedProjects
+                    |> Expect.equal [ "cloud-riders", "rogue-squadron" ]
+        , test "names a project once however many times it comes back" <|
+            \() ->
+                Page.LoginOpenstack.init Nothing
+                    |> Page.LoginOpenstack.noteProjectAlreadyAdded "cloud-riders"
+                    |> Page.LoginOpenstack.noteProjectAlreadyAdded "cloud-riders"
+                    |> .alreadyAddedProjects
+                    |> Expect.equal [ "cloud-riders" ]
+        , test "reading a file again clears what the last login reported" <|
+            \() ->
+                let
+                    model =
+                        Page.LoginOpenstack.init Nothing
+                in
+                { model | credentialFileText = openrcWithAppCredential }
+                    |> Page.LoginOpenstack.noteProjectAlreadyAdded "cloud-riders"
+                    |> Page.LoginOpenstack.processCredentialFile
+                    |> .alreadyAddedProjects
+                    |> Expect.equal []
+        ]
 
 
 cloudSelectionSuite : Test
