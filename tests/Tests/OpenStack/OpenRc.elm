@@ -390,6 +390,14 @@ processOpenRcSuite =
                 """
                     |> OpenStack.OpenRc.parseOpenRcAppCredential
                     |> Expect.equal Nothing
+        , test "keep the spaces a quoted application credential was written with" <|
+            \() ->
+                """
+                export OS_APPLICATION_CREDENTIAL_ID="  abcd-efgh  "
+                export OS_APPLICATION_CREDENTIAL_SECRET=" supersecret "
+                """
+                    |> OpenStack.OpenRc.parseOpenRcAppCredential
+                    |> Expect.equal (Just (ApplicationCredential "  abcd-efgh  " " supersecret "))
         , test "report no auth URL when the file leaves it empty" <|
             \() ->
                 """

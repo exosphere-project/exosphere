@@ -53,10 +53,12 @@ the caller reports what the file is missing instead of sending the blank to Keys
 parseNonBlankVar : String -> String -> Maybe String
 parseNonBlankVar openRc varName =
     parseVar openRc varName
-        |> Maybe.map String.trim
         |> Maybe.andThen
             (\value ->
-                if String.isEmpty value then
+                -- Trimmed only to ask the question. A quoted value is whatever is between its
+                -- quotes, spaces and all, and a secret that begins or ends with one has to reach
+                -- Keystone the way the file wrote it.
+                if String.isEmpty (String.trim value) then
                     Nothing
 
                 else
