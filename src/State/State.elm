@@ -1171,6 +1171,14 @@ processSharedMsg sharedMsg outerModel =
                     -- Could not find auth token, nothing to do
                     ( outerModel, Cmd.none )
 
+        AbandonProjectRegionSelection keystoneUrl projectUuid ->
+            -- The user does not want this login after all. Retire its token, or it stays parked
+            -- with its credential and the next login walks back into the abandoned question.
+            ( outerModel, Cmd.none )
+                |> pipelineCmdOuterModelMsg (removeScopedAuthTokenWaitingRegionSelection keystoneUrl projectUuid)
+                |> pipelineCmdOuterModelMsg (removeUnscopedProject keystoneUrl projectUuid)
+                |> pipelineCmdOuterModelMsg dealWithNextWaitingToken
+
         ReceiveUnscopedAuthToken keystoneUrl ( metadata, response ) ->
             case Rest.Keystone.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
