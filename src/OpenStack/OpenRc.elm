@@ -184,6 +184,8 @@ unwrapQuotedValue quote value =
         afterOpeningQuote =
             String.dropLeft 1 value
     in
+    -- The first quote closes the value. Shell escapes are out of scope, so a value carrying an
+    -- escaped quote is refused rather than read up to the escape and silently truncated.
     case String.indexes quote afterOpeningQuote of
         closingQuoteIndex :: _ ->
             if isBlankOrComment (String.dropLeft (closingQuoteIndex + 1) afterOpeningQuote) then

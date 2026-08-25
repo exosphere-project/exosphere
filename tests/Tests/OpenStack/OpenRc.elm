@@ -289,6 +289,14 @@ processOpenRcSuite =
                     |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
                     |> .authUrl
                     |> Expect.equal ""
+        , test "that a value with an escaped quote in it is refused rather than truncated" <|
+            \() ->
+                -- Shell escapes are out of scope. Reading up to the escaped quote would hand
+                -- Keystone half a password, which is worse than saying the file cannot be read.
+                "export OS_PASSWORD=\"hunter\\\"2\"\n"
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .password
+                    |> Expect.equal ""
         , test "that a lone quote is an unclosed quote rather than an empty value" <|
             \() ->
                 "export OS_AUTH_URL=\"\n"
