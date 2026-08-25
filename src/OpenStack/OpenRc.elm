@@ -1,4 +1,4 @@
-module OpenStack.OpenRc exposing (looksLikeOpenRc, openRcUsesAppCredentialAuth, parseOpenRcAppCredential, parseOpenRcProjectName, processOpenRc)
+module OpenStack.OpenRc exposing (looksLikeOpenRc, openRcUsesAppCredentialAuth, parseOpenRcAppCredential, parseOpenRcAuthUrl, parseOpenRcProjectName, processOpenRc)
 
 import Helpers.String exposing (normalizeLineEndings)
 import OpenStack.Types as OSTypes
@@ -26,6 +26,15 @@ parseOpenRcAppCredential openRc =
 
         _ ->
             Nothing
+
+
+{-| The cloud an OpenRC file authenticates against, as the file itself gives it. Unlike
+`processOpenRc` this falls back on nothing, so a caller with no form for the user to correct can
+tell an absent auth URL apart from one the user typed somewhere else.
+-}
+parseOpenRcAuthUrl : String -> Maybe OSTypes.KeystoneUrl
+parseOpenRcAuthUrl openRc =
+    parseVar openRc "OS_AUTH_URL"
 
 
 {-| The project an OpenRC file is scoped to, when it says. Used to name what the user is about

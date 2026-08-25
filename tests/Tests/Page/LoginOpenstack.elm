@@ -87,6 +87,16 @@ export OS_APPLICATION_CREDENTIAL_ID=abcd-efgh
 """
 
 
+openrcWithAppCredentialButNoAuthUrl : String
+openrcWithAppCredentialButNoAuthUrl =
+    """#!/usr/bin/env bash
+
+export OS_AUTH_TYPE=v3applicationcredential
+export OS_APPLICATION_CREDENTIAL_ID=abcd-efgh
+export OS_APPLICATION_CREDENTIAL_SECRET=supersecret
+"""
+
+
 openrcWithPassword : String
 openrcWithPassword =
     """#!/usr/bin/env bash
@@ -181,6 +191,20 @@ export OS_APPLICATION_CREDENTIAL_SECRET=supersecret
         , test "an OpenRC file set up for application credentials but missing the secret is refused" <|
             \() ->
                 read openrcWithAppCredentialAuthButNoCredential
+                    |> Expect.equal (CredentialFileProblem IncompleteAppCredential)
+        , test "an OpenRC file with an application credential but no auth URL is refused" <|
+            \() ->
+                read openrcWithAppCredentialButNoAuthUrl
+                    |> Expect.equal (CredentialFileProblem IncompleteAppCredential)
+        , test "an application credential never borrows an auth URL already typed into the form" <|
+            \() ->
+                openrcWithAppCredentialButNoAuthUrl
+                    |> Page.LoginOpenstack.readCredentialFile
+                        { authUrl = "https://some.other.cloud:5000/v3"
+                        , userDomain = "Default"
+                        , username = "enfysnest"
+                        , password = "hunter2"
+                        }
                     |> Expect.equal (CredentialFileProblem IncompleteAppCredential)
         , test "a clouds.yaml with one cloud is ready to log in with, region included" <|
             \() ->

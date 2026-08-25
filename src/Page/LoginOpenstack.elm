@@ -260,16 +260,20 @@ readCredentialFile existingCreds contents =
 readOpenRc : OSTypes.OpenstackLogin -> String -> CredentialFileOutcome
 readOpenRc existingCreds contents =
     let
-        newCreds =
-            OpenStack.OpenRc.processOpenRc existingCreds contents
+        maybeAppCredential =
+            OpenStack.OpenRc.parseOpenRcAppCredential contents
     in
-    case OpenStack.OpenRc.parseOpenRcAppCredential contents of
-        Just appCredential ->
+    -- The auth URL is read from the file rather than from `processOpenRc`, which falls back on
+    -- whatever is sitting in the password form. There is no form to show an application
+    -- credential in, so a borrowed URL would send the credential to a cloud the user never named
+    -- and never saw.
+    case ( maybeAppCredential, OpenStack.OpenRc.parseOpenRcAuthUrl contents ) of
+        ( Just appCredential, Just authUrl ) ->
             LogInWith
                 { name =
                     OpenStack.OpenRc.parseOpenRcProjectName contents
-                        |> Maybe.withDefault (Helpers.Url.hostnameFromUrl newCreds.authUrl)
-                , authUrl = newCreds.authUrl
+                        |> Maybe.withDefault (Helpers.Url.hostnameFromUrl authUrl)
+                , authUrl = authUrl
                 , appCredential = appCredential
 
                 -- OS_REGION_NAME is deliberately not read here. Unlike a clouds.yaml entry, an
@@ -277,15 +281,15 @@ readOpenRc existingCreds contents =
                 , regionName = Nothing
                 }
 
-        Nothing ->
-            if OpenStack.OpenRc.openRcUsesAppCredentialAuth contents then
-                -- The file says it authenticates with an application credential but does not
-                -- carry a whole one, usually because the secret is only shown once and was lost.
-                -- Falling back to the password form would silently ask for the wrong thing.
+        _ ->
+            if maybeAppCredential /= Nothing || OpenStack.OpenRc.openRcUsesAppCredentialAuth contents then
+                -- The file is set up for an application credential but does not carry everything
+                -- one needs, usually because the secret is only shown once and was lost. Falling
+                -- back to the password form would silently ask for the wrong thing.
                 CredentialFileProblem IncompleteAppCredential
 
             else
-                FillInPasswordForm newCreds
+                FillInPasswordForm (OpenStack.OpenRc.processOpenRc existingCreds contents)
 
 
 readCloudsYaml : String -> CredentialFileOutcome
