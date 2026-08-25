@@ -1,6 +1,7 @@
 module OpenStack.OpenRc exposing (looksLikeOpenRc, openRcUsesAppCredentialAuth, parseOpenRcAppCredential, parseOpenRcAuthUrl, parseOpenRcProjectName, processOpenRc)
 
 import Helpers.String exposing (normalizeLineEndings)
+import List.Extra
 import OpenStack.Types as OSTypes
 
 
@@ -79,29 +80,27 @@ parseVar openRc varName =
     openRc
         |> normalizeLineEndings
         |> String.lines
-        |> List.filterMap (parseLine varName)
-        |> List.head
+        |> List.filter (assignsVar varName)
+        -- Sourcing a file runs every line, so the last assignment of a variable is the one left
+        -- standing. Picking the last line rather than the last readable value means an assignment
+        -- this parser cannot read still shadows the ones before it, instead of letting through a
+        -- value the shell would have overwritten.
+        |> List.Extra.last
+        |> Maybe.andThen (assignedValue varName)
 
 
-parseLine : String -> String -> Maybe String
-parseLine varName line =
-    let
-        trimmedLine =
-            line |> String.trim
+assignsVar : String -> String -> Bool
+assignsVar varName line =
+    String.startsWith (varName ++ "=") (line |> String.trim |> dropExport)
 
-        lineWithoutExport =
-            dropExport trimmedLine
 
-        keyPrefix =
-            varName ++ "="
-    in
-    if String.startsWith keyPrefix lineWithoutExport then
-        lineWithoutExport
-            |> String.dropLeft (String.length keyPrefix)
-            |> parseValue
-
-    else
-        Nothing
+assignedValue : String -> String -> Maybe String
+assignedValue varName line =
+    line
+        |> String.trim
+        |> dropExport
+        |> String.dropLeft (String.length varName + 1)
+        |> parseValue
 
 
 dropExport : String -> String

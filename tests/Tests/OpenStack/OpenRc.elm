@@ -223,6 +223,24 @@ processOpenRcSuite =
                     |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
                     |> .authUrl
                     |> Expect.equal ""
+        , test "that the last assignment of a variable is the one that counts" <|
+            \() ->
+                """
+                export OS_AUTH_URL=https://cell.alliance.rebel:5000/v3
+                export OS_AUTH_URL=https://rogue.squadron:5000/v3
+                """
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .authUrl
+                    |> Expect.equal "https://rogue.squadron:5000/v3"
+        , test "that an unreadable last assignment shadows a readable earlier one" <|
+            \() ->
+                """
+                export OS_PASSWORD=hunter2
+                export OS_PASSWORD=$OS_PASSWORD_INPUT
+                """
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .password
+                    |> Expect.equal ""
         , test "that a trailing comment is not part of an unquoted value" <|
             \() ->
                 """
