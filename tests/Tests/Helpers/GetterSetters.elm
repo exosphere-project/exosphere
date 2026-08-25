@@ -35,13 +35,21 @@ loginAlreadyImportedSuite =
                         |> Expect.equal True
             ]
         , describe "when the incoming region is not settled"
-            [ test "any project with that UUID counts, which is what refreshes rely on" <|
-                \() ->
-                    Helpers.GetterSetters.loginAlreadyImported Nothing [ Just "IU" ]
-                        |> Expect.equal True
-            , test "a project with no recorded region also counts" <|
+            [ test "a project stored before regions were recorded counts, which is what refreshes rely on" <|
                 \() ->
                     Helpers.GetterSetters.loginAlreadyImported Nothing [ Nothing ]
+                        |> Expect.equal True
+            , test "a project held in a named region still leaves another region to ask about" <|
+                \() ->
+                    Helpers.GetterSetters.loginAlreadyImported Nothing [ Just "IU" ]
+                        |> Expect.equal False
+            , test "several named regions still leave another region to ask about" <|
+                \() ->
+                    Helpers.GetterSetters.loginAlreadyImported Nothing [ Just "IU", Just "TACC" ]
+                        |> Expect.equal False
+            , test "one region-less project among named ones is enough" <|
+                \() ->
+                    Helpers.GetterSetters.loginAlreadyImported Nothing [ Just "IU", Nothing ]
                         |> Expect.equal True
             , test "holding nothing needs importing" <|
                 \() ->
