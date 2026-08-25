@@ -38,7 +38,7 @@ type SharedMsg
     | Batch (List SharedMsg)
     | RequestUnscopedToken OSTypes.OpenstackLogin
     | RequestProjectScopedTokenWithAppCredential OSTypes.KeystoneUrl OSTypes.ApplicationCredential (Maybe OSTypes.RegionId)
-    | ReceiveProjectScopedToken OSTypes.KeystoneUrl (Maybe OSTypes.ApplicationCredential) (Maybe OSTypes.RegionId) ( Http.Metadata, String )
+    | ReceiveProjectScopedToken OSTypes.KeystoneUrl (Maybe OSTypes.ApplicationCredential) (Maybe OSTypes.RegionId) HelperTypes.TokenRequestOrigin ( Http.Metadata, String )
     | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl ( Http.Metadata, String )
     | ReceiveUnscopedProjects OSTypes.KeystoneUrl ErrorContext (Result HttpErrorWithBody (List HelperTypes.UnscopedProviderProject))
     | ReceiveUnscopedRegions OSTypes.KeystoneUrl ErrorContext (Result HttpErrorWithBody (List HelperTypes.UnscopedProviderRegion))

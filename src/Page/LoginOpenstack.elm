@@ -29,6 +29,7 @@ import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Tag as Tag
 import Style.Widgets.Text as Text
 import Task
+import Types.HelperTypes as HelperTypes
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -320,14 +321,24 @@ readCloudsYaml contents =
 {-| Records that a login landed on a project the user already has. The login screen is the only
 place that can say so: the login itself succeeds, refreshes the token on the project already held
 and then has nothing left to do, which without a word looks exactly like a login that failed.
--}
-noteProjectAlreadyAdded : String -> Model -> Model
-noteProjectAlreadyAdded projectName model =
-    if List.member projectName model.alreadyAddedProjects then
-        model
 
-    else
-        { model | alreadyAddedProjects = model.alreadyAddedProjects ++ [ projectName ] }
+A token refresh reaches the same conclusion about the same project and is nobody's question, so it
+is dropped here. The user may well be sitting on this screen adding a second account while a
+refresh for the first one completes behind them.
+
+-}
+noteProjectAlreadyAdded : HelperTypes.TokenRequestOrigin -> String -> Model -> Model
+noteProjectAlreadyAdded origin projectName model =
+    case origin of
+        HelperTypes.TokenRefresh ->
+            model
+
+        HelperTypes.UserLogin ->
+            if List.member projectName model.alreadyAddedProjects then
+                model
+
+            else
+                { model | alreadyAddedProjects = model.alreadyAddedProjects ++ [ projectName ] }
 
 
 {-| Applies an outcome to the model. Bookkeeping only: every decision was made above.

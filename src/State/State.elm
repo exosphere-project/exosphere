@@ -942,12 +942,13 @@ processSharedMsg sharedMsg outerModel =
             ( outerModel
             , Rest.Keystone.requestScopedAuthToken
                 sharedModel.cloudCorsProxyUrl
+                HelperTypes.UserLogin
                 maybeRegionId
                 (OSTypes.AppCreds correctedAuthUrl appCredential.uuid appCredential)
             )
                 |> mapToOuterMsg
 
-        ReceiveProjectScopedToken keystoneUrl maybeAppCredential maybeRequestedRegionId ( metadata, response ) ->
+        ReceiveProjectScopedToken keystoneUrl maybeAppCredential maybeRequestedRegionId origin ( metadata, response ) ->
             case Rest.Keystone.decodeScopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
                     State.Error.processStringError
@@ -1037,12 +1038,12 @@ processSharedMsg sharedMsg outerModel =
                                     && maybeAppCredential
                                     /= Nothing
                             then
-                                -- Token refresh for an app-credential project we already hold in
-                                -- this region: don't recreate project state. The same project in
-                                -- another region is a different project and is imported below.
-                                -- Nothing moves on screen either, so if this was a login rather
-                                -- than a refresh, say so where the user pressed the button.
-                                noteProjectAlreadyAdded authToken.project.name outerModel_
+                                -- An app-credential project we already hold in this region: don't
+                                -- recreate project state. The same project in another region is a
+                                -- different project and is imported below. Nothing moves on
+                                -- screen either, so a login says so where the button was pressed
+                                -- while a refresh passes through without a word.
+                                noteProjectAlreadyAdded origin authToken.project.name outerModel_
 
                             else
                                 case ( catalogRegionIds, maybeResolvedRegionId ) of
@@ -1304,6 +1305,7 @@ processSharedMsg sharedMsg outerModel =
                         buildLoginRequest project =
                             Rest.Keystone.requestScopedAuthToken
                                 sharedModel.cloudCorsProxyUrl
+                                HelperTypes.UserLogin
                                 Nothing
                             <|
                                 OSTypes.TokenCreds
@@ -4819,19 +4821,25 @@ processNewFloatingIp time project floatingIp =
     }
 
 
-{-| Tells the login screen that a login landed on a project already held. A token refresh reaches
-the same place and has nothing to report, so this only writes anything when the login screen is
-what the user is looking at.
+{-| Tells the login screen that a login landed on a project already held.
+
+Two things have to be true before anything is written. The token has to have been asked for by the
+user, since a refresh lands here on a timer and has nothing to report; and the login screen has to
+be what the user is looking at, since a page that is not on screen has no message to show. The
+first is the real test and the second is a belt on top of it: without the first, a refresh that
+completed while the user sat on the login screen adding a second account would tell them a project
+they had not asked for was already added.
+
 -}
-noteProjectAlreadyAdded : String -> OuterModel -> ( OuterModel, Cmd OuterMsg )
-noteProjectAlreadyAdded projectName outerModel =
+noteProjectAlreadyAdded : HelperTypes.TokenRequestOrigin -> String -> OuterModel -> ( OuterModel, Cmd OuterMsg )
+noteProjectAlreadyAdded origin projectName outerModel =
     case outerModel.viewState of
         NonProjectView (Login (LoginOpenstack pageModel)) ->
             ( { outerModel
                 | viewState =
                     NonProjectView <|
                         Login <|
-                            LoginOpenstack (Page.LoginOpenstack.noteProjectAlreadyAdded projectName pageModel)
+                            LoginOpenstack (Page.LoginOpenstack.noteProjectAlreadyAdded origin projectName pageModel)
               }
             , Cmd.none
             )

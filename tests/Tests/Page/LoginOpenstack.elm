@@ -6,6 +6,7 @@ import OpenStack.Types exposing (ApplicationCredential)
 import Page.LoginOpenstack exposing (CredentialFileError(..), CredentialFileOutcome(..))
 import Set
 import Test exposing (Test, describe, test)
+import Types.HelperTypes as HelperTypes
 
 
 cloud : String -> OpenStack.CloudsYaml.CloudEntry
@@ -37,18 +38,37 @@ alreadyAddedSuite =
                 Page.LoginOpenstack.init Nothing
                     |> .alreadyAddedProjects
                     |> Expect.equal []
+        , test "a login the user asked for is reported" <|
+            \() ->
+                Page.LoginOpenstack.init Nothing
+                    |> Page.LoginOpenstack.noteProjectAlreadyAdded HelperTypes.UserLogin "cloud-riders"
+                    |> .alreadyAddedProjects
+                    |> Expect.equal [ "cloud-riders" ]
+        , test "a token refresh landing while the login screen is open is not reported" <|
+            \() ->
+                Page.LoginOpenstack.init Nothing
+                    |> Page.LoginOpenstack.noteProjectAlreadyAdded HelperTypes.TokenRefresh "cloud-riders"
+                    |> .alreadyAddedProjects
+                    |> Expect.equal []
+        , test "a refresh does not add to what a login already reported" <|
+            \() ->
+                Page.LoginOpenstack.init Nothing
+                    |> Page.LoginOpenstack.noteProjectAlreadyAdded HelperTypes.UserLogin "cloud-riders"
+                    |> Page.LoginOpenstack.noteProjectAlreadyAdded HelperTypes.TokenRefresh "rogue-squadron"
+                    |> .alreadyAddedProjects
+                    |> Expect.equal [ "cloud-riders" ]
         , test "keeps every project of a batch, in the order they came back" <|
             \() ->
                 Page.LoginOpenstack.init Nothing
-                    |> Page.LoginOpenstack.noteProjectAlreadyAdded "cloud-riders"
-                    |> Page.LoginOpenstack.noteProjectAlreadyAdded "rogue-squadron"
+                    |> Page.LoginOpenstack.noteProjectAlreadyAdded HelperTypes.UserLogin "cloud-riders"
+                    |> Page.LoginOpenstack.noteProjectAlreadyAdded HelperTypes.UserLogin "rogue-squadron"
                     |> .alreadyAddedProjects
                     |> Expect.equal [ "cloud-riders", "rogue-squadron" ]
         , test "names a project once however many times it comes back" <|
             \() ->
                 Page.LoginOpenstack.init Nothing
-                    |> Page.LoginOpenstack.noteProjectAlreadyAdded "cloud-riders"
-                    |> Page.LoginOpenstack.noteProjectAlreadyAdded "cloud-riders"
+                    |> Page.LoginOpenstack.noteProjectAlreadyAdded HelperTypes.UserLogin "cloud-riders"
+                    |> Page.LoginOpenstack.noteProjectAlreadyAdded HelperTypes.UserLogin "cloud-riders"
                     |> .alreadyAddedProjects
                     |> Expect.equal [ "cloud-riders" ]
         , test "reading a file again clears what the last login reported" <|
@@ -58,7 +78,7 @@ alreadyAddedSuite =
                         Page.LoginOpenstack.init Nothing
                 in
                 { model | credentialFileText = openrcWithAppCredential }
-                    |> Page.LoginOpenstack.noteProjectAlreadyAdded "cloud-riders"
+                    |> Page.LoginOpenstack.noteProjectAlreadyAdded HelperTypes.UserLogin "cloud-riders"
                     |> Page.LoginOpenstack.processCredentialFile
                     |> .alreadyAddedProjects
                     |> Expect.equal []

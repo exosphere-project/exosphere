@@ -27,6 +27,7 @@ module Types.HelperTypes exposing
     , SentryConfig
     , ServerResourceQtys
     , SupportableItemType(..)
+    , TokenRequestOrigin(..)
     , UnscopedProvider
     , UnscopedProviderProject
     , UnscopedProviderRegion
@@ -101,6 +102,15 @@ type HttpRequestMethod
     | Post
     | Put
     | Delete
+
+
+{-| Why a scoped auth token was asked for. The two arrive at the same place and read alike, but
+one is something the user just did and can be answered on screen, while the other happens on a
+timer behind whatever the user is doing and has to stay quiet.
+-}
+type TokenRequestOrigin
+    = UserLogin
+    | TokenRefresh
 
 
 

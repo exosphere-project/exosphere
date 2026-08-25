@@ -86,9 +86,11 @@ requestUnscopedAuthToken maybeProxyUrl creds =
 
 {-| `maybeRegionId` is the region the caller already knows this token belongs to, when it knows
 one, so that receiving the token does not have to ask a question that was already answered.
+`origin` says whether a person asked for this token or a timer did, which receiving it cannot tell
+by looking and which decides whether anything may be said on screen.
 -}
-requestScopedAuthToken : Maybe HelperTypes.Url -> Maybe OSTypes.RegionId -> OSTypes.CredentialsForAuthToken -> Cmd SharedMsg
-requestScopedAuthToken maybeProxyUrl maybeRegionId input =
+requestScopedAuthToken : Maybe HelperTypes.Url -> HelperTypes.TokenRequestOrigin -> Maybe OSTypes.RegionId -> OSTypes.CredentialsForAuthToken -> Cmd SharedMsg
+requestScopedAuthToken maybeProxyUrl origin maybeRegionId input =
     let
         requestBody =
             case input of
@@ -179,6 +181,7 @@ requestScopedAuthToken maybeProxyUrl maybeRegionId input =
                         Nothing
                 )
                 maybeRegionId
+                origin
             )
         )
 
