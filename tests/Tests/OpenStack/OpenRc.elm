@@ -207,6 +207,33 @@ processOpenRcSuite =
                     |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
                     |> .authUrl
                     |> Expect.equal ""
+        , test "that an unquoted value with a stray trailing quote fails to parse" <|
+            \() ->
+                """
+                export OS_AUTH_URL=https://cell.alliance.rebel:5000/v3"
+                """
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .authUrl
+                    |> Expect.equal ""
+        , test "that an unquoted value with a stray trailing apostrophe fails to parse" <|
+            \() ->
+                """
+                export OS_AUTH_URL=https://cell.alliance.rebel:5000/v3'
+                """
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .authUrl
+                    |> Expect.equal ""
+        , test "that a lone quote is an unclosed quote rather than an empty value" <|
+            \() ->
+                "export OS_AUTH_URL=\"\n"
+                    |> OpenStack.OpenRc.processOpenRc
+                        { authUrl = "https://cell.alliance.rebel:5000/v3"
+                        , userDomain = "Default"
+                        , username = "enfysnest"
+                        , password = "hunter2"
+                        }
+                    |> .authUrl
+                    |> Expect.equal "https://cell.alliance.rebel:5000/v3"
         , test "ensure pre-'API Version 3' can be processed " <|
             \() ->
                 openrcPreV3

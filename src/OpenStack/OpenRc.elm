@@ -125,7 +125,9 @@ parseValue rawValue =
 
         unwrapQuotedValue : String -> Maybe String
         unwrapQuotedValue quote =
-            if startsWith quote && String.endsWith quote value then
+            -- Two characters at minimum, so that a lone quote is a quote that was never closed
+            -- rather than an empty string.
+            if String.length value > 1 && startsWith quote && String.endsWith quote value then
                 Just
                     (value
                         |> String.dropLeft 1
@@ -151,6 +153,12 @@ parseValue rawValue =
     else if startsWith "'" then
         -- Single quotes are literal in bash, so '$VAR' is kept as-is
         unwrapQuotedValue "'"
+
+    else if String.endsWith "\"" value || String.endsWith "'" value then
+        -- A value that closes a quote it never opened is an unterminated string in bash too, so
+        -- it is refused rather than stored with the stray quote still on it. This is the mirror
+        -- of an opening quote that is never closed, which is already refused above.
+        Nothing
 
     else
         discardBashVariable value
