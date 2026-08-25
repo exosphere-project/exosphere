@@ -1,4 +1,4 @@
-module Helpers.Url exposing (buildProxyUrl, dataUrl, hostnameFromUrl, textDataUrl)
+module Helpers.Url exposing (buildProxyUrl, dataUrl, hostnameFromUrl, sameHost, textDataUrl)
 
 import Base64
 import OpenStack.Types as OSTypes
@@ -19,6 +19,20 @@ hostnameFromUrl urlStr =
 
         Nothing ->
             "placeholder-url-unparseable"
+
+
+{-| Whether two URLs name the same host. Used to tell one cloud from another, because the URL a
+login is made to and the URL that cloud's catalog hands back for the same service routinely differ
+in port, path and trailing slash. A URL that cannot be parsed is only ever the same host as itself.
+-}
+sameHost : HelperTypes.Url -> HelperTypes.Url -> Bool
+sameHost urlStrA urlStrB =
+    case ( Url.fromString urlStrA, Url.fromString urlStrB ) of
+        ( Just urlA, Just urlB ) ->
+            urlA.host == urlB.host
+
+        _ ->
+            urlStrA == urlStrB
 
 
 buildProxyUrl : HelperTypes.UserAppProxyHostname -> OSTypes.IpAddressValue -> Int -> Url.Protocol -> HelperTypes.UrlPath -> HelperTypes.UrlParams -> String

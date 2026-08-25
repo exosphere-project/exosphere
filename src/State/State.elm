@@ -12,6 +12,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ServerActionRequestQueue exposing (marshalServerActionRequestQueue)
 import Helpers.ServerResourceUsage
 import Helpers.String exposing (pluralize, toTitleCase)
+import Helpers.Url
 import Helpers.WebLock
 import Http
 import Json.Decode as Decode
@@ -962,10 +963,20 @@ processSharedMsg sharedMsg outerModel =
 
                 Ok authToken ->
                     let
+                        -- Two clouds can hand out the same project UUID, so the cloud is part of
+                        -- what makes this login the same project as one already held. Without it a
+                        -- login to one cloud would stamp its token, endpoints and application
+                        -- credential onto a same-numbered project on another.
+                        isSameProjectAsLogin : Project -> Bool
+                        isSameProjectAsLogin p =
+                            p.auth.project.uuid
+                                == authToken.project.uuid
+                                && Helpers.Url.sameHost keystoneUrl p.endpoints.keystone
+
                         updateTokenForExistingProjects : OuterModel -> ( OuterModel, Cmd OuterMsg )
                         updateTokenForExistingProjects outerModel_ =
                             sharedModel.projects
-                                |> List.filter (\p -> p.auth.project.uuid == authToken.project.uuid)
+                                |> List.filter isSameProjectAsLogin
                                 |> List.map
                                     (\p ->
                                         let
@@ -994,7 +1005,7 @@ processSharedMsg sharedMsg outerModel =
 
                                 matchingProjectRegionIds =
                                     outerModel_.sharedModel.projects
-                                        |> List.filter (\p -> p.auth.project.uuid == authToken.project.uuid)
+                                        |> List.filter isSameProjectAsLogin
                                         |> List.map (\p -> p.region |> Maybe.map .id)
 
                                 catalogRegionIds =
