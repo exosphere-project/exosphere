@@ -49,6 +49,24 @@ EOF
 """
 
 
+{-| A clouds.yaml may quote an OpenRC file back at us, in a comment or in a block of text, which
+puts an `OS_` assignment inside a file that is unambiguously a clouds.yaml.
+-}
+cloudsYamlQuotingOpenRc : String
+cloudsYamlQuotingOpenRc =
+    """# Generated from openrc.sh, which had:
+#   export OS_AUTH_URL=https://cell.alliance.rebel:5000/v3
+clouds:
+  cloud_riders:
+    auth:
+      auth_url: https://cell.alliance.rebel:5000/v3
+      application_credential_id: abcd-efgh
+      application_credential_secret: supersecret
+    notes: |
+      OS_PROJECT_NAME=cloud-riders
+"""
+
+
 withWindowsLineEndings : String -> String
 withWindowsLineEndings =
     String.replace "\n" "\u{000D}\n"
@@ -97,6 +115,10 @@ credentialFileSuite =
             \() ->
                 OpenStack.CredentialFile.detect openrcWithCloudsYamlHereDoc
                     |> Expect.equal OpenRcFile
+        , test "classifies a clouds.yaml that quotes an OpenRC file as clouds.yaml" <|
+            \() ->
+                OpenStack.CredentialFile.detect cloudsYamlQuotingOpenRc
+                    |> Expect.equal CloudsYamlFile
         , test "rejects a private key" <|
             \() ->
                 OpenStack.CredentialFile.detect "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAA\n-----END OPENSSH PRIVATE KEY-----\n"

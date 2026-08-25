@@ -15,14 +15,19 @@ type Kind
     | UnrecognizedFile
 
 
-{-| OpenRC is checked first because a shell script can legitimately contain a line reading
-`clouds:` at column zero, inside a here-document that writes out a clouds.yaml. A clouds.yaml
-can never assign an `OS_` variable, so there is no mirror image of that ambiguity and the order
-is safe.
+{-| A file that decodes as a clouds.yaml with a credential in it is a clouds.yaml, whatever else
+it may contain. Nothing weaker settles the question: an `OS_` assignment can appear inside a
+clouds.yaml, in a comment or a block of text, and a `clouds:` line can appear inside a shell
+script, in a here-document that writes one out. Only once the strong answer comes back empty do
+the two heuristics run, and then only to choose which of the two files the user was probably
+trying to give us, so that the message names the right one.
 -}
 detect : String -> Kind
 detect contents =
-    if OpenStack.OpenRc.looksLikeOpenRc contents then
+    if cloudsYamlIsUsable contents then
+        CloudsYamlFile
+
+    else if OpenStack.OpenRc.looksLikeOpenRc contents then
         OpenRcFile
 
     else if OpenStack.CloudsYaml.looksLikeCloudsYaml contents then
@@ -30,3 +35,13 @@ detect contents =
 
     else
         UnrecognizedFile
+
+
+cloudsYamlIsUsable : String -> Bool
+cloudsYamlIsUsable contents =
+    case OpenStack.CloudsYaml.parse contents of
+        Ok _ ->
+            True
+
+        Err _ ->
+            False
