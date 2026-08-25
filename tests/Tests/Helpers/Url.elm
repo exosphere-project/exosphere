@@ -32,6 +32,24 @@ sameHostSuite =
                     "https://alliance.rebel:5000/v3"
                     "https://cell.alliance.rebel:5000/v3"
                     |> Expect.equal False
+        , test "hosts written in different cases, which DNS does not distinguish" <|
+            \() ->
+                Helpers.Url.sameHost
+                    "https://Cell.Alliance.Rebel:5000/v3"
+                    "https://cell.alliance.rebel/identity/v3"
+                    |> Expect.equal True
+        , test "an IPv6 literal, which does not parse, matches itself written the same way" <|
+            \() ->
+                Helpers.Url.sameHost
+                    "https://[2001:db8::1]:5000/v3"
+                    "https://[2001:db8::1]:5000/v3"
+                    |> Expect.equal True
+        , test "an IPv6 literal written two ways falls back to comparing the whole string" <|
+            \() ->
+                Helpers.Url.sameHost
+                    "https://[2001:db8::1]:5000/v3"
+                    "https://[2001:db8::1]/identity/v3"
+                    |> Expect.equal False
         , test "an unparseable URL matches only itself" <|
             \() ->
                 Helpers.Url.sameHost "cell.alliance.rebel" "cell.alliance.rebel"
