@@ -21,7 +21,7 @@ processOpenRc existingCreds openRc =
 
 parseOpenRcAppCredential : String -> Maybe OSTypes.ApplicationCredential
 parseOpenRcAppCredential openRc =
-    case ( parseVar openRc "OS_APPLICATION_CREDENTIAL_ID", parseVar openRc "OS_APPLICATION_CREDENTIAL_SECRET" ) of
+    case ( parseNonBlankVar openRc "OS_APPLICATION_CREDENTIAL_ID", parseNonBlankVar openRc "OS_APPLICATION_CREDENTIAL_SECRET" ) of
         ( Just uuid, Just secret ) ->
             Just (OSTypes.ApplicationCredential uuid secret)
 
@@ -35,7 +35,7 @@ tell an absent auth URL apart from one the user typed somewhere else.
 -}
 parseOpenRcAuthUrl : String -> Maybe OSTypes.KeystoneUrl
 parseOpenRcAuthUrl openRc =
-    parseVar openRc "OS_AUTH_URL"
+    parseNonBlankVar openRc "OS_AUTH_URL"
 
 
 {-| The project an OpenRC file is scoped to, when it says. Used to name what the user is about
@@ -43,7 +43,25 @@ to log in to, so it is fine for this to be absent.
 -}
 parseOpenRcProjectName : String -> Maybe String
 parseOpenRcProjectName openRc =
-    parseVar openRc "OS_PROJECT_NAME"
+    parseNonBlankVar openRc "OS_PROJECT_NAME"
+
+
+{-| A variable that a login needs, which a file can name and still leave empty. `OS_AUTH_URL=` is
+a variable the shell would clear, not a cloud to log in to, so an empty one counts as absent and
+the caller reports what the file is missing instead of sending the blank to Keystone.
+-}
+parseNonBlankVar : String -> String -> Maybe String
+parseNonBlankVar openRc varName =
+    parseVar openRc varName
+        |> Maybe.map String.trim
+        |> Maybe.andThen
+            (\value ->
+                if String.isEmpty value then
+                    Nothing
+
+                else
+                    Just value
+            )
 
 
 {-| True when the text assigns at least one `OS_` variable, which is what makes an OpenRC file

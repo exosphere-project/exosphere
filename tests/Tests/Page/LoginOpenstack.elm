@@ -228,6 +228,17 @@ export OS_APPLICATION_CREDENTIAL_SECRET=supersecret
             \() ->
                 read openrcWithAppCredentialAuthButNoCredential
                     |> Expect.equal (CredentialFileProblem IncompleteAppCredential)
+        , test "an OpenRC file whose application credential is left empty is refused" <|
+            \() ->
+                """#!/usr/bin/env bash
+
+export OS_AUTH_TYPE=v3applicationcredential
+export OS_AUTH_URL=https://cell.alliance.rebel:5000/v3
+export OS_APPLICATION_CREDENTIAL_ID=abcd-efgh
+export OS_APPLICATION_CREDENTIAL_SECRET=
+"""
+                    |> read
+                    |> Expect.equal (CredentialFileProblem IncompleteAppCredential)
         , test "an OpenRC file with an application credential but no auth URL is refused" <|
             \() ->
                 read openrcWithAppCredentialButNoAuthUrl

@@ -374,6 +374,37 @@ processOpenRcSuite =
                 """
                     |> OpenStack.OpenRc.parseOpenRcAppCredential
                     |> Expect.equal Nothing
+        , test "do not parse app credential when the id is empty" <|
+            \() ->
+                """
+                export OS_APPLICATION_CREDENTIAL_ID=
+                export OS_APPLICATION_CREDENTIAL_SECRET=supersecret
+                """
+                    |> OpenStack.OpenRc.parseOpenRcAppCredential
+                    |> Expect.equal Nothing
+        , test "do not parse app credential when the secret is quoted whitespace" <|
+            \() ->
+                """
+                export OS_APPLICATION_CREDENTIAL_ID=abcd-efgh
+                export OS_APPLICATION_CREDENTIAL_SECRET="   "
+                """
+                    |> OpenStack.OpenRc.parseOpenRcAppCredential
+                    |> Expect.equal Nothing
+        , test "report no auth URL when the file leaves it empty" <|
+            \() ->
+                """
+                export OS_AUTH_URL=""
+                export OS_APPLICATION_CREDENTIAL_ID=abcd-efgh
+                """
+                    |> OpenStack.OpenRc.parseOpenRcAuthUrl
+                    |> Expect.equal Nothing
+        , test "report no project name when the file leaves it empty" <|
+            \() ->
+                """
+                export OS_PROJECT_NAME=
+                """
+                    |> OpenStack.OpenRc.parseOpenRcProjectName
+                    |> Expect.equal Nothing
         , test "detect app credential auth type from OpenRC" <|
             \() ->
                 openrcAppCredential
