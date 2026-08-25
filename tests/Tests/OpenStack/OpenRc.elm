@@ -223,6 +223,54 @@ processOpenRcSuite =
                     |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
                     |> .authUrl
                     |> Expect.equal ""
+        , test "that a trailing comment is not part of an unquoted value" <|
+            \() ->
+                """
+                export OS_AUTH_URL=https://cell.alliance.rebel:5000/v3 # the identity endpoint
+                """
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .authUrl
+                    |> Expect.equal "https://cell.alliance.rebel:5000/v3"
+        , test "that a trailing comment is not part of a quoted value" <|
+            \() ->
+                """
+                export OS_AUTH_URL="https://cell.alliance.rebel:5000/v3" # the identity endpoint
+                """
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .authUrl
+                    |> Expect.equal "https://cell.alliance.rebel:5000/v3"
+        , test "that a hash inside a word is part of the value" <|
+            \() ->
+                """
+                export OS_PASSWORD=hunter#2
+                """
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .password
+                    |> Expect.equal "hunter#2"
+        , test "that a hash inside quotes is part of the value" <|
+            \() ->
+                """
+                export OS_PASSWORD="hunter # 2"
+                """
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .password
+                    |> Expect.equal "hunter # 2"
+        , test "that a comment does not hide an application credential" <|
+            \() ->
+                """
+                export OS_APPLICATION_CREDENTIAL_ID=abcd-efgh # created 2026-08-01
+                export OS_APPLICATION_CREDENTIAL_SECRET="supersecret" # keep this safe
+                """
+                    |> OpenStack.OpenRc.parseOpenRcAppCredential
+                    |> Expect.equal (Just (ApplicationCredential "abcd-efgh" "supersecret"))
+        , test "that text after a closing quote is refused rather than guessed at" <|
+            \() ->
+                """
+                export OS_AUTH_URL="https://cell.alliance.rebel:5000/v3" and more
+                """
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .authUrl
+                    |> Expect.equal ""
         , test "that a lone quote is an unclosed quote rather than an empty value" <|
             \() ->
                 "export OS_AUTH_URL=\"\n"

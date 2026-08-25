@@ -116,26 +116,9 @@ dropExport line =
 parseValue : String -> Maybe String
 parseValue rawValue =
     let
+        value : String
         value =
             rawValue |> String.trim
-
-        startsWith : String -> Bool
-        startsWith prefix =
-            String.startsWith prefix value
-
-        unwrapQuotedValue : String -> Maybe String
-        unwrapQuotedValue quote =
-            -- Two characters at minimum, so that a lone quote is a quote that was never closed
-            -- rather than an empty string.
-            if String.length value > 1 && startsWith quote && String.endsWith quote value then
-                Just
-                    (value
-                        |> String.dropLeft 1
-                        |> String.dropRight 1
-                    )
-
-            else
-                Nothing
 
         discardBashVariable : String -> Maybe String
         discardBashVariable unwrapped =
@@ -146,19 +129,72 @@ parseValue rawValue =
             else
                 Just unwrapped
     in
-    if startsWith "\"" then
+    if String.startsWith "\"" value then
         -- Bash expands variables inside double quotes, so "$VAR" is discarded like a bare $VAR
-        unwrapQuotedValue "\"" |> Maybe.andThen discardBashVariable
+        unwrapQuotedValue "\"" value |> Maybe.andThen discardBashVariable
 
-    else if startsWith "'" then
+    else if String.startsWith "'" value then
         -- Single quotes are literal in bash, so '$VAR' is kept as-is
-        unwrapQuotedValue "'"
-
-    else if String.endsWith "\"" value || String.endsWith "'" value then
-        -- A value that closes a quote it never opened is an unterminated string in bash too, so
-        -- it is refused rather than stored with the stray quote still on it. This is the mirror
-        -- of an opening quote that is never closed, which is already refused above.
-        Nothing
+        unwrapQuotedValue "'" value
 
     else
-        discardBashVariable value
+        let
+            unquoted : String
+            unquoted =
+                dropTrailingComment value
+        in
+        if String.endsWith "\"" unquoted || String.endsWith "'" unquoted then
+            -- A value that closes a quote it never opened is an unterminated string in bash too,
+            -- so it is refused rather than stored with the stray quote still on it. This is the
+            -- mirror of an opening quote that is never closed, refused below.
+            Nothing
+
+        else
+            discardBashVariable unquoted
+
+
+{-| The text between an opening quote and its match, given a value that starts with one. What
+follows the closing quote may only be a comment: anything else is a construct this parser does not
+understand, and guessing at it would be worse than refusing the line. A quote that is never closed
+is refused for the same reason bash refuses it.
+-}
+unwrapQuotedValue : String -> String -> Maybe String
+unwrapQuotedValue quote value =
+    let
+        afterOpeningQuote : String
+        afterOpeningQuote =
+            String.dropLeft 1 value
+    in
+    case String.indexes quote afterOpeningQuote of
+        closingQuoteIndex :: _ ->
+            if isBlankOrComment (String.dropLeft (closingQuoteIndex + 1) afterOpeningQuote) then
+                Just (String.left closingQuoteIndex afterOpeningQuote)
+
+            else
+                Nothing
+
+        [] ->
+            Nothing
+
+
+{-| Everything an unquoted value has before a trailing comment. A `#` only opens a comment in bash
+when it starts a word, so `pass#word` keeps its hash while `password # note` does not.
+-}
+dropTrailingComment : String -> String
+dropTrailingComment value =
+    case List.minimum (String.indexes " #" value ++ String.indexes "\t#" value) of
+        Just commentIndex ->
+            value |> String.left commentIndex |> String.trimRight
+
+        Nothing ->
+            value
+
+
+isBlankOrComment : String -> Bool
+isBlankOrComment text =
+    let
+        trimmed : String
+        trimmed =
+            String.trimLeft text
+    in
+    String.isEmpty trimmed || String.startsWith "#" trimmed
