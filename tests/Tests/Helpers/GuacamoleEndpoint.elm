@@ -1,8 +1,8 @@
 module Tests.Helpers.GuacamoleEndpoint exposing (guacamoleEndpointSuite)
 
 import Expect
-import Helpers.GuacamoleEndpoint exposing (GuacEndpoint(..), buildUrl, guacUpstreamPort, resolve)
-import Helpers.Url exposing (buildDirectUrl, buildProxyUrl)
+import Helpers.GuacamoleEndpoint exposing (Endpoint(..), buildUrl, guacUpstreamPort, resolve)
+import Helpers.Url exposing (buildProxyUrl)
 import Test exposing (Test, describe, test)
 import Url
 import Url.Builder
@@ -48,12 +48,8 @@ guacamoleEndpointSuite =
                         |> Expect.equal "https://http-10-0-0-5-49528.proxy.example.com/guacamole/api/tokens"
             , test "Sends the direct endpoint to the instance over HTTPS on port 443" <|
                 \() ->
-                    let
-                        path =
-                            [ "guacamole", "api", "tokens" ]
-                    in
-                    buildUrl (Direct "2001:db8::1") path []
-                        |> Expect.equal (buildDirectUrl "2001:db8::1" 443 path [])
+                    buildUrl (Direct "2001:db8::1") [ "guacamole", "api", "tokens" ] []
+                        |> Expect.equal "https://[2001:db8::1]/guacamole/api/tokens"
             ]
         , test "Guacamole listens on port 49528" <|
             \() ->

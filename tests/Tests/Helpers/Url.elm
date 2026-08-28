@@ -32,6 +32,13 @@ urlSuite =
                   , params = []
                   , expected = "https://[2001:db8::1]/guacamole"
                   }
+                , { description = "Brackets an IPv4-mapped IPv6 address"
+                  , destinationIp = "::ffff:192.0.2.128"
+                  , port_ = 443
+                  , path = [ "guacamole" ]
+                  , params = []
+                  , expected = "https://[::ffff:192.0.2.128]/guacamole"
+                  }
                 , { description = "Brackets a fully expanded IPv6 address"
                   , destinationIp = "2001:0db8:0000:0000:0000:ff00:0042:8329"
                   , port_ = 443

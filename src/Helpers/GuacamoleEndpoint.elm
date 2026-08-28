@@ -1,4 +1,4 @@
-module Helpers.GuacamoleEndpoint exposing (GuacEndpoint(..), buildUrl, guacUpstreamPort, resolve)
+module Helpers.GuacamoleEndpoint exposing (Endpoint(..), buildUrl, guacUpstreamPort, resolve)
 
 {-| How the browser reaches the Guacamole server running on an instance. Today it always goes
 through the cloud's user application proxy, which terminates TLS and forwards to the instance.
@@ -12,7 +12,10 @@ import Types.HelperTypes as HelperTypes
 import Url
 
 
-type GuacEndpoint
+{-| A way to reach Guacamole on an instance: through the cloud's user application proxy, or
+directly at one of the instance's own addresses.
+-}
+type Endpoint
     = ViaUserAppProxy HelperTypes.UserAppProxyHostname OSTypes.IpAddressValue
     | Direct OSTypes.IpAddressValue
 
@@ -24,7 +27,10 @@ guacUpstreamPort =
     49528
 
 
-resolve : Maybe HelperTypes.UserAppProxyHostname -> Maybe OSTypes.IpAddressValue -> Maybe GuacEndpoint
+{-| Decide how to reach Guacamole from what is known about the cloud and the instance.
+Returns `Nothing` when Guacamole is not reachable at all.
+-}
+resolve : Maybe HelperTypes.UserAppProxyHostname -> Maybe OSTypes.IpAddressValue -> Maybe Endpoint
 resolve maybeProxyHostname maybeIpAddress =
     case ( maybeProxyHostname, maybeIpAddress ) of
         ( Just proxyHostname, Just ipAddress ) ->
@@ -34,7 +40,9 @@ resolve maybeProxyHostname maybeIpAddress =
             Nothing
 
 
-buildUrl : GuacEndpoint -> HelperTypes.UrlPath -> HelperTypes.UrlParams -> String
+{-| Build a URL to the given path and query parameters on Guacamole, however it is reached.
+-}
+buildUrl : Endpoint -> HelperTypes.UrlPath -> HelperTypes.UrlParams -> String
 buildUrl endpoint =
     case endpoint of
         ViaUserAppProxy proxyHostname ipAddress ->

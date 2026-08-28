@@ -677,7 +677,7 @@ stepServerNeedsConsoleUrl project server =
 stepServerGuacamoleAuth : Time.Posix -> Maybe UserAppProxyHostname -> Project -> Server -> ( Project, Cmd SharedMsg )
 stepServerGuacamoleAuth time maybeUserAppProxy project server =
     let
-        doRequestToken : String -> GuacamoleEndpoint.GuacEndpoint -> ServerFromExoProps -> GuacTypes.LaunchedWithGuacProps -> ( Project, Cmd SharedMsg )
+        doRequestToken : String -> GuacamoleEndpoint.Endpoint -> ServerFromExoProps -> GuacTypes.LaunchedWithGuacProps -> ( Project, Cmd SharedMsg )
         doRequestToken passphrase guacEndpoint oldExoOriginProps oldGuacProps =
             let
                 oldAuthToken =
