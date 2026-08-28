@@ -337,8 +337,11 @@ imageView model context project imageRecord =
                                     imageRecord.image.uuid
                                     imageRecord.image.name
                                     Nothing
-                                    (GetterSetters.getUserAppProxyFromContext project context
-                                        |> Maybe.map (\_ -> True)
+                                    (if GetterSetters.isGuacamoleSupported project context then
+                                        Just True
+
+                                     else
+                                        Nothing
                                     )
                     in
                     Element.link []

@@ -72,8 +72,11 @@ view context project instanceTypes =
                                     image.uuid
                                     image.name
                                     instanceTypeVersion.restrictFlavorIds
-                                    (GetterSetters.getUserAppProxyFromContext project context
-                                        |> Maybe.map (\_ -> True)
+                                    (if GetterSetters.isGuacamoleSupported project context then
+                                        Just True
+
+                                     else
+                                        Nothing
                                     )
 
                         buttonStyleProto =
