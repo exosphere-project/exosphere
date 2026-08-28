@@ -4,6 +4,7 @@ import Element
 import FeatherIcons as Icons
 import Helpers.Cidr as Cidr
 import Helpers.GetterSetters as GetterSetters
+import Helpers.GuacamoleEndpoint as GuacamoleEndpoint
 import Helpers.Helpers as Helpers
 import Helpers.Image
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -449,12 +450,9 @@ serverFromExoGuacStatus project server context currentTime tlsReverseProxyHostna
             else
                 case guacProps.authToken.data of
                     RDPP.DoHave token _ ->
-                        case ( tlsReverseProxyHostname, maybeFloatingIpAddress ) of
-                            ( Just proxyHostname, Just floatingIp ) ->
+                        case GuacamoleEndpoint.resolve tlsReverseProxyHostname maybeFloatingIpAddress of
+                            Just guacEndpoint ->
                                 let
-                                    guacUpstreamPort =
-                                        49528
-
                                     connectionStringBase64 =
                                         -- Per https://sourceforge.net/p/guacamole/discussion/1110834/thread/fb609070/
                                         case guacType of
@@ -467,26 +465,25 @@ serverFromExoGuacStatus project server context currentTime tlsReverseProxyHostna
                                                 "ZGVza3RvcABjAGRlZmF1bHQ="
                                 in
                                 ITypes.Ready <|
-                                    UrlHelpers.buildProxyUrl
-                                        proxyHostname
-                                        floatingIp
-                                        guacUpstreamPort
-                                        Url.Http
+                                    GuacamoleEndpoint.buildUrl
+                                        guacEndpoint
                                         [ "guacamole", "#", "client", connectionStringBase64 ]
                                         [ Url.Builder.string "token" token ]
 
-                            ( Nothing, _ ) ->
-                                ITypes.Unavailable "Cannot find TLS-terminating reverse proxy server"
+                            Nothing ->
+                                case tlsReverseProxyHostname of
+                                    Nothing ->
+                                        ITypes.Unavailable "Cannot find TLS-terminating reverse proxy server"
 
-                            ( _, Nothing ) ->
-                                ITypes.Unavailable <|
-                                    String.join " "
-                                        [ context.localization.virtualComputer
-                                            |> Helpers.String.toTitleCase
-                                        , "does not have"
-                                        , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
-                                        , context.localization.floatingIpAddress
-                                        ]
+                                    Just _ ->
+                                        ITypes.Unavailable <|
+                                            String.join " "
+                                                [ context.localization.virtualComputer
+                                                    |> Helpers.String.toTitleCase
+                                                , "does not have"
+                                                , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
+                                                , context.localization.floatingIpAddress
+                                                ]
 
                     RDPP.DontHave ->
                         if hasRecentServerEvent project server currentTime then
