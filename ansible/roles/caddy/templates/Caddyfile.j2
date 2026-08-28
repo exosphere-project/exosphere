@@ -66,9 +66,9 @@ https://{{ caddy_floating_ipv4 }} {
 	import guacamole_site
 }
 {% endif %}
-{% if caddy_global_ipv6 | length > 0 %}
+{% for caddy_global_ipv6 in caddy_global_ipv6_list %}
 
 https://[{{ caddy_global_ipv6 }}] {
 	import guacamole_site
 }
-{% endif %}
+{% endfor %}
