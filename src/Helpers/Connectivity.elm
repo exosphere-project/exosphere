@@ -1,5 +1,6 @@
 module Helpers.Connectivity exposing (ConnectionEtherType(..), ConnectionPorts(..), ConnectionRemote(..), ConnectivityRule, incomingGuacamoleRule, incomingSshRule, incomingVncRule, isConnectionPermitted, outgoingDnsTcpRule, outgoingDnsUdpRule, outgoingHttpRule, outgoingHttpsRule, securityGroupRuleTemplateToConnectivtyRule)
 
+import Helpers.GuacamoleEndpoint as GuacamoleEndpoint
 import Helpers.String exposing (removeEmptiness)
 import OpenStack.SecurityGroupRule exposing (Remote(..), SecurityGroupRule, SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype, SecurityGroupRuleProtocol(..), SecurityGroupRuleTemplate, getRemote, portRangeSubsumedBy, protocolSubsumedBy, remoteMatch)
 import View.Types exposing (Context)
@@ -198,7 +199,7 @@ incomingGuacamoleRule context =
     { ethertype = SomeEtherType
     , direction = Ingress
     , protocol = Just ProtocolTcp
-    , ports = PortRange 49528 49528
+    , ports = PortRange GuacamoleEndpoint.guacUpstreamPort GuacamoleEndpoint.guacUpstreamPort
     , remote = SomeRemote
     , description =
         Just <|

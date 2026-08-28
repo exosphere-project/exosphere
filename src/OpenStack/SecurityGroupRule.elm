@@ -373,6 +373,8 @@ buildRuleSshIPv6 =
 
 buildRuleGuacamole : SecurityGroupRuleTemplate
 buildRuleGuacamole =
+    -- This is Helpers.GuacamoleEndpoint.guacUpstreamPort, spelled out because importing that module
+    -- here would make an import cycle back through OpenStack.Types. Keep the two in step.
     buildRuleTcpIngress Ipv4 49528 "Guacamole"
 
 
