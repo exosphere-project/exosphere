@@ -28,9 +28,8 @@ import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Style.Widgets.Validation as Validation
 import Time
-import Types.Guacamole exposing (ServerGuacamoleStatus(..))
 import Types.Project exposing (Project)
-import Types.Server exposing (Server, ServerOrigin(..))
+import Types.Server exposing (Server)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Forms as Forms
@@ -261,23 +260,10 @@ serversTable context project { servers, progress, currentTime } =
                                                     -- because an empty rule list will imply no incoming/outgoing connections are allowed.
                                                     |> Maybe.map (List.concatMap .rules)
 
-                                            ( guacamoleRequired, vncRequired ) =
-                                                case server.exoProps.serverOrigin of
-                                                    ServerFromExo serverFromExo ->
-                                                        case serverFromExo.guacamoleStatus of
-                                                            LaunchedWithGuacamole props ->
-                                                                ( True, props.vncSupported )
-
-                                                            _ ->
-                                                                ( False, False )
-
-                                                    _ ->
-                                                        ( False, False )
-
                                             { isConnectivityBroken, connectivityChecks } =
                                                 VH.isConnectivityBroken context
                                                     (maybeSecurityGroupRules |> Maybe.withDefault [])
-                                                    { guacamoleRequired = guacamoleRequired, vncRequired = vncRequired }
+                                                    (VH.guacamoleConnectivityRequirements context project server)
                                         in
                                         if isConnectivityBroken && maybeSecurityGroupRules /= Nothing then
                                             let

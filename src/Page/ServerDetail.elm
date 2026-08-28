@@ -58,7 +58,6 @@ import Time
 import Types.Error exposing (HttpErrorWithBody)
 import Types.ExtensionApproval as ExtensionApproval exposing (ExtensionApproval)
 import Types.ExtensionBatch as ExtensionBatch exposing (ExtensionBatch)
-import Types.Guacamole exposing (ServerGuacamoleStatus(..))
 import Types.HelperTypes exposing (FloatingIpOption(..), ProjectIdentifier, ServerResourceQtys, UserAppProxyHostname)
 import Types.Interaction as ITypes
 import Types.Project exposing (Project)
@@ -3057,23 +3056,10 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                         -- because an empty rule list will imply no incoming/outgoing connections are allowed.
                         |> Maybe.map (List.concatMap .rules)
 
-                ( guacamoleRequired, vncRequired ) =
-                    case server.exoProps.serverOrigin of
-                        ServerFromExo serverFromExo ->
-                            case serverFromExo.guacamoleStatus of
-                                LaunchedWithGuacamole props ->
-                                    ( True, props.vncSupported )
-
-                                _ ->
-                                    ( False, False )
-
-                        _ ->
-                            ( False, False )
-
                 { isConnectivityBroken, connectivityChecks } =
                     VH.isConnectivityBroken context
                         (maybeSecurityGroupRules |> Maybe.withDefault [])
-                        { guacamoleRequired = guacamoleRequired, vncRequired = vncRequired }
+                        (VH.guacamoleConnectivityRequirements context project server)
 
                 -- Don't show connectivity warnings when security group data may be unreliable or changing (esp. while building).
                 serverUiStatus =

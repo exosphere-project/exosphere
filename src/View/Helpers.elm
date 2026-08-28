@@ -28,6 +28,7 @@ module View.Helpers exposing
     , getServerUiStatus
     , getServerUiStatusBadgeState
     , getServerUiStatusStr
+    , guacamoleConnectivityRequirements
     , headerHeadingAttributes
     , hint
     , inputItemAttributes
@@ -130,6 +131,7 @@ import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip as ToggleTip
 import Time
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
+import Types.Guacamole exposing (ServerGuacamoleStatus(..))
 import Types.HelperTypes exposing (Localization)
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoSetupStatus(..), Server, ServerOrigin(..), ServerUiStatus(..))
@@ -2184,10 +2186,43 @@ remoteToStringInput remote =
            )
 
 
+{-| What an already-launched instance needs open for its Guacamole to work, in the shape
+`isConnectivityBroken` takes.
+-}
+guacamoleConnectivityRequirements :
+    View.Types.Context
+    -> Project
+    -> Server
+    -> { guacamoleRequired : Maybe Helpers.Connectivity.GuacamoleAccess, vncRequired : Bool }
+guacamoleConnectivityRequirements context project server =
+    case server.exoProps.serverOrigin of
+        ServerFromExo serverFromExo ->
+            case serverFromExo.guacamoleStatus of
+                LaunchedWithGuacamole guacProps ->
+                    { guacamoleRequired =
+                        Just <|
+                            if GetterSetters.getDirectGuacamoleFromContext project context && guacProps.tlsSupported then
+                                Helpers.Connectivity.GuacamoleDirect
+
+                            else
+                                Helpers.Connectivity.GuacamoleThroughUserAppProxy
+                    , vncRequired = guacProps.vncSupported
+                    }
+
+                NotLaunchedWithGuacamole ->
+                    { guacamoleRequired = Nothing, vncRequired = False }
+
+        ServerNotFromExo ->
+            { guacamoleRequired = Nothing, vncRequired = False }
+
+
+{-| `guacamoleRequired` is `Nothing` when the instance was not deployed with Guacamole, and
+otherwise says how the browser reaches it, because that decides which port has to be open.
+-}
 isConnectivityBroken :
     View.Types.Context
     -> List SecurityGroupRule
-    -> { guacamoleRequired : Bool, vncRequired : Bool }
+    -> { guacamoleRequired : Maybe Helpers.Connectivity.GuacamoleAccess, vncRequired : Bool }
     -> { connectivityChecks : List ( Helpers.Connectivity.ConnectivityRule, Bool ), isConnectivityBroken : Bool }
 isConnectivityBroken context rules { guacamoleRequired, vncRequired } =
     let
@@ -2198,17 +2233,18 @@ isConnectivityBroken context rules { guacamoleRequired, vncRequired } =
              , Helpers.Connectivity.outgoingDnsTcpRule
              , Helpers.Connectivity.incomingSshRule context
              ]
-                ++ (if guacamoleRequired then
-                        Helpers.Connectivity.incomingGuacamoleRule context
-                            :: (if vncRequired then
-                                    [ Helpers.Connectivity.incomingVncRule context ]
+                ++ (case guacamoleRequired of
+                        Just guacamoleAccess ->
+                            Helpers.Connectivity.incomingGuacamoleRule context guacamoleAccess
+                                :: (if vncRequired then
+                                        [ Helpers.Connectivity.incomingVncRule context ]
 
-                                else
-                                    []
-                               )
+                                    else
+                                        []
+                                   )
 
-                    else
-                        []
+                        Nothing ->
+                            []
                    )
             )
                 |> List.map (\c -> ( c, Helpers.Connectivity.isConnectionPermitted c rules ))

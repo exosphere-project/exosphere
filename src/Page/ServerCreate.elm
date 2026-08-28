@@ -9,6 +9,7 @@ import Element.Input as Input
 import FeatherIcons as Icons
 import FormatNumber
 import FormatNumber.Locales exposing (Decimals(..))
+import Helpers.Connectivity
 import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters exposing (isDefaultSecurityGroup)
 import Helpers.Helpers as Helpers
@@ -1988,7 +1989,21 @@ securityGroupPicker context project model =
                 { isConnectivityBroken, connectivityChecks } =
                     VH.isConnectivityBroken context
                         (maybeSecurityGroupRules |> Maybe.withDefault [])
-                        { guacamoleRequired = model.deployGuacamole == Just True, vncRequired = model.deployDesktopEnvironment }
+                        { guacamoleRequired =
+                            if model.deployGuacamole == Just True then
+                                -- This instance does not exist yet, so it will be deployed to serve
+                                -- Guacamole itself exactly when the cloud is set up for that.
+                                Just <|
+                                    if GetterSetters.getDirectGuacamoleFromContext project context then
+                                        Helpers.Connectivity.GuacamoleDirect
+
+                                    else
+                                        Helpers.Connectivity.GuacamoleThroughUserAppProxy
+
+                            else
+                                Nothing
+                        , vncRequired = model.deployDesktopEnvironment
+                        }
             in
             if isConnectivityBroken && maybeSecurityGroupRules /= Nothing then
                 Alert.alert []
