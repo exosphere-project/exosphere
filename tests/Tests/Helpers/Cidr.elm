@@ -1,7 +1,7 @@
-module Tests.Helpers.Cidr exposing (cidrSuite)
+module Tests.Helpers.Cidr exposing (cidrSuite, globalUnicastIPv6Suite)
 
 import Expect
-import Helpers.Cidr exposing (expandIPv6, isValidCidr)
+import Helpers.Cidr exposing (expandIPv6, isGlobalUnicastIPv6, isValidCidr)
 import OpenStack.SecurityGroupRule exposing (SecurityGroupRuleEthertype(..))
 import Test exposing (Test, describe, test)
 
@@ -151,3 +151,56 @@ cidrSuite =
         , test "isValidCidr for Unsupported Ether Types" <|
             \_ -> Expect.equal (isValidCidr (UnsupportedEthertype "IPv7") "192.0.0.127.0.0.1.1") False
         ]
+
+
+globalUnicastIPv6Suite : Test
+globalUnicastIPv6Suite =
+    let
+        testCases =
+            [ ( "2001:db8::1", True )
+            , ( "2001:0db8:0000:0000:0000:ff00:0042:8329", True )
+            , ( "2600:1f14:1234:5678::1", True )
+            , ( "3fff:ffff::1", True )
+
+            -- Link-local, which Neutron reports alongside the rest and a browser cannot reach.
+            , ( "fe80::f816:3eff:fe1c:2b0a", False )
+            , ( "febf::1", False )
+
+            -- Unique-local, routable inside the cloud but not from the internet.
+            , ( "fc00::1", False )
+            , ( "fd12:3456:789a::1", False )
+
+            -- Loopback, unspecified, multicast, and the rest of the reserved space.
+            , ( "::1", False )
+            , ( "::", False )
+            , ( "ff02::1", False )
+            , ( "4000::1", False )
+            , ( "1000::1", False )
+
+            -- Not IPv6 at all.
+            , ( "10.0.0.5", False )
+            , ( "not-an-address", False )
+            , ( "", False )
+            , ( "2001:db8::1::2", False )
+            , ( "2001:zzzz::1", False )
+
+            -- Case does not matter.
+            , ( "2001:DB8::1", True )
+            , ( "FE80::1", False )
+            ]
+    in
+    describe "Recognising globally routable IPv6 addresses" <|
+        List.map
+            (\( ipAddress, expected ) ->
+                test
+                    (ipAddress
+                        ++ (if expected then
+                                " is global unicast"
+
+                            else
+                                " is not global unicast"
+                           )
+                    )
+                    (\_ -> Expect.equal expected (isGlobalUnicastIPv6 ipAddress))
+            )
+            testCases

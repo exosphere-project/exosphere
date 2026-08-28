@@ -57,6 +57,11 @@ goalPollServers time maybeCloudSpecificConfig viewState project =
             maybeCloudSpecificConfig
                 |> Maybe.andThen (GetterSetters.getUserAppProxyFromCloudSpecificConfig project)
 
+        directGuacamole =
+            maybeCloudSpecificConfig
+                |> Maybe.map .directGuacamole
+                |> Maybe.withDefault False
+
         steps =
             [ stepServerPoll time
             , stepServerPollConsoleLog time
@@ -64,7 +69,7 @@ goalPollServers time maybeCloudSpecificConfig viewState project =
             , stepServerPollVolumeAttachments time viewState
             , stepServerPollSecurityGroups time viewState
             , stepServerNeedsConsoleUrl
-            , stepServerGuacamoleAuth time userAppProxy
+            , stepServerGuacamoleAuth time userAppProxy directGuacamole
             ]
     in
     List.foldl
@@ -674,8 +679,8 @@ stepServerNeedsConsoleUrl project server =
         doNothing project
 
 
-stepServerGuacamoleAuth : Time.Posix -> Maybe UserAppProxyHostname -> Project -> Server -> ( Project, Cmd SharedMsg )
-stepServerGuacamoleAuth time maybeUserAppProxy project server =
+stepServerGuacamoleAuth : Time.Posix -> Maybe UserAppProxyHostname -> Bool -> Project -> Server -> ( Project, Cmd SharedMsg )
+stepServerGuacamoleAuth time maybeUserAppProxy directGuacamole project server =
     let
         doRequestToken : String -> GuacamoleEndpoint.Endpoint -> ServerFromExoProps -> GuacTypes.LaunchedWithGuacProps -> ( Project, Cmd SharedMsg )
         doRequestToken passphrase guacEndpoint oldExoOriginProps oldGuacProps =
@@ -732,11 +737,16 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
 
                 GuacTypes.LaunchedWithGuacamole launchedWithGuacProps ->
                     case
-                        ( GuacamoleEndpoint.resolve maybeUserAppProxy
-                            (GetterSetters.getServerFloatingIps project server.osProps.uuid
-                                |> List.map .address
-                                |> List.head
-                            )
+                        ( GuacamoleEndpoint.resolve
+                            { directGuacamole = directGuacamole
+                            , tlsSupported = launchedWithGuacProps.tlsSupported
+                            , userAppProxyHostname = maybeUserAppProxy
+                            , floatingIpAddress =
+                                GetterSetters.getServerFloatingIps project server.osProps.uuid
+                                    |> List.map .address
+                                    |> List.head
+                            , fixedIpAddresses = GetterSetters.getServerFixedIps project server.osProps.uuid
+                            }
                         , GetterSetters.getServerExouserPassphrase server.osProps.details
                         )
                     of
