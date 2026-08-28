@@ -1,0 +1,82 @@
+---
+
+- name: '/etc/apt/keyrings directory created'
+  file:
+    path: '/etc/apt/keyrings'
+    state: 'directory'
+    owner: 'root'
+    group: 'root'
+    mode: '0755'
+
+- name: 'Caddy GPG key added'
+  get_url:
+    url: 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key'
+    dest: '/etc/apt/keyrings/caddy-stable.asc'
+    mode: '0644'
+
+- name: 'Caddy repository added'
+  apt_repository:
+    repo: 'deb [signed-by=/etc/apt/keyrings/caddy-stable.asc] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main'
+    state: 'present'
+    filename: 'caddy-stable'
+    update_cache: 'true'
+  # Refreshing the package lists needs the APT lock
+  register: 'apt_status'
+  until: 'apt_status is success'
+  delay: 10
+  retries: 60
+
+- name: 'Caddy package installed'
+  apt:
+    name:
+      - 'caddy'
+    state: 'present'
+  # This stuff waits for APT/dpkg lock if unattended upgrades are running
+  register: 'apt_status'
+  until: 'apt_status is success'
+  delay: 10
+  retries: 60
+
+# The floating IP is not on any local interface, because the instance sits
+# behind NAT, so the only place to learn it is the OpenStack metadata service.
+# A cloud without floating IPs answers with something other than 200, or with
+# an empty body, and that is not an error here.
+- name: 'Floating IPv4 address queried from the OpenStack metadata service'
+  uri:
+    url: 'http://169.254.169.254/latest/meta-data/public-ipv4'
+    return_content: true
+    timeout: 10
+  register: 'caddy_metadata_public_ipv4'
+  failed_when: false
+  changed_when: false
+
+- name: 'Floating IPv4 address fact set'
+  set_fact:
+    caddy_floating_ipv4: '{{ (caddy_metadata_public_ipv4.content | default("") | trim | regex_search("^[0-9]{1,3}(?:\.[0-9]{1,3}){3}$") | default("", true)) if ((caddy_metadata_public_ipv4.status | default(0)) == 200) else "" }}'
+
+# A global IPv6 address is routed rather than NAT'd, so it is on the interface
+# and Ansible has already gathered it. Link-local (fe80::/10), unique local
+# (fc00::/7) and loopback are not reachable from the internet, and asking
+# Let's Encrypt for a certificate for one of them just fails, so drop them.
+- name: 'Globally routable IPv6 address fact set'
+  set_fact:
+    caddy_global_ipv6: '{{ (ansible_all_ipv6_addresses | default([]) | reject("match", "(fe[89ab][0-9a-f]:|f[cd][0-9a-f]{0,2}:|::1$)") | list | first) | default("", true) }}'
+
+- name: 'Routable address checked before configuring Caddy'
+  fail:
+    msg: 'Direct Guacamole access over TLS needs either a floating IPv4 address or a globally routable IPv6 address on this instance, and neither was found. The metadata service reported no public IPv4 and no global unicast IPv6 address is configured. Attach a floating IP, or use the user application proxy instead of setting guac_tls_enabled.'
+  when: '(caddy_floating_ipv4 | length == 0) and (caddy_global_ipv6 | length == 0)'
+
+- name: 'Caddyfile templated'
+  template:
+    src: 'Caddyfile.j2'
+    dest: '/etc/caddy/Caddyfile'
+    owner: 'root'
+    group: 'root'
+    mode: '0644'
+
+- name: 'Caddy service enabled and restarted'
+  systemd:
+    name: 'caddy'
+    enabled: true
+    state: 'restarted'
