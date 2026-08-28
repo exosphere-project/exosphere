@@ -196,6 +196,8 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
             , pendingLoginIntents = []
             , activeLoginIntent = Nothing
             , heldLoginToken = Nothing
+            , loginChainGeneration = 0
+            , deferredCredentialFileAlreadyAddedProjects = []
             , banners =
                 let
                     defaultUrl =

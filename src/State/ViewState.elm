@@ -83,8 +83,19 @@ navigateToPage url outerModel =
                 _ ->
                     False
 
+        credentialFileLoginChainIsActive =
+            case ( outerModel.sharedModel.heldLoginToken, outerModel.sharedModel.activeLoginIntent, outerModel.sharedModel.pendingLoginIntents ) of
+                ( Nothing, Nothing, [] ) ->
+                    False
+
+                _ ->
+                    True
+
         sharedModelBeforeNavigation =
-            if State.LoginChain.shouldAbandon wasSelectingRegions willSelectRegions then
+            if
+                State.LoginChain.shouldAbandon wasSelectingRegions willSelectRegions
+                    && credentialFileLoginChainIsActive
+            then
                 let
                     sharedModel =
                         outerModel.sharedModel
@@ -93,6 +104,7 @@ navigateToPage url outerModel =
                     | heldLoginToken = Nothing
                     , activeLoginIntent = Nothing
                     , pendingLoginIntents = []
+                    , loginChainGeneration = State.LoginChain.nextGeneration sharedModel.loginChainGeneration
                 }
 
             else
@@ -194,8 +206,15 @@ routeToViewStateModelCmd sharedModel route =
             )
 
         Route.LoginOpenstack maybeCreds ->
-            ( NonProjectView <| Login <| LoginOpenstack <| Page.LoginOpenstack.init maybeCreds
-            , sharedModel
+            let
+                loginModel =
+                    List.foldl
+                        (Page.LoginOpenstack.noteProjectAlreadyAdded HelperTypes.CredentialFileLogin)
+                        (Page.LoginOpenstack.init maybeCreds)
+                        sharedModel.deferredCredentialFileAlreadyAddedProjects
+            in
+            ( NonProjectView <| Login <| LoginOpenstack loginModel
+            , { sharedModel | deferredCredentialFileAlreadyAddedProjects = [] }
             , Cmd.none
             )
 

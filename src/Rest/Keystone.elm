@@ -188,8 +188,8 @@ requestScopedAuthToken maybeProxyUrl origin maybeRegionId input =
         )
 
 
-requestCredentialFileLoginToken : Maybe HelperTypes.Url -> LoginIntent -> Cmd SharedMsg
-requestCredentialFileLoginToken maybeProxyUrl intent =
+requestCredentialFileLoginToken : Maybe HelperTypes.Url -> Int -> LoginIntent -> Cmd SharedMsg
+requestCredentialFileLoginToken maybeProxyUrl generation intent =
     let
         correctedIntent =
             { intent | authUrl = keystoneUrlWithVersion intent.authUrl }
@@ -213,7 +213,7 @@ requestCredentialFileLoginToken maybeProxyUrl intent =
                   )
                 ]
     in
-    requestAuthTokenHelper requestBody correctedIntent.authUrl maybeProxyUrl (ReceiveCredentialFileLoginToken correctedIntent)
+    requestAuthTokenHelper requestBody correctedIntent.authUrl maybeProxyUrl (ReceiveCredentialFileLoginToken generation correctedIntent)
 
 
 requestAuthTokenHelper : Encode.Value -> HelperTypes.Url -> Maybe HelperTypes.Url -> (Result HttpErrorWithBody ( Http.Metadata, String ) -> SharedMsg) -> Cmd SharedMsg

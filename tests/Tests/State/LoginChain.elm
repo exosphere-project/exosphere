@@ -45,4 +45,36 @@ suite =
             \_ ->
                 State.LoginChain.popNext [ "cloud-after-failure" ]
                     |> Expect.equal ( Just "cloud-after-failure", [] )
+        , test "a stale response from an identical replacement chain is dropped" <|
+            \_ ->
+                let
+                    firstGeneration =
+                        State.LoginChain.nextGeneration 0
+
+                    replacementGeneration =
+                        State.LoginChain.nextGeneration firstGeneration
+                in
+                Expect.equal
+                    ( False, True )
+                    ( State.LoginChain.acceptsResponse replacementGeneration firstGeneration
+                    , State.LoginChain.acceptsResponse replacementGeneration replacementGeneration
+                    )
+        , test "abandonment invalidates an in-flight response before it can restore state" <|
+            \_ ->
+                let
+                    requestGeneration =
+                        7
+
+                    generationAfterAbandonment =
+                        State.LoginChain.nextGeneration requestGeneration
+                in
+                State.LoginChain.acceptsResponse generationAfterAbandonment requestGeneration
+                    |> Expect.equal False
+        , test "an already-added notice survives a region question and remains deduplicated" <|
+            \_ ->
+                []
+                    |> State.LoginChain.addNotice "cloud-riders"
+                    |> State.LoginChain.addNotice "rogue-squadron"
+                    |> State.LoginChain.addNotice "cloud-riders"
+                    |> Expect.equal [ "cloud-riders", "rogue-squadron" ]
         ]

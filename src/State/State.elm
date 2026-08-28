@@ -936,9 +936,21 @@ processSharedMsg sharedMsg outerModel =
                 |> mapToOuterMsg
 
         StartCredentialFileLoginChain intents ->
+            let
+                nextGeneration =
+                    State.LoginChain.nextGeneration sharedModel.loginChainGeneration
+
+                resetSharedModel =
+                    { sharedModel
+                        | pendingLoginIntents = []
+                        , activeLoginIntent = Nothing
+                        , heldLoginToken = Nothing
+                        , loginChainGeneration = nextGeneration
+                    }
+            in
             case intents of
                 [] ->
-                    ( outerModel, Cmd.none )
+                    ( { outerModel | sharedModel = resetSharedModel }, Cmd.none )
 
                 firstIntent :: remainingIntents ->
                     let
@@ -947,18 +959,21 @@ processSharedMsg sharedMsg outerModel =
                     in
                     ( { outerModel
                         | sharedModel =
-                            { sharedModel
+                            { resetSharedModel
                                 | pendingLoginIntents = remainingIntents
                                 , activeLoginIntent = Just correctedIntent
-                                , heldLoginToken = Nothing
                             }
                       }
-                    , Rest.Keystone.requestCredentialFileLoginToken sharedModel.cloudCorsProxyUrl correctedIntent
+                    , Rest.Keystone.requestCredentialFileLoginToken sharedModel.cloudCorsProxyUrl nextGeneration correctedIntent
                         |> Cmd.map SharedMsg
                     )
 
-        ReceiveCredentialFileLoginToken intent result ->
-            if sharedModel.activeLoginIntent /= Just intent then
+        ReceiveCredentialFileLoginToken generation intent result ->
+            if
+                not (State.LoginChain.acceptsResponse sharedModel.loginChainGeneration generation)
+                    || sharedModel.activeLoginIntent
+                    /= Just intent
+            then
                 ( outerModel, Cmd.none )
 
             else
@@ -1419,7 +1434,11 @@ processSharedMsg sharedMsg outerModel =
         LinkClicked urlRequest ->
             case urlRequest of
                 Browser.Internal url ->
-                    ( outerModel, Browser.Navigation.pushUrl viewContext.navigationKey (Url.toString url) )
+                    let
+                        modelBeforeNavigation =
+                            abandonCredentialFileLoginChainIfSelectingRegions outerModel
+                    in
+                    ( modelBeforeNavigation, Browser.Navigation.pushUrl viewContext.navigationKey (Url.toString url) )
 
                 Browser.External url ->
                     ( outerModel, Browser.Navigation.load url )
@@ -4900,7 +4919,24 @@ noteProjectAlreadyAdded origin projectName outerModel =
             )
 
         _ ->
-            ( outerModel, Cmd.none )
+            case origin of
+                HelperTypes.CredentialFileLogin ->
+                    let
+                        sharedModel =
+                            outerModel.sharedModel
+                    in
+                    ( { outerModel
+                        | sharedModel =
+                            { sharedModel
+                                | deferredCredentialFileAlreadyAddedProjects =
+                                    State.LoginChain.addNotice projectName sharedModel.deferredCredentialFileAlreadyAddedProjects
+                            }
+                      }
+                    , Cmd.none
+                    )
+
+                _ ->
+                    ( outerModel, Cmd.none )
 
 
 startNextLoginIntent : OuterModel -> ( OuterModel, Cmd OuterMsg )
@@ -4921,7 +4957,7 @@ startNextLoginIntent outerModel =
                         , activeLoginIntent = Just correctedIntent
                     }
               }
-            , Rest.Keystone.requestCredentialFileLoginToken sharedModel.cloudCorsProxyUrl correctedIntent
+            , Rest.Keystone.requestCredentialFileLoginToken sharedModel.cloudCorsProxyUrl sharedModel.loginChainGeneration correctedIntent
                 |> Cmd.map SharedMsg
             )
 
@@ -4963,6 +4999,28 @@ clearHeldLoginToken outerModel =
             outerModel.sharedModel
     in
     ( { outerModel | sharedModel = { sharedModel | heldLoginToken = Nothing } }, Cmd.none )
+
+
+abandonCredentialFileLoginChainIfSelectingRegions : OuterModel -> OuterModel
+abandonCredentialFileLoginChainIfSelectingRegions outerModel =
+    case outerModel.viewState of
+        NonProjectView (SelectProjectRegions _) ->
+            let
+                sharedModel =
+                    outerModel.sharedModel
+            in
+            { outerModel
+                | sharedModel =
+                    { sharedModel
+                        | pendingLoginIntents = []
+                        , activeLoginIntent = Nothing
+                        , heldLoginToken = Nothing
+                        , loginChainGeneration = State.LoginChain.nextGeneration sharedModel.loginChainGeneration
+                    }
+            }
+
+        _ ->
+            outerModel
 
 
 removeUnscopedProject : OSTypes.KeystoneUrl -> OSTypes.ProjectUuid -> OuterModel -> ( OuterModel, Cmd OuterMsg )

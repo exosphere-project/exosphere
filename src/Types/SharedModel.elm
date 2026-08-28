@@ -21,6 +21,8 @@ type alias SharedModel =
     , pendingLoginIntents : List LoginIntent
     , activeLoginIntent : Maybe LoginIntent
     , heldLoginToken : Maybe HeldLoginToken
+    , loginChainGeneration : Int
+    , deferredCredentialFileAlreadyAddedProjects : List String
     , banners : BannerTypes.BannerModel
     , projects : List Project
     , toasties : Toasty.Stack Toast
