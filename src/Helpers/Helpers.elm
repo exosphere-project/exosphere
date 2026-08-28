@@ -355,8 +355,10 @@ renderUserDataTemplate :
     -> String
     -> String
     -> Bool
+    -> Bool
     -> String
-renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole deployDesktopEnvironment maybeCustomWorkflowSource installOperatingSystemUpdates instanceConfigMgtRepoUrl instanceConfigMgtRepoCheckout injectOpenStackCredentials =
+    -> String
+renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole deployDesktopEnvironment maybeCustomWorkflowSource installOperatingSystemUpdates instanceConfigMgtRepoUrl instanceConfigMgtRepoCheckout injectOpenStackCredentials directGuacamole exoOrigin =
     -- Configure cloud-init user data based on user's choice for SSH keypair and Guacamole
     let
         getPublicKeyFromKeypairName : String -> Maybe String
@@ -392,6 +394,19 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
 
                   else
                     "false"
+                , """,\\"guac_tls_enabled\\":"""
+                , if directGuacamole then
+                    "true"
+
+                  else
+                    "false"
+
+                -- The instance serves Guacamole to this origin and no other, so it needs to know
+                -- which Exosphere deployment launched it.
+                , """,\\"exo_origin\\":"""
+                , """\\\""""
+                , exoOrigin
+                , """\\\""""
                 , case maybeCustomWorkflowSource of
                     Nothing ->
                         ""
@@ -434,18 +449,21 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
         |> formatStringTemplate userDataTemplate
 
 
-newServerMetadata : ExoServerVersion -> UUID.UUID -> Bool -> Bool -> String -> FloatingIpOption -> Maybe CustomWorkflowSource -> List ( String, Json.Encode.Value )
-newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEnvironment exoCreatorUsername floatingIpCreationOption maybeCustomWorkflowSource =
+newServerMetadata : ExoServerVersion -> UUID.UUID -> Bool -> Bool -> Bool -> String -> FloatingIpOption -> Maybe CustomWorkflowSource -> List ( String, Json.Encode.Value )
+newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEnvironment directGuacamole exoCreatorUsername floatingIpCreationOption maybeCustomWorkflowSource =
     let
         guacMetadata =
             if deployGuacamole then
                 [ ( "exoGuac"
                   , Json.Encode.string <|
                         Json.Encode.encode 0 <|
+                            -- Version 2 added "tls", recording whether this instance was set up to
+                            -- serve Guacamole over HTTPS itself. Read back by guacamolePropsDecoder.
                             Json.Encode.object
-                                [ ( "v", Json.Encode.int 1 )
+                                [ ( "v", Json.Encode.int 2 )
                                 , ( "ssh", Json.Encode.bool True )
                                 , ( "vnc", Json.Encode.bool deployDesktopEnvironment )
+                                , ( "tls", Json.Encode.bool directGuacamole )
                                 ]
                   )
                 ]
@@ -542,12 +560,19 @@ customWorkflowPropsDecoder =
         (Decode.field "path" Decode.string)
 
 
+{-| Decode the `exoGuac` server metadata item.
+
+Version 1 has no `tls` field. Instances launched at that version reach Guacamole through the
+cloud's user application proxy, never directly, so a missing field decodes as `False`.
+
+-}
 guacamolePropsDecoder : Decode.Decoder GuacTypes.LaunchedWithGuacProps
 guacamolePropsDecoder =
-    Decode.map3
+    Decode.map4
         GuacTypes.LaunchedWithGuacProps
         (Decode.field "ssh" Decode.bool)
         (Decode.field "vnc" Decode.bool)
+        (Decode.oneOf [ Decode.field "tls" Decode.bool, Decode.succeed False ])
         (Decode.succeed RDPP.empty)
 
 

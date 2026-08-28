@@ -1670,6 +1670,9 @@ processProjectSpecificMsg outerModel project msg =
 
         RequestCreateServer pageModel networkUuid flavorId ->
             let
+                directGuacamole =
+                    GetterSetters.getDirectGuacamoleFromContext project viewContext
+
                 customWorkFlowSource =
                     if pageModel.includeWorkflow && Maybe.withDefault False pageModel.workflowInputIsValid then
                         Just
@@ -1704,12 +1707,15 @@ processProjectSpecificMsg outerModel project msg =
                             sharedModel.instanceConfigMgtRepoUrl
                             sharedModel.instanceConfigMgtRepoCheckout
                             pageModel.injectOpenStackCredentials
+                            directGuacamole
+                            (Url.toString viewContext.baseUrl)
                     , metadata =
                         Helpers.newServerMetadata
                             currentExoServerVersion
                             sharedModel.clientUuid
                             (pageModel.deployGuacamole |> Maybe.withDefault False)
                             pageModel.deployDesktopEnvironment
+                            directGuacamole
                             project.auth.user.name
                             pageModel.floatingIpCreationOption
                             customWorkFlowSource
