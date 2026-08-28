@@ -1,4 +1,4 @@
-module Types.SharedModel exposing (CloudCorsProxyUrl, LogMessage, LogMessageProject, ScopedAuthTokenWaitingRegionSelection, SharedModel, Style)
+module Types.SharedModel exposing (CloudCorsProxyUrl, LogMessage, LogMessageProject, SharedModel, Style)
 
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
@@ -9,6 +9,7 @@ import Types.AppVersion exposing (AppVersion)
 import Types.Banner as BannerTypes
 import Types.Error exposing (ErrorContext, Toast)
 import Types.HelperTypes as HelperTypes
+import Types.LoginIntent exposing (HeldLoginToken, LoginIntent)
 import Types.Project exposing (Project)
 import UUID
 import View.Types
@@ -17,7 +18,9 @@ import View.Types
 type alias SharedModel =
     { logMessages : List LogMessage
     , unscopedProviders : List HelperTypes.UnscopedProvider
-    , scopedAuthTokensWaitingRegionSelection : List ScopedAuthTokenWaitingRegionSelection
+    , pendingLoginIntents : List LoginIntent
+    , activeLoginIntent : Maybe LoginIntent
+    , heldLoginToken : Maybe HeldLoginToken
     , banners : BannerTypes.BannerModel
     , projects : List Project
     , toasties : Toasty.Stack Toast
@@ -36,13 +39,6 @@ type alias SharedModel =
     , sentryConfig : Maybe HelperTypes.SentryConfig
     , version : Maybe String
     , latestVersion : RDPP.RemoteDataPlusPlus Types.Error.HttpErrorWithBody AppVersion
-    }
-
-
-type alias ScopedAuthTokenWaitingRegionSelection =
-    { keystoneUrl : OSTypes.KeystoneUrl
-    , authToken : OSTypes.ScopedAuthToken
-    , appCredential : Maybe OSTypes.ApplicationCredential
     }
 
 

@@ -110,6 +110,7 @@ timer behind whatever the user is doing and has to stay quiet.
 -}
 type TokenRequestOrigin
     = UserLogin
+    | CredentialFileLogin
     | TokenRefresh
 
 

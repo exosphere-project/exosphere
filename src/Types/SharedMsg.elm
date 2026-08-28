@@ -26,6 +26,7 @@ import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
 import Types.Interactivity exposing (InteractionLevel)
 import Types.Jetstream2Accounting
+import Types.LoginIntent
 import Url
 
 
@@ -37,7 +38,8 @@ type SharedMsg
     | Logout
     | Batch (List SharedMsg)
     | RequestUnscopedToken OSTypes.OpenstackLogin
-    | RequestProjectScopedTokenWithAppCredential OSTypes.KeystoneUrl OSTypes.ApplicationCredential (Maybe OSTypes.RegionId)
+    | StartCredentialFileLoginChain (List Types.LoginIntent.LoginIntent)
+    | ReceiveCredentialFileLoginToken Types.LoginIntent.LoginIntent (Result HttpErrorWithBody ( Http.Metadata, String ))
     | ReceiveProjectScopedToken OSTypes.KeystoneUrl (Maybe OSTypes.ApplicationCredential) (Maybe OSTypes.RegionId) HelperTypes.TokenRequestOrigin ( Http.Metadata, String )
     | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl ( Http.Metadata, String )
     | ReceiveUnscopedProjects OSTypes.KeystoneUrl ErrorContext (Result HttpErrorWithBody (List HelperTypes.UnscopedProviderProject))

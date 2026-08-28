@@ -2,6 +2,7 @@ module Rest.Keystone exposing
     ( decodeScopedAuthToken
     , decodeUnscopedAuthToken
     , requestAppCredential
+    , requestCredentialFileLoginToken
     , requestScopedAuthToken
     , requestUnscopedAuthToken
     , requestUnscopedProjects
@@ -30,6 +31,7 @@ import Rest.Helpers
 import Time
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes exposing (HttpRequestMethod(..), UnscopedProvider, UnscopedProviderProject, UnscopedProviderRegion)
+import Types.LoginIntent exposing (LoginIntent)
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import UUID
@@ -184,6 +186,34 @@ requestScopedAuthToken maybeProxyUrl origin maybeRegionId input =
                 origin
             )
         )
+
+
+requestCredentialFileLoginToken : Maybe HelperTypes.Url -> LoginIntent -> Cmd SharedMsg
+requestCredentialFileLoginToken maybeProxyUrl intent =
+    let
+        correctedIntent =
+            { intent | authUrl = keystoneUrlWithVersion intent.authUrl }
+
+        requestBody =
+            Encode.object
+                [ ( "auth"
+                  , Encode.object
+                        [ ( "identity"
+                          , Encode.object
+                                [ ( "methods", Encode.list Encode.string [ "application_credential" ] )
+                                , ( "application_credential"
+                                  , Encode.object
+                                        [ ( "id", Encode.string intent.appCredential.uuid )
+                                        , ( "secret", Encode.string intent.appCredential.secret )
+                                        ]
+                                  )
+                                ]
+                          )
+                        ]
+                  )
+                ]
+    in
+    requestAuthTokenHelper requestBody correctedIntent.authUrl maybeProxyUrl (ReceiveCredentialFileLoginToken correctedIntent)
 
 
 requestAuthTokenHelper : Encode.Value -> HelperTypes.Url -> Maybe HelperTypes.Url -> (Result HttpErrorWithBody ( Http.Metadata, String ) -> SharedMsg) -> Cmd SharedMsg

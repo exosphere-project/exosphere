@@ -340,6 +340,13 @@ noteProjectAlreadyAdded origin projectName model =
             else
                 { model | alreadyAddedProjects = model.alreadyAddedProjects ++ [ projectName ] }
 
+        HelperTypes.CredentialFileLogin ->
+            if List.member projectName model.alreadyAddedProjects then
+                model
+
+            else
+                { model | alreadyAddedProjects = model.alreadyAddedProjects ++ [ projectName ] }
+
 
 {-| Applies an outcome to the model. Bookkeeping only: every decision was made above.
 -}
@@ -475,13 +482,14 @@ view context _ model =
                                     clouds ->
                                         Just
                                             (SharedMsg <|
-                                                SharedMsg.Batch <|
+                                                SharedMsg.StartCredentialFileLoginChain <|
                                                     List.map
                                                         (\cloud ->
-                                                            SharedMsg.RequestProjectScopedTokenWithAppCredential
-                                                                cloud.authUrl
-                                                                cloud.appCredential
-                                                                cloud.regionName
+                                                            { name = cloud.name
+                                                            , authUrl = cloud.authUrl
+                                                            , appCredential = cloud.appCredential
+                                                            , regionName = cloud.regionName
+                                                            }
                                                         )
                                                         clouds
                                             )
@@ -501,10 +509,13 @@ credentialFileLoginMsg model =
         Just found ->
             Just
                 (SharedMsg <|
-                    SharedMsg.RequestProjectScopedTokenWithAppCredential
-                        found.authUrl
-                        found.appCredential
-                        found.regionName
+                    SharedMsg.StartCredentialFileLoginChain
+                        [ { name = found.name
+                          , authUrl = found.authUrl
+                          , appCredential = found.appCredential
+                          , regionName = found.regionName
+                          }
+                        ]
                 )
 
         Nothing ->

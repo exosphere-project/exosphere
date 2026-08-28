@@ -48,6 +48,7 @@ import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Keystone
 import Rest.Nova
 import Route
+import State.LoginChain
 import Time
 import Types.HelperTypes as HelperTypes
 import Types.Interactivity exposing (InteractionLevel(..))
@@ -66,8 +67,39 @@ navigateToPage url outerModel =
         route =
             Route.fromUrl outerModel.sharedModel.viewContext.urlPathPrefix Route.defaultRoute url
 
+        wasSelectingRegions =
+            case outerModel.viewState of
+                NonProjectView (SelectProjectRegions _) ->
+                    True
+
+                _ ->
+                    False
+
+        willSelectRegions =
+            case route of
+                Route.SelectProjectRegions _ _ ->
+                    True
+
+                _ ->
+                    False
+
+        sharedModelBeforeNavigation =
+            if State.LoginChain.shouldAbandon wasSelectingRegions willSelectRegions then
+                let
+                    sharedModel =
+                        outerModel.sharedModel
+                in
+                { sharedModel
+                    | heldLoginToken = Nothing
+                    , activeLoginIntent = Nothing
+                    , pendingLoginIntents = []
+                }
+
+            else
+                outerModel.sharedModel
+
         ( newViewState, pageSpecificSharedModel, pageSpecificCmd ) =
-            routeToViewStateModelCmd outerModel.sharedModel route
+            routeToViewStateModelCmd sharedModelBeforeNavigation route
 
         newUrl =
             Route.toUrl outerModel.sharedModel.viewContext.urlPathPrefix route
