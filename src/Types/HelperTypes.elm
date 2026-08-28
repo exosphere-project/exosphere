@@ -173,6 +173,7 @@ type alias MetadataFilter =
 type alias CloudSpecificConfig =
     { friendlyName : String
     , userAppProxy : Maybe (List UserAppProxyConfig)
+    , directGuacamole : Bool
     , dnsZones : Maybe (List DnsZoneConfig)
     , imageExcludeFilter : Maybe MetadataFilter
     , featuredImageNamePrefix : Maybe String

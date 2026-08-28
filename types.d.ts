@@ -137,6 +137,7 @@ declare namespace Exosphere {
     keystoneHostname: string;
     friendlyName: string;
     userAppProxy: null | Array<CloudUserApplicationProxy>;
+    directGuacamole?: boolean;
     dnsZones?: null | Array<CloudDnsZone>;
     imageExcludeFilter: null | CloudMetadataFilter;
     featuredImageNamePrefix: null | string;

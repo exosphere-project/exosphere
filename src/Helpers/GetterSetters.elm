@@ -9,6 +9,7 @@ module Helpers.GetterSetters exposing
     , getCatalogRegionIds
     , getCustomResources
     , getDefaultZone
+    , getDirectGuacamoleFromContext
     , getExternalNetwork
     , getFloatingIpServer
     , getSecurityGroupActions
@@ -34,6 +35,7 @@ module Helpers.GetterSetters exposing
     , imageLookup
     , isDefaultSecurityGroup
     , isDefaultShareTypeSupported
+    , isGuacamoleSupported
     , isSnapshotOfVolume
     , isVolumeCurrentlyBackingServer
     , isVolumeReservedForShelvedInstance
@@ -861,18 +863,33 @@ serverPresentNotDeleting model serverUuid =
     List.member serverUuid notDeletingServerUuids
 
 
+getCloudSpecificConfigFromContext : Project -> View.Types.Context -> Maybe HelperTypes.CloudSpecificConfig
+getCloudSpecificConfigFromContext project context =
+    Dict.get (UrlHelpers.hostnameFromUrl project.endpoints.keystone) context.cloudSpecificConfigs
+
+
 getUserAppProxyFromContext : Project -> View.Types.Context -> Maybe HelperTypes.UserAppProxyHostname
 getUserAppProxyFromContext project context =
-    let
-        projectKeystoneHostname =
-            UrlHelpers.hostnameFromUrl project.endpoints.keystone
-
-        getCloudSpecificConfig : Maybe HelperTypes.CloudSpecificConfig
-        getCloudSpecificConfig =
-            Dict.get projectKeystoneHostname context.cloudSpecificConfigs
-    in
-    getCloudSpecificConfig
+    getCloudSpecificConfigFromContext project context
         |> Maybe.andThen (getUserAppProxyFromCloudSpecificConfig project)
+
+
+{-| Whether this cloud connects the browser straight to Guacamole on the instance over HTTPS,
+instead of going through a user application proxy.
+-}
+getDirectGuacamoleFromContext : Project -> View.Types.Context -> Bool
+getDirectGuacamoleFromContext project context =
+    getCloudSpecificConfigFromContext project context
+        |> Maybe.map .directGuacamole
+        |> Maybe.withDefault False
+
+
+{-| Whether Guacamole can be offered at all on this cloud, by either route.
+-}
+isGuacamoleSupported : Project -> View.Types.Context -> Bool
+isGuacamoleSupported project context =
+    (getUserAppProxyFromContext project context /= Nothing)
+        || getDirectGuacamoleFromContext project context
 
 
 getUserAppProxyFromCloudSpecificConfig : Project -> HelperTypes.CloudSpecificConfig -> Maybe HelperTypes.UserAppProxyHostname

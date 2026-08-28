@@ -28,6 +28,7 @@ nav:
       - 'docs/instance-setup.md'
       - 'docs/solving-cors-problem.md'
       - 'docs/user-app-proxy.md'
+      - 'docs/direct-guacamole.md'
       - 'docs/instance-types.md'
       - 'docs/flavor-groups.md'
       - 'docs/desktop-message.md'
