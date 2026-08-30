@@ -29,8 +29,8 @@ import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Select as Select
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Spinner as Spinner
+import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Text as Text
-import Style.Widgets.ToggleTip as ToggleTip
 import Time
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
@@ -247,7 +247,7 @@ update msg project model =
 view : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Element.Element Msg
 view context project ( currentTime, _ ) model =
     Element.column
-        (VH.contentContainer ++ [ Element.spacing spacer.px32 ])
+        [ Element.spacing spacer.px24, Element.width Element.fill ]
         [ containerHeader context project model
         , case project.endpoints.swift of
             Nothing ->
@@ -297,7 +297,9 @@ containerHeader : View.Types.Context -> Project -> Model -> Element.Element Msg
 containerHeader context project model =
     Element.row (Text.headingStyleAttrs context.palette)
         [ featherIcon [] Icons.archive
-        , Text.text Text.ExtraLarge [] (model.containerName |> toTitleCase)
+        , Text.text Text.ExtraLarge [] (context.localization.objectStoreContainer |> toTitleCase)
+        , Element.row [ Element.spacing spacer.px8 ]
+            [ Text.text Text.ExtraLarge [] model.containerName ]
         , case project.endpoints.swift of
             Just swiftUrl ->
                 let
@@ -307,7 +309,7 @@ containerHeader context project model =
                 in
                 Element.row
                     [ Element.alignRight, Text.fontSize Text.Body, Font.regular, Element.spacing spacer.px16 ]
-                    [ containerInfoToggleTip context project model maybeMetadata
+                    [ containerAccessBadge context maybeMetadata
                     , actionsDropdown context project model maybeMetadata swiftUrl
                     ]
 
@@ -316,55 +318,30 @@ containerHeader context project model =
         ]
 
 
-containerInfoToggleTip : View.Types.Context -> Project -> Model -> Maybe ObjectStorage.ContainerMetadata -> Element.Element Msg
-containerInfoToggleTip context project model maybeMetadata =
-    let
-        contents =
-            case maybeMetadata of
-                Just metadata ->
-                    Element.column [ Element.spacing spacer.px8, Element.padding spacer.px4 ]
-                        (List.filterMap identity
-                            [ metadata.storagePolicy
-                                |> Maybe.map
-                                    (\policy ->
-                                        Element.paragraph [ Element.width (Element.px 320) ]
-                                            [ Element.text
-                                                ("Storage policy, how the "
-                                                    ++ context.localization.openstackWithOwnKeystone
-                                                    ++ " stores and replicates this data: "
-                                                    ++ policy
-                                                )
-                                            ]
-                                    )
-                            , Just (aclSummary context metadata)
+{-| The container's access state, as the status badge other resource detail pages put next to their
+actions button. A world-readable container is the state worth noticing, so it gets the `Warning`
+badge; a container only its own tenancy can read is the resting state, so it gets `Muted`.
 
-                            -- When the cloud advertises an S3 endpoint this Swift container is also
-                            -- reachable as an S3 bucket of the same name (RGW/s3api share the namespace).
-                            , case project.endpoints.s3 of
-                                Just _ ->
-                                    Just (Element.text ("S3 bucket: " ++ model.containerName))
+The state comes from the container's HEAD metadata. A proxy can strip those headers, and then we
+know nothing about access, so we render no badge at all rather than claiming a state.
 
-                                Nothing ->
-                                    Nothing
-                            ]
-                        )
+-}
+containerAccessBadge : View.Types.Context -> Maybe ObjectStorage.ContainerMetadata -> Element.Element Msg
+containerAccessBadge context maybeMetadata =
+    case maybeMetadata of
+        Just metadata ->
+            if ObjectStorage.aclIsPublic (currentReadAcl metadata) then
+                StatusBadge.statusBadge context.palette
+                    StatusBadge.Warning
+                    (Element.text "Public")
 
-                Nothing ->
-                    Element.text "Loading…"
+            else
+                StatusBadge.statusBadge context.palette
+                    StatusBadge.Muted
+                    (Element.text ("Private to this " ++ context.localization.unitOfTenancy))
 
-        toggleTipId =
-            Helpers.String.hyphenate
-                [ "objectStorageContainerInfoToggleTip"
-                , project.auth.project.uuid
-                , model.containerName
-                ]
-    in
-    ToggleTip.toggleTip
-        context
-        (SharedMsg << SharedMsg.TogglePopover)
-        toggleTipId
-        contents
-        ST.PositionBottomRight
+        Nothing ->
+            Element.none
 
 
 actionsDropdown : View.Types.Context -> Project -> Model -> Maybe ObjectStorage.ContainerMetadata -> String -> Element.Element Msg
@@ -585,8 +562,25 @@ containerInfoStrip context project currentTime containerName metadata =
         accessFact =
             fact [ Element.el [ subdued ] (Element.text "access "), Element.text (accessWord metadata) ]
 
+        -- Storage policy is how the cloud stores and replicates the data. It used to live in the
+        -- header toggletip, which the access badge replaced.
+        policyFact =
+            metadata.storagePolicy
+                |> Maybe.map
+                    (\policy -> fact [ Element.el [ subdued ] (Element.text "storage policy "), Element.text policy ])
+
+        -- When the cloud advertises an S3 endpoint this Swift container is also reachable as an S3
+        -- bucket of the same name (RGW/s3api share the namespace).
+        s3BucketFact =
+            case project.endpoints.s3 of
+                Just _ ->
+                    Just (fact [ Element.el [ subdued ] (Element.text "S3 bucket "), Element.text containerName ])
+
+                Nothing ->
+                    Nothing
+
         facts =
-            List.filterMap identity [ createdFact, countFact, sizeFact, Just accessFact ]
+            List.filterMap identity [ createdFact, countFact, sizeFact, Just accessFact, policyFact, s3BucketFact ]
 
         urlHeader =
             case project.endpoints.swift of
@@ -601,7 +595,9 @@ containerInfoStrip context project currentTime containerName metadata =
             :: Element.text "Info"
             :: urlHeader
         )
-        [ Element.wrappedRow [ Element.width Element.fill, Element.spaceEvenly ] facts ]
+        [ Element.wrappedRow [ Element.width Element.fill, Element.spaceEvenly ] facts
+        , aclSummary context metadata
+        ]
 
 
 containerUrlHeaderLabel : View.Types.Context -> ObjectStorage.ContainerName -> String -> Element.Element Msg
@@ -686,19 +682,13 @@ aclSummary context metadata =
     in
     case worldLines ++ grantLines of
         [] ->
-            subduedText context
-                ("No one outside this " ++ context.localization.unitOfTenancy ++ " has access.")
+            -- Nothing to spell out: the access fact already says the container is private, and the
+            -- header badge says so too.
+            Element.none
 
         lines ->
             Element.column [ Element.spacing spacer.px4, Element.width Element.fill ]
                 (List.map (\line -> Element.paragraph [] [ Element.text line ]) lines)
-
-
-subduedText : View.Types.Context -> String -> Element.Element Msg
-subduedText context label =
-    Element.el
-        [ Font.color (SH.toElementColor context.palette.neutral.text.subdued) ]
-        (Element.text label)
 
 
 {-| The "Manage access" section. Renders the container's HEAD-container ACL and usage via
