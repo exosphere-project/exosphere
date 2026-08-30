@@ -354,7 +354,7 @@ readAclIsPublic maybeReadAcl =
         |> Maybe.withDefault False
 
 
-{-| PROVISIONAL: verified on devstack Swift 2.37 and on Jetstream2 Ceph RGW (2026-07 — RGW returns
+{-| PROVISIONAL: verified on devstack Swift 2.37 and on Jetstream2 Ceph RGW (2026-07, RGW returns
 the count/bytes/timestamp headers). The browser only sees them when the proxy exposes them.
 -}
 containerMetadataFromHeaders : Dict String String -> ContainerMetadata
@@ -518,6 +518,7 @@ makeIso8601Decoder =
 
 -- Swift account/container listings return 200 with a JSON array (possibly `[]`) **or** 204 No
 -- Content with an empty body. `Decode.decodeString` fails on an empty string, so treat a blank
+-- body as an empty listing rather than a decode error.
 
 
 parseContainersResponse : String -> Result Decode.Error (List Container)
@@ -846,6 +847,7 @@ contentTypeForFilename filename =
 publicObjectUrl : String -> ContainerName -> ObjectName -> String
 publicObjectUrl swiftBaseUrl containerName objectName =
     -- Url.Builder.crossOrigin does NOT percent-encode path segments (it just joins with "/"), so we
+    -- encode each segment before building the public URL.
     Url.Builder.crossOrigin
         swiftBaseUrl
         (objectPath containerName objectName |> List.map Url.percentEncode)

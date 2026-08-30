@@ -59,7 +59,7 @@ containerNameValidationSuite =
         , test "85 three-byte CJK chars (255 bytes) is accepted" <|
             \_ ->
                 Expect.equal Nothing (ObjectStorage.containerNameError (String.repeat 85 "中"))
-        , test "86 three-byte CJK chars (258 bytes) is rejected — proves BYTES not String.length" <|
+        , test "86 three-byte CJK chars (258 bytes) is rejected, proves BYTES not String.length" <|
             \_ ->
                 Expect.notEqual Nothing (ObjectStorage.containerNameError (String.repeat 86 "中"))
         , test "a name containing '/' is rejected" <|
@@ -211,7 +211,7 @@ hidePrefixPlaceholderSuite =
 stitchPageSuite : Test
 stitchPageSuite =
     describe "stitchPage resets on the first page and appends thereafter"
-        [ test "first page (marker Nothing) REPLACES stale data — a refresh must not duplicate" <|
+        [ test "first page (marker Nothing) REPLACES stale data, a refresh must not duplicate" <|
             \_ ->
                 Expect.equal [ "fresh1", "fresh2" ]
                     (ObjectStorage.stitchPage Nothing [ "stale1", "stale2" ] [ "fresh1", "fresh2" ])
@@ -661,7 +661,7 @@ aclRoundTripSuite =
 
 {-| No-clobber semantics: toggling public read (`.r:*`) or name-listing (`.rlistings`) adds/removes
 ONLY that one fragment and leaves every other grantee (e.g. `projA:userB`) untouched. The two are
-NEVER bundled — enabling `.rlistings` never implicitly adds `.r:*`, and disabling public never
+NEVER bundled, enabling `.rlistings` never implicitly adds `.r:*`, and disabling public never
 touches `.rlistings`.
 -}
 aclNoClobberSuite : Test
@@ -714,7 +714,7 @@ aclNoClobberSuite =
 
 
 {-| Revoke-to-empty: an ACL with zero grantees serializes to `Nothing`, which the request layer
-turns into `X-Remove-Container-Read` — never an empty-valued `X-Container-Read` header (an
+turns into `X-Remove-Container-Read`, never an empty-valued `X-Container-Read` header (an
 Exosphere-style CORS proxy strips empty-valued headers).
 -}
 aclRevokeSuite : Test
@@ -738,7 +738,7 @@ aclRevokeSuite =
 
 {-| The structured "Who has access" editor sits on top of the typed ACL layer: `addGrant` merges a
 `project:user` (or `project:*`, `*:*`) principal into an ACL idempotently, and `removeGrant` takes it
-back out. Both preserve every OTHER grantee verbatim and in order — public read (`.r:*`), name-listing
+back out. Both preserve every OTHER grantee verbatim and in order, public read (`.r:*`), name-listing
 (`.rlistings`), other principals, AND any unknown fragment the PROVISIONAL RGW grammar might carry.
 The read/read+write distinction is expressed at the call site by applying these to the read ACL,
 the write ACL, or both (see the last two cases).
@@ -1098,7 +1098,7 @@ popconfirmIdCollisionSuite =
         ]
 
 
-{-| Task 2 — the `X-Copy-From` header value: a leading-slash `/container/object` path with each
+{-| Task 2, the `X-Copy-From` header value: a leading-slash `/container/object` path with each
 segment percent-encoded (spaces/unicode/`#`/`?`), the pseudo-folder `/` kept as real separators.
 Mirrors objectPathSuite (same split-then-encode discipline as the API path).
 -}
@@ -1138,7 +1138,7 @@ objectNameErrorSuite =
         , test "1025 ASCII bytes is rejected" <|
             \_ ->
                 Expect.notEqual Nothing (ObjectStorage.objectNameError (String.repeat 1025 "a"))
-        , test "343 three-byte CJK chars (1029 bytes) is rejected — proves BYTES not String.length" <|
+        , test "343 three-byte CJK chars (1029 bytes) is rejected, proves BYTES not String.length" <|
             \_ ->
                 Expect.notEqual Nothing (ObjectStorage.objectNameError (String.repeat 343 "中"))
         ]
@@ -1177,7 +1177,7 @@ folderNameErrorSuite =
                     ( ObjectStorage.folderNameError (String.repeat 256 "a")
                     , ObjectStorage.folderNameError (String.repeat 257 "a") /= Nothing
                     )
-        , test "86 three-byte CJK chars (258 bytes) is rejected — proves BYTES not String.length" <|
+        , test "86 three-byte CJK chars (258 bytes) is rejected, proves BYTES not String.length" <|
             \_ ->
                 Expect.notEqual Nothing (ObjectStorage.folderNameError (String.repeat 86 "中"))
         ]

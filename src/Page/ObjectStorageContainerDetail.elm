@@ -46,10 +46,13 @@ type alias Model =
     , readAclInput : Maybe String
     , writeAclInput : Maybe String
 
-    -- `.rlistings` toggle, and the raw X-Container-Read/Write ACL editor. The plain-language
+    -- The advanced disclosure contains the grants editor, project-wide sharing, the `.rlistings`
+    -- toggle, and the raw X-Container-Read/Write ACL editor. The plain-language public toggle stays
+    -- visible outside it.
     , showAdvancedAccess : Bool
 
-    -- user directory — Keystone forbids user enumeration — so both are free-text IDs). `grantWrite`
+    -- The grant form uses project and user IDs because Keystone forbids user enumeration.
+    -- `grantWrite` selects read-only or read-and-write access.
     , grantProjectInput : String
     , grantUserInput : String
     , grantWrite : Bool
@@ -83,7 +86,8 @@ type Msg
     | GotGrantProjectInput String
     | GotGrantUserInput String
     | GotGrantWrite Bool
-      -- Submit an add-grant: clears the form AND posts the merged (no-clobber) ACL change. The
+      -- Submit an add-grant, clear the form, and post the merged ACL change. The update is computed
+      -- from the current metadata so it does not overwrite unrelated grants.
     | GotAddGrant ObjectStorage.ContainerAclUpdate
     | CopyMoveClicked CopyMoveMode ObjectStorage.ObjectName
     | GotCopyMoveDestContainer ObjectStorage.ContainerName
@@ -153,7 +157,7 @@ update msg project model =
             ( { model | grantWrite = write }, Cmd.none, SharedMsg.NoOp )
 
         GotAddGrant aclUpdate ->
-            -- Clear the form, then POST the merged (no-clobber) ACL via the existing container-metadata
+            -- Clear the form, then post the merged ACL through the existing container-metadata path.
             ( { model | grantProjectInput = "", grantUserInput = "", grantWrite = False }
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
@@ -257,7 +261,7 @@ view context project ( currentTime, _ ) model =
 
             Just _ ->
                 Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
-                    [ -- The Info strip describes the container itself, so it renders (like the
+                    [ -- The Info strip describes the container, so it renders only at the container root.
                       if model.prefix == Nothing then
                         VH.renderRDPP
                             context
@@ -713,7 +717,8 @@ manageAccessSection context project model =
 
 manageAccessContent : View.Types.Context -> Project -> Model -> ObjectStorage.ContainerMetadata -> Element.Element Msg
 manageAccessContent context project model metadata =
-    -- add-people form, project-wide quick share, `.rlistings` toggle, raw ACL headers — behind the
+    -- Keep grants, project-wide sharing, `.rlistings`, and raw ACL headers behind the collapsed
+    -- advanced-sharing disclosure.
     Element.column
         [ Element.spacing spacer.px24, Element.width Element.fill ]
         [ advancedAccessDisclosure context
@@ -729,7 +734,7 @@ manageAccessContent context project model metadata =
 
 {-| A collapsed-by-default "Advanced sharing" disclosure wrapping everything beyond the public
 toggle: the "Who has access" grants list + editor, the add-people form, the project-wide quick
-share, the `.rlistings` toggle and the raw ACL editor — keeping the surface simple for a normal
+share, the `.rlistings` toggle and the raw ACL editor, keeping the surface simple for a normal
 user. Mirrors the page-local Bool + toggle idiom used by `Page.ServerCreate`'s advanced-options
 section, rendered here with a chevron disclosure header (`Icons.chevronUp/Down`).
 -}
@@ -837,7 +842,7 @@ whoHasAccessGroup context project model metadata =
 
 
 {-| The current-grants list. World-access fragments (`.r:*`, `.rlistings`) render as INFORMATIONAL
-rows (no remove control — the public/listing toggles manage those); each `project:user` / `project:*`
+rows (no remove control, the public/listing toggles manage those); each `project:user` / `project:*`
 / `*:*` grant renders one row (read + write merged per principal) with a remove (X) action.
 -}
 accessGrantList : View.Types.Context -> Project -> Model -> ObjectStorage.ContainerMetadata -> Element.Element Msg
@@ -989,8 +994,8 @@ accessSuffix canRead canWrite =
         ": can read"
 
 
-{-| The "Add people" form: free-text project + user IDs (no directory — Keystone forbids user
-enumeration — so free text is correct), a read / read+write choice, and an Add button that merges the
+{-| The "Add people" form: free-text project + user IDs (no directory, Keystone forbids user
+enumeration, so free text is correct), a read / read+write choice, and an Add button that merges the
 grant into the container's ACL(s) via `addGrant` (no-clobber). Leaving the user blank grants the whole
 project (`project:*`). The `ContainerAclUpdate` is computed here (current metadata in hand) and carried
 on the Msg so the update handler can clear the form.
@@ -1076,7 +1081,7 @@ addPeopleForm context model metadata =
 
 
 {-| One-click "share with everyone in my project": adds a `<my project id>:*` READ grant (the project
-UUID, not the name — reliable), leaving the write ACL untouched. No-clobber via `addGrant`.
+UUID, not the name, reliable), leaving the write ACL untouched. No-clobber via `addGrant`.
 -}
 shareWithProjectButton : View.Types.Context -> Project -> Model -> ObjectStorage.ContainerMetadata -> Element.Element Msg
 shareWithProjectButton context project model metadata =
@@ -1137,7 +1142,7 @@ makePublicPopconfirm context project model onConfirm =
         )
 
 
-{-| The make-private popconfirm: making a container private no longer flips immediately — existing
+{-| The make-private popconfirm: making a container private no longer flips immediately, existing
 public links stop working, so it deserves the same confirm-gate as making it public. Plain,
 user-level copy (the `X-Remove-Container-Read` revoke stays under the hood).
 -}
@@ -1178,7 +1183,7 @@ makePrivatePopconfirm context project model onConfirm =
 
 
 {-| The SEPARATE, stronger-confirm "make object names listable" (`.rlistings`) option. Never bundled
-with public read — enabling `.rlistings` adds ONLY that fragment and never implicitly grants `.r:*`.
+with public read, enabling `.rlistings` adds ONLY that fragment and never implicitly grants `.r:*`.
 -}
 listingsAccessControl : View.Types.Context -> Project -> Model -> ObjectStorage.ContainerMetadata -> Element.Element Msg
 listingsAccessControl context project model metadata =
@@ -1266,7 +1271,7 @@ enableListingsPopconfirm context project model onConfirm =
 
 {-| The displayed value of a raw advanced-ACL text field. `Nothing` (untouched) falls back to the
 container's current metadata ACL;
-`Just s` is the user's edit and always wins — including `Just ""` (edited-to-empty), which shows blank
+`Just s` is the user's edit and always wins, including `Just ""` (edited-to-empty), which shows blank
 rather than the metadata fallback, because a cleared field is what drives the `X-Remove-Container-*`
 revoke path.
 -}
@@ -1281,7 +1286,7 @@ each verbatim (trimmed only); a cleared field sends `X-Remove-Container-*`.
 
 PROVISIONAL: the exact ACL grammar Ceph RGW accepts is unverified (e.g. on a Jetstream2 cloud);
 verified on devstack Swift 2.37. These strings are passed through with NO validation beyond
-trimming — a power-user escape hatch.
+trimming, a power-user escape hatch.
 
 -}
 advancedAclControl : View.Types.Context -> Project -> Model -> ObjectStorage.ContainerMetadata -> Element.Element Msg
@@ -1998,7 +2003,7 @@ copyMoveForm context project model =
 
 
 {-| Whether a container is world-readable, per its cached read ACL. Uses the TYPED ACL parse
-(`ObjectStorage.readAclIsPublic`) — public iff the read ACL contains the `.r:*` grantee — replacing
+(`ObjectStorage.readAclIsPublic`), public iff the read ACL contains the `.r:*` grantee, replacing
 the earlier PROVISIONAL `String.contains ".r:*"` substring check. Now populated by the
 HEAD-container read; returns False while the metadata cache is empty/loading.
 -}

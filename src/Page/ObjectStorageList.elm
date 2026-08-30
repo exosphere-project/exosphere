@@ -690,7 +690,7 @@ bulkDeletePopconfirmId projectUuid =
 
 
 {-| Single-row delete popconfirm. For a non-empty container the confirmation spells out the object
-count and warns that large objects (SLO/DLO) are NOT detected — their segments may be orphaned; the
+count and warns that large objects (SLO/DLO) are NOT detected, their segments may be orphaned; the
 recursive delete only handles ordinary objects.
 -}
 deleteContainerPopconfirm : View.Types.Context -> Project -> ObjectStorage.Container -> Element.Element Msg
