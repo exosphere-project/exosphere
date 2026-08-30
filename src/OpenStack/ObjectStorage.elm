@@ -31,6 +31,7 @@ module OpenStack.ObjectStorage exposing
     , directoryContentType
     , folderNameError
     , folderPlaceholderObjectName
+    , hidePrefixPlaceholder
     , listingPageLimit
     , markerForNextPage
     , nextListingMarker
@@ -165,6 +166,21 @@ type alias ObjectListing =
     , subdirs : List Prefix
     , nextMarker : Maybe String
     }
+
+
+{-| Hide the zero-byte object that represents the folder being listed.
+
+The root listing has no prefix, so an object whose name is genuinely empty remains visible there.
+
+-}
+hidePrefixPlaceholder : Maybe Prefix -> ObjectListing -> ObjectListing
+hidePrefixPlaceholder maybePrefix listing =
+    case maybePrefix of
+        Just prefix ->
+            { listing | objects = List.filter (\object -> object.name /= prefix) listing.objects }
+
+        Nothing ->
+            listing
 
 
 type alias ContainerMetadata =

@@ -278,7 +278,7 @@ view context project ( currentTime, _ ) model =
                     , VH.renderRDPP
                         context
                         (GetterSetters.projectLookupObjectStorageListing model.containerName model.prefix project)
-                        (pluralize context.localization.objectStoreContainer)
+                        (pluralize "object")
                         (renderSuccessCase context project currentTime model)
                     , if model.prefix == Nothing then
                         manageAccessSection context project model

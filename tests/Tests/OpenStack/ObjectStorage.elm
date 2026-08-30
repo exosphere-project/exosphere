@@ -15,6 +15,7 @@ module Tests.OpenStack.ObjectStorage exposing
     , folderNameErrorSuite
     , folderPlaceholderObjectNameSuite
     , grantEditorSuite
+    , hidePrefixPlaceholderSuite
     , markerPaginationSuite
     , nextListingMarkerSuite
     , objectContainingPrefixSuite
@@ -174,6 +175,36 @@ emptyBodyToleranceSuite =
                 Expect.equal
                     (Ok { objects = [], subdirs = [], nextMarker = Nothing })
                     (ObjectStorage.parseObjectListingResponse "")
+        ]
+
+
+hidePrefixPlaceholderSuite : Test
+hidePrefixPlaceholderSuite =
+    let
+        object name =
+            { name = name
+            , bytes = 0
+            , lastModified = Time.millisToPosix 0
+            , contentType = ObjectStorage.directoryContentType
+            , hash = ""
+            }
+
+        listing names =
+            { objects = List.map object names, subdirs = [], nextMarker = Nothing }
+    in
+    describe "hidePrefixPlaceholder removes only the current folder's placeholder object"
+        [ test "a docs/ listing omits its docs/ placeholder, avoiding an empty row" <|
+            \_ ->
+                ObjectStorage.hidePrefixPlaceholder (Just "docs/") (listing [ "docs/", "docs/readme.txt" ])
+                    |> .objects
+                    |> List.map .name
+                    |> Expect.equal [ "docs/readme.txt" ]
+        , test "a genuinely empty object name remains visible at the container root" <|
+            \_ ->
+                ObjectStorage.hidePrefixPlaceholder Nothing (listing [ "" ])
+                    |> .objects
+                    |> List.map .name
+                    |> Expect.equal [ "" ]
         ]
 
 

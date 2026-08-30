@@ -3645,13 +3645,16 @@ processProjectSpecificMsg outerModel project msg =
             case result of
                 Ok page ->
                     let
+                        visiblePage =
+                            OpenStack.ObjectStorage.hidePrefixPlaceholder maybePrefix page
+
                         existing =
                             GetterSetters.projectLookupObjectStorageListing containerName maybePrefix project
                                 |> RDPP.withDefault { objects = [], subdirs = [], nextMarker = Nothing }
 
                         accumulatedRows =
-                            { objects = OpenStack.ObjectStorage.stitchPage requestedMarker existing.objects page.objects
-                            , subdirs = OpenStack.ObjectStorage.stitchPage requestedMarker existing.subdirs page.subdirs
+                            { objects = OpenStack.ObjectStorage.stitchPage requestedMarker existing.objects visiblePage.objects
+                            , subdirs = OpenStack.ObjectStorage.stitchPage requestedMarker existing.subdirs visiblePage.subdirs
                             , nextMarker = Nothing
                             }
 
