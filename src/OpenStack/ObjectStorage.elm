@@ -170,6 +170,11 @@ type alias ObjectListing =
 
 {-| Hide the zero-byte object that represents the folder being listed.
 
+Only a zero-byte object qualifies. An object named exactly like the prefix that carries data is a
+real object a user can download, so it stays in the listing. Content type is deliberately not part
+of the test: third-party tools write these placeholders with whatever content type they please, and
+requiring the directory type would leave their placeholders showing as empty rows.
+
 The root listing has no prefix, so an object whose name is genuinely empty remains visible there.
 
 -}
@@ -177,7 +182,12 @@ hidePrefixPlaceholder : Maybe Prefix -> ObjectListing -> ObjectListing
 hidePrefixPlaceholder maybePrefix listing =
     case maybePrefix of
         Just prefix ->
-            { listing | objects = List.filter (\object -> object.name /= prefix) listing.objects }
+            { listing
+                | objects =
+                    List.filter
+                        (\object -> not (object.name == prefix && object.bytes == 0))
+                        listing.objects
+            }
 
         Nothing ->
             listing

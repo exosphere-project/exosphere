@@ -1,4 +1,4 @@
-module Tests.Page.ObjectStorageContainerDetail exposing (aclFieldValueSuite, containerUsageLabelSuite, crumbsSuite, uploadStatusLabelSuite, uploadsForLevelSuite)
+module Tests.Page.ObjectStorageContainerDetail exposing (aclFieldValueSuite, containerAccessSuite, containerUsageLabelSuite, crumbsSuite, uploadStatusLabelSuite, uploadsForLevelSuite)
 
 import Expect
 import FormatNumber.Locales
@@ -79,6 +79,42 @@ uploadStatusLabelSuite =
                         "SENTINEL rejection reason"
                 in
                 Expect.equal reason (label (ObjectStorage.Rejected reason))
+        ]
+
+
+containerAccessSuite : Test
+containerAccessSuite =
+    let
+        mk readAcl bytesUsed objectCount =
+            { readAcl = readAcl
+            , writeAcl = Nothing
+            , bytesUsed = bytesUsed
+            , objectCount = objectCount
+            , createdAt = Nothing
+            , storagePolicy = Nothing
+            }
+    in
+    describe "Page.ObjectStorageContainerDetail.containerAccess only states access it was actually told"
+        [ test "(1) a proxy that stripped every header yields Nothing, so no badge claims a state" <|
+            \_ ->
+                Expect.equal Nothing
+                    (ObjectStorageContainerDetail.containerAccess (mk Nothing Nothing Nothing))
+        , test "(2) usage headers present and a world-readable ACL yields public" <|
+            \_ ->
+                Expect.equal (Just ObjectStorageContainerDetail.AccessPublic)
+                    (ObjectStorageContainerDetail.containerAccess (mk (Just ".r:*,.rlistings") (Just 0) (Just 0)))
+        , test "(3) usage headers present and no read ACL at all yields private, Swift omits the header there" <|
+            \_ ->
+                Expect.equal (Just ObjectStorageContainerDetail.AccessPrivate)
+                    (ObjectStorageContainerDetail.containerAccess (mk Nothing (Just 1536) (Just 3)))
+        , test "(4) an object count alone is evidence enough that the headers arrived" <|
+            \_ ->
+                Expect.equal (Just ObjectStorageContainerDetail.AccessPrivate)
+                    (ObjectStorageContainerDetail.containerAccess (mk Nothing Nothing (Just 0)))
+        , test "(5) a read ACL granting one other tenancy is still private, not public" <|
+            \_ ->
+                Expect.equal (Just ObjectStorageContainerDetail.AccessPrivate)
+                    (ObjectStorageContainerDetail.containerAccess (mk (Just "otherproject:*") (Just 0) (Just 0)))
         ]
 
 

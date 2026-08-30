@@ -1,4 +1,4 @@
-module Page.ObjectStorageContainerDetail exposing (CopyMoveForm, CopyMoveMode(..), Model, Msg(..), aclFieldValue, containerUsageLabel, crumbs, init, update, uploadStatusLabel, uploadsForLevel, view)
+module Page.ObjectStorageContainerDetail exposing (ContainerAccess(..), CopyMoveForm, CopyMoveMode(..), Model, Msg(..), aclFieldValue, containerAccess, containerUsageLabel, crumbs, init, update, uploadStatusLabel, uploadsForLevel, view)
 
 import Dict
 import Element
@@ -319,27 +319,54 @@ containerHeader context project model =
         ]
 
 
+type ContainerAccess
+    = AccessPublic
+    | AccessPrivate
+
+
+{-| Who can read the container, or `Nothing` when the HEAD response does not let us say.
+
+`containerMetadataFromHeaders` always returns a record, so a present record proves nothing: a proxy
+that strips response headers yields a record whose every field is `Nothing`, and reading a missing
+`X-Container-Read` as "private" there would state something we were never told. Swift always sends
+`X-Container-Bytes-Used` and `X-Container-Object-Count` on a HEAD it answered, so either of those
+arriving is the evidence that the headers reached us intact. With that evidence a missing read ACL
+does mean private, because Swift omits `X-Container-Read` on a container with no read ACL at all.
+
+-}
+containerAccess : ObjectStorage.ContainerMetadata -> Maybe ContainerAccess
+containerAccess metadata =
+    case ( metadata.bytesUsed, metadata.objectCount ) of
+        ( Nothing, Nothing ) ->
+            Nothing
+
+        _ ->
+            if ObjectStorage.aclIsPublic (currentReadAcl metadata) then
+                Just AccessPublic
+
+            else
+                Just AccessPrivate
+
+
 {-| The container's access state, as the status badge other resource detail pages put next to their
 actions button. A world-readable container is the state worth noticing, so it gets the `Warning`
 badge; a container only its own tenancy can read is the resting state, so it gets `Muted`.
 
-The state comes from the container's HEAD metadata. A proxy can strip those headers, and then we
-know nothing about access, so we render no badge at all rather than claiming a state.
+When `containerAccess` cannot tell, there is no badge rather than a guess.
 
 -}
 containerAccessBadge : View.Types.Context -> Maybe ObjectStorage.ContainerMetadata -> Element.Element Msg
 containerAccessBadge context maybeMetadata =
-    case maybeMetadata of
-        Just metadata ->
-            if ObjectStorage.aclIsPublic (currentReadAcl metadata) then
-                StatusBadge.statusBadge context.palette
-                    StatusBadge.Warning
-                    (Element.text "Public")
+    case maybeMetadata |> Maybe.andThen containerAccess of
+        Just AccessPublic ->
+            StatusBadge.statusBadge context.palette
+                StatusBadge.Warning
+                (Element.text "Public")
 
-            else
-                StatusBadge.statusBadge context.palette
-                    StatusBadge.Muted
-                    (Element.text ("Private to this " ++ context.localization.unitOfTenancy))
+        Just AccessPrivate ->
+            StatusBadge.statusBadge context.palette
+                StatusBadge.Muted
+                (Element.text ("Private to this " ++ context.localization.unitOfTenancy))
 
         Nothing ->
             Element.none

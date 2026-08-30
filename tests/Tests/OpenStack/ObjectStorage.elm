@@ -181,13 +181,16 @@ emptyBodyToleranceSuite =
 hidePrefixPlaceholderSuite : Test
 hidePrefixPlaceholderSuite =
     let
-        object name =
+        sizedObject bytes name =
             { name = name
-            , bytes = 0
+            , bytes = bytes
             , lastModified = Time.millisToPosix 0
             , contentType = ObjectStorage.directoryContentType
             , hash = ""
             }
+
+        object name =
+            sizedObject 0 name
 
         listing names =
             { objects = List.map object names, subdirs = [], nextMarker = Nothing }
@@ -205,6 +208,26 @@ hidePrefixPlaceholderSuite =
                     |> .objects
                     |> List.map .name
                     |> Expect.equal [ "" ]
+        , test "an object named docs/ that carries data stays visible, it is not a placeholder" <|
+            \_ ->
+                ObjectStorage.hidePrefixPlaceholder (Just "docs/")
+                    { objects = [ sizedObject 4096 "docs/", object "docs/readme.txt" ]
+                    , subdirs = []
+                    , nextMarker = Nothing
+                    }
+                    |> .objects
+                    |> List.map .name
+                    |> Expect.equal [ "docs/", "docs/readme.txt" ]
+        , test "a zero-byte docs/ placeholder is still hidden when a same-named object could exist" <|
+            \_ ->
+                ObjectStorage.hidePrefixPlaceholder (Just "docs/")
+                    { objects = [ sizedObject 0 "docs/", object "docs/readme.txt" ]
+                    , subdirs = []
+                    , nextMarker = Nothing
+                    }
+                    |> .objects
+                    |> List.map .name
+                    |> Expect.equal [ "docs/readme.txt" ]
         ]
 
 
