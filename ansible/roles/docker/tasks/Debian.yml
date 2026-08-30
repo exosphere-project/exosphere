@@ -24,6 +24,11 @@
     state: 'present'
     filename: 'docker'
     update_cache: 'true'
+  # Refreshing the package lists needs the APT lock
+  register: 'apt_status'
+  until: 'apt_status is success'
+  delay: 10
+  retries: 60
 
 - name: 'Docker packages installed'
   apt:
@@ -33,3 +38,8 @@
       - 'containerd.io'
       - 'docker-compose-plugin'
     state: 'present'
+  # This stuff waits for APT/dpkg lock if unattended upgrades are running
+  register: 'apt_status'
+  until: 'apt_status is success'
+  delay: 10
+  retries: 60
