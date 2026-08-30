@@ -15,6 +15,7 @@ import Element
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import Element.Input as Input
 import FeatherIcons as Icons
 import Helpers.Formatting exposing (humanBytes, humanCount)
 import Helpers.GetterSetters as GetterSetters
@@ -47,6 +48,7 @@ import View.Types
 type alias Model =
     { showHeading : Bool
     , dataListModel : DataList.Model
+    , showS3Connect : Bool
     , s3SecretRevealed : Bool
     }
 
@@ -57,6 +59,7 @@ type Msg
     | SharedMsg SharedMsg.SharedMsg
       -- The Bool is `recursive` (True for a non-empty container: delete its objects first).
     | GotDeleteConfirm ObjectStorage.ContainerName Bool
+    | GotShowS3Connect Bool
     | GotS3SecretRevealed Bool
     | GotCreateEc2Credential
 
@@ -76,6 +79,7 @@ init : Bool -> Model
 init showHeading =
     { showHeading = showHeading
     , dataListModel = DataList.init <| DataList.getDefaultFilterOptions []
+    , showS3Connect = False
     , s3SecretRevealed = False
     }
 
@@ -98,6 +102,9 @@ update msg project model =
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 SharedMsg.RequestDeleteContainer name recursive
             )
+
+        GotShowS3Connect show ->
+            ( { model | showS3Connect = show }, Cmd.none, SharedMsg.NoOp )
 
         GotS3SecretRevealed revealed ->
             ( { model | s3SecretRevealed = revealed }, Cmd.none, SharedMsg.NoOp )
@@ -129,6 +136,7 @@ view context project model =
     Element.column
         (VH.contentContainer ++ [ Element.spacing spacer.px32 ])
         [ heading
+        , s3ConnectSection context project model
         , case project.endpoints.swift of
             Nothing ->
                 Text.p []
@@ -145,44 +153,73 @@ view context project model =
                     project.objectStorageContainers
                     (pluralize word)
                     (renderSuccessCase context project model)
-        , s3ConnectSection context project model
         ]
 
 
+{-| The "Connect with an S3 client" tile, sitting above the list so it does not drift further down
+the page as containers are added.
+
+Its contents are long enough to push the list off the screen, so the tile header doubles as a
+disclosure and the tile opens closed, the way the container detail page's advanced sharing section
+works. Everything inside it is unchanged.
+
+-}
 s3ConnectSection : View.Types.Context -> Project -> Model -> Element.Element Msg
 s3ConnectSection context project model =
     VH.tile
         context
-        [ featherIcon [] Icons.hardDrive
-        , Element.text "Connect with an S3 client"
-        ]
-        [ Element.column
-            [ Element.spacing spacer.px16
-            , Element.width Element.fill
-            , Font.color (SH.toElementColor context.palette.neutral.text.default)
-            ]
-            (case project.endpoints.s3 of
-                Just url ->
-                    s3ConnectContents context project model url
+        [ Input.button []
+            { onPress = Just (GotShowS3Connect (not model.showS3Connect))
+            , label =
+                Element.row [ Element.spacing spacer.px12 ]
+                    [ featherIcon [] Icons.hardDrive
+                    , Element.text "Connect with an S3 client"
+                    , featherIcon []
+                        (if model.showS3Connect then
+                            Icons.chevronUp
 
-                Nothing ->
-                    let
-                        cloudWord =
-                            context.localization.openstackWithOwnKeystone
-                    in
-                    [ Text.p []
-                        [ Text.body <|
-                            String.join " "
-                                [ "S3 access is not enabled on this"
-                                , cloudWord ++ "."
-                                , "Ask your"
-                                , cloudWord
-                                , "administrator whether it offers an S3-compatible API (for example, s3api or Ceph RGW)."
-                                ]
-                        ]
+                         else
+                            Icons.chevronDown
+                        )
                     ]
-            )
+            }
         ]
+        (if model.showS3Connect then
+            [ s3ConnectPanel context project model ]
+
+         else
+            []
+        )
+
+
+s3ConnectPanel : View.Types.Context -> Project -> Model -> Element.Element Msg
+s3ConnectPanel context project model =
+    Element.column
+        [ Element.spacing spacer.px16
+        , Element.width Element.fill
+        , Font.color (SH.toElementColor context.palette.neutral.text.default)
+        ]
+        (case project.endpoints.s3 of
+            Just url ->
+                s3ConnectContents context project model url
+
+            Nothing ->
+                let
+                    cloudWord =
+                        context.localization.openstackWithOwnKeystone
+                in
+                [ Text.p []
+                    [ Text.body <|
+                        String.join " "
+                            [ "S3 access is not enabled on this"
+                            , cloudWord ++ "."
+                            , "Ask your"
+                            , cloudWord
+                            , "administrator whether it offers an S3-compatible API (for example, s3api or Ceph RGW)."
+                            ]
+                    ]
+                ]
+        )
 
 
 s3ConnectContents : View.Types.Context -> Project -> Model -> String -> List (Element.Element Msg)
