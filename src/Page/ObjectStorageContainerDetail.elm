@@ -21,6 +21,7 @@ import Set
 import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
+import Style.Widgets.CopyableText as CopyableText
 import Style.Widgets.DataList as DataList
 import Style.Widgets.HumanTime exposing (relativeTimeElement)
 import Style.Widgets.Icon as Icon exposing (featherIcon)
@@ -412,13 +413,9 @@ actionsDropdown context project model maybeMetadata swiftUrl =
 copyContainerUrlItem : View.Types.Context -> Model -> String -> String -> Element.Attribute Msg -> Element.Element Msg
 copyContainerUrlItem context model buttonText swiftUrl closeDropdown =
     Element.el
-        [ Element.htmlAttribute (Html.Attributes.class "copy-button")
-        , Element.htmlAttribute
-            (Html.Attributes.attribute "data-clipboard-text"
-                (ObjectStorage.publicContainerUrl swiftUrl model.containerName)
-            )
-        , closeDropdown
-        ]
+        (CopyableText.copyTextAttributes (ObjectStorage.publicContainerUrl swiftUrl model.containerName)
+            ++ [ closeDropdown ]
+        )
         (Button.button Button.Text
             context.palette
             { text = buttonText
@@ -607,7 +604,7 @@ containerUrlHeaderLabel context containerName fullUrl =
         ]
         (Element.row [ Element.spacing spacer.px8 ]
             [ Element.text (truncatedContainerUrlDisplay containerName)
-            , clipboardCopyButton context
+            , CopyableText.copyButton context.palette
                 { icon = Icons.clipboard
                 , accessibilityLabel = "Copy " ++ context.localization.objectStoreContainer ++ " URL"
                 , textToCopy = fullUrl
@@ -1756,21 +1753,6 @@ rowActionIconLink context { icon, accessibilityLabel, url, hoverColor } =
         }
 
 
-clipboardCopyButton : View.Types.Context -> { icon : Icons.Icon, accessibilityLabel : String, textToCopy : String } -> Element.Element Msg
-clipboardCopyButton context { icon, accessibilityLabel, textToCopy } =
-    Element.el
-        [ Element.htmlAttribute (Html.Attributes.class "copy-button")
-        , Element.htmlAttribute (Html.Attributes.attribute "data-clipboard-text" textToCopy)
-        ]
-        (rowActionIcon context
-            { icon = icon
-            , accessibilityLabel = accessibilityLabel
-            , onClick = Just NoOp
-            , hoverColor = context.palette.primary |> SH.toElementColor
-            }
-        )
-
-
 objectNameWithCopy : View.Types.Context -> Model -> ObjectStorage.SwiftObject -> Element.Element Msg
 objectNameWithCopy context model object =
     let
@@ -1783,7 +1765,7 @@ objectNameWithCopy context model object =
                 ++ [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
             )
             [ Element.text displayName ]
-        , clipboardCopyButton context
+        , CopyableText.copyButton context.palette
             { icon = Icons.clipboard
             , accessibilityLabel = "Copy name"
             , textToCopy = displayName
@@ -1833,8 +1815,8 @@ endpoint is known. Replaces the old full-URL "Public link:" row + the duplicate 
 anchor: with many objects, ten full URLs is a bad pattern, and the anchor merely re-did the download
 button.
 
-The copy works via the standardized `clipboardCopyButton` (clipboard.js `data-clipboard-text`
-literal-string mode; see that helper's doc). Reuses `ObjectStorage.publicObjectUrl` (the single place
+The copy works via `Style.Widgets.CopyableText.copyButton` (clipboard.js `data-clipboard-text`
+literal-string mode; see that widget's doc). Reuses `ObjectStorage.publicObjectUrl` (the single place
 the direct, un-proxied URL shape lives).
 
 PROVISIONAL: the exact public-URL shape on Ceph RGW is unverified (e.g. on a Jetstream2 cloud);
@@ -1845,7 +1827,7 @@ copyPublicLinkAffordance : View.Types.Context -> Project -> Model -> ObjectStora
 copyPublicLinkAffordance context project model object =
     case ( containerIsPublic project model.containerName, project.endpoints.swift ) of
         ( True, Just swiftUrl ) ->
-            clipboardCopyButton context
+            CopyableText.copyButton context.palette
                 { icon = Icons.link2
                 , accessibilityLabel = "Copy public link"
                 , textToCopy = ObjectStorage.publicObjectUrl swiftUrl model.containerName object.name

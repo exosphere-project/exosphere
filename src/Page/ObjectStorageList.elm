@@ -12,8 +12,6 @@ module Page.ObjectStorageList exposing
     )
 
 import Element
-import Element.Background as Background
-import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons as Icons
@@ -31,7 +29,7 @@ import Set
 import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
-import Style.Widgets.CopyableText exposing (copyableText)
+import Style.Widgets.CopyableText as CopyableText exposing (copyableText)
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton as DeleteButton
 import Style.Widgets.Icon exposing (featherIcon)
@@ -330,7 +328,7 @@ s3ApplicationCredentialGuidance context =
                     , "anyway, use Horizon while signed in with a password or SSO, or use the OpenStack CLI:"
                     ]
             ]
-        , maskedScriptBlock context
+        , CopyableText.copyableScriptMasked context.palette
             { display = command
             , clipboard = command
             }
@@ -385,47 +383,13 @@ rcloneConfigBlock context url cred =
     in
     Element.column [ Element.spacing spacer.px8, Element.width Element.fill ]
         [ Text.strong "rclone config"
-        , maskedScriptBlock context { display = maskedSnippet, clipboard = realSnippet }
+        , CopyableText.copyableScriptMasked context.palette { display = maskedSnippet, clipboard = realSnippet }
         , Element.el
             [ Font.color (SH.toElementColor context.palette.neutral.text.subdued)
             , Text.fontSize Text.Small
             ]
             (Element.text "Copying includes your real secret key.")
         ]
-
-
-maskedScriptBlock : View.Types.Context -> { display : String, clipboard : String } -> Element.Element Msg
-maskedScriptBlock context { display, clipboard } =
-    Element.el
-        [ Element.inFront <|
-            Element.el
-                [ Element.alignRight
-                , Element.moveLeft (toFloat spacer.px4)
-                , Element.moveDown (toFloat spacer.px4)
-                ]
-                (clipboardCopyButton context
-                    { icon = Icons.clipboard
-                    , accessibilityLabel = "Copy rclone config"
-                    , textToCopy = clipboard
-                    }
-                )
-        , Element.width Element.fill
-        , Border.solid
-        , Border.width 1
-        , Border.rounded 3
-        , Element.padding spacer.px8
-        , Background.color (SH.toElementColor context.palette.neutral.background.frontLayer)
-        , Border.color (SH.toElementColor context.palette.neutral.border)
-        ]
-        (Element.column
-            ([ Element.spacing spacer.px4, Text.fontFamily Text.Mono ]
-                ++ Text.typographyAttrs Text.Small
-            )
-            (display
-                |> String.split "\n"
-                |> List.map Element.text
-            )
-        )
 
 
 s3SecretValue : View.Types.Context -> Model -> String -> Element.Element Msg
@@ -537,21 +501,6 @@ rowActionIconLink context { icon, accessibilityLabel, url, hoverColor } =
         }
 
 
-clipboardCopyButton : View.Types.Context -> { icon : Icons.Icon, accessibilityLabel : String, textToCopy : String } -> Element.Element Msg
-clipboardCopyButton context { icon, accessibilityLabel, textToCopy } =
-    Element.el
-        [ Element.htmlAttribute (Html.Attributes.class "copy-button")
-        , Element.htmlAttribute (Html.Attributes.attribute "data-clipboard-text" textToCopy)
-        ]
-        (rowActionIcon context
-            { icon = icon
-            , accessibilityLabel = accessibilityLabel
-            , onClick = Just NoOp
-            , hoverColor = context.palette.primary |> SH.toElementColor
-            }
-        )
-
-
 containerView : View.Types.Context -> Project -> ContainerRecord -> Element.Element Msg
 containerView context project containerRecord =
     let
@@ -584,7 +533,7 @@ containerView context project containerRecord =
                             )
                             (Element.text container.name)
                     }
-                , clipboardCopyButton context
+                , CopyableText.copyButton context.palette
                     { icon = Icons.clipboard
                     , accessibilityLabel = "Copy name"
                     , textToCopy = container.name
