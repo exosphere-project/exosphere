@@ -8,7 +8,7 @@ import Test exposing (Test, describe, test)
 
 {-| A real-shape GET /v3/users/<id>/credentials/OS-EC2 list response. The OS-EC2 extension puts
 `access`/`secret`/`tenant_id` as TOP-LEVEL fields on each item (not inside a JSON-string `blob`), and
-the list spans ALL of the user's projects — extra fields (links, trust\_id, user\_id) must be ignored.
+the list spans ALL of the user's projects, extra fields (links, trust\_id, user\_id) must be ignored.
 -}
 ec2ListJson : String
 ec2ListJson =

@@ -257,8 +257,8 @@ bytesToStringBestEffort bytes =
 
 
 {-| Expect a response whose value is its **metadata** (status + response HEADERS), not its body. The
-normal `expect*WithErrorBody` helpers discard `Http.Metadata`, so a `HEAD container` ACL/usage read —
-whose entire payload is in the `X-Container-*` response headers — is impossible without this. A HEAD
+normal `expect*WithErrorBody` helpers discard `Http.Metadata`, so a `HEAD container` ACL/usage read
+(whose entire payload is in the `X-Container-*` response headers) is impossible without this. A HEAD
 response has no body, so none is read on success; a non-2xx status still produces `HttpErrorWithBody`
 carrying the body (best-effort) exactly like the sibling helpers, so the standard error toast works.
 -}

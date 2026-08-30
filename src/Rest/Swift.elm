@@ -194,7 +194,7 @@ returned as a flat name. `budget` is the remaining re-list cycle allowance, thre
 the `ReceiveContainerObjectNamesForDeletion` message so `State.State` can stop a runaway loop.
 
 NOTE (Out Of Scope, per plan): this cannot tell SLO/DLO manifests apart from ordinary objects, so
-the recursive delete makes **no large-object guarantee** — segments of a large object may be
+the recursive delete makes **no large-object guarantee**: segments of a large object may be
 orphaned. That is warned about in the UI; large-object cleanup is CLI/rclone territory.
 
 -}
@@ -319,7 +319,7 @@ requestDeleteObject project url containerName maybePrefix objectName =
 text/plain`, `Accept: application/json`, body = newline-separated leading-slash `/container/object`
 paths with each segment percent-encoded (see `OpenStack.ObjectStorage.bulkDeleteBody`).
 
-Swift returns **200 even on partial failure** — the `ReceiveBulkDeleteObjects` handler parses the
+Swift returns **200 even on partial failure**: the `ReceiveBulkDeleteObjects` handler parses the
 body (`OpenStack.ObjectStorage.parseBulkDeleteResponse`) for per-object errors rather than trusting
 the status. `Accept: application/json` makes that body deterministic.
 
@@ -432,17 +432,17 @@ requestDownloadObject project url currentTime nonce containerName objectName =
 
 
 {-| Server-side **copy** an object: `PUT` to the DESTINATION object URL with an `X-Copy-From:
-/source-container/source-object` header (URL-encoded, leading slash — see
+/source-container/source-object` header (URL-encoded, leading slash, see
 `OpenStack.ObjectStorage.copyFromHeaderValue`) and an EMPTY body. Swift copies the object server-side
 (no bytes through the browser). Swift replies `201 Created`; `expectVoidWithErrorBody` treats any 2xx
 as success.
 
 This is the standard Swift copy form (PUT + `X-Copy-From`), deliberately NOT a bespoke `COPY` HTTP
-method, so no `HelperTypes.HttpRequestMethod` variant is added and the proxy needs no new verb — only
+method, so no `HelperTypes.HttpRequestMethod` variant is added and the proxy needs no new verb, only
 the `X-Copy-From` request header must be allow-listed on a legacy CORS proxy.
 
 `isMove` rides back through `ReceiveCopyObject` so `State.State` can, on a 2xx copy, DELETE the source
-(a move = copy-then-delete, sequenced — never fire-and-forget both) and refresh the affected listings.
+(a move = copy-then-delete, sequenced, never fire-and-forget both) and refresh the affected listings.
 
 NOTE (documented in the copy/move form footer): copying an SLO/DLO manifest copies ONLY the manifest,
 not its segments. We do not HEAD each object to detect that, so the UI warns statically.
@@ -486,7 +486,7 @@ requestCopyObject project url sourceContainer sourcePrefix sourceObject destCont
 {-| Create a pseudo-folder: `PUT` a **zero-byte** object named `<prefix><name>/` (trailing slash) with
 `Content-Type: application/directory` (see `OpenStack.ObjectStorage.folderPlaceholderObjectName` /
 `directoryContentType`). With a `delimiter=/` listing that object comes back as a `subdir` row, so it
-renders as a folder even while empty — no special client handling needed. Swift replies `201 Created`;
+renders as a folder even while empty; no special client handling is needed. Swift replies `201 Created`;
 `expectVoidWithErrorBody` treats any 2xx as success. The container + prefix ride back through
 `ReceiveCreateFolder` so `State.State` re-lists that level.
 

@@ -321,7 +321,7 @@ view =
 
 {-| Same as `view`, but non-selectable rows render BLANK space (of the same width, so columns stay
 aligned) instead of the lock icon. Opt in on lists where a non-selectable row is not "locked/private"
-and the lock would mislead — e.g. pseudo-folder rows in the object-storage container detail. Every
+and the lock would mislead, e.g. pseudo-folder rows in the object-storage container detail. Every
 other page keeps the lock via `view`.
 -}
 viewHidingNonSelectableLock :

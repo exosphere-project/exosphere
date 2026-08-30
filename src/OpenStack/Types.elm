@@ -250,7 +250,7 @@ type alias ApplicationCredential =
 
 {-| An EC2/S3-style credential pair from Keystone's OS-EC2 extension. `access`/`secret` are the S3
 access key id + secret; `tenantId` is the project the credential is scoped to (the OS-EC2 list spans
-all of a user's projects, so callers filter on this). NOTE: `secret` is sensitive — never log it or
+all of a user's projects, so callers filter on this). NOTE: `secret` is sensitive, never log it or
 interpolate it into an ErrorContext.
 -}
 type alias Ec2Credential =

@@ -447,7 +447,7 @@ toUrl maybePathPrefix route =
 
 The route carries `prefix` as a query parameter (prefixes contain `/`, unicode, and spaces, which
 round-trip more safely in the query than in a path segment). An empty prefix and an absent prefix
-are the same thing — the top level of a container — but `Query.string` with an empty value is
+are the same thing, the top level of a container, but `Query.string` with an empty value is
 ambiguous, so we collapse both to `Nothing` on the way in and out.
 
 -}
