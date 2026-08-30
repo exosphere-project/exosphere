@@ -149,7 +149,7 @@ view context project model =
                 Text.p []
                     [ Text.body <|
                         String.join " "
-                            [ "Object storage is not available for this"
+                            [ {- @nonlocalized -} "Object storage is not available for this"
                             , context.localization.unitOfTenancy ++ "."
                             ]
                     ]
@@ -213,7 +213,7 @@ s3ConnectContents context project model url =
             s3CredentialPanelDecision project.ec2Credentials
     in
     [ Text.p []
-        [ Text.body "Use these values to connect an S3-compatible client, such as rclone or Cyberduck, to your object storage." ]
+        [ Text.body {- @nonlocalized -} "Use these values to connect an S3-compatible client, such as rclone or Cyberduck, to your object storage." ]
     , VH.compactKVRow "Endpoint URL" (copyableText context.palette [] url)
     , VH.compactKVRow {- @nonlocalized -} "Region" (regionValue context)
     , case credentialsDecision.state of
@@ -664,7 +664,7 @@ containerView context project containerRecord =
                 (Element.text <|
                     humanCount locale container.count
                         ++ " "
-                        ++ pluralizeCount container.count "object"
+                        ++ pluralizeCount container.count context.localization.objectStoreObject
                 )
             , Element.el [ Font.color accentColor ] (Element.text "·")
             , Element.el [ Font.color accentColor ] (Element.text (sizeNum ++ " " ++ sizeUnit))
@@ -715,16 +715,16 @@ deleteContainerPopconfirm context project container =
                                 , word
                                 , "contains"
                                 , humanCount context.locale container.count
-                                , pluralizeCount container.count "object" ++ "."
-                                , "Deleting it will permanently delete every ordinary object inside it, then the"
+                                , pluralizeCount container.count context.localization.objectStoreObject ++ "."
+                                , "Deleting it will permanently delete every ordinary " ++ context.localization.objectStoreObject ++ " inside it, then the"
                                 , word ++ "."
                                 ]
                         ]
                     , Element.paragraph []
                         [ Element.text <|
                             String.join " "
-                                [ "Large objects (SLO/DLO) are NOT detected. Their segments may be left behind."
-                                , "Use the CLI or rclone to clean up large objects."
+                                [ "Large " ++ pluralize context.localization.objectStoreObject ++ " (SLO/DLO) are NOT detected. Their segments may be left behind."
+                                , "Use the CLI or rclone to clean up large " ++ pluralize context.localization.objectStoreObject ++ "."
                                 ]
                         ]
                     , Element.text "Are you sure?"
@@ -798,16 +798,16 @@ deletionAction context project containers containerNames =
                                         [ String.fromInt (List.length nonEmptySelected)
                                         , "of them contain"
                                         , humanCount context.locale totalObjectCount
-                                        , pluralizeCount totalObjectCount "object" ++ "."
-                                        , "Deleting will permanently delete every ordinary object inside, then the"
+                                        , pluralizeCount totalObjectCount context.localization.objectStoreObject ++ "."
+                                        , "Deleting will permanently delete every ordinary " ++ context.localization.objectStoreObject ++ " inside, then the"
                                         , pluralizeCount selectedCount word ++ "."
                                         ]
                                 ]
                             , Element.paragraph []
                                 [ Element.text <|
                                     String.join " "
-                                        [ "Large objects (SLO/DLO) are NOT detected. Their segments may be left behind."
-                                        , "Use the CLI or rclone to clean up large objects."
+                                        [ "Large " ++ pluralize context.localization.objectStoreObject ++ " (SLO/DLO) are NOT detected. Their segments may be left behind."
+                                        , "Use the CLI or rclone to clean up large " ++ pluralize context.localization.objectStoreObject ++ "."
                                         ]
                                 ]
                             , Element.text "Are you sure?"

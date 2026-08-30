@@ -254,7 +254,7 @@ view context project ( currentTime, _ ) model =
                 Text.p []
                     [ Text.body <|
                         String.join " "
-                            [ "Object storage is not available for this"
+                            [ {- @nonlocalized -} "Object storage is not available for this"
                             , context.localization.unitOfTenancy ++ "."
                             ]
                     ]
@@ -282,7 +282,7 @@ view context project ( currentTime, _ ) model =
                     , VH.renderRDPP
                         context
                         (GetterSetters.projectLookupObjectStorageListing model.containerName model.prefix project)
-                        (pluralize "object")
+                        (pluralize context.localization.objectStoreObject)
                         (renderSuccessCase context project currentTime model)
                     , if model.prefix == Nothing then
                         manageAccessSection context project model
@@ -491,13 +491,13 @@ deleteContainerDropdownItem context project model metadata =
             case metadata.objectCount of
                 Just n ->
                     if n > 0 then
-                        "all " ++ humanCount context.locale n ++ " " ++ pluralizeCount n "object" ++ " inside it"
+                        "all " ++ humanCount context.locale n ++ " " ++ pluralizeCount n context.localization.objectStoreObject ++ " inside it"
 
                     else
-                        "every object inside it"
+                        "every " ++ context.localization.objectStoreObject ++ " inside it"
 
                 Nothing ->
-                    "every object inside it"
+                    "every " ++ context.localization.objectStoreObject ++ " inside it"
 
         popconfirmId =
             Helpers.String.hyphenate
@@ -522,7 +522,14 @@ deleteContainerDropdownItem context project model metadata =
                         )
                     ]
                 , Element.paragraph []
-                    [ Element.text "Large objects (SLO/DLO) are NOT detected. Their segments may be left behind. Use the CLI or rclone to clean up large objects." ]
+                    [ Element.text
+                        ("Large "
+                            ++ pluralize context.localization.objectStoreObject
+                            ++ " (SLO/DLO) are NOT detected. Their segments may be left behind. Use the CLI or rclone to clean up large "
+                            ++ pluralize context.localization.objectStoreObject
+                            ++ "."
+                        )
+                    ]
                 , Element.text "Are you sure?"
                 ]
     in
@@ -567,7 +574,7 @@ containerInfoStrip context project currentTime containerName metadata =
                     (\n ->
                         fact
                             [ Element.text (humanCount context.locale n)
-                            , Element.el [ subdued ] (Element.text (" " ++ pluralizeCount n "object"))
+                            , Element.el [ subdued ] (Element.text (" " ++ pluralizeCount n context.localization.objectStoreObject))
                             ]
                     )
 
@@ -664,7 +671,7 @@ aclSummary context metadata =
                   else
                     Nothing
                 , if ObjectStorage.aclHasListings readAcl then
-                    Just "Anyone can list object names"
+                    Just ("Anyone can list " ++ context.localization.objectStoreObject ++ " names")
 
                   else
                     Nothing
@@ -768,8 +775,8 @@ advancedAccessDisclosure context model contents =
         ]
 
 
-containerUsageLabel : Locale -> ObjectStorage.ContainerMetadata -> Maybe String
-containerUsageLabel locale metadata =
+containerUsageLabel : String -> Locale -> ObjectStorage.ContainerMetadata -> Maybe String
+containerUsageLabel objectTerm locale metadata =
     let
         bytesPart =
             metadata.bytesUsed
@@ -777,7 +784,7 @@ containerUsageLabel locale metadata =
 
         countPart =
             metadata.objectCount
-                |> Maybe.map (\n -> humanCount locale n ++ " " ++ pluralizeCount n "object")
+                |> Maybe.map (\n -> humanCount locale n ++ " " ++ pluralizeCount n objectTerm)
     in
     case List.filterMap identity [ bytesPart, countPart ] of
         [] ->
@@ -862,7 +869,7 @@ accessGrantList context project model metadata =
                   else
                     Nothing
                 , if ObjectStorage.aclHasListings readAcl then
-                    Just (accessInfoRow context "Anyone can list file names (managed by the List object names setting below)")
+                    Just (accessInfoRow context ("Anyone can list file names (managed by the List " ++ context.localization.objectStoreObject ++ " names setting below)"))
 
                   else
                     Nothing
@@ -1067,8 +1074,8 @@ addPeopleForm context model metadata =
             , selected = Just model.grantWrite
             , label = Input.labelAbove VH.radioLabelAttributes (Text.body "Access level")
             , options =
-                [ Input.option False (Element.text "Can read (download objects)")
-                , Input.option True (Element.text "Can read & write (upload and delete objects)")
+                [ Input.option False (Element.text ("Can read (download " ++ pluralize context.localization.objectStoreObject ++ ")"))
+                , Input.option True (Element.text ("Can read & write (upload and delete " ++ pluralize context.localization.objectStoreObject ++ ")"))
                 ]
             }
         , Element.el []
@@ -1119,10 +1126,10 @@ makePublicPopconfirm context project model onConfirm =
                 [ Element.paragraph []
                     [ Element.text "Make this "
                     , Element.text context.localization.objectStoreContainer
-                    , Element.text " world-readable? Anyone with the link can download any object in it, no login required."
+                    , Element.text (" world-readable? Anyone with the link can download any " ++ context.localization.objectStoreObject ++ " in it, no login required.")
                     ]
                 , Element.paragraph []
-                    [ Element.text "Object NAMES stay unlistable unless you also enable listing below." ]
+                    [ Element.text (Helpers.String.toTitleCase context.localization.objectStoreObject ++ " NAMES stay unlistable unless you also enable listing below.") ]
                 ]
     in
     VH.dangerPopconfirm context
@@ -1194,7 +1201,7 @@ listingsAccessControl context project model metadata =
         control =
             if hasListings then
                 Button.default context.palette
-                    { text = "Stop listing object names"
+                    { text = "Stop listing " ++ context.localization.objectStoreObject ++ " names"
                     , onPress =
                         Just <|
                             setAclMsg project
@@ -1214,16 +1221,17 @@ listingsAccessControl context project model metadata =
                     )
     in
     Element.column [ Element.spacing spacer.px8, Element.width Element.fill ]
-        [ Text.strong "List object names (.rlistings)"
+        [ Text.strong ("List " ++ context.localization.objectStoreObject ++ " names (.rlistings)")
         , Text.p []
             [ Text.body <|
                 if hasListings then
-                    "Object names in this "
+                    Helpers.String.toTitleCase context.localization.objectStoreObject
+                        ++ " names in this "
                         ++ context.localization.objectStoreContainer
                         ++ " are publicly listable."
 
                 else
-                    "Object names are not publicly listable. This is a separate, stronger grant than public read."
+                    Helpers.String.toTitleCase context.localization.objectStoreObject ++ " names are not publicly listable. This is a separate, stronger grant than public read."
             ]
         , control
         ]
@@ -1245,9 +1253,9 @@ enableListingsPopconfirm context project model onConfirm =
         confirmation =
             Element.column [ Element.spacing spacer.px8, Element.width (Element.px 360) ]
                 [ Element.paragraph []
-                    [ Element.text "Allow anyone to LIST every object name in this "
+                    [ Element.text ("Allow anyone to LIST every " ++ context.localization.objectStoreObject ++ " name in this ")
                     , Element.text context.localization.objectStoreContainer
-                    , Element.text "? This is stronger than public read: it reveals the full contents, not just objects whose names are already known."
+                    , Element.text ("? This is stronger than public read: it reveals the full contents, not just " ++ pluralize context.localization.objectStoreObject ++ " whose names are already known.")
                     ]
                 , Element.text "Are you sure?"
                 ]
@@ -1597,7 +1605,7 @@ renderSuccessCase context project currentTime model listing =
         Element.column
             [ Element.spacing spacer.px24, Element.width Element.fill ]
             [ listToolbar
-            , Element.text "No objects at this level."
+            , Element.text ("No " ++ pluralize context.localization.objectStoreObject ++ " at this level.")
             ]
 
     else
@@ -1614,7 +1622,7 @@ renderSuccessCase context project currentTime model listing =
             [ Element.spacing spacer.px24, Element.width Element.fill ]
             [ listToolbar
             , DataList.viewHidingNonSelectableLock
-                "object"
+                context.localization.objectStoreObject
                 model.dataListModel
                 DataListMsg
                 context
@@ -1864,7 +1872,7 @@ downloadObjectAffordance : View.Types.Context -> Project -> Model -> ObjectStora
 downloadObjectAffordance context project model object =
     rowActionIcon context
         { icon = Icons.download
-        , accessibilityLabel = "Download object"
+        , accessibilityLabel = "Download " ++ context.localization.objectStoreObject
         , onClick =
             Just <|
                 SharedMsg <|
@@ -1880,10 +1888,10 @@ copyMoveAffordance context mode object =
         ( icon, label ) =
             case mode of
                 ModeCopy ->
-                    ( Icons.copy, "Copy object to…" )
+                    ( Icons.copy, "Copy " ++ context.localization.objectStoreObject ++ " to…" )
 
                 ModeMove ->
-                    ( Icons.move, "Move object to…" )
+                    ( Icons.move, "Move " ++ context.localization.objectStoreObject ++ " to…" )
     in
     rowActionIcon context
         { icon = icon
@@ -1901,7 +1909,7 @@ copyMoveDestError model form =
 
         Nothing ->
             if form.mode == ModeMove && form.destContainer == model.containerName && form.destObjectName == form.sourceObjectName then
-                Just "Choose a different destination. A move cannot target the source object."
+                Just "Choose a different destination. A move cannot target its source."
 
             else
                 Nothing
@@ -1967,7 +1975,7 @@ copyMoveForm context project model =
                                 Icons.move
                         )
                     )
-                    (modeLabel ++ " object")
+                    (modeLabel ++ " " ++ context.localization.objectStoreObject)
                 , Element.paragraph []
                     [ Element.text ("Source: " ++ form.sourceObjectName) ]
                 , Select.select []
@@ -1981,7 +1989,7 @@ copyMoveForm context project model =
                     { text = form.destObjectName
                     , placeholder = Just (Input.placeholder [] (Element.text "path/to/object"))
                     , onChange = GotCopyMoveDestObject
-                    , label = Input.labelAbove [] (Text.body "Destination object path")
+                    , label = Input.labelAbove [] (Text.body ("Destination " ++ context.localization.objectStoreObject ++ " path"))
                     }
                 , case destError of
                     Just err ->
@@ -1991,7 +1999,14 @@ copyMoveForm context project model =
                     Nothing ->
                         Element.none
                 , Element.paragraph [ Font.color (context.palette.neutral.text.subdued |> SH.toElementColor) ]
-                    [ Element.text "Note: copying a large object (SLO/DLO) copies only its manifest, not its segments. Use the CLI or rclone to duplicate large objects." ]
+                    [ Element.text
+                        ("Note: copying a large "
+                            ++ context.localization.objectStoreObject
+                            ++ " (SLO/DLO) copies only its manifest, not its segments. Use the CLI or rclone to duplicate large "
+                            ++ pluralize context.localization.objectStoreObject
+                            ++ "."
+                        )
+                    ]
                 , Element.row [ Element.spacing spacer.px12 ]
                     [ Button.primary context.palette
                         { text = modeLabel, onPress = confirmMsg }
@@ -2030,7 +2045,14 @@ deleteObjectPopconfirm context project model object =
                 [ Element.paragraph []
                     [ Element.text ("Delete " ++ ObjectStorage.stripPrefix model.prefix object.name ++ "?") ]
                 , Element.paragraph []
-                    [ Element.text "Deleting a large object's manifest may leave its segments behind (use the CLI or rclone for large objects)." ]
+                    [ Element.text
+                        ("Deleting a large "
+                            ++ context.localization.objectStoreObject
+                            ++ "'s manifest may leave its segments behind (use the CLI or rclone for large "
+                            ++ pluralize context.localization.objectStoreObject
+                            ++ ")."
+                        )
+                    ]
                 ]
     in
     VH.dangerPopconfirm context
@@ -2050,7 +2072,7 @@ deleteObjectPopconfirm context project model object =
         (\togglePopoverMsg _ ->
             rowActionIcon context
                 { icon = Icons.trash2
-                , accessibilityLabel = "Delete object"
+                , accessibilityLabel = "Delete " ++ context.localization.objectStoreObject
                 , onClick = Just togglePopoverMsg
                 , hoverColor = context.palette.danger.textOnNeutralBG |> SH.toElementColor
                 }
@@ -2068,7 +2090,7 @@ deletionAction context project model objectNames =
         context
         project
         (SharedMsg << SharedMsg.TogglePopover)
-        { count = Set.size objectNames, word = "object" }
+        { count = Set.size objectNames, word = context.localization.objectStoreObject }
         "objectStorageObjectBulkDeletePopconfirm"
         (Just <|
             SharedMsg <|

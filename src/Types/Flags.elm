@@ -160,6 +160,7 @@ localizationDecoder =
         |> required "blockDevice" string
         |> required "share" string
         |> required "objectStoreContainer" string
+        |> required "objectStoreObject" string
         |> required "accessRule" string
         |> required "exportLocation" string
         |> required "nonFloatingIpAddress" string

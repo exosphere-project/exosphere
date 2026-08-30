@@ -3540,7 +3540,7 @@ processProjectSpecificMsg outerModel project msg =
                                 -- Bound the re-list loop so recursive delete cannot spin forever.
                                 processProjectStringError sharedModel
                                     errorContext
-                                    ("Gave up deleting objects in " ++ sharedModel.viewContext.localization.objectStoreContainer ++ " " ++ containerName ++ " after too many attempts; some objects may remain.")
+                                    ("Gave up deleting " ++ Helpers.String.pluralize sharedModel.viewContext.localization.objectStoreObject ++ " in " ++ sharedModel.viewContext.localization.objectStoreContainer ++ " " ++ containerName ++ " after too many attempts; some " ++ Helpers.String.pluralize sharedModel.viewContext.localization.objectStoreObject ++ " may remain.")
                                     |> Helpers.pipelineCmd
                                         (ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project))
                                     |> mapToOuterMsg
@@ -3595,7 +3595,9 @@ processProjectSpecificMsg outerModel project msg =
                                     "Bulk delete reported " ++ bulkResult.responseStatus
 
                                 else
-                                    "Some objects could not be deleted: "
+                                    "Some "
+                                        ++ Helpers.String.pluralize sharedModel.viewContext.localization.objectStoreObject
+                                        ++ " could not be deleted: "
                                         ++ (bulkResult.errors
                                                 |> List.map (\( path, status ) -> path ++ " (" ++ status ++ ")")
                                                 |> String.join ", "
@@ -3762,7 +3764,9 @@ processProjectSpecificMsg outerModel project msg =
                                     "Bulk delete reported " ++ bulkResult.responseStatus
 
                                 else
-                                    "Some objects could not be deleted: "
+                                    "Some "
+                                        ++ Helpers.String.pluralize sharedModel.viewContext.localization.objectStoreObject
+                                        ++ " could not be deleted: "
                                         ++ (bulkResult.errors
                                                 |> List.map (\( path, status ) -> path ++ " (" ++ status ++ ")")
                                                 |> String.join ", "

@@ -98,7 +98,7 @@ containerUsageLabelSuite =
             }
 
         label md =
-            ObjectStorageContainerDetail.containerUsageLabel locale md
+            ObjectStorageContainerDetail.containerUsageLabel "object" locale md
     in
     describe "Page.ObjectStorageContainerDetail.containerUsageLabel formats the usage summary shared by both variants"
         [ test "(1) no bytes and no count yields Nothing (no usage row rendered)" <|

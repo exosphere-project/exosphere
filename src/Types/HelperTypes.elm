@@ -127,6 +127,7 @@ type alias Localization =
     , blockDevice : String
     , share : String
     , objectStoreContainer : String
+    , objectStoreObject : String
     , accessRule : String
     , exportLocation : String
     , nonFloatingIpAddress : String

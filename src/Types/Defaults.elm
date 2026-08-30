@@ -18,6 +18,7 @@ localization =
     , blockDevice = "volume"
     , share = "share"
     , objectStoreContainer = "container"
+    , objectStoreObject = "object"
     , accessRule = "access rule"
     , exportLocation = "export location"
     , nonFloatingIpAddress = "internal IP address"
