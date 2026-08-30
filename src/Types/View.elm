@@ -19,6 +19,7 @@ import Page.KeypairList
 import Page.LoginOpenIdConnect
 import Page.LoginOpenstack
 import Page.MessageLog
+import Page.ObjectStorageContainerCreate
 import Page.ObjectStorageContainerDetail
 import Page.ObjectStorageList
 import Page.ProjectOverview
@@ -82,6 +83,7 @@ type ProjectViewConstructor
     | KeypairCreate Page.KeypairCreate.Model
     | KeypairList Page.KeypairList.Model
     | ObjectStorageList Page.ObjectStorageList.Model
+    | ObjectStorageContainerCreate Page.ObjectStorageContainerCreate.Model
     | ObjectStorageContainerDetail Page.ObjectStorageContainerDetail.Model
     | SecurityGroupDetail Page.SecurityGroupDetail.Model
     | SecurityGroupList Page.SecurityGroupList.Model

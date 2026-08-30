@@ -26,6 +26,7 @@ import Page.LoginOpenIdConnect
 import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
+import Page.ObjectStorageContainerCreate
 import Page.ObjectStorageContainerDetail
 import Page.ObjectStorageList
 import Page.ProjectOverview
@@ -401,6 +402,10 @@ projectContentView model context p viewConstructor =
             Page.ObjectStorageList.view context p pageModel
                 |> Element.map ObjectStorageListMsg
 
+        ObjectStorageContainerCreate pageModel ->
+            Page.ObjectStorageContainerCreate.view context p pageModel
+                |> Element.map ObjectStorageContainerCreateMsg
+
         ObjectStorageContainerDetail pageModel ->
             Page.ObjectStorageContainerDetail.view context p ( model.clientCurrentTime, model.timeZone ) pageModel
                 |> Element.map ObjectStorageContainerDetailMsg
@@ -555,6 +560,18 @@ createProjectResourcesButton context project =
                                 |> Helpers.String.toTitleCase
                             )
                             (Route.ProjectRoute projectId <| Route.ShareCreate)
+                            closeDropdown
+
+                    _ ->
+                        Element.none
+                , case project.endpoints.swift of
+                    Just _ ->
+                        renderButton
+                            (sizedFeatherIcon 18 Icons.archive)
+                            (context.localization.objectStoreContainer
+                                |> Helpers.String.toTitleCase
+                            )
+                            (Route.ProjectRoute projectId <| Route.ObjectStorageContainerCreate)
                             closeDropdown
 
                     _ ->

@@ -22,6 +22,7 @@ import Page.KeypairList
 import Page.LoginOpenIdConnect
 import Page.LoginOpenstack
 import Page.MessageLog
+import Page.ObjectStorageContainerCreate
 import Page.ObjectStorageContainerDetail
 import Page.ObjectStorageList
 import Page.ProjectOverview
@@ -348,6 +349,18 @@ routeToViewStateModelCmd sharedModel route =
                                             (ApiModelHelpers.requestEc2Credentials (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| ObjectStorageList (Page.ObjectStorageList.init True)
+                            , newSharedModel
+                            , newCmd
+                            )
+
+                        Route.ObjectStorageContainerCreate ->
+                            let
+                                ( newSharedModel, newCmd ) =
+                                    ApiModelHelpers.requestObjectStorageContainers
+                                        (GetterSetters.projectIdentifier project)
+                                        (GetterSetters.modelUpdateProject sharedModel project)
+                            in
+                            ( projectViewProto <| ObjectStorageContainerCreate Page.ObjectStorageContainerCreate.init
                             , newSharedModel
                             , newCmd
                             )

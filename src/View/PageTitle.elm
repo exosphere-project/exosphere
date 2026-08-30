@@ -271,6 +271,13 @@ pageTitle outerModel =
                         , projectName
                         ]
 
+                ObjectStorageContainerCreate _ ->
+                    String.join " "
+                        [ "Create"
+                        , localization.objectStoreContainer
+                            |> Helpers.String.toTitleCase
+                        ]
+
                 ObjectStorageContainerDetail pageModel ->
                     String.join " "
                         [ localization.objectStoreContainer |> Helpers.String.toTitleCase

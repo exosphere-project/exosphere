@@ -58,6 +58,7 @@ type ProjectRouteConstructor
     | KeypairCreate
     | KeypairList
     | ObjectStorageList
+    | ObjectStorageContainerCreate
     | ObjectStorageContainerDetail ObjectStorage.ContainerName (Maybe ObjectStorage.Prefix)
     | SecurityGroupDetail OSTypes.SecurityGroupUuid
     | SecurityGroupList
@@ -238,6 +239,11 @@ toUrl maybePathPrefix route =
 
                         ObjectStorageList ->
                             ( [ "objectstorage" ]
+                            , []
+                            )
+
+                        ObjectStorageContainerCreate ->
+                            ( [ "createcontainer" ]
                             , []
                             )
 
@@ -755,6 +761,9 @@ projectRouteParsers =
     , map
         ObjectStorageList
         (s "objectstorage")
+    , map
+        ObjectStorageContainerCreate
+        (s "createcontainer")
     , map
         identity
         (let

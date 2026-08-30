@@ -15,7 +15,6 @@ import Element
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Element.Input as Input
 import FeatherIcons as Icons
 import Helpers.Formatting exposing (humanBytes, humanCount)
 import Helpers.GetterSetters as GetterSetters
@@ -48,7 +47,6 @@ import View.Types
 type alias Model =
     { showHeading : Bool
     , dataListModel : DataList.Model
-    , newContainerName : String
     , s3SecretRevealed : Bool
     }
 
@@ -57,8 +55,6 @@ type Msg
     = NoOp
     | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
-    | GotNewContainerName String
-    | GotCreateContainer ObjectStorage.ContainerName
       -- The Bool is `recursive` (True for a non-empty container: delete its objects first).
     | GotDeleteConfirm ObjectStorage.ContainerName Bool
     | GotS3SecretRevealed Bool
@@ -80,7 +76,6 @@ init : Bool -> Model
 init showHeading =
     { showHeading = showHeading
     , dataListModel = DataList.init <| DataList.getDefaultFilterOptions []
-    , newContainerName = ""
     , s3SecretRevealed = False
     }
 
@@ -96,16 +91,6 @@ update msg project model =
 
         DataListMsg dataListMsg ->
             ( { model | dataListModel = DataList.update dataListMsg model.dataListModel }, Cmd.none, SharedMsg.NoOp )
-
-        GotNewContainerName name ->
-            ( { model | newContainerName = name }, Cmd.none, SharedMsg.NoOp )
-
-        GotCreateContainer name ->
-            ( { model | newContainerName = "" }
-            , Cmd.none
-            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
-                SharedMsg.RequestCreateContainer name
-            )
 
         GotDeleteConfirm name recursive ->
             ( model
@@ -439,13 +424,12 @@ renderSuccessCase context project model containers =
     in
     Element.column
         [ Element.spacing spacer.px32, Element.width Element.fill ]
-        [ createContainerForm context model containers
-        , if List.isEmpty containers then
+        [ if List.isEmpty containers then
             Element.text <|
                 String.join " "
                     [ "No"
                     , pluralize word
-                    , "yet. Create one above."
+                    , "yet. Use the Create button to make one."
                     ]
 
           else
@@ -460,82 +444,6 @@ renderSuccessCase context project model containers =
                 [ deletionAction context project containers ]
                 Nothing
                 (Just <| searchByNameFilter context)
-        ]
-
-
-newContainerError : View.Types.Context -> List ObjectStorage.Container -> String -> Maybe String
-newContainerError context containers name =
-    if String.isEmpty name then
-        Nothing
-
-    else
-        case ObjectStorage.containerNameError name of
-            Just err ->
-                Just err
-
-            Nothing ->
-                if List.any (\c -> c.name == name) containers then
-                    Just <| "A " ++ context.localization.objectStoreContainer ++ " with that name already exists."
-
-                else
-                    Nothing
-
-
-canCreateContainer : View.Types.Context -> List ObjectStorage.Container -> String -> Bool
-canCreateContainer context containers name =
-    not (String.isEmpty name) && newContainerError context containers name == Nothing
-
-
-createContainerForm : View.Types.Context -> Model -> List ObjectStorage.Container -> Element.Element Msg
-createContainerForm context model containers =
-    let
-        word =
-            context.localization.objectStoreContainer
-
-        name =
-            model.newContainerName
-
-        maybeError =
-            newContainerError context containers name
-
-        canCreate =
-            canCreateContainer context containers name
-    in
-    Element.column
-        [ Element.spacing spacer.px12, Element.width Element.fill ]
-        [ Element.row
-            [ Element.spacing spacer.px12, Element.width Element.fill ]
-            [ Input.text
-                (VH.inputItemAttributes context.palette)
-                { text = name
-                , placeholder = Just (Input.placeholder [] (Element.text "my-container"))
-                , onChange = GotNewContainerName
-                , label =
-                    Input.labelAbove []
-                        (VH.requiredLabel context.palette (Element.text ("New " ++ toTitleCase word)))
-                }
-            , Element.el [ Element.alignBottom ] <|
-                Button.primary context.palette
-                    { text = "Create"
-                    , onPress =
-                        if canCreate then
-                            Just (GotCreateContainer name)
-
-                        else
-                            Nothing
-                    }
-            ]
-        , Element.el
-            [ Font.color <| SH.toElementColor context.palette.neutral.text.subdued ]
-            (Element.text "Names can't be changed after creation.")
-        , case maybeError of
-            Just err ->
-                Element.el
-                    [ Font.color <| SH.toElementColor context.palette.danger.textOnNeutralBG ]
-                    (Element.text err)
-
-            Nothing ->
-                Element.none
         ]
 
 

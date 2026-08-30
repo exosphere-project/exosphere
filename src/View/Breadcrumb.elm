@@ -377,6 +377,17 @@ breadcrumb_ outerModel context =
                                       }
                                     ]
 
+                                ObjectStorageContainerCreate _ ->
+                                    [ { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ "Create"
+                                                , context.localization.objectStoreContainer
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    ]
+
                                 ObjectStorageContainerDetail pageModel ->
                                     [ { route = Just <| Route.ProjectRoute projectId <| Route.ObjectStorageList
                                       , label =

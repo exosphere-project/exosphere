@@ -73,6 +73,20 @@ objectStorageRouteRoundTripSuite =
                         projectRoute (Route.ObjectStorageContainerDetail "photos" (Just "a/b c/"))
                 in
                 Expect.equal route (roundTrip (Just "exosphere") route)
+        , test "(g) container create" <|
+            \_ ->
+                let
+                    route =
+                        projectRoute Route.ObjectStorageContainerCreate
+                in
+                Expect.equal route (roundTrip Nothing route)
+        , test "(g2) container create with path prefix" <|
+            \_ ->
+                let
+                    route =
+                        projectRoute Route.ObjectStorageContainerCreate
+                in
+                Expect.equal route (roundTrip (Just "exosphere") route)
         , test "(f2) container list with path prefix" <|
             \_ ->
                 let

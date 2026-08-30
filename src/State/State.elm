@@ -46,6 +46,7 @@ import Page.KeypairList
 import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
+import Page.ObjectStorageContainerCreate
 import Page.ObjectStorageContainerDetail
 import Page.ObjectStorageList
 import Page.ProjectOverview
@@ -632,6 +633,21 @@ updateUnderlying outerMsg outerModel =
                                         ObjectStorageList newSharedModel
                               }
                             , Cmd.map ObjectStorageListMsg cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( ObjectStorageContainerCreateMsg pageMsg, ObjectStorageContainerCreate pageModel ) ->
+                            let
+                                ( newPageModel, cmd, sharedMsg ) =
+                                    Page.ObjectStorageContainerCreate.update pageMsg project pageModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId <|
+                                        ObjectStorageContainerCreate newPageModel
+                              }
+                            , Cmd.map ObjectStorageContainerCreateMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -3506,9 +3522,21 @@ processProjectSpecificMsg outerModel project msg =
         ReceiveCreateContainer errorContext result ->
             case result of
                 Ok () ->
-                    ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project) sharedModel
-                        |> mapToOuterMsg
-                        |> mapToOuterModel outerModel
+                    let
+                        ( newOuterModel, refreshCmd ) =
+                            ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project) sharedModel
+                                |> mapToOuterMsg
+                                |> mapToOuterModel outerModel
+                    in
+                    -- The create page has done its job, so send the user to the list that now
+                    -- holds the new container, the way a created volume returns to its list.
+                    ( newOuterModel
+                    , Cmd.batch
+                        [ refreshCmd
+                        , Route.pushUrl sharedModel.viewContext
+                            (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.ObjectStorageList)
+                        ]
+                    )
 
                 Err httpError ->
                     processProjectSynchronousApiError sharedModel errorContext httpError
