@@ -20,7 +20,7 @@ module OpenStack.ObjectStorage exposing
     , breadcrumbSegments
     , bulkDeleteBody
     , bulkDeleteMaxPerRequest
-    , bulkDeleteStatusOk
+    , bulkDeleteSucceeded
     , chunkForBulkDelete
     , clearFinishedUploads
     , containerMetadataFromHeaders
@@ -729,11 +729,14 @@ bulkDeleteErrorDecoder =
         (Decode.index 1 Decode.string)
 
 
-{-| Bulk-delete success requires both a 2xx status and no per-object `Errors`.
+{-| Whether a bulk delete did everything it was asked to do, which takes both a 2xx status and no
+per-object `Errors`. Swift answers a partly failed bulk delete with 200 and lists the casualties in
+`Errors`. A body carrying no status at all decodes to a blank one, which counts as a 2xx.
 -}
-bulkDeleteStatusOk : BulkDeleteResult -> Bool
-bulkDeleteStatusOk result =
-    result.responseStatus == "" || String.startsWith "2" result.responseStatus
+bulkDeleteSucceeded : BulkDeleteResult -> Bool
+bulkDeleteSucceeded result =
+    (result.responseStatus == "" || String.startsWith "2" result.responseStatus)
+        && List.isEmpty result.errors
 
 
 {-| With `delimiter=/`, the next marker is the later of the last object and last subdir prefix.

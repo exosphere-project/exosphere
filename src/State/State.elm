@@ -3597,7 +3597,7 @@ processProjectSpecificMsg outerModel project msg =
         ReceiveBulkDeleteContainerObjects errorContext containerName budget remainingChunks result ->
             case ( result, project.endpoints.swift ) of
                 ( Ok bulkResult, Just swiftUrl ) ->
-                    if List.isEmpty bulkResult.errors && OpenStack.ObjectStorage.bulkDeleteStatusOk bulkResult then
+                    if OpenStack.ObjectStorage.bulkDeleteSucceeded bulkResult then
                         case remainingChunks of
                             nextChunk :: restChunks ->
                                 ( outerModel, Rest.Swift.requestBulkDeleteContainerObjects project swiftUrl containerName budget restChunks nextChunk )
@@ -3777,7 +3777,7 @@ processProjectSpecificMsg outerModel project msg =
             in
             case result of
                 Ok bulkResult ->
-                    if List.isEmpty bulkResult.errors && OpenStack.ObjectStorage.bulkDeleteStatusOk bulkResult then
+                    if OpenStack.ObjectStorage.bulkDeleteSucceeded bulkResult then
                         refresh sharedModel
                             |> mapToOuterMsg
                             |> mapToOuterModel outerModel

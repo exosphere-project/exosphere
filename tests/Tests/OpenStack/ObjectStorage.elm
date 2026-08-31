@@ -475,23 +475,33 @@ bulkDeleteResponseSuite =
 
                     Err e ->
                         Expect.fail ("decode failed: " ++ Json.Decode.errorToString e)
-        , test "bulkDeleteStatusOk: a 2xx body status is OK" <|
+        , test "bulkDeleteSucceeded: a 2xx body status with no errors is a success" <|
             \_ ->
                 Expect.equal True
-                    (ObjectStorage.bulkDeleteStatusOk
+                    (ObjectStorage.bulkDeleteSucceeded
                         { numberDeleted = 3, numberNotFound = 0, responseStatus = "200 OK", errors = [] }
                     )
-        , test "bulkDeleteStatusOk: a blank body status is tolerated as OK" <|
+        , test "bulkDeleteSucceeded: a blank body status is tolerated as a success" <|
             \_ ->
                 Expect.equal True
-                    (ObjectStorage.bulkDeleteStatusOk
+                    (ObjectStorage.bulkDeleteSucceeded
                         { numberDeleted = 0, numberNotFound = 0, responseStatus = "", errors = [] }
                     )
-        , test "bulkDeleteStatusOk: a whole-request failure (400 in the body, empty Errors) is NOT OK" <|
+        , test "bulkDeleteSucceeded: a whole-request failure (400 in the body, empty Errors) is not a success" <|
             \_ ->
                 Expect.equal False
-                    (ObjectStorage.bulkDeleteStatusOk
+                    (ObjectStorage.bulkDeleteSucceeded
                         { numberDeleted = 0, numberNotFound = 0, responseStatus = "400 Bad Request", errors = [] }
+                    )
+        , test "bulkDeleteSucceeded: a 2xx status with per-object errors is not a success" <|
+            \_ ->
+                Expect.equal False
+                    (ObjectStorage.bulkDeleteSucceeded
+                        { numberDeleted = 2
+                        , numberNotFound = 0
+                        , responseStatus = "200 OK"
+                        , errors = [ ( "/container/object", "403 Forbidden" ) ]
+                        }
                     )
         ]
 
