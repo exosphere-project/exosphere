@@ -37,7 +37,7 @@ import Style.Widgets.IconButton as IconButton
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Types.Error exposing (HttpErrorWithBody)
-import Types.Project exposing (Project)
+import Types.Project exposing (Project, ProjectSecret(..))
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
@@ -230,7 +230,7 @@ s3ConnectContents context project model url =
             context.localization.unitOfTenancy
 
         credentialsDecision =
-            s3CredentialPanelDecision project.ec2Credentials
+            s3CredentialPanelDecision project.secret project.ec2Credentials
     in
     [ Text.p []
         [ Text.body {- @nonlocalized -} "Use these values to connect an S3-compatible client, such as rclone or Cyberduck, to your object storage." ]
@@ -267,9 +267,25 @@ regionValue context =
         (Text.body {- @nonlocalized -} "us-east-1 (S3 clients require a region; this value works here).")
 
 
-s3CredentialPanelDecision : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Ec2Credential) -> S3CredentialPanelDecision
-s3CredentialPanelDecision ec2Credentials =
+{-| Which S3 credential panel to show, given how this session signed in and how the EC2 credential
+listing went.
+
+A 403 only proves the application credential story when the session actually holds one. For a
+password session a 403 is the cloud's own policy talking, so that case takes the normal path and the
+error shows as itself rather than as an explanation the user cannot act on.
+
+-}
+s3CredentialPanelDecision : ProjectSecret -> RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Ec2Credential) -> S3CredentialPanelDecision
+s3CredentialPanelDecision projectSecret ec2Credentials =
     let
+        hasApplicationCredential =
+            case projectSecret of
+                ApplicationCredential _ ->
+                    True
+
+                NoProjectSecret ->
+                    False
+
         isForbidden =
             case ec2Credentials.refreshStatus of
                 RDPP.NotLoading (Just ( httpErrorWithBody, _ )) ->
@@ -278,7 +294,7 @@ s3CredentialPanelDecision ec2Credentials =
                 _ ->
                     False
     in
-    if isForbidden then
+    if isForbidden && hasApplicationCredential then
         { state = S3CredentialPanelApplicationCredentialForbidden
         , showCreateButton = False
         }

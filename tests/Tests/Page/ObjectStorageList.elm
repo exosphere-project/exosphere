@@ -8,6 +8,7 @@ import Page.ObjectStorageList as ObjectStorageList exposing (S3CredentialPanelSt
 import Test exposing (Test, describe, test)
 import Time
 import Types.Error exposing (HttpErrorWithBody)
+import Types.Project exposing (ProjectSecret(..))
 
 
 receivedTime : Time.Posix
@@ -18,6 +19,11 @@ receivedTime =
 httpError : Http.Error -> HttpErrorWithBody
 httpError error =
     { error = error, body = "sentinel body" }
+
+
+applicationCredential : ProjectSecret
+applicationCredential =
+    ApplicationCredential { uuid = "app-cred-uuid", secret = "app-cred-secret" }
 
 
 ec2Credential : OSTypes.Ec2Credential
@@ -49,7 +55,7 @@ s3CredentialPanelDecisionSuite =
             \_ ->
                 let
                     decision =
-                        ObjectStorageList.s3CredentialPanelDecision (erroredCredentials (Http.BadStatus 403))
+                        ObjectStorageList.s3CredentialPanelDecision applicationCredential (erroredCredentials (Http.BadStatus 403))
                 in
                 Expect.equal
                     { state = S3CredentialPanelApplicationCredentialForbidden
@@ -60,10 +66,21 @@ s3CredentialPanelDecisionSuite =
             \_ ->
                 let
                     decision =
-                        ObjectStorageList.s3CredentialPanelDecision (staleCredentialsWithError (Http.BadStatus 403) [ ec2Credential ])
+                        ObjectStorageList.s3CredentialPanelDecision applicationCredential (staleCredentialsWithError (Http.BadStatus 403) [ ec2Credential ])
                 in
                 Expect.equal
                     { state = S3CredentialPanelApplicationCredentialForbidden
+                    , showCreateButton = False
+                    }
+                    decision
+        , test "403 without an application credential is a policy denial, so it takes the normal path" <|
+            \_ ->
+                let
+                    decision =
+                        ObjectStorageList.s3CredentialPanelDecision NoProjectSecret (erroredCredentials (Http.BadStatus 403))
+                in
+                Expect.equal
+                    { state = S3CredentialPanelNormal
                     , showCreateButton = False
                     }
                     decision
@@ -73,7 +90,7 @@ s3CredentialPanelDecisionSuite =
                     summarize rdpp =
                         let
                             decision =
-                                ObjectStorageList.s3CredentialPanelDecision rdpp
+                                ObjectStorageList.s3CredentialPanelDecision applicationCredential rdpp
                         in
                         ( decision.state, decision.showCreateButton )
                 in
