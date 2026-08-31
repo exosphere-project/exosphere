@@ -1585,11 +1585,18 @@ breadcrumbTrail context project model =
                                 )
                         , hoverColor = context.palette.primary |> SH.toElementColor
                         }
+
+        -- A scrolling element is only as tall as its content, and the horizontal scrollbar then
+        -- takes its height out of that, cutting the descenders off the crumb labels. Asking for a
+        -- line of body text plus a scrollbar gutter leaves room for both.
+        trailHeight =
+            (Text.typography Text.Body).size + spacer.px8 + spacer.px16
     in
     Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
         [ upButton
         , Element.el
             [ Element.width (Element.fill |> Element.maximum 600)
+            , Element.height (Element.px trailHeight)
             , Element.scrollbarX
             , Element.clipX
             ]
