@@ -749,8 +749,7 @@ projectRouteParsers =
         KeypairCreate
         (s "uploadkeypair")
 
-    -- Object storage: the container-detail parser (with an optional `prefix` query param) MUST
-    -- come before the bare container-list parser so `/objectstorage/<name>` matches the former.
+    -- Object storage container details accept an optional `prefix` query parameter for folder navigation.
     , map
         (\encodedContainerName maybePrefix ->
             ObjectStorageContainerDetail
