@@ -8,6 +8,7 @@ import Element.Font as Font
 import Element.Region as Region
 import FeatherIcons as Icons
 import Helpers.GetterSetters as GetterSetters
+import Helpers.Helpers as Helpers
 import Helpers.String
 import Html
 import Html.Attributes
@@ -564,18 +565,17 @@ createProjectResourcesButton context project =
 
                     _ ->
                         Element.none
-                , case project.endpoints.swift of
-                    Just _ ->
-                        renderButton
-                            (sizedFeatherIcon 18 Icons.archive)
-                            (context.localization.objectStoreContainer
-                                |> Helpers.String.toTitleCase
-                            )
-                            (Route.ProjectRoute projectId <| Route.ObjectStorageContainerCreate)
-                            closeDropdown
+                , if Helpers.objectStorageTileVisible context.experimentalFeaturesEnabled project.endpoints.swift then
+                    renderButton
+                        (sizedFeatherIcon 18 Icons.archive)
+                        (context.localization.objectStoreContainer
+                            |> Helpers.String.toTitleCase
+                        )
+                        (Route.ProjectRoute projectId <| Route.ObjectStorageContainerCreate)
+                        closeDropdown
 
-                    _ ->
-                        Element.none
+                  else
+                    Element.none
                 , renderButton
                     (sizedFeatherIcon 18 Icons.key)
                     (context.localization.pkiPublicKeyForSsh
