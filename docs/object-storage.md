@@ -2,11 +2,11 @@
 
 Object Storage lets you browse and manage your cloud's [Swift](https://docs.openstack.org/swift/latest/) object storage from Exosphere: containers, objects, pseudo-folders, uploads and downloads, bulk actions, and sharing.
 
-Like Shares and other optional OpenStack services, Object Storage appears **only when your project's service catalog offers it**. If your cloud does not provide a Swift `object-store` endpoint, the feature simply does not appear — nothing breaks (see [When object storage is not available](#when-object-storage-is-not-available)).
+Object Storage appears only when **Experimental features** is enabled in Settings and your project's service catalog offers a Swift `object-store` endpoint. If either requirement is missing, the feature does not appear (see [When object storage is not available](#when-object-storage-is-not-available)).
 
 ## What you can do
 
-A per-project **Object Storage** tile appears on your Project page when the service is available. From there you can:
+A per-project **Object Storage** tile appears on your Project page when Experimental features is enabled and the service is available. From there you can:
 
 - **Containers** — list every container with its object count and size, create a container, and delete one (a non-empty container is emptied first, behind a confirmation).
 - **Objects and folders** — browse the objects and pseudo-folders inside a container, navigate folders with breadcrumbs, and page through large containers.
@@ -86,10 +86,12 @@ The secret key is hidden until you reveal it, and copying the rclone snippet inc
 
 ## When object storage is not available
 
-Object storage keys off your project's service catalog. If there is no `object-store` endpoint:
+Object storage requires Experimental features to be enabled in Settings and an `object-store` endpoint in your project's service catalog. If the tile does not appear:
 
-- the Object Storage tile does not appear on your Project page, and
-- opening the Object Storage page directly shows a clean "not available" message rather than an error.
+- check that **Experimental features** is enabled in Settings, and
+- ask your cloud administrator whether the service catalog provides an `object-store` endpoint.
+
+If there is no `object-store` endpoint, opening the Object Storage page directly shows a clean "not available" message rather than an error.
 
 Nothing else in Exosphere is affected.
 
