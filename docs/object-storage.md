@@ -2,7 +2,7 @@
 
 Object Storage lets you browse and manage your cloud's [Swift](https://docs.openstack.org/swift/latest/) object storage from Exosphere: containers, objects, pseudo-folders, uploads and downloads, bulk actions, and sharing.
 
-Object Storage appears only when **Experimental features** is enabled in Settings and your project's service catalog offers a Swift `object-store` endpoint. If either requirement is missing, the feature does not appear (see [When object storage is not available](#when-object-storage-is-not-available)).
+The Object Storage tile and its create action appear only when **Experimental features** is enabled in Settings and your project's service catalog offers a Swift `object-store` endpoint (see [When object storage is not available](#when-object-storage-is-not-available)).
 
 ## What you can do
 
@@ -86,7 +86,7 @@ The secret key is hidden until you reveal it, and copying the rclone snippet inc
 
 ## When object storage is not available
 
-Object storage requires Experimental features to be enabled in Settings and an `object-store` endpoint in your project's service catalog. If the tile does not appear:
+The Object Storage tile appears only when Experimental features is enabled in Settings and the service catalog provides an `object-store` endpoint. If the tile does not appear:
 
 - check that **Experimental features** is enabled in Settings, and
 - ask your cloud administrator whether the service catalog provides an `object-store` endpoint.

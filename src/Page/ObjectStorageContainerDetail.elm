@@ -474,9 +474,9 @@ makePublicOrPrivateItem context project model metadata =
             )
 
 
-{-| The "Delete container" dropdown item: a strengthened popconfirm that spells out that deleting the
-container permanently deletes ALL objects inside it (not just the container), keeping the SLO/DLO
-caveat. `recursive` (delete the objects first, then the container) follows the object count; when the
+{-| The "Delete container" dropdown item: a popconfirm that spells out that deleting the container
+permanently deletes ALL objects inside it, with the SLO/DLO caveat. `recursive` (delete the objects
+first, then the container) follows the object count; when the
 count is unknown it defaults to recursive so a non-empty container is never left undeleted.
 -}
 deleteContainerDropdownItem : View.Types.Context -> Project -> Model -> ObjectStorage.ContainerMetadata -> Element.Element Msg
