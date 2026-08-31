@@ -517,9 +517,7 @@ deleteContainerDropdownItem context project model metadata =
                             ++ contentsPhrase
                             ++ ", then the "
                             ++ word
-                            ++ " itself, not just the "
-                            ++ word
-                            ++ "."
+                            ++ " itself."
                         )
                     ]
                 , Element.paragraph []
