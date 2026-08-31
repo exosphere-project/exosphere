@@ -52,7 +52,7 @@ clickableIcon attributes { icon, accessibilityLabel, onClick, color, hoverColor 
 
 {-| A `clickableIcon` with a caller-chosen icon size, so row-action clusters can match the 18px
 sizing Exosphere's other row affordances use (`DeleteButton.deleteIconButton` and the copyable-text
-accessory are both 18px). `clickableIcon` keeps its historical 22px default for existing callers.
+accessory are both 18px). `clickableIcon` defaults to 22px.
 -}
 sizedClickableIcon : List (Element.Attribute msg) -> { icon : Icons.Icon, accessibilityLabel : String, onClick : Maybe msg, color : Element.Color, hoverColor : Element.Color, size : Float } -> Element.Element msg
 sizedClickableIcon attributes { icon, accessibilityLabel, onClick, color, hoverColor, size } =

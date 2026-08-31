@@ -1160,9 +1160,9 @@ makePublicPopconfirm context project model onConfirm =
         )
 
 
-{-| The make-private popconfirm: making a container private no longer flips immediately, existing
-public links stop working, so it deserves the same confirm-gate as making it public. Plain,
-user-level copy (the `X-Remove-Container-Read` revoke stays under the hood).
+{-| The make-private popconfirm warns that existing public links will stop working before it revokes
+public access. The copy stays at the user level; the `X-Remove-Container-Read` revoke remains under
+the hood.
 -}
 makePrivatePopconfirm : View.Types.Context -> Project -> Model -> Msg -> Element.Element Msg
 makePrivatePopconfirm context project model onConfirm =
@@ -1845,9 +1845,7 @@ objectRowView context project currentTime model object =
 
 {-| A compact "copy public link" icon button for a single object's action cluster, shown ONLY when the
 container is world-readable (`.r:*` in its read ACL, per the typed `containerIsPublic`) AND a swift
-endpoint is known. Replaces the old full-URL "Public link:" row + the duplicate open-in-new-tab
-anchor: with many objects, ten full URLs is a bad pattern, and the anchor merely re-did the download
-button.
+endpoint is known. The compact action avoids showing a full URL for every object in a long list.
 
 The copy works via `Style.Widgets.CopyableText.copyButton` (clipboard.js `data-clipboard-text`
 literal-string mode; see that widget's doc). Reuses `ObjectStorage.publicObjectUrl` (the single place
@@ -2020,10 +2018,9 @@ copyMoveForm context project model =
                 ]
 
 
-{-| Whether a container is world-readable, per its cached read ACL. Uses the TYPED ACL parse
-(`ObjectStorage.readAclIsPublic`), public iff the read ACL contains the `.r:*` grantee, replacing
-the earlier PROVISIONAL `String.contains ".r:*"` substring check. Now populated by the
-HEAD-container read; returns False while the metadata cache is empty/loading.
+{-| Whether a container is world-readable, per its cached read ACL. The typed ACL parser
+(`ObjectStorage.readAclIsPublic`) returns public iff the read ACL contains the `.r:*` grantee.
+The HEAD-container read populates the cache; this returns False while the cache is empty or loading.
 -}
 containerIsPublic : Project -> ObjectStorage.ContainerName -> Bool
 containerIsPublic project containerName =
