@@ -584,10 +584,11 @@ containerInfoStrip context project currentTime containerName metadata =
                 |> Maybe.map (\n -> fact [ Element.text (usageBytesLabel context.locale n) ])
 
         accessFact =
-            fact [ Element.el [ subdued ] (Element.text "access "), Element.text (accessWord metadata) ]
+            containerAccess metadata
+                |> Maybe.map
+                    (\access -> fact [ Element.el [ subdued ] (Element.text "access "), Element.text (accessWord access metadata) ])
 
-        -- Storage policy is how the cloud stores and replicates the data. It used to live in the
-        -- header toggletip, which the access badge replaced.
+        -- Storage policy is how the cloud stores and replicates the data.
         policyFact =
             metadata.storagePolicy
                 |> Maybe.map
@@ -601,7 +602,7 @@ containerInfoStrip context project currentTime containerName metadata =
                     (\_ -> fact [ Element.el [ subdued ] (Element.text "S3 bucket "), Element.text containerName ])
 
         facts =
-            List.filterMap identity [ createdFact, countFact, sizeFact, Just accessFact, policyFact, s3BucketFact ]
+            List.filterMap identity [ createdFact, countFact, sizeFact, accessFact, policyFact, s3BucketFact ]
 
         urlHeader =
             case project.endpoints.swift of
@@ -655,20 +656,21 @@ truncatedContainerUrlDisplay containerName =
            )
 
 
-accessWord : ObjectStorage.ContainerMetadata -> String
-accessWord metadata =
-    let
-        readAcl =
-            currentReadAcl metadata
-    in
-    if ObjectStorage.aclIsPublic readAcl then
-        "Public"
+{-| The access state in words, for an access `containerAccess` already read off the headers. A
+private container that grants some other principal a read or a write is worth calling out as shared.
+-}
+accessWord : ContainerAccess -> ObjectStorage.ContainerMetadata -> String
+accessWord access metadata =
+    case access of
+        AccessPublic ->
+            "Public"
 
-    else if List.length (mergedGrantPrincipals readAcl (currentWriteAcl metadata)) > 0 then
-        "Private, shared"
+        AccessPrivate ->
+            if List.isEmpty (mergedGrantPrincipals (currentReadAcl metadata) (currentWriteAcl metadata)) then
+                "Private"
 
-    else
-        "Private"
+            else
+                "Private, shared"
 
 
 aclSummary : View.Types.Context -> ObjectStorage.ContainerMetadata -> Element.Element Msg
