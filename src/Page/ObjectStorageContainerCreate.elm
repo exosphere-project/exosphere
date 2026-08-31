@@ -106,7 +106,7 @@ createForm context project model =
             [ Input.text
                 (VH.inputItemAttributes context.palette)
                 { text = model.name
-                , placeholder = Just (Input.placeholder [] (Element.text "my-container"))
+                , placeholder = Just (Input.placeholder [] (Element.text ("my-" ++ context.localization.objectStoreContainer)))
                 , onChange = GotName
                 , label =
                     Input.labelAbove []
