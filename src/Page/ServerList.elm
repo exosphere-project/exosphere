@@ -339,11 +339,40 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
                 }
 
         interactionPopover closePopover =
-            Element.column []
-                (List.map
-                    (\{ interactionStatus, interactionDetails } ->
-                        Element.el [ closePopover, Element.width Element.fill ] <|
-                            Widget.button
+            let
+                -- A warning that comes with a fix cannot be opened from here, so the item says why
+                -- it is disabled and offers the fix, which is what the detail page does too.
+                warningWithFix interactionStatus =
+                    case interactionStatus of
+                        ITypes.WarnWithFix reason fix ->
+                            [ Element.paragraph
+                                [ Element.width (Element.fill |> Element.maximum 320)
+                                , Element.paddingEach { top = 0, right = spacer.px12, bottom = spacer.px8, left = spacer.px12 }
+                                , Font.color (SH.toElementColor context.palette.neutral.text.subdued)
+                                ]
+                                [ Text.text Text.Small [] reason ]
+                            , Element.el
+                                [ closePopover
+                                , Element.paddingEach { top = 0, right = spacer.px12, bottom = spacer.px8, left = spacer.px12 }
+                                ]
+                                (Element.link []
+                                    { url = fix.url
+                                    , label =
+                                        Button.default context.palette
+                                            { text = fix.label
+                                            , onPress = Just NoOp
+                                            }
+                                    }
+                                )
+                            ]
+
+                        _ ->
+                            []
+
+                interactionItem { interactionStatus, interactionDetails } =
+                    Element.column [ Element.width Element.fill ] <|
+                        Element.el [ closePopover, Element.width Element.fill ]
+                            (Widget.button
                                 (dropdownItemStyle context.palette)
                                 { text = interactionDetails.name
                                 , icon =
@@ -366,9 +395,10 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
                                         _ ->
                                             Nothing
                                 }
-                    )
-                    serverRecord.interactions
-                )
+                            )
+                            :: warningWithFix interactionStatus
+            in
+            Element.column [] (List.map interactionItem serverRecord.interactions)
 
         interactionButton =
             let

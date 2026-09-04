@@ -1,4 +1,4 @@
-module Helpers.Interaction exposing (getLaunchedWithGaucamoleProps, interactionDetails, interactionStatus, interactionStatusWordColor)
+module Helpers.Interaction exposing (getLaunchedWithGaucamoleProps, interactionDetails, interactionStatus, interactionStatusWordColor, ipv6NeedsFloatingIp)
 
 import Element
 import FeatherIcons as Icons
@@ -19,7 +19,7 @@ import Time
 import Types.Guacamole as GuacTypes exposing (LaunchedWithGuacProps, ServerGuacamoleStatus(..))
 import Types.HelperTypes exposing (UserAppProxyHostname)
 import Types.Interaction as ITypes
-import Types.Ipv6Reachability exposing (Ipv6Reachability)
+import Types.Ipv6Reachability exposing (Ipv6Reachability(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoSetupStatus(..), Server, ServerFromExoProps, ServerOrigin(..))
 import Types.Workflow exposing (ServerCustomWorkflowStatus(..))
@@ -468,6 +468,10 @@ there, and a floating IP address would fix it.
 The instance's own setup has to be finished first. Guacamole is not being served before that, so
 failures until then are an instance that is not ready yet, not a browser without IPv6.
 
+The session must also not have reached anything over IPv6 yet. Once one instance answers over IPv6
+the browser's network demonstrably has it, so another instance still failing is that instance's
+problem, and it gets the ordinary error instead of an offer to spend a floating IP address.
+
 -}
 ipv6NeedsFloatingIp : GuacamoleEndpoint.Instance -> ServerFromExoProps -> LaunchedWithGuacProps -> Bool
 ipv6NeedsFloatingIp guacInstance exoOriginProps guacProps =
@@ -481,6 +485,7 @@ ipv6NeedsFloatingIp guacInstance exoOriginProps guacProps =
                     False
     in
     GuacamoleEndpoint.directModeApplies guacInstance
+        && (guacInstance.ipv6Reachability /= Reachable)
         && (guacInstance.floatingIpAddress == Nothing)
         && (GuacamoleEndpoint.ipv6Address guacInstance /= Nothing)
         && exoSetupComplete

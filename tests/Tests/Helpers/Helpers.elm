@@ -79,7 +79,8 @@ hostnameSuite =
 
 {-| The `exoGuac` server metadata item gained a `tls` field in version 2. Instances launched at
 version 1 must keep decoding, with `tlsSupported` false, so that turning direct Guacamole on for a
-cloud does not strand instances that were launched before it.
+cloud does not strand instances that were launched before it. Either version starts with a clean
+IPv6 failure count, since nothing has been tried yet.
 -}
 exoGuacMetadataSuite : Test
 exoGuacMetadataSuite =
@@ -114,10 +115,15 @@ exoGuacMetadataSuite =
                                 Nothing
                    )
 
-        supportFlagsOf exoGuacValue =
+        decodedPropsOf exoGuacValue =
             case guacamoleStatusOf exoGuacValue of
                 Just (GuacTypes.LaunchedWithGuacamole props) ->
-                    Just ( props.sshSupported, props.vncSupported, props.tlsSupported )
+                    Just
+                        { sshSupported = props.sshSupported
+                        , vncSupported = props.vncSupported
+                        , tlsSupported = props.tlsSupported
+                        , consecutiveIpv6NetworkErrors = props.consecutiveIpv6NetworkErrors
+                        }
 
                 _ ->
                     Nothing
@@ -125,16 +131,37 @@ exoGuacMetadataSuite =
     describe "Decoding the exoGuac server metadata item"
         [ test "reads TLS support from a version 2 item" <|
             \_ ->
-                supportFlagsOf """{"v":2,"ssh":true,"vnc":true,"tls":true}"""
-                    |> Expect.equal (Just ( True, True, True ))
+                decodedPropsOf """{"v":2,"ssh":true,"vnc":true,"tls":true}"""
+                    |> Expect.equal
+                        (Just
+                            { sshSupported = True
+                            , vncSupported = True
+                            , tlsSupported = True
+                            , consecutiveIpv6NetworkErrors = 0
+                            }
+                        )
         , test "reads a version 2 item that was launched without TLS" <|
             \_ ->
-                supportFlagsOf """{"v":2,"ssh":true,"vnc":false,"tls":false}"""
-                    |> Expect.equal (Just ( True, False, False ))
+                decodedPropsOf """{"v":2,"ssh":true,"vnc":false,"tls":false}"""
+                    |> Expect.equal
+                        (Just
+                            { sshSupported = True
+                            , vncSupported = False
+                            , tlsSupported = False
+                            , consecutiveIpv6NetworkErrors = 0
+                            }
+                        )
         , test "treats a version 1 item, which has no tls field, as not supporting TLS" <|
             \_ ->
-                supportFlagsOf """{"v":1,"ssh":true,"vnc":true}"""
-                    |> Expect.equal (Just ( True, True, False ))
+                decodedPropsOf """{"v":1,"ssh":true,"vnc":true}"""
+                    |> Expect.equal
+                        (Just
+                            { sshSupported = True
+                            , vncSupported = True
+                            , tlsSupported = False
+                            , consecutiveIpv6NetworkErrors = 0
+                            }
+                        )
         , test "ignores an item it cannot decode" <|
             \_ ->
                 guacamoleStatusOf """{"v":2}"""
