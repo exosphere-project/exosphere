@@ -1,4 +1,4 @@
-module Helpers.GuacamoleEndpoint exposing (Endpoint(..), Instance, buildUrl, directModeApplies, guacUpstreamPort, resolve)
+module Helpers.GuacamoleEndpoint exposing (Endpoint(..), Instance, TokenAttempt, buildUrl, directModeApplies, guacUpstreamPort, ipv6Address, isIpv6Endpoint, nextEndpointAfterError, resolve)
 
 {-| How the browser reaches the Guacamole server running on an instance. Either through the cloud's
 user application proxy, which terminates TLS and forwards to the instance, or straight to the
@@ -7,8 +7,11 @@ instance over HTTPS at one of its own addresses.
 
 import Helpers.Cidr as Cidr
 import Helpers.Url as UrlHelpers
+import Http
+import Maybe.Extra
 import OpenStack.Types as OSTypes
 import Types.HelperTypes as HelperTypes
+import Types.Ipv6Reachability exposing (Ipv6Reachability(..))
 import Url
 
 
@@ -33,6 +36,9 @@ guacUpstreamPort =
 deployed to serve Guacamole itself, read back from its `exoGuac` metadata; an instance launched
 before the cloud opted in does not have it, and keeps using the user application proxy.
 
+`ipv6Reachability` is what this browser has learned about its own network so far, which decides
+whether an IPv6 address is worth trying first.
+
 -}
 type alias Instance =
     { directGuacamole : Bool
@@ -40,6 +46,17 @@ type alias Instance =
     , userAppProxyHostname : Maybe HelperTypes.UserAppProxyHostname
     , floatingIpAddress : Maybe OSTypes.IpAddressValue
     , fixedIpAddresses : List OSTypes.IpAddressValue
+    , ipv6Reachability : Ipv6Reachability
+    }
+
+
+{-| One request for a Guacamole token: where it was sent, and whether it is the IPv4 retry that
+follows an IPv6 attempt the browser could not reach. The answer comes back long after the request
+went out, so the request carries what the answer means.
+-}
+type alias TokenAttempt =
+    { endpoint : Endpoint
+    , retryAfterIpv6Failure : Bool
     }
 
 
@@ -53,36 +70,77 @@ directModeApplies instance =
 
 {-| Decide how to reach Guacamole. Returns `Nothing` when it is not reachable at all.
 
-In direct mode the instance's floating IP address wins, because every project has IPv4 and not
-every project has IPv6. A globally routable IPv6 fixed address is the fallback. An instance with
-neither, or on a cloud that has not opted in, falls back to the user application proxy, which is
-also the only route for instances launched before the cloud opted in.
+In direct mode the browser goes to one of the instance's own addresses and never to the user
+application proxy. A globally routable IPv6 fixed address wins, because floating IP addresses are
+scarce and a user whose network speaks IPv6 should not spend one. The floating IP address is the
+fallback, and it becomes the first choice once this browser has found out that it cannot reach
+IPv6 at all.
+
+A cloud that has not opted in, and an instance launched before it did, keep using the user
+application proxy exactly as before.
 
 -}
 resolve : Instance -> Maybe Endpoint
 resolve instance =
-    let
-        viaUserAppProxy () =
-            Maybe.map2 ViaUserAppProxy instance.userAppProxyHostname instance.floatingIpAddress
-    in
     if directModeApplies instance then
-        case instance.floatingIpAddress of
-            Just floatingIp ->
-                Just <| Direct floatingIp
+        let
+            viaIpv6 =
+                ipv6Address instance |> Maybe.map Direct
 
-            Nothing ->
-                case List.filter Cidr.isGlobalUnicastIPv6 instance.fixedIpAddresses |> List.head of
-                    Just ipv6Address ->
-                        Just <| Direct ipv6Address
+            viaFloatingIp =
+                instance.floatingIpAddress |> Maybe.map Direct
+        in
+        case instance.ipv6Reachability of
+            Unreachable ->
+                Maybe.Extra.or viaFloatingIp viaIpv6
 
-                    Nothing ->
-                        -- The proxy needs a floating IP address too, so in practice this is
-                        -- `Nothing`. It is written as the fallback anyway so that the rule stays
-                        -- "direct where it works, the proxy otherwise" in one place.
-                        viaUserAppProxy ()
+            _ ->
+                Maybe.Extra.or viaIpv6 viaFloatingIp
 
     else
-        viaUserAppProxy ()
+        Maybe.map2 ViaUserAppProxy instance.userAppProxyHostname instance.floatingIpAddress
+
+
+{-| The instance's first globally routable IPv6 address, if it has one. Link-local and unique-local
+addresses are not reachable from a browser, so they do not count.
+-}
+ipv6Address : Instance -> Maybe OSTypes.IpAddressValue
+ipv6Address instance =
+    instance.fixedIpAddresses
+        |> List.filter Cidr.isGlobalUnicastIPv6
+        |> List.head
+
+
+{-| Whether this endpoint is the instance's IPv6 address, which is the one a browser on an
+IPv4-only network cannot open a connection to.
+-}
+isIpv6Endpoint : Endpoint -> Bool
+isIpv6Endpoint endpoint =
+    case endpoint of
+        Direct address ->
+            Cidr.isGlobalUnicastIPv6 address
+
+        ViaUserAppProxy _ _ ->
+            False
+
+
+{-| Where to send the next token request after one failed, or `Nothing` to keep trying the same
+place.
+
+Only a network error says anything about addressing: the browser could not open a connection at
+all, so if the instance has a floating IP address as well, that is worth trying right away. Every
+other error came back from the instance itself, which means the address is fine and changing it
+would prove nothing.
+
+-}
+nextEndpointAfterError : Http.Error -> Endpoint -> Maybe OSTypes.IpAddressValue -> Maybe Endpoint
+nextEndpointAfterError error attemptedEndpoint maybeFloatingIpAddress =
+    case ( error, isIpv6Endpoint attemptedEndpoint, maybeFloatingIpAddress ) of
+        ( Http.NetworkError, True, Just floatingIpAddress ) ->
+            Just <| Direct floatingIpAddress
+
+        _ ->
+            Nothing
 
 
 {-| Build a URL to the given path and query parameters on Guacamole, however it is reached.

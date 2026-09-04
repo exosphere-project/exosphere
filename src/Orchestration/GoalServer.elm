@@ -25,6 +25,7 @@ import Types.HelperTypes
         , UserAppProxyHostname
         )
 import Types.Interactivity exposing (InteractionLevel(..), interactionIsWanted)
+import Types.Ipv6Reachability exposing (Ipv6Reachability)
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoSetupStatus(..), Server, ServerFromExoProps, ServerOrigin(..), ServerUiStatus(..))
 import Types.ServerVolumeActions as ServerVolumeActions
@@ -50,8 +51,8 @@ goalNewServer exoClientUuid time project =
         steps
 
 
-goalPollServers : Time.Posix -> Maybe CloudSpecificConfig -> ViewState -> Project -> ( Project, Cmd SharedMsg )
-goalPollServers time maybeCloudSpecificConfig viewState project =
+goalPollServers : Time.Posix -> Maybe CloudSpecificConfig -> Ipv6Reachability -> ViewState -> Project -> ( Project, Cmd SharedMsg )
+goalPollServers time maybeCloudSpecificConfig ipv6Reachability viewState project =
     let
         userAppProxy =
             maybeCloudSpecificConfig
@@ -69,7 +70,7 @@ goalPollServers time maybeCloudSpecificConfig viewState project =
             , stepServerPollVolumeAttachments time viewState
             , stepServerPollSecurityGroups time viewState
             , stepServerNeedsConsoleUrl
-            , stepServerGuacamoleAuth time userAppProxy directGuacamole
+            , stepServerGuacamoleAuth time userAppProxy directGuacamole ipv6Reachability
             ]
     in
     List.foldl
@@ -679,8 +680,8 @@ stepServerNeedsConsoleUrl project server =
         doNothing project
 
 
-stepServerGuacamoleAuth : Time.Posix -> Maybe UserAppProxyHostname -> Bool -> Project -> Server -> ( Project, Cmd SharedMsg )
-stepServerGuacamoleAuth time maybeUserAppProxy directGuacamole project server =
+stepServerGuacamoleAuth : Time.Posix -> Maybe UserAppProxyHostname -> Bool -> Ipv6Reachability -> Project -> Server -> ( Project, Cmd SharedMsg )
+stepServerGuacamoleAuth time maybeUserAppProxy directGuacamole ipv6Reachability project server =
     let
         doRequestToken : String -> GuacamoleEndpoint.Endpoint -> ServerFromExoProps -> GuacTypes.LaunchedWithGuacProps -> ( Project, Cmd SharedMsg )
         doRequestToken passphrase guacEndpoint oldExoOriginProps oldGuacProps =
@@ -720,7 +721,9 @@ stepServerGuacamoleAuth time maybeUserAppProxy directGuacamole project server =
                 (\result ->
                     ProjectMsg (GetterSetters.projectIdentifier project) <|
                         ServerMsg server.osProps.uuid <|
-                            ReceiveGuacamoleAuthToken result
+                            ReceiveGuacamoleAuthToken
+                                { endpoint = guacEndpoint, retryAfterIpv6Failure = False }
+                                result
                 )
             )
     in
@@ -746,6 +749,7 @@ stepServerGuacamoleAuth time maybeUserAppProxy directGuacamole project server =
                                     |> List.map .address
                                     |> List.head
                             , fixedIpAddresses = GetterSetters.getServerFixedIps project server.osProps.uuid
+                            , ipv6Reachability = ipv6Reachability
                             }
                         , GetterSetters.getServerExouserPassphrase server.osProps.details
                         )

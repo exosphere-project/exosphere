@@ -36,6 +36,7 @@ import Time
 import Types.Guacamole exposing (LaunchedWithGuacProps)
 import Types.Interaction as ITypes
 import Types.Interactivity exposing (InteractionLevel(..))
+import Types.Ipv6Reachability exposing (Ipv6Reachability)
 import Types.Project exposing (Project)
 import Types.Server exposing (Server, ServerUiStatus)
 import Types.SharedMsg as SharedMsg
@@ -133,8 +134,8 @@ update msg project model =
             ( model, Cmd.none, SharedMsg.NoOp )
 
 
-view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
-view context project currentTime model =
+view : View.Types.Context -> Project -> Time.Posix -> Ipv6Reachability -> Model -> Element.Element Msg
+view context project currentTime ipv6Reachability model =
     let
         serverListContents =
             {- Resolve whether we have a loaded list of servers to display; if so, call rendering function serverList_ -}
@@ -179,7 +180,7 @@ view context project currentTime model =
                     else
                         let
                             serversList =
-                                serverRecords context currentTime project servers
+                                serverRecords context currentTime ipv6Reachability project servers
                         in
                         DataList.view
                             context.localization.virtualComputer
@@ -249,10 +250,11 @@ type alias ServerRecord msg =
 serverRecords :
     View.Types.Context
     -> Time.Posix
+    -> Ipv6Reachability
     -> Project
     -> List Server
     -> List (ServerRecord msg)
-serverRecords context currentTime project servers =
+serverRecords context currentTime ipv6Reachability project servers =
     let
         floatingIpAddress server =
             List.head (GetterSetters.getServerFloatingIps project server.osProps.uuid)
@@ -276,6 +278,7 @@ serverRecords context currentTime project servers =
                                 context
                                 currentTime
                                 (GetterSetters.getUserAppProxyFromContext project context)
+                                ipv6Reachability
                         , interactionDetails =
                             IHelpers.interactionDetails
                                 interaction

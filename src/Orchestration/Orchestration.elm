@@ -8,6 +8,7 @@ import Orchestration.GoalShare exposing (goalNewShare)
 import Orchestration.Helpers exposing (applyProjectStep)
 import Time
 import Types.HelperTypes exposing (CloudSpecificConfig)
+import Types.Ipv6Reachability exposing (Ipv6Reachability)
 import Types.Project exposing (Project)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (SharedMsg)
@@ -21,20 +22,20 @@ orchModel viewState model time =
         ( newProjects, newCmds ) =
             model.projects
                 |> List.map (\proj -> ( Helpers.GetterSetters.cloudSpecificConfigLookup model.viewContext.cloudSpecificConfigs proj, proj ))
-                |> List.map (\( cloudConfig, proj ) -> orchProject model.clientUuid time cloudConfig viewState proj)
+                |> List.map (\( cloudConfig, proj ) -> orchProject model.clientUuid time cloudConfig model.ipv6Reachability viewState proj)
                 |> List.unzip
     in
     ( { model | projects = newProjects }, Cmd.batch newCmds )
 
 
-orchProject : UUID.UUID -> Time.Posix -> Maybe CloudSpecificConfig -> ViewState -> Project -> ( Project, Cmd SharedMsg )
-orchProject exoClientUuid time maybeCloudSpecificConfig viewState project =
+orchProject : UUID.UUID -> Time.Posix -> Maybe CloudSpecificConfig -> Ipv6Reachability -> ViewState -> Project -> ( Project, Cmd SharedMsg )
+orchProject exoClientUuid time maybeCloudSpecificConfig ipv6Reachability viewState project =
     let
         goals =
             [ goalDummy exoClientUuid time
             , goalNewServer exoClientUuid time
             , goalNewShare exoClientUuid time
-            , goalPollServers time maybeCloudSpecificConfig viewState
+            , goalPollServers time maybeCloudSpecificConfig ipv6Reachability viewState
             , goalPollNetworkResources time
             , goalPollProject time viewState
             ]

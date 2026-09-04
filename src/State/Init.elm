@@ -32,6 +32,7 @@ import Types.Defaults as Defaults
 import Types.Error exposing (AppError)
 import Types.Flags exposing (ConfigurationFlags, Flags, flagsDecoder)
 import Types.HelperTypes as HelperTypes exposing (CloudSpecificConfigMap, DefaultLoginView(..), ProjectIdentifier)
+import Types.Ipv6Reachability
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project, ProjectSecret(..))
@@ -220,6 +221,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
             , projects = []
             , toasties = Toasty.initialState
             , networkConnectivity = Nothing
+            , ipv6Reachability = Types.Ipv6Reachability.Unknown
             , cloudCorsProxyUrl = flags.cloudCorsProxyUrl
             , clientUuid = uuid
             , clientCurrentTime = currentTime

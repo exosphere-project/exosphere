@@ -8,6 +8,7 @@ module Types.SharedMsg exposing
 import Browser
 import Browser.Events
 import Bytes exposing (Bytes)
+import Helpers.GuacamoleEndpoint as GuacamoleEndpoint
 import Http
 import OpenStack.DnsRecordSet
 import OpenStack.ObjectStorage
@@ -211,7 +212,7 @@ type ServerSpecificMsgConstructor
     | ReceiveExoextManifestObject String (Result HttpErrorWithBody String)
     | ReceiveExoextResultObject String String (Result HttpErrorWithBody String)
     | ReceiveExoextIndexObject String (Result HttpErrorWithBody String)
-    | ReceiveGuacamoleAuthToken (Result Http.Error GuacTypes.GuacamoleAuthToken)
+    | ReceiveGuacamoleAuthToken GuacamoleEndpoint.TokenAttempt (Result Http.Error GuacTypes.GuacamoleAuthToken)
     | RequestServerAction ServerActions.ServerAction
     | ReceiveConsoleLog ErrorContext (Result HttpErrorWithBody String)
     | SetMinimumServerInteractivity InteractionLevel

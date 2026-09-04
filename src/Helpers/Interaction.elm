@@ -19,16 +19,17 @@ import Time
 import Types.Guacamole as GuacTypes exposing (LaunchedWithGuacProps, ServerGuacamoleStatus(..))
 import Types.HelperTypes exposing (UserAppProxyHostname)
 import Types.Interaction as ITypes
+import Types.Ipv6Reachability exposing (Ipv6Reachability)
 import Types.Project exposing (Project)
-import Types.Server exposing (Server, ServerFromExoProps, ServerOrigin(..))
+import Types.Server exposing (ExoSetupStatus(..), Server, ServerFromExoProps, ServerOrigin(..))
 import Types.Workflow exposing (ServerCustomWorkflowStatus(..))
 import Url
 import Url.Builder
 import View.Types
 
 
-interactionStatus : Project -> Server -> ITypes.Interaction -> View.Types.Context -> Time.Posix -> Maybe UserAppProxyHostname -> ITypes.InteractionStatus
-interactionStatus project server interaction context currentTime tlsReverseProxyHostname =
+interactionStatus : Project -> Server -> ITypes.Interaction -> View.Types.Context -> Time.Posix -> Maybe UserAppProxyHostname -> Ipv6Reachability -> ITypes.InteractionStatus
+interactionStatus project server interaction context currentTime tlsReverseProxyHostname ipv6Reachability =
     let
         maybeFloatingIpAddress : Maybe OSTypes.IpAddressValue
         maybeFloatingIpAddress =
@@ -46,6 +47,7 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
             , userAppProxyHostname = tlsReverseProxyHostname
             , floatingIpAddress = maybeFloatingIpAddress
             , fixedIpAddresses = GetterSetters.getServerFixedIps project server.osProps.uuid
+            , ipv6Reachability = ipv6Reachability
             }
 
         guac : GuacType -> ITypes.InteractionStatus
@@ -206,6 +208,9 @@ interactionStatusWordColor palette status =
             ( "Ready", SH.toElementColor palette.success.default )
 
         ITypes.Warn _ _ ->
+            ( "Warning", SH.toElementColor palette.warning.default )
+
+        ITypes.WarnWithFix _ _ ->
             ( "Warning", SH.toElementColor palette.warning.default )
 
         ITypes.Error _ ->
@@ -448,6 +453,71 @@ guacEndpointUnavailableMessage context guacInstance =
                 noPublicAddress []
 
 
+{-| How many token requests in a row have to fail to connect over IPv6 before Exosphere says the
+browser cannot get there. Three of them is about forty-five seconds of the orchestration's rapid
+retry, long enough that a slow moment on the network does not raise it.
+-}
+ipv6FailuresBeforePrompt : Int
+ipv6FailuresBeforePrompt =
+    3
+
+
+{-| Whether this instance is only reachable over IPv6, this browser has repeatedly failed to get
+there, and a floating IP address would fix it.
+
+The instance's own setup has to be finished first. Guacamole is not being served before that, so
+failures until then are an instance that is not ready yet, not a browser without IPv6.
+
+-}
+ipv6NeedsFloatingIp : GuacamoleEndpoint.Instance -> ServerFromExoProps -> LaunchedWithGuacProps -> Bool
+ipv6NeedsFloatingIp guacInstance exoOriginProps guacProps =
+    let
+        exoSetupComplete =
+            case exoOriginProps.exoSetupStatus.data of
+                RDPP.DoHave ( ExoSetupComplete, _ ) _ ->
+                    True
+
+                _ ->
+                    False
+    in
+    GuacamoleEndpoint.directModeApplies guacInstance
+        && (guacInstance.floatingIpAddress == Nothing)
+        && (GuacamoleEndpoint.ipv6Address guacInstance /= Nothing)
+        && exoSetupComplete
+        && (guacProps.consecutiveIpv6NetworkErrors >= ipv6FailuresBeforePrompt)
+
+
+{-| What to tell a user whose browser cannot reach an instance that only has an IPv6 address.
+-}
+ipv6NeedsFloatingIpMessage : View.Types.Context -> String
+ipv6NeedsFloatingIpMessage context =
+    String.join " "
+        [ "Your network can't reach this"
+        , context.localization.virtualComputer
+        , "over IPv6. Assign"
+        , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
+        , context.localization.floatingIpAddress
+        , "to connect over IPv4."
+        ]
+
+
+{-| A way out of that: Exosphere's own assignment flow, already pointed at this instance.
+-}
+assignFloatingIpFix : View.Types.Context -> Project -> Server -> ITypes.InteractionFix
+assignFloatingIpFix context project server =
+    { label =
+        String.join " "
+            [ "Assign"
+            , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
+            , context.localization.floatingIpAddress
+            ]
+    , url =
+        Route.toUrl context.urlPathPrefix <|
+            Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                Route.FloatingIpAssign Nothing (Just server.osProps.uuid)
+    }
+
+
 serverFromExoGuacStatus :
     Project
     -> Server
@@ -516,7 +586,12 @@ serverFromExoGuacStatus project server context currentTime guacInstance exoOrigi
                                     guacEndpointUnavailableMessage context guacInstance
 
                     RDPP.DontHave ->
-                        if hasRecentServerEvent project server currentTime then
+                        if ipv6NeedsFloatingIp guacInstance exoOriginProps guacProps then
+                            ITypes.WarnWithFix
+                                (ipv6NeedsFloatingIpMessage context)
+                                (assignFloatingIpFix context project server)
+
+                        else if hasRecentServerEvent project server currentTime then
                             ITypes.Unavailable <|
                                 String.join " "
                                     [ context.localization.virtualComputer

@@ -1,9 +1,11 @@
 module Tests.Helpers.GuacamoleEndpoint exposing (guacamoleEndpointSuite)
 
 import Expect
-import Helpers.GuacamoleEndpoint exposing (Endpoint(..), Instance, buildUrl, guacUpstreamPort, resolve)
+import Helpers.GuacamoleEndpoint exposing (Endpoint(..), Instance, buildUrl, guacUpstreamPort, nextEndpointAfterError, resolve)
 import Helpers.Url exposing (buildProxyUrl)
+import Http
 import Test exposing (Test, describe, test)
+import Types.Ipv6Reachability exposing (Ipv6Reachability(..))
 import Url
 import Url.Builder
 
@@ -19,6 +21,7 @@ proxiedInstance =
     , userAppProxyHostname = Just "proxy.example.com"
     , floatingIpAddress = Just "10.0.0.5"
     , fixedIpAddresses = [ "192.168.1.20" ]
+    , ipv6Reachability = Unknown
     }
 
 
@@ -27,6 +30,14 @@ proxiedInstance =
 directInstance : Instance
 directInstance =
     { proxiedInstance | directGuacamole = True, tlsSupported = True }
+
+
+{-| The same instance again, with a routable IPv6 address as well as its floating IP address, which
+is the case where the two addresses compete.
+-}
+dualStackInstance : Instance
+dualStackInstance =
+    { directInstance | fixedIpAddresses = [ "192.168.1.20", "2001:db8::1" ] }
 
 
 guacamoleEndpointSuite : Test
@@ -58,17 +69,21 @@ guacamoleEndpointSuite =
                             , fixedIpAddresses = [ "2001:db8::1" ]
                         }
                         |> Expect.equal Nothing
+            , test "Keeps using the proxy whatever this browser has learned about IPv6" <|
+                \() ->
+                    resolve { proxiedInstance | ipv6Reachability = Unreachable }
+                        |> Expect.equal (Just (ViaUserAppProxy "proxy.example.com" "10.0.0.5"))
             ]
         , describe "resolve on a cloud with direct connections"
-            [ test "Goes straight to the floating IP address" <|
+            [ test "Prefers a routable IPv6 address over the floating IP address, which is the scarce one" <|
+                \() ->
+                    resolve dualStackInstance
+                        |> Expect.equal (Just (Direct "2001:db8::1"))
+            , test "Goes to the floating IP address when the instance has no routable IPv6 address" <|
                 \() ->
                     resolve directInstance
                         |> Expect.equal (Just (Direct "10.0.0.5"))
-            , test "Prefers the floating IP address over a routable IPv6 address, because every project has IPv4" <|
-                \() ->
-                    resolve { directInstance | fixedIpAddresses = [ "2001:db8::1" ] }
-                        |> Expect.equal (Just (Direct "10.0.0.5"))
-            , test "Falls back to a routable IPv6 address when there is no floating IP address" <|
+            , test "Goes to a routable IPv6 address when there is no floating IP address" <|
                 \() ->
                     resolve
                         { directInstance
@@ -76,15 +91,15 @@ guacamoleEndpointSuite =
                             , fixedIpAddresses = [ "2001:db8::1" ]
                         }
                         |> Expect.equal (Just (Direct "2001:db8::1"))
-            , test "Takes the routable IPv6 address in preference to the user application proxy" <|
+            , test "Never falls back to the user application proxy" <|
                 \() ->
                     resolve
                         { directInstance
                             | floatingIpAddress = Nothing
-                            , fixedIpAddresses = [ "2001:db8::1" ]
+                            , fixedIpAddresses = [ "192.168.1.20" ]
                             , userAppProxyHostname = Just "proxy.example.com"
                         }
-                        |> Expect.equal (Just (Direct "2001:db8::1"))
+                        |> Expect.equal Nothing
             , test "Skips the fixed IPv4 addresses, which a browser cannot reach" <|
                 \() ->
                     resolve
@@ -120,18 +135,32 @@ guacamoleEndpointSuite =
                             , fixedIpAddresses = [ "192.168.1.20", "fe80::f816:3eff:fe1c:2b0a", "2001:db8::1" ]
                         }
                         |> Expect.equal (Just (Direct "2001:db8::1"))
-            , test "Returns nothing when the instance has no public address and the cloud has no proxy" <|
-                \() ->
-                    resolve
-                        { directInstance
-                            | floatingIpAddress = Nothing
-                            , userAppProxyHostname = Nothing
-                        }
-                        |> Expect.equal Nothing
-            , test "Returns nothing when the instance has no public address, proxy or not, because the proxy needs a floating IP address too" <|
+            , test "Returns nothing when the instance has no public address of its own" <|
                 \() ->
                     resolve { directInstance | floatingIpAddress = Nothing }
                         |> Expect.equal Nothing
+            ]
+        , describe "resolve once this browser has been found to have no IPv6"
+            [ test "Takes the floating IP address instead of the IPv6 address" <|
+                \() ->
+                    resolve { dualStackInstance | ipv6Reachability = Unreachable }
+                        |> Expect.equal (Just (Direct "10.0.0.5"))
+            , test "Still tries IPv6 when that is the only address the instance has" <|
+                \() ->
+                    resolve
+                        { dualStackInstance
+                            | ipv6Reachability = Unreachable
+                            , floatingIpAddress = Nothing
+                        }
+                        |> Expect.equal (Just (Direct "2001:db8::1"))
+            , test "Keeps preferring IPv6 while reachability is still unknown" <|
+                \() ->
+                    resolve { dualStackInstance | ipv6Reachability = Unknown }
+                        |> Expect.equal (Just (Direct "2001:db8::1"))
+            , test "Keeps preferring IPv6 once it is known to work" <|
+                \() ->
+                    resolve { dualStackInstance | ipv6Reachability = Reachable }
+                        |> Expect.equal (Just (Direct "2001:db8::1"))
             ]
         , describe "resolve for an instance launched before the cloud opted in"
             [ test "Uses the user application proxy even though the cloud now allows direct connections" <|
@@ -146,6 +175,32 @@ guacamoleEndpointSuite =
                             , floatingIpAddress = Nothing
                             , fixedIpAddresses = [ "2001:db8::1" ]
                         }
+                        |> Expect.equal Nothing
+            ]
+        , describe "nextEndpointAfterError"
+            [ test "Retries at the floating IP address when the browser could not open a connection over IPv6" <|
+                \() ->
+                    nextEndpointAfterError Http.NetworkError (Direct "2001:db8::1") (Just "10.0.0.5")
+                        |> Expect.equal (Just (Direct "10.0.0.5"))
+            , test "Keeps retrying over IPv6 when the instance has no floating IP address to try" <|
+                \() ->
+                    nextEndpointAfterError Http.NetworkError (Direct "2001:db8::1") Nothing
+                        |> Expect.equal Nothing
+            , test "Stays put when the instance answered with an error, which says nothing about the address" <|
+                \() ->
+                    nextEndpointAfterError (Http.BadStatus 403) (Direct "2001:db8::1") (Just "10.0.0.5")
+                        |> Expect.equal Nothing
+            , test "Stays put on a timeout, which the floating IP address would not fix" <|
+                \() ->
+                    nextEndpointAfterError Http.Timeout (Direct "2001:db8::1") (Just "10.0.0.5")
+                        |> Expect.equal Nothing
+            , test "Stays put when the failing endpoint is already the floating IP address" <|
+                \() ->
+                    nextEndpointAfterError Http.NetworkError (Direct "10.0.0.5") (Just "10.0.0.5")
+                        |> Expect.equal Nothing
+            , test "Stays put when the request went through the user application proxy" <|
+                \() ->
+                    nextEndpointAfterError Http.NetworkError (ViaUserAppProxy "proxy.example.com" "10.0.0.5") (Just "10.0.0.5")
                         |> Expect.equal Nothing
             ]
         , describe "buildUrl"

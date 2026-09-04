@@ -568,12 +568,13 @@ cloud's user application proxy, never directly, so a missing field decodes as `F
 -}
 guacamolePropsDecoder : Decode.Decoder GuacTypes.LaunchedWithGuacProps
 guacamolePropsDecoder =
-    Decode.map4
+    Decode.map5
         GuacTypes.LaunchedWithGuacProps
         (Decode.field "ssh" Decode.bool)
         (Decode.field "vnc" Decode.bool)
         (Decode.oneOf [ Decode.field "tls" Decode.bool, Decode.succeed False ])
         (Decode.succeed RDPP.empty)
+        (Decode.succeed 0)
 
 
 serverOrigin : OSTypes.ServerDetails -> ServerOrigin

@@ -9,6 +9,7 @@ import Types.AppVersion exposing (AppVersion)
 import Types.Banner as BannerTypes
 import Types.Error exposing (ErrorContext, Toast)
 import Types.HelperTypes as HelperTypes
+import Types.Ipv6Reachability exposing (Ipv6Reachability)
 import Types.Project exposing (Project)
 import UUID
 import View.Types
@@ -22,6 +23,7 @@ type alias SharedModel =
     , projects : List Project
     , toasties : Toasty.Stack Toast
     , networkConnectivity : Maybe Bool -- assume online, Just False means received offline event
+    , ipv6Reachability : Ipv6Reachability -- learned by trying to reach an instance over IPv6, not persisted
     , cloudCorsProxyUrl : Maybe CloudCorsProxyUrl
     , clientUuid : UUID.UUID
     , clientCurrentTime : Time.Posix
