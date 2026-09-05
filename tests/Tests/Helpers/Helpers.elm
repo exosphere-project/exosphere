@@ -123,7 +123,6 @@ exoGuacMetadataSuite =
                         { sshSupported = props.sshSupported
                         , vncSupported = props.vncSupported
                         , tlsSupported = props.tlsSupported
-                        , consecutiveIpv6NetworkErrors = props.consecutiveIpv6NetworkErrors
                         }
 
                 _ ->
@@ -138,7 +137,6 @@ exoGuacMetadataSuite =
                             { sshSupported = True
                             , vncSupported = True
                             , tlsSupported = True
-                            , consecutiveIpv6NetworkErrors = 0
                             }
                         )
         , test "reads a version 2 item that was launched without TLS" <|
@@ -149,7 +147,6 @@ exoGuacMetadataSuite =
                             { sshSupported = True
                             , vncSupported = False
                             , tlsSupported = False
-                            , consecutiveIpv6NetworkErrors = 0
                             }
                         )
         , test "treats a version 1 item, which has no tls field, as not supporting TLS" <|
@@ -160,7 +157,6 @@ exoGuacMetadataSuite =
                             { sshSupported = True
                             , vncSupported = True
                             , tlsSupported = False
-                            , consecutiveIpv6NetworkErrors = 0
                             }
                         )
         , test "ignores an item it cannot decode" <|

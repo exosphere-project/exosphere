@@ -3,6 +3,7 @@ module Helpers.Interaction exposing (getLaunchedWithGaucamoleProps, interactionD
 import Element
 import FeatherIcons as Icons
 import Helpers.Cidr as Cidr
+import Helpers.ExoSetupStatus
 import Helpers.GetterSetters as GetterSetters
 import Helpers.GuacamoleEndpoint as GuacamoleEndpoint
 import Helpers.Helpers as Helpers
@@ -21,7 +22,7 @@ import Types.HelperTypes exposing (UserAppProxyHostname)
 import Types.Interaction as ITypes
 import Types.Ipv6Reachability exposing (Ipv6Reachability(..))
 import Types.Project exposing (Project)
-import Types.Server exposing (ExoSetupStatus(..), Server, ServerFromExoProps, ServerOrigin(..))
+import Types.Server exposing (Server, ServerFromExoProps, ServerOrigin(..))
 import Types.Workflow exposing (ServerCustomWorkflowStatus(..))
 import Url
 import Url.Builder
@@ -452,43 +453,33 @@ guacEndpointUnavailableMessage context guacInstance =
                 noPublicAddress []
 
 
-{-| How many token requests in a row have to fail to connect over IPv6 before Exosphere says the
-browser cannot get there. Three of them is about forty-five seconds of the orchestration's rapid
-retry, long enough that a slow moment on the network does not raise it.
--}
-ipv6FailuresBeforePrompt : Int
-ipv6FailuresBeforePrompt =
-    3
-
-
-{-| Whether this instance is only reachable over IPv6, this browser has repeatedly failed to get
-there, and a floating IP address would fix it.
+{-| Whether this instance is only reachable over IPv6, this browser has been found not to have
+IPv6, and a floating IP address would fix it.
 
 The instance's own setup has to be finished first. Guacamole is not being served before that, so
 failures until then are an instance that is not ready yet, not a browser without IPv6.
 
-The session must also not have reached anything over IPv6 yet. Once one instance answers over IPv6
-the browser's network demonstrably has it, so another instance still failing is that instance's
-problem, and it gets the ordinary error instead of an offer to spend a floating IP address.
+An instance that already holds a token is answering, whatever the session learned elsewhere, so it
+gets no offer to spend a floating IP address.
 
 -}
 ipv6NeedsFloatingIp : GuacamoleEndpoint.Instance -> ServerFromExoProps -> LaunchedWithGuacProps -> Bool
 ipv6NeedsFloatingIp guacInstance exoOriginProps guacProps =
     let
-        exoSetupComplete =
-            case exoOriginProps.exoSetupStatus.data of
-                RDPP.DoHave ( ExoSetupComplete, _ ) _ ->
+        hasToken =
+            case guacProps.authToken.data of
+                RDPP.DoHave _ _ ->
                     True
 
-                _ ->
+                RDPP.DontHave ->
                     False
     in
     GuacamoleEndpoint.directModeApplies guacInstance
-        && (guacInstance.ipv6Reachability /= Reachable)
+        && (guacInstance.ipv6Reachability == Unreachable)
         && (guacInstance.floatingIpAddress == Nothing)
         && (GuacamoleEndpoint.ipv6Address guacInstance /= Nothing)
-        && exoSetupComplete
-        && (guacProps.consecutiveIpv6NetworkErrors >= ipv6FailuresBeforePrompt)
+        && Helpers.ExoSetupStatus.exoSetupIsComplete exoOriginProps
+        && not hasToken
 
 
 {-| What to tell a user whose browser cannot reach an instance that only has an IPv6 address.

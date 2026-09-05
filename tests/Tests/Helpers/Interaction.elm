@@ -12,16 +12,16 @@ import Types.Server exposing (ExoSetupStatus(..), ServerFromExoProps)
 import Types.Workflow exposing (ServerCustomWorkflowStatus(..))
 
 
-{-| An instance serving Guacamole itself, reachable only over IPv6, on a browser that has not
-learned anything about its own network yet.
+{-| An instance serving Guacamole itself, reachable only over IPv6, on a browser that has been
+found not to have IPv6.
 -}
-ipv6OnlyInstance : Instance
-ipv6OnlyInstance =
+unreachableIpv6Instance : Instance
+unreachableIpv6Instance =
     { tlsSupported = True
     , userAppProxyHostname = Nothing
     , floatingIpAddress = Nothing
     , fixedIpAddresses = [ "192.168.1.20", "2001:db8::1" ]
-    , ipv6Reachability = Unknown
+    , ipv6Reachability = Unreachable
     }
 
 
@@ -41,51 +41,62 @@ setUpExoProps =
     }
 
 
-{-| Guacamole props that have failed to reach IPv6 often enough to say so.
+{-| Guacamole props for an instance that has never got a token.
 -}
-failingGuacProps : LaunchedWithGuacProps
-failingGuacProps =
+tokenlessGuacProps : LaunchedWithGuacProps
+tokenlessGuacProps =
     { sshSupported = True
     , vncSupported = True
     , tlsSupported = True
     , authToken = RDPP.empty
-    , consecutiveIpv6NetworkErrors = 3
     }
 
 
 ipv6NeedsFloatingIpSuite : Test
 ipv6NeedsFloatingIpSuite =
     describe "Offering a floating IP address to a browser that cannot reach IPv6"
-        [ test "Offers it after enough failures on an instance that only has IPv6" <|
+        [ test "Offers it on an instance that only has IPv6" <|
             \() ->
-                ipv6NeedsFloatingIp ipv6OnlyInstance setUpExoProps failingGuacProps
+                ipv6NeedsFloatingIp unreachableIpv6Instance setUpExoProps tokenlessGuacProps
                     |> Expect.equal True
+        , test "Stays quiet while nothing is known about this browser's IPv6" <|
+            \() ->
+                ipv6NeedsFloatingIp
+                    { unreachableIpv6Instance | ipv6Reachability = Unknown }
+                    setUpExoProps
+                    tokenlessGuacProps
+                    |> Expect.equal False
         , test "Stays quiet once something else in the session has answered over IPv6" <|
             \() ->
                 ipv6NeedsFloatingIp
-                    { ipv6OnlyInstance | ipv6Reachability = Reachable }
+                    { unreachableIpv6Instance | ipv6Reachability = Reachable }
                     setUpExoProps
-                    failingGuacProps
+                    tokenlessGuacProps
                     |> Expect.equal False
-        , test "Still offers it when the session has already found IPv6 unreachable" <|
-            \() ->
-                ipv6NeedsFloatingIp
-                    { ipv6OnlyInstance | ipv6Reachability = Unreachable }
-                    setUpExoProps
-                    failingGuacProps
-                    |> Expect.equal True
         , test "Says nothing until the instance's own setup has finished" <|
             \() ->
                 ipv6NeedsFloatingIp
-                    ipv6OnlyInstance
+                    unreachableIpv6Instance
                     { setUpExoProps | exoSetupStatus = RDPP.empty }
-                    failingGuacProps
+                    tokenlessGuacProps
                     |> Expect.equal False
-        , test "Says nothing before enough failures in a row" <|
+        , test "Says nothing about an instance that is answering anyway" <|
             \() ->
                 ipv6NeedsFloatingIp
-                    ipv6OnlyInstance
+                    unreachableIpv6Instance
                     setUpExoProps
-                    { failingGuacProps | consecutiveIpv6NetworkErrors = 2 }
+                    { tokenlessGuacProps
+                        | authToken =
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave "token" (Time.millisToPosix 0))
+                                (RDPP.NotLoading Nothing)
+                    }
+                    |> Expect.equal False
+        , test "Says nothing about an instance that has a floating IP address already" <|
+            \() ->
+                ipv6NeedsFloatingIp
+                    { unreachableIpv6Instance | floatingIpAddress = Just "10.0.0.5" }
+                    setUpExoProps
+                    tokenlessGuacProps
                     |> Expect.equal False
         ]

@@ -4670,12 +4670,23 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                 attemptedIpv6 =
                                     GuacamoleEndpoint.isIpv6Endpoint attempt.endpoint
 
+                                maybeFloatingIpAddress =
+                                    GetterSetters.getServerFloatingIps project server.osProps.uuid
+                                        |> List.map .address
+                                        |> List.head
+
                                 -- A token that came back over IPv6 proves this browser has IPv6. A token
                                 -- that came back over the floating IP address right after IPv6 failed to
-                                -- connect proves it does not.
+                                -- connect proves it does not, and so does a connection that could not be
+                                -- opened at all to an instance which has finished its setup and has no
+                                -- other address to fall back to.
+                                --
+                                -- Once this browser has reached something over IPv6, a later failure is
+                                -- far more likely to be that one instance than the browser's own
+                                -- network, so keep trying IPv6 there.
                                 newIpv6Reachability =
-                                    case result of
-                                        Ok _ ->
+                                    case ( result, sharedModel.ipv6Reachability ) of
+                                        ( Ok _, _ ) ->
                                             if attempt.retryAfterIpv6Failure then
                                                 Ipv6Reachability.Unreachable
 
@@ -4685,8 +4696,20 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                             else
                                                 sharedModel.ipv6Reachability
 
-                                        Err _ ->
-                                            sharedModel.ipv6Reachability
+                                        ( Err _, Ipv6Reachability.Reachable ) ->
+                                            Ipv6Reachability.Reachable
+
+                                        ( Err httpError, _ ) ->
+                                            if
+                                                attemptedIpv6
+                                                    && (httpError == Http.NetworkError)
+                                                    && (maybeFloatingIpAddress == Nothing)
+                                                    && Helpers.ExoSetupStatus.exoSetupIsComplete exoOriginProps
+                                            then
+                                                Ipv6Reachability.Unreachable
+
+                                            else
+                                                sharedModel.ipv6Reachability
 
                                 -- An instance with a floating IP address gets that tried immediately
                                 -- instead of waiting out another failure on the address the browser
@@ -4697,12 +4720,6 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                             Nothing
 
                                         Err httpError ->
-                                            let
-                                                maybeFloatingIpAddress =
-                                                    GetterSetters.getServerFloatingIps project server.osProps.uuid
-                                                        |> List.map .address
-                                                        |> List.head
-                                            in
                                             Maybe.map2 Tuple.pair
                                                 (GuacamoleEndpoint.nextEndpointAfterError httpError attempt.endpoint maybeFloatingIpAddress)
                                                 (GetterSetters.getServerExouserPassphrase server.osProps.details)
@@ -4739,15 +4756,11 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                                                 sharedModel.clientCurrentTime
                                                             )
                                                             (RDPP.NotLoading Nothing)
-                                                    , consecutiveIpv6NetworkErrors = 0
                                                 }
 
                                               else
                                                 -- Server is not active, this token won't work, so we don't store it
-                                                { oldGuacProps
-                                                    | authToken = RDPP.empty
-                                                    , consecutiveIpv6NetworkErrors = 0
-                                                }
+                                                { oldGuacProps | authToken = RDPP.empty }
                                             , Cmd.none
                                             )
 
@@ -4757,12 +4770,6 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                                     RDPP.RemoteDataPlusPlus
                                                         oldGuacProps.authToken.data
                                                         (RDPP.NotLoading (Just ( httpError, sharedModel.clientCurrentTime )))
-                                                , consecutiveIpv6NetworkErrors =
-                                                    if attemptedIpv6 && httpError == Http.NetworkError then
-                                                        oldGuacProps.consecutiveIpv6NetworkErrors + 1
-
-                                                    else
-                                                        0
                                               }
                                             , Cmd.none
                                             )
