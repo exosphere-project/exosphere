@@ -1,6 +1,7 @@
 module Helpers.Helpers exposing
     ( alwaysRegex
     , appVersionUpdateBanner
+    , automaticSkipsFloatingIp
     , currentAppVersion
     , decodeFloatingIpOption
     , getNewFloatingIpOption
@@ -32,6 +33,7 @@ module Helpers.Helpers exposing
 -- Getter/setter functions that remain here are too "smart" (too much business logic) for GetterSetters.elm.
 
 import Dict
+import Helpers.Cidr as Cidr
 import Helpers.Credentials as Credentials
 import Helpers.ExoSetupStatus
 import Helpers.GetterSetters as GetterSetters
@@ -294,9 +296,8 @@ getNewFloatingIpOption project osServer floatingIpOption =
             Automatic ->
                 if isDoneBuilding && hasPort then
                     if
-                        GetterSetters.getServerFixedIps project osServer.uuid
-                            |> List.map ipv4AddressInRfc1918Space
-                            |> List.member (Ok HelperTypes.PublicNonRfc1918Space)
+                        automaticSkipsFloatingIp osServer.details
+                            (GetterSetters.getServerFixedIps project osServer.uuid)
                     then
                         DoNotUseFloatingIp
 
@@ -320,6 +321,36 @@ getNewFloatingIpOption project osServer floatingIpOption =
             DoNotUseFloatingIp ->
                 -- This is a terminal state
                 DoNotUseFloatingIp
+
+
+{-| Whether the `Automatic` floating IP option should leave this instance without one.
+
+A public IPv4 fixed address is reachable as it stands. So is a globally routable IPv6 fixed
+address, but only for what Exosphere opens over IPv6, which is Guacamole served by the instance
+itself. Floating IP addresses are scarce, so an instance with either should not take one.
+
+-}
+automaticSkipsFloatingIp : OSTypes.ServerDetails -> List OSTypes.IpAddressValue -> Bool
+automaticSkipsFloatingIp serverDetails fixedIps =
+    let
+        servesGuacamoleOverTls =
+            case serverOrigin serverDetails of
+                ServerFromExo exoOriginProps ->
+                    case exoOriginProps.guacamoleStatus of
+                        GuacTypes.LaunchedWithGuacamole guacProps ->
+                            guacProps.tlsSupported
+
+                        GuacTypes.NotLaunchedWithGuacamole ->
+                            False
+
+                ServerNotFromExo ->
+                    False
+    in
+    (fixedIps
+        |> List.map ipv4AddressInRfc1918Space
+        |> List.member (Ok HelperTypes.PublicNonRfc1918Space)
+    )
+        || (List.any Cidr.isGlobalUnicastIPv6 fixedIps && servesGuacamoleOverTls)
 
 
 ipv4AddressInRfc1918Space : OSTypes.IpAddressValue -> Result String HelperTypes.IPv4AddressPublicRoutability
