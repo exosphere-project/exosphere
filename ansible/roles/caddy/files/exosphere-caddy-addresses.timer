@@ -1,0 +1,9 @@
+[Unit]
+Description=Follow this instance's addresses in the Caddyfile
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1min
+
+[Install]
+WantedBy=timers.target

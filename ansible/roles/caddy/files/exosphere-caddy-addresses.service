@@ -1,0 +1,8 @@
+[Unit]
+Description=Write the Caddyfile for this instance's current addresses
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/exosphere-caddy-addresses

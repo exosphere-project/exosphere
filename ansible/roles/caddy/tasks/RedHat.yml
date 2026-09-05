@@ -1,0 +1,32 @@
+---
+
+# Caddy's own COPR rather than EPEL. EPEL 9 still ships Caddy 2.6, which has neither the ACME
+# shortlived profile nor certificates for IP addresses, and both are what makes this work.
+- name: 'Caddy repository added'
+  yum_repository:
+    name: 'group_caddy-caddy'
+    description: 'Caddy'
+    baseurl: 'https://download.copr.fedorainfracloud.org/results/@caddy/caddy/epel-{{ ansible_distribution_major_version }}-$basearch/'
+    gpgkey: 'https://download.copr.fedorainfracloud.org/results/@caddy/caddy/pubkey.gpg'
+    gpgcheck: true
+
+- name: 'Caddy package installed'
+  dnf:
+    name:
+      - 'caddy'
+    state: 'present'
+
+# Rocky images run firewalld, which drops 443 before the instance's security group is ever
+# consulted. Only ansible-core is installed on the instance, so there is no firewalld module.
+- name: 'firewalld checked'
+  command: 'systemctl is-active firewalld'
+  register: 'caddy_firewalld'
+  changed_when: false
+  failed_when: false
+
+- name: '443/tcp opened in firewalld'
+  command: '{{ item }}'
+  loop:
+    - 'firewall-cmd --permanent --add-port=443/tcp'
+    - 'firewall-cmd --reload'
+  when: 'caddy_firewalld.rc == 0'
