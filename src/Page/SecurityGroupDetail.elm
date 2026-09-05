@@ -263,7 +263,7 @@ serversTable context project { servers, progress, currentTime } =
                                             { isConnectivityBroken, connectivityChecks } =
                                                 VH.isConnectivityBroken context
                                                     (maybeSecurityGroupRules |> Maybe.withDefault [])
-                                                    (VH.guacamoleConnectivityRequirements context project server)
+                                                    (VH.guacamoleConnectivityRequirements server)
                                         in
                                         if isConnectivityBroken && maybeSecurityGroupRules /= Nothing then
                                             let

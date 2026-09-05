@@ -39,8 +39,7 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
 
         guacInstance : GuacamoleEndpoint.Instance
         guacInstance =
-            { directGuacamole = GetterSetters.getDirectGuacamoleFromContext project context
-            , tlsSupported =
+            { tlsSupported =
                 getLaunchedWithGaucamoleProps server
                     |> Maybe.map .tlsSupported
                     |> Maybe.withDefault False

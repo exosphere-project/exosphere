@@ -355,10 +355,9 @@ renderUserDataTemplate :
     -> String
     -> String
     -> Bool
-    -> Bool
     -> String
     -> String
-renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole deployDesktopEnvironment maybeCustomWorkflowSource installOperatingSystemUpdates instanceConfigMgtRepoUrl instanceConfigMgtRepoCheckout injectOpenStackCredentials directGuacamole exoOrigin =
+renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole deployDesktopEnvironment maybeCustomWorkflowSource installOperatingSystemUpdates instanceConfigMgtRepoUrl instanceConfigMgtRepoCheckout injectOpenStackCredentials exoOrigin =
     -- Configure cloud-init user data based on user's choice for SSH keypair and Guacamole
     let
         getPublicKeyFromKeypairName : String -> Maybe String
@@ -390,12 +389,6 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
                     "false"
                 , """,\\"gui_enabled\\":"""
                 , if deployDesktopEnvironment then
-                    "true"
-
-                  else
-                    "false"
-                , """,\\"guac_tls_enabled\\":"""
-                , if directGuacamole then
                     "true"
 
                   else
@@ -449,8 +442,8 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
         |> formatStringTemplate userDataTemplate
 
 
-newServerMetadata : ExoServerVersion -> UUID.UUID -> Bool -> Bool -> Bool -> String -> FloatingIpOption -> Maybe CustomWorkflowSource -> List ( String, Json.Encode.Value )
-newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEnvironment directGuacamole exoCreatorUsername floatingIpCreationOption maybeCustomWorkflowSource =
+newServerMetadata : ExoServerVersion -> UUID.UUID -> Bool -> Bool -> String -> FloatingIpOption -> Maybe CustomWorkflowSource -> List ( String, Json.Encode.Value )
+newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEnvironment exoCreatorUsername floatingIpCreationOption maybeCustomWorkflowSource =
     let
         guacMetadata =
             if deployGuacamole then
@@ -463,7 +456,7 @@ newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEn
                                 [ ( "v", Json.Encode.int 2 )
                                 , ( "ssh", Json.Encode.bool True )
                                 , ( "vnc", Json.Encode.bool deployDesktopEnvironment )
-                                , ( "tls", Json.Encode.bool directGuacamole )
+                                , ( "tls", Json.Encode.bool True )
                                 ]
                   )
                 ]

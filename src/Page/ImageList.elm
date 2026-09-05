@@ -337,12 +337,7 @@ imageView model context project imageRecord =
                                     imageRecord.image.uuid
                                     imageRecord.image.name
                                     Nothing
-                                    (if GetterSetters.isGuacamoleSupported project context then
-                                        Just True
-
-                                     else
-                                        Nothing
-                                    )
+                                    (Just True)
                     in
                     Element.link []
                         { url = Route.toUrl context.urlPathPrefix serverCreationRoute

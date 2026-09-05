@@ -12,13 +12,12 @@ import Types.Server exposing (ExoSetupStatus(..), ServerFromExoProps)
 import Types.Workflow exposing (ServerCustomWorkflowStatus(..))
 
 
-{-| An instance on a cloud that has opted into direct connections, reachable only over IPv6, on a
-browser that has not learned anything about its own network yet.
+{-| An instance serving Guacamole itself, reachable only over IPv6, on a browser that has not
+learned anything about its own network yet.
 -}
 ipv6OnlyInstance : Instance
 ipv6OnlyInstance =
-    { directGuacamole = True
-    , tlsSupported = True
+    { tlsSupported = True
     , userAppProxyHostname = Nothing
     , floatingIpAddress = Nothing
     , fixedIpAddresses = [ "192.168.1.20", "2001:db8::1" ]

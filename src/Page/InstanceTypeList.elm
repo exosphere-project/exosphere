@@ -72,12 +72,7 @@ view context project instanceTypes =
                                     image.uuid
                                     image.name
                                     instanceTypeVersion.restrictFlavorIds
-                                    (if GetterSetters.isGuacamoleSupported project context then
-                                        Just True
-
-                                     else
-                                        Nothing
-                                    )
+                                    (Just True)
 
                         buttonStyleProto =
                             if instanceTypeVersion.isPrimary then

@@ -1992,13 +1992,8 @@ securityGroupPicker context project model =
                         { guacamoleRequired =
                             if model.deployGuacamole == Just True then
                                 -- This instance does not exist yet, so it will be deployed to serve
-                                -- Guacamole itself exactly when the cloud is set up for that.
-                                Just <|
-                                    if GetterSetters.getDirectGuacamoleFromContext project context then
-                                        Helpers.Connectivity.GuacamoleDirect
-
-                                    else
-                                        Helpers.Connectivity.GuacamoleThroughUserAppProxy
+                                -- Guacamole itself.
+                                Just Helpers.Connectivity.GuacamoleDirect
 
                             else
                                 Nothing

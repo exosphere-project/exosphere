@@ -384,7 +384,6 @@ cloudSpecificConfigDecoder =
     Decode.succeed HelperTypes.CloudSpecificConfig
         |> Pipeline.required "friendlyName" Decode.string
         |> Pipeline.optional "userAppProxy" (Decode.nullable (Decode.list userAppProxyConfigDecoder)) Nothing
-        |> Pipeline.optional "directGuacamole" Decode.bool False
         |> Pipeline.optional "dnsZones" (Decode.nullable (Decode.list dnsZoneConfigDecoder)) Nothing
         |> Pipeline.optional "imageExcludeFilter" (Decode.nullable metadataFilterDecoder) Nothing
         |> Pipeline.optional "featuredImageNamePrefix" (Decode.nullable Decode.string) Nothing

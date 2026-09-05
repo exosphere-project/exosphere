@@ -32,17 +32,16 @@ guacUpstreamPort =
 
 {-| What resolving an endpoint needs to know about a cloud and one of its instances.
 
-`directGuacamole` is the cloud's opt-in. `tlsSupported` is whether this particular instance was
-deployed to serve Guacamole itself, read back from its `exoGuac` metadata; an instance launched
-before the cloud opted in does not have it, and keeps using the user application proxy.
+`tlsSupported` is whether this instance was deployed to serve Guacamole itself, read back from its
+`exoGuac` metadata; an instance launched before Exosphere did that does not have it, and keeps
+using the user application proxy.
 
 `ipv6Reachability` is what this browser has learned about its own network so far, which decides
 whether an IPv6 address is worth trying first.
 
 -}
 type alias Instance =
-    { directGuacamole : Bool
-    , tlsSupported : Bool
+    { tlsSupported : Bool
     , userAppProxyHostname : Maybe HelperTypes.UserAppProxyHostname
     , floatingIpAddress : Maybe OSTypes.IpAddressValue
     , fixedIpAddresses : List OSTypes.IpAddressValue
@@ -60,12 +59,12 @@ type alias TokenAttempt =
     }
 
 
-{-| Whether the browser should be talking to this instance directly at all. False means the cloud
-has not opted in, or this instance was launched before it did.
+{-| Whether the browser should be talking to this instance directly at all. False means this
+instance was launched before Exosphere set instances up to serve Guacamole themselves.
 -}
 directModeApplies : Instance -> Bool
 directModeApplies instance =
-    instance.directGuacamole && instance.tlsSupported
+    instance.tlsSupported
 
 
 {-| Decide how to reach Guacamole. Returns `Nothing` when it is not reachable at all.
@@ -76,8 +75,8 @@ scarce and a user whose network speaks IPv6 should not spend one. The floating I
 fallback, and it becomes the first choice once this browser has found out that it cannot reach
 IPv6 at all.
 
-A cloud that has not opted in, and an instance launched before it did, keep using the user
-application proxy exactly as before.
+An instance launched before Exosphere set instances up to serve Guacamole themselves keeps using
+the user application proxy exactly as before.
 
 -}
 resolve : Instance -> Maybe Endpoint

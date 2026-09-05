@@ -2190,18 +2190,16 @@ remoteToStringInput remote =
 `isConnectivityBroken` takes.
 -}
 guacamoleConnectivityRequirements :
-    View.Types.Context
-    -> Project
-    -> Server
+    Server
     -> { guacamoleRequired : Maybe Helpers.Connectivity.GuacamoleAccess, vncRequired : Bool }
-guacamoleConnectivityRequirements context project server =
+guacamoleConnectivityRequirements server =
     case server.exoProps.serverOrigin of
         ServerFromExo serverFromExo ->
             case serverFromExo.guacamoleStatus of
                 LaunchedWithGuacamole guacProps ->
                     { guacamoleRequired =
                         Just <|
-                            if GetterSetters.getDirectGuacamoleFromContext project context && guacProps.tlsSupported then
+                            if guacProps.tlsSupported then
                                 Helpers.Connectivity.GuacamoleDirect
 
                             else

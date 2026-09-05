@@ -10,14 +10,13 @@ import Url
 import Url.Builder
 
 
-{-| A cloud with a user application proxy and nothing else turned on, and an instance on it with a
-floating IP address. Every resolve case below is this with some fields changed, so that each test
-reads as the one thing it is about.
+{-| An instance launched before Exosphere set instances up to serve Guacamole themselves, with a
+user application proxy and a floating IP address. Every resolve case below is this with some fields
+changed, so that each test reads as the one thing it is about.
 -}
 proxiedInstance : Instance
 proxiedInstance =
-    { directGuacamole = False
-    , tlsSupported = False
+    { tlsSupported = False
     , userAppProxyHostname = Just "proxy.example.com"
     , floatingIpAddress = Just "10.0.0.5"
     , fixedIpAddresses = [ "192.168.1.20" ]
@@ -25,11 +24,11 @@ proxiedInstance =
     }
 
 
-{-| The same instance on a cloud that has opted into direct connections, launched after it did so.
+{-| The same instance, launched with Guacamole served over TLS by the instance itself.
 -}
 directInstance : Instance
 directInstance =
-    { proxiedInstance | directGuacamole = True, tlsSupported = True }
+    { proxiedInstance | tlsSupported = True }
 
 
 {-| The same instance again, with a routable IPv6 address as well as its floating IP address, which
@@ -43,7 +42,7 @@ dualStackInstance =
 guacamoleEndpointSuite : Test
 guacamoleEndpointSuite =
     describe "Guacamole Endpoint Tests"
-        [ describe "resolve on a cloud without direct connections"
+        [ describe "resolve for an instance that does not serve Guacamole itself"
             [ test "Uses the user application proxy when both the proxy hostname and the floating IP address are known" <|
                 \() ->
                     resolve proxiedInstance
@@ -60,7 +59,7 @@ guacamoleEndpointSuite =
                 \() ->
                     resolve { proxiedInstance | userAppProxyHostname = Nothing, floatingIpAddress = Nothing }
                         |> Expect.equal Nothing
-            , test "Ignores a routable IPv6 address, because the cloud has not opted in" <|
+            , test "Ignores a routable IPv6 address, because the instance is not serving TLS" <|
                 \() ->
                     resolve
                         { proxiedInstance
@@ -74,7 +73,7 @@ guacamoleEndpointSuite =
                     resolve { proxiedInstance | ipv6Reachability = Unreachable }
                         |> Expect.equal (Just (ViaUserAppProxy "proxy.example.com" "10.0.0.5"))
             ]
-        , describe "resolve on a cloud with direct connections"
+        , describe "resolve for an instance that serves Guacamole itself"
             [ test "Prefers a routable IPv6 address over the floating IP address, which is the scarce one" <|
                 \() ->
                     resolve dualStackInstance
@@ -161,21 +160,6 @@ guacamoleEndpointSuite =
                 \() ->
                     resolve { dualStackInstance | ipv6Reachability = Reachable }
                         |> Expect.equal (Just (Direct "2001:db8::1"))
-            ]
-        , describe "resolve for an instance launched before the cloud opted in"
-            [ test "Uses the user application proxy even though the cloud now allows direct connections" <|
-                \() ->
-                    resolve { directInstance | tlsSupported = False }
-                        |> Expect.equal (Just (ViaUserAppProxy "proxy.example.com" "10.0.0.5"))
-            , test "Ignores its routable IPv6 address, because it is not serving TLS" <|
-                \() ->
-                    resolve
-                        { directInstance
-                            | tlsSupported = False
-                            , floatingIpAddress = Nothing
-                            , fixedIpAddresses = [ "2001:db8::1" ]
-                        }
-                        |> Expect.equal Nothing
             ]
         , describe "nextEndpointAfterError"
             [ test "Retries at the floating IP address when the browser could not open a connection over IPv6" <|

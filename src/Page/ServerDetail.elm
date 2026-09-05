@@ -3061,7 +3061,7 @@ serverDetail_ context project ( currentTime, timeZone ) ipv6Reachability model s
                 { isConnectivityBroken, connectivityChecks } =
                     VH.isConnectivityBroken context
                         (maybeSecurityGroupRules |> Maybe.withDefault [])
-                        (VH.guacamoleConnectivityRequirements context project server)
+                        (VH.guacamoleConnectivityRequirements server)
 
                 -- Don't show connectivity warnings when security group data may be unreliable or changing (esp. while building).
                 serverUiStatus =

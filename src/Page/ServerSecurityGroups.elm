@@ -619,7 +619,7 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
                         { isConnectivityBroken, connectivityChecks } =
                             VH.isConnectivityBroken context
                                 rules
-                                (VH.guacamoleConnectivityRequirements context project server)
+                                (VH.guacamoleConnectivityRequirements server)
                     in
                     if isConnectivityBroken then
                         Alert.alert [ Element.width Element.fill ]
