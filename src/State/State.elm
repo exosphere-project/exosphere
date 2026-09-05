@@ -4667,49 +4667,53 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     case exoOriginProps.guacamoleStatus of
                         GuacTypes.LaunchedWithGuacamole oldGuacProps ->
                             let
-                                attemptedIpv6 =
-                                    GuacamoleEndpoint.isIpv6Endpoint attempt.endpoint
-
                                 maybeFloatingIpAddress =
                                     GetterSetters.getServerFloatingIps project server.osProps.uuid
                                         |> List.map .address
                                         |> List.head
 
-                                -- A token that came back over IPv6 proves this browser has IPv6. A token
-                                -- that came back over the floating IP address right after IPv6 failed to
-                                -- connect proves it does not, and so does a connection that could not be
-                                -- opened at all to an instance which has finished its setup and has no
-                                -- other address to fall back to.
+                                -- A token that came back over IPv6 settles it for the session: this
+                                -- browser has IPv6, and nothing afterwards changes that. A later
+                                -- failure somewhere else is far more likely to be that one instance.
                                 --
-                                -- Once this browser has reached something over IPv6, a later failure is
-                                -- far more likely to be that one instance than the browser's own
-                                -- network, so keep trying IPv6 there.
+                                -- Short of that, a network error on an IPv6 address is read as a
+                                -- browser without IPv6, either because the floating IP address
+                                -- answered right afterwards or because the instance has finished its
+                                -- setup and has no other address to try. Elm reports a refused TLS
+                                -- handshake the same way it reports an address it cannot open, so
+                                -- this is a guess; the first token that arrives over IPv6 corrects it.
                                 newIpv6Reachability =
-                                    case ( result, sharedModel.ipv6Reachability ) of
-                                        ( Ok _, _ ) ->
-                                            if attempt.retryAfterIpv6Failure then
-                                                Ipv6Reachability.Unreachable
-
-                                            else if attemptedIpv6 then
-                                                Ipv6Reachability.Reachable
-
-                                            else
-                                                sharedModel.ipv6Reachability
-
-                                        ( Err _, Ipv6Reachability.Reachable ) ->
+                                    case sharedModel.ipv6Reachability of
+                                        Ipv6Reachability.Reachable ->
                                             Ipv6Reachability.Reachable
 
-                                        ( Err httpError, _ ) ->
-                                            if
-                                                attemptedIpv6
-                                                    && (httpError == Http.NetworkError)
-                                                    && (maybeFloatingIpAddress == Nothing)
-                                                    && Helpers.ExoSetupStatus.exoSetupIsComplete exoOriginProps
-                                            then
-                                                Ipv6Reachability.Unreachable
+                                        _ ->
+                                            let
+                                                attemptedIpv6 =
+                                                    GuacamoleEndpoint.isIpv6Endpoint attempt.endpoint
+                                            in
+                                            case result of
+                                                Ok _ ->
+                                                    if attempt.retryAfterIpv6Failure then
+                                                        Ipv6Reachability.Unreachable
 
-                                            else
-                                                sharedModel.ipv6Reachability
+                                                    else if attemptedIpv6 then
+                                                        Ipv6Reachability.Reachable
+
+                                                    else
+                                                        sharedModel.ipv6Reachability
+
+                                                Err httpError ->
+                                                    if
+                                                        attemptedIpv6
+                                                            && (httpError == Http.NetworkError)
+                                                            && (maybeFloatingIpAddress == Nothing)
+                                                            && Helpers.ExoSetupStatus.exoSetupIsComplete exoOriginProps
+                                                    then
+                                                        Ipv6Reachability.Unreachable
+
+                                                    else
+                                                        sharedModel.ipv6Reachability
 
                                 -- An instance with a floating IP address gets that tried immediately
                                 -- instead of waiting out another failure on the address the browser

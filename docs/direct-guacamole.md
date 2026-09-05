@@ -25,11 +25,13 @@ An instance can have a perfectly good IPv6 address that a particular user cannot
 
 The first Guacamole token request goes to the address chosen above. From there:
 
-- The request succeeds over IPv6, so this browser has IPv6. Exosphere remembers that for the session and keeps preferring IPv6 everywhere, including on an instance that later fails: at that point the instance is the likelier problem.
-- The request fails with a network error and the instance also has a floating IP address, so Exosphere immediately retries there. If that works, this browser has no IPv6.
-- The request fails with a network error, the instance has no floating IP address to fall back to, and the instance has finished its own setup. There is nothing left that could explain the failure, so this browser has no IPv6.
+- The request succeeds over IPv6, so this browser has IPv6. Exosphere remembers that for the session and does not change its mind, including on an instance that fails later: at that point the instance is the likelier problem.
+- The request fails with a network error and the instance also has a floating IP address, so Exosphere immediately retries there. If that works, the most likely explanation is that this browser has no IPv6, so Exosphere assumes that until something answers over IPv6.
+- The request fails with a network error, the instance has no floating IP address to fall back to, and the instance has finished its own setup. Again the most likely explanation is a browser without IPv6, and Exosphere assumes that until something answers over IPv6.
 
 Either of the last two settles it for the whole session at once, so the user is told about every IPv6-only instance rather than one at a time.
+
+This is a guess, not a measurement. A browser reports a refused TLS handshake the same way it reports an address it cannot open, so an instance whose certificate has not been issued yet can look like a browser without IPv6. The first token that arrives over IPv6 corrects it for the rest of the session.
 
 What the browser learns is not persisted. A user who is on an IPv4-only network today and an IPv6 one tomorrow gets the right answer each time.
 

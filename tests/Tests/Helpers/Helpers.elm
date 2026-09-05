@@ -77,10 +77,6 @@ hostnameSuite =
             testCases
 
 
-{-| The `exoGuac` server metadata item gained a `tls` field in version 2. Instances launched at
-version 1 must keep decoding, with `tlsSupported` false, so that instances launched before
-Exosphere served Guacamole from the instance keep going through the user application proxy.
--}
 serverDetailsWithMetadata : List OSTypes.MetadataItem -> OSTypes.ServerDetails
 serverDetailsWithMetadata metadata =
     { openstackStatus = OSTypes.ServerActive
@@ -98,6 +94,10 @@ serverDetailsWithMetadata metadata =
     }
 
 
+{-| The `exoGuac` server metadata item gained a `tls` field in version 2. Instances launched at
+version 1 must keep decoding, with `tlsSupported` false, so that instances launched before
+Exosphere served Guacamole from the instance keep going through the user application proxy.
+-}
 exoGuacMetadataSuite : Test
 exoGuacMetadataSuite =
     let
@@ -205,5 +205,9 @@ automaticFloatingIpSuite =
         , test "spends it when the instance has only a private IPv4 address" <|
             \_ ->
                 Helpers.automaticSkipsFloatingIp withGuacamoleOverTls [ "192.168.1.20" ]
+                    |> Expect.equal False
+        , test "spends it for a routable IPv6 address on an instance not launched from Exosphere" <|
+            \_ ->
+                Helpers.automaticSkipsFloatingIp (serverDetailsWithMetadata []) [ "2001:db8::1" ]
                     |> Expect.equal False
         ]

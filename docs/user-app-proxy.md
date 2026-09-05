@@ -2,7 +2,7 @@
 
 ## Overview
 
-The User Application proxy (UAP) facilitates encrypted, server-authenticated connections between the Exosphere client and web-based services that are hosted on users' cloud instances. These web services include Guacamole for shell and streaming desktop sessions, and data science workbenches like JupyterLab and RStudio Server. In order to securely deliver these services to the user's web browser, they must be served using Transport Layer Security (TLS) with an x.509 certificate that has been signed by a certificate authority like Let's Encrypt. For reasons detailed below in "Background" section, it appears infeasible to obtain a CA-signed cert for each server that a user creates in an automatic and scalable way. UAP is a solution to this problem: it re-terminates TLS connections between users and instance-hosted web applications at each OpenStack cloud using a wildcard certificate from Let's Encrypt.
+The User Application proxy (UAP) facilitates encrypted, server-authenticated connections between the Exosphere client and web-based services that are hosted on users' cloud instances. These web services include Guacamole for shell and streaming desktop sessions, and data science workbenches like JupyterLab and RStudio Server. In order to securely deliver these services to the user's web browser, they must be served using Transport Layer Security (TLS) with an x.509 certificate that has been signed by a certificate authority like Let's Encrypt. For reasons detailed below in "Background" section, it long appeared infeasible to obtain a CA-signed cert for each server that a user creates in an automatic and scalable way. UAP is a solution to this problem: it re-terminates TLS connections between users and instance-hosted web applications at each OpenStack cloud using a wildcard certificate from Let's Encrypt. Let's Encrypt now issues short-lived certificates for IP addresses, so instances launched by a current Exosphere serve Guacamole themselves and do not go through the UAP; see [direct Guacamole connections](direct-guacamole.md). The UAP still carries instances launched by older versions of Exosphere, and the other web services above.
 
 ![Exosphere architecture diagram](assets/architecture.png)
 
@@ -67,7 +67,7 @@ If your OpenStack cloud has multiple regions, then consider deploying a separate
 
 ## How to configure Exosphere to know about a new UAP
 
-In order for Exosphere to deploy instances with Guacamole support on a given cloud, Exosphere must know about a UAP at that cloud. UAPs known to Exosphere are configured in `ports.js`, as a list item in the `clouds` flag. This flag is passed to Exosphere on startup.
+Exosphere no longer needs a UAP to deploy an instance with Guacamole support, but a cloud that has instances from older versions of Exosphere still needs one to reach them. UAPs known to Exosphere are configured in `ports.js`, as a list item in the `clouds` flag. This flag is passed to Exosphere on startup.
 
 The `clouds` flag is a list containing JSON objects for each cloud with a custom configuration. Each of these JSON objects contains `keystoneHostname` and `userAppProxy` properties (amongst others). `keystoneHostname` is the hostname of the Keystone API for a given OpenStack cloud. `userAppProxy` is a JSON array containing objects with two keys: `region` and `hostname`.
 
@@ -125,6 +125,8 @@ Therefore, the cloud servers that are launched by Exosphere users must possess a
 ### End of TLS Lesson
 
 **It appears infeasible to obtain a CA-signed cert for each server that a user launches, or at least infeasible on a large scale, and another solution is needed.**
+
+This was true when the UAP was designed. Let's Encrypt has since begun issuing certificates for IP addresses, under a short-lived profile, which is what lets an instance serve Guacamole itself today. The rest of this section is the reasoning as it stood then.
 
 To understand why, let's look at what's needed in order to obtain a CA-signed cert. This used to be a costly, manual process: you would pay a fee to a CA (like DigiCert or GoDaddy), then complete some manual challenge to prove that you own the hostname(s) that the certificate should be valid for. Then, the CA would send you the signed certificate. Fortunately, [Let's Encrypt](https://letsencrypt.org) has made this process free and automatic since late 2015. Let's Encrypt is great for many use cases, but it doesn't quite solve this problem. Let's Encrypt has a set of policy limitations which seem to make our use of it infeasible at scale (i.e. obtaining a certificate for each user-launched instance).
 
