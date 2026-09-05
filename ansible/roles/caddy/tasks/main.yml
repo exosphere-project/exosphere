@@ -35,7 +35,8 @@
     - 'exosphere-caddy-addresses.service'
     - 'exosphere-caddy-addresses.timer'
 
-# Before Caddy starts, so the package's default Caddyfile never serves.
+# On Debian the package has already started Caddy with its default Caddyfile, so replace it and
+# reload now rather than leave that serving until the timer's first run.
 - name: 'Caddyfile written for the addresses this instance has now'
   command: '/usr/local/sbin/exosphere-caddy-addresses'
   changed_when: true

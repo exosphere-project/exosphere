@@ -4,6 +4,7 @@ Description=Follow this instance's addresses in the Caddyfile
 [Timer]
 OnBootSec=1min
 OnUnitActiveSec=1min
+AccuracySec=10s
 
 [Install]
 WantedBy=timers.target
