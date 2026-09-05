@@ -380,13 +380,9 @@ buildRuleGuacamole =
 
 {-| Instances serve Guacamole themselves over HTTPS, so the browser reaches them on 443 at
 whichever address family it has. Certificates are obtained with the TLS-ALPN-01 challenge, which
-also runs on 443, so port 80 does not need to be open.
+also runs on 443, so port 80 does not need to be open. IPv4 on 443 is already covered by
+`buildRuleExposeAllIncomingPorts`.
 -}
-buildRuleHttps : SecurityGroupRuleTemplate
-buildRuleHttps =
-    buildRuleTcpIngress Ipv4 443 "HTTPS"
-
-
 buildRuleHttpsIPv6 : SecurityGroupRuleTemplate
 buildRuleHttpsIPv6 =
     buildRuleTcpIngress Ipv6 443 "HTTPS IPv6"
@@ -396,7 +392,6 @@ defaultRules : List SecurityGroupRuleTemplate
 defaultRules =
     [ buildRuleSsh
     , buildRuleSshIPv6
-    , buildRuleHttps
     , buildRuleHttpsIPv6
     , buildRuleIcmp
     , buildRuleIcmpIPv6

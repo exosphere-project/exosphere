@@ -2,20 +2,9 @@
 
 ## Overview
 
-By default, the browser reaches Guacamole on an instance through a [User Application Proxy](user-app-proxy.md), which terminates TLS at the cloud and forwards to the instance. Direct mode skips the proxy: the instance serves Guacamole itself over HTTPS on port 443, using a Let's Encrypt certificate issued for its own IP address, and the browser connects to it.
+Exosphere deploys Guacamole onto an instance so that the user gets a shell and a desktop in the browser. The instance serves it itself over HTTPS on port 443, using a Let's Encrypt certificate issued for its own IP address, and the browser connects straight to it. There is nothing to configure and no per-cloud switch.
 
-Turn it on per cloud with the `directGuacamole` flag in `cloud_configs.js`:
-
-```javascript
-{
-  "keystoneHostname": "openstack.example.cloud",
-  "friendlyName": "My Example Cloud",
-  "directGuacamole": true,
-  ...
-}
-```
-
-A cloud can have both `directGuacamole` and `userAppProxy` set. Instances that can serve Guacamole themselves are reached directly; the proxy carries the rest.
+Instances launched by an older Exosphere were not set up to do that, and are still reached through a [User Application Proxy](user-app-proxy.md), which terminates TLS at the cloud and forwards to the instance. A cloud that carries such instances still needs its `userAppProxy` configuration.
 
 ## Which address Exosphere uses
 
@@ -26,7 +15,9 @@ For each instance, in order:
 
 IPv6 comes first because floating IP addresses are scarce. A user whose network speaks IPv6 can connect without spending one, which leaves more of them for the users who need them.
 
-Direct mode never falls back to the user application proxy. The proxy still serves every instance on a cloud that has not turned direct mode on, and every instance launched before it was turned on, and those instances behave exactly as they did before. An instance in direct mode with no public address of its own has no way to serve Guacamole, and Exosphere says so instead of offering a dead button.
+The `Automatic` floating IP option on the launch form follows the same reasoning: an instance that has a globally routable IPv6 address and is serving Guacamole itself does not get a floating IP address at all. A class of a hundred students can therefore share far fewer than a hundred of them.
+
+Direct mode never falls back to the user application proxy. The proxy still serves every instance launched before Exosphere deployed Guacamole this way, and those instances behave exactly as they did before.
 
 ## Finding out whether the browser has IPv6
 
@@ -34,9 +25,11 @@ An instance can have a perfectly good IPv6 address that a particular user cannot
 
 The first Guacamole token request goes to the address chosen above. From there:
 
-- The request succeeds over IPv6, so this browser has IPv6. Exosphere remembers that for the session.
-- The request fails with a network error and the instance also has a floating IP address, so Exosphere immediately retries there. If that works, this browser has no IPv6, and from then on floating IP addresses come first for every instance in the session.
-- The request fails with a network error and the instance has no floating IP address to fall back to. Exosphere keeps retrying on its usual cadence and counts the failures.
+- The request succeeds over IPv6, so this browser has IPv6. Exosphere remembers that for the session and keeps preferring IPv6 everywhere, including on an instance that later fails: at that point the instance is the likelier problem.
+- The request fails with a network error and the instance also has a floating IP address, so Exosphere immediately retries there. If that works, this browser has no IPv6.
+- The request fails with a network error, the instance has no floating IP address to fall back to, and the instance has finished its own setup. There is nothing left that could explain the failure, so this browser has no IPv6.
+
+Either of the last two settles it for the whole session at once, so the user is told about every IPv6-only instance rather than one at a time.
 
 What the browser learns is not persisted. A user who is on an IPv4-only network today and an IPv6 one tomorrow gets the right answer each time.
 
@@ -44,26 +37,26 @@ Anything other than a network error, such as a 500 from Guacamole or a timeout, 
 
 ## When the user needs a floating IP address
 
-An instance whose only public address is IPv6, on a browser that cannot reach IPv6, cannot be connected to at all. After three failed attempts in a row, and only once the instance has finished its own setup, the Terminal and Desktop interactions show a warning rather than an error:
+An instance whose only public address is IPv6, on a browser that cannot reach IPv6, cannot be connected to at all. The Terminal and Desktop interactions show a warning rather than an error:
 
 > Your network can't reach this instance over IPv6. Assign a floating IP address to connect over IPv4.
 
-Next to it is a button that opens Exosphere's normal assignment flow for that instance. Once a floating IP address is assigned, Exosphere resolves to it on the next poll and the interactions become ready without the user doing anything else.
+Next to it is a button that opens Exosphere's normal assignment flow for that instance. The instance picks the new address up within a minute and starts serving on it, and Exosphere resolves to it on the next poll, so the interactions become ready without the user doing anything else.
 
-The wait for setup to finish matters: an instance that is still deploying is not serving Guacamole yet, and those failures must not be read as a browser without IPv6.
-
-## Instances launched before you turned it on
-
-Serving TLS is set up at launch time, by the `caddy` Ansible role. Exosphere records whether that happened in the instance's `exoGuac` server metadata, so flipping `directGuacamole` on does not strand instances that were launched without it. Those instances keep using the user application proxy. Turning the flag off likewise leaves already-launched instances alone, though they will then need a proxy to stay reachable.
+The instance's own setup has to have finished before any of this. An instance that is still deploying is not serving Guacamole yet, and those failures must not be read as a browser without IPv6.
 
 ## What the instance runs
 
-The `caddy` role installs Caddy and points it at Guacamole on `127.0.0.1:49528`. Caddy requests a certificate for the instance's own address using the ACME `shortlived` profile, which is the only profile under which Let's Encrypt issues certificates for IP addresses. Those certificates last about six days, so a long-running instance renews often; an instance that loses outbound network access to Let's Encrypt for a week will stop serving a valid certificate.
+The `caddy` Ansible role installs Caddy and points it at Guacamole on `127.0.0.1:49528`. Caddy requests a certificate for the instance's own address using the ACME `shortlived` profile, which is the only profile under which Let's Encrypt issues certificates for IP addresses. Those certificates last about six days, so a long-running instance renews often; an instance that loses outbound network access to Let's Encrypt for a week will stop serving a valid certificate.
+
+Which addresses the instance answers on is not fixed. A floating IP address can be attached or detached at any time, and it is not on any local interface, so it has to come from the OpenStack metadata service. The role installs `/usr/local/sbin/exosphere-caddy-addresses` and a systemd timer that runs it every minute. The script writes a Caddyfile with one site per address the instance currently has, validates it, and reloads Caddy only if the content changed. An instance with no public address yet gets a Caddyfile with no sites, and Caddy waits.
 
 Caddy also answers the CORS preflight for Guacamole's token endpoint and adds the response header for it, naming the Exosphere origin that launched the instance. That origin is passed in at launch as the `exo_origin` Ansible variable, so a given deployment allows only itself.
 
+Exosphere records in the instance's `exoGuac` server metadata that this happened, which is how instances launched before it are told apart and kept on the user application proxy.
+
 ## Security groups
 
-Direct mode needs inbound TCP 443 on the instance, for both IPv4 and IPv6. Exosphere's default security group rules include it. Certificate issuance uses the TLS-ALPN-01 challenge, which runs over port 443, so port 80 does not need to be open.
+Instances need inbound TCP 443, for both IPv4 and IPv6. Exosphere's default security group rules include it. Certificate issuance uses the TLS-ALPN-01 challenge, which runs over port 443, so port 80 does not need to be open.
 
 See [security groups](security-groups.md) for how Exosphere reconciles default rules against a project's existing groups.
