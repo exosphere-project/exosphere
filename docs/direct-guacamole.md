@@ -51,6 +51,8 @@ The instance's own setup has to have finished before any of this. An instance th
 
 The `caddy` Ansible role installs Caddy and points it at Guacamole on `127.0.0.1:49528`. Caddy requests a certificate for the instance's own address using the ACME `shortlived` profile, which is the only profile under which Let's Encrypt issues certificates for IP addresses. Those certificates last about six days, so a long-running instance renews often; an instance that loses outbound network access to Let's Encrypt for a week will stop serving a valid certificate.
 
+On Rocky Linux the role relabels the Caddy binary so that SELinux runs it unconfined, as it is on Ubuntu. The targeted policy would otherwise confine it as `httpd_t`, which denies it reading the connections it accepts and its own admin socket, so it would serve nothing and could not reload.
+
 Which addresses the instance answers on is not fixed. A floating IP address can be attached or detached at any time, and it is not on any local interface, so it has to come from the OpenStack metadata service. The role installs `/usr/local/sbin/exosphere-caddy-addresses` and a systemd timer that runs it every minute. The script writes a Caddyfile with one site per address the instance currently has, validates it, and reloads Caddy only if the content changed. An instance with no public address yet gets a Caddyfile with no sites, and Caddy waits.
 
 Caddy also answers the CORS preflight for Guacamole's token endpoint and adds the response header for it, naming the Exosphere origin that launched the instance. That origin is passed in at launch as the `exo_origin` Ansible variable, so a given deployment allows only itself.

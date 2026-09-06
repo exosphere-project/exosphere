@@ -14,7 +14,26 @@
   dnf:
     name:
       - 'caddy'
+      # semanage, for the SELinux relabelling below. Already on the Jetstream2 images.
+      - 'policycoreutils-python-utils'
     state: 'present'
+
+# The targeted policy labels /usr/bin/caddy as httpd_exec_t, so systemd runs Caddy as httpd_t.
+# In that domain Caddy accepts connections on 443 and is then denied reading them, and is denied
+# its own admin socket, so it serves nothing and cannot reload. Nothing in this play talks to
+# Caddy over the network, so the deployment looks fine while every connection is reset. Run it
+# unconfined instead, which is the footing it has on Ubuntu.
+- name: 'Caddy binary labelled for an unconfined domain'
+  command: 'semanage fcontext -a -t bin_t /usr/bin/caddy'
+  # semanage says 'already defined, modifying instead' and exits 0 on a rerun.
+  changed_when: false
+  when: "ansible_selinux.status | default('disabled') == 'enabled'"
+
+- name: 'Caddy binary relabelled'
+  command: 'restorecon -v /usr/bin/caddy'
+  register: 'caddy_restorecon'
+  changed_when: "'Relabeled' in caddy_restorecon.stdout"
+  when: "ansible_selinux.status | default('disabled') == 'enabled'"
 
 # Rocky images run firewalld, which drops 443 before the instance's security group is ever
 # consulted. Only ansible-core is installed on the instance, so there is no firewalld module.
