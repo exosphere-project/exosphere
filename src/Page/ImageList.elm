@@ -337,9 +337,7 @@ imageView model context project imageRecord =
                                     imageRecord.image.uuid
                                     imageRecord.image.name
                                     Nothing
-                                    (GetterSetters.getUserAppProxyFromContext project context
-                                        |> Maybe.map (\_ -> True)
-                                    )
+                                    (Just True)
                     in
                     Element.link []
                         { url = Route.toUrl context.urlPathPrefix serverCreationRoute

@@ -31,6 +31,12 @@
       tags:
         - 'guacamole'
       when: 'guac_enabled | default(false) == true'
+    # Caddy fronts Guacamole with TLS, so the browser can connect to this
+    # instance directly instead of going through the user application proxy
+    - role: 'caddy'
+      tags:
+        - 'caddy'
+      when: 'guac_enabled | default(false) == true'
     - role: 'workflow'
       tags:
         - 'workflow'

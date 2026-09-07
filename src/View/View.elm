@@ -368,11 +368,11 @@ projectContentView model context p viewConstructor =
                 |> Element.map ServerConsoleLogMsg
 
         ServerDetail pageModel ->
-            Page.ServerDetail.view context p ( model.clientCurrentTime, model.timeZone ) pageModel
+            Page.ServerDetail.view context p ( model.clientCurrentTime, model.timeZone ) model.ipv6Reachability pageModel
                 |> Element.map ServerDetailMsg
 
         ServerList pageModel ->
-            Page.ServerList.view context p model.clientCurrentTime pageModel
+            Page.ServerList.view context p model.clientCurrentTime model.ipv6Reachability pageModel
                 |> Element.map ServerListMsg
 
         ServerResize pageModel ->

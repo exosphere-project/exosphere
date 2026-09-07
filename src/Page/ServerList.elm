@@ -36,6 +36,7 @@ import Time
 import Types.Guacamole exposing (LaunchedWithGuacProps)
 import Types.Interaction as ITypes
 import Types.Interactivity exposing (InteractionLevel(..))
+import Types.Ipv6Reachability exposing (Ipv6Reachability)
 import Types.Project exposing (Project)
 import Types.Server exposing (Server, ServerUiStatus)
 import Types.SharedMsg as SharedMsg
@@ -133,8 +134,8 @@ update msg project model =
             ( model, Cmd.none, SharedMsg.NoOp )
 
 
-view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
-view context project currentTime model =
+view : View.Types.Context -> Project -> Time.Posix -> Ipv6Reachability -> Model -> Element.Element Msg
+view context project currentTime ipv6Reachability model =
     let
         serverListContents =
             {- Resolve whether we have a loaded list of servers to display; if so, call rendering function serverList_ -}
@@ -179,7 +180,7 @@ view context project currentTime model =
                     else
                         let
                             serversList =
-                                serverRecords context currentTime project servers
+                                serverRecords context currentTime ipv6Reachability project servers
                         in
                         DataList.view
                             context.localization.virtualComputer
@@ -249,10 +250,11 @@ type alias ServerRecord msg =
 serverRecords :
     View.Types.Context
     -> Time.Posix
+    -> Ipv6Reachability
     -> Project
     -> List Server
     -> List (ServerRecord msg)
-serverRecords context currentTime project servers =
+serverRecords context currentTime ipv6Reachability project servers =
     let
         floatingIpAddress server =
             List.head (GetterSetters.getServerFloatingIps project server.osProps.uuid)
@@ -276,6 +278,7 @@ serverRecords context currentTime project servers =
                                 context
                                 currentTime
                                 (GetterSetters.getUserAppProxyFromContext project context)
+                                ipv6Reachability
                         , interactionDetails =
                             IHelpers.interactionDetails
                                 interaction
@@ -336,11 +339,40 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
                 }
 
         interactionPopover closePopover =
-            Element.column []
-                (List.map
-                    (\{ interactionStatus, interactionDetails } ->
-                        Element.el [ closePopover, Element.width Element.fill ] <|
-                            Widget.button
+            let
+                -- A warning that comes with a fix cannot be opened from here, so the item says why
+                -- it is disabled and offers the fix, which is what the detail page does too.
+                warningWithFix interactionStatus =
+                    case interactionStatus of
+                        ITypes.WarnWithFix reason fix ->
+                            [ Element.paragraph
+                                [ Element.width (Element.fill |> Element.maximum 320)
+                                , Element.paddingEach { top = 0, right = spacer.px12, bottom = spacer.px8, left = spacer.px12 }
+                                , Font.color (SH.toElementColor context.palette.neutral.text.subdued)
+                                ]
+                                [ Text.text Text.Small [] reason ]
+                            , Element.el
+                                [ closePopover
+                                , Element.paddingEach { top = 0, right = spacer.px12, bottom = spacer.px8, left = spacer.px12 }
+                                ]
+                                (Element.link []
+                                    { url = fix.url
+                                    , label =
+                                        Button.default context.palette
+                                            { text = fix.label
+                                            , onPress = Just NoOp
+                                            }
+                                    }
+                                )
+                            ]
+
+                        _ ->
+                            []
+
+                interactionItem { interactionStatus, interactionDetails } =
+                    Element.column [ Element.width Element.fill ] <|
+                        Element.el [ closePopover, Element.width Element.fill ]
+                            (Widget.button
                                 (dropdownItemStyle context.palette)
                                 { text = interactionDetails.name
                                 , icon =
@@ -363,9 +395,10 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
                                         _ ->
                                             Nothing
                                 }
-                    )
-                    serverRecord.interactions
-                )
+                            )
+                            :: warningWithFix interactionStatus
+            in
+            Element.column [] (List.map interactionItem serverRecord.interactions)
 
         interactionButton =
             let

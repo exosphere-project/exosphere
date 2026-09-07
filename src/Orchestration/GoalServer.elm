@@ -1,9 +1,9 @@
 module Orchestration.GoalServer exposing (goalNewServer, goalPollServers, requestFloatingIp)
 
 import Helpers.GetterSetters as GetterSetters
+import Helpers.GuacamoleEndpoint as GuacamoleEndpoint
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
-import Helpers.Url as UrlHelpers
 import OpenStack.ConsoleLog
 import OpenStack.DnsRecordSet
 import OpenStack.ServerVolumes
@@ -25,13 +25,13 @@ import Types.HelperTypes
         , UserAppProxyHostname
         )
 import Types.Interactivity exposing (InteractionLevel(..), interactionIsWanted)
+import Types.Ipv6Reachability exposing (Ipv6Reachability)
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoSetupStatus(..), Server, ServerFromExoProps, ServerOrigin(..), ServerUiStatus(..))
 import Types.ServerVolumeActions as ServerVolumeActions
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
 import UUID
-import Url
 import View.Helpers as VH
 
 
@@ -51,8 +51,8 @@ goalNewServer exoClientUuid time project =
         steps
 
 
-goalPollServers : Time.Posix -> Maybe CloudSpecificConfig -> ViewState -> Project -> ( Project, Cmd SharedMsg )
-goalPollServers time maybeCloudSpecificConfig viewState project =
+goalPollServers : Time.Posix -> Maybe CloudSpecificConfig -> Ipv6Reachability -> ViewState -> Project -> ( Project, Cmd SharedMsg )
+goalPollServers time maybeCloudSpecificConfig ipv6Reachability viewState project =
     let
         userAppProxy =
             maybeCloudSpecificConfig
@@ -65,7 +65,7 @@ goalPollServers time maybeCloudSpecificConfig viewState project =
             , stepServerPollVolumeAttachments time viewState
             , stepServerPollSecurityGroups time viewState
             , stepServerNeedsConsoleUrl
-            , stepServerGuacamoleAuth time userAppProxy
+            , stepServerGuacamoleAuth time userAppProxy ipv6Reachability
             ]
     in
     List.foldl
@@ -675,14 +675,11 @@ stepServerNeedsConsoleUrl project server =
         doNothing project
 
 
-stepServerGuacamoleAuth : Time.Posix -> Maybe UserAppProxyHostname -> Project -> Server -> ( Project, Cmd SharedMsg )
-stepServerGuacamoleAuth time maybeUserAppProxy project server =
+stepServerGuacamoleAuth : Time.Posix -> Maybe UserAppProxyHostname -> Ipv6Reachability -> Project -> Server -> ( Project, Cmd SharedMsg )
+stepServerGuacamoleAuth time maybeUserAppProxy ipv6Reachability project server =
     let
-        guacUpstreamPort =
-            49528
-
-        doRequestToken : String -> String -> UserAppProxyHostname -> ServerFromExoProps -> GuacTypes.LaunchedWithGuacProps -> ( Project, Cmd SharedMsg )
-        doRequestToken floatingIp passphrase proxyHostname oldExoOriginProps oldGuacProps =
+        doRequestToken : String -> GuacamoleEndpoint.Endpoint -> ServerFromExoProps -> GuacTypes.LaunchedWithGuacProps -> ( Project, Cmd SharedMsg )
+        doRequestToken passphrase guacEndpoint oldExoOriginProps oldGuacProps =
             let
                 oldAuthToken =
                     oldGuacProps.authToken
@@ -706,11 +703,8 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                     { server | exoProps = newExoProps }
 
                 url =
-                    UrlHelpers.buildProxyUrl
-                        proxyHostname
-                        floatingIp
-                        guacUpstreamPort
-                        Url.Http
+                    GuacamoleEndpoint.buildUrl
+                        guacEndpoint
                         [ "guacamole", "api", "tokens" ]
                         []
             in
@@ -722,7 +716,9 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                 (\result ->
                     ProjectMsg (GetterSetters.projectIdentifier project) <|
                         ServerMsg server.osProps.uuid <|
-                            ReceiveGuacamoleAuthToken result
+                            ReceiveGuacamoleAuthToken
+                                { endpoint = guacEndpoint, retryAfterIpv6Failure = False }
+                                result
                 )
             )
     in
@@ -739,14 +735,20 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
 
                 GuacTypes.LaunchedWithGuacamole launchedWithGuacProps ->
                     case
-                        ( GetterSetters.getServerFloatingIps project server.osProps.uuid
-                            |> List.map .address
-                            |> List.head
+                        ( GuacamoleEndpoint.resolve
+                            { tlsSupported = launchedWithGuacProps.tlsSupported
+                            , userAppProxyHostname = maybeUserAppProxy
+                            , floatingIpAddress =
+                                GetterSetters.getServerFloatingIps project server.osProps.uuid
+                                    |> List.map .address
+                                    |> List.head
+                            , fixedIpAddresses = GetterSetters.getServerFixedIps project server.osProps.uuid
+                            , ipv6Reachability = ipv6Reachability
+                            }
                         , GetterSetters.getServerExouserPassphrase server.osProps.details
-                        , maybeUserAppProxy
                         )
                     of
-                        ( Just floatingIp, Just passphrase, Just tlsReverseProxyHostname ) ->
+                        ( Just guacEndpoint, Just passphrase ) ->
                             case launchedWithGuacProps.authToken.refreshStatus of
                                 RDPP.Loading ->
                                     doNothing project
@@ -754,7 +756,7 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                                 RDPP.NotLoading maybeErrorTimeTuple ->
                                     let
                                         doRequestToken_ =
-                                            doRequestToken floatingIp passphrase tlsReverseProxyHostname exoOriginProps launchedWithGuacProps
+                                            doRequestToken passphrase guacEndpoint exoOriginProps launchedWithGuacProps
 
                                         curTimeMillis =
                                             Time.posixToMillis time

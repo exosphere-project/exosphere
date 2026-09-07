@@ -1,0 +1,125 @@
+#!/bin/sh
+# Write /etc/caddy/Caddyfile for the addresses this instance can be reached at, and reload
+# Caddy if that changed. Run every minute by exosphere-caddy-addresses.timer, because a
+# floating IP address can be attached or detached long after the instance was deployed.
+#
+# Installed by Exosphere's caddy Ansible role. Local edits will be overwritten.
+
+set -eu
+
+caddyfile=/etc/caddy/Caddyfile
+# Staged beside the real file so it lands with a rename rather than a partial write.
+staged=$(mktemp "${caddyfile}.XXXXXX")
+tmp=$(mktemp -d)
+trap 'rm -rf "$staged" "$tmp"' EXIT
+
+# A floating IP address is not on any local interface, because the instance sits behind NAT, so
+# the only place to learn it is the OpenStack metadata service. A 404, or a 200 whose body is not
+# a dotted quad, means this instance has none. Any other answer means the metadata service could
+# not be reached, which says nothing about the instance, so leave the Caddyfile as it is rather
+# than tearing down a site that works.
+code=$(curl -s -o "$tmp/metadata" -w '%{http_code}' --max-time 5 \
+	http://169.254.169.254/latest/meta-data/public-ipv4 || true)
+case "$code" in
+	200) fip=$(tr -d '[:space:]' <"$tmp/metadata") ;;
+	404) fip='' ;;
+	*) exit 0 ;;
+esac
+echo "$fip" | grep -Eq '^[0-9]{1,3}(\.[0-9]{1,3}){3}$' || fip=''
+
+# Global unicast IPv6 is 2000::/3, so a first hex digit of 2 or 3. Unique-local and link-local
+# addresses are not reachable from a browser. This is the same rule as
+# Helpers.Cidr.isGlobalUnicastIPv6 on the Exosphere side, and the two must agree or the browser
+# can pick an address that has no certificate. Caddy gets a site, and so a certificate, for every
+# address that passes, so it does not matter which one Exosphere picks; privacy addresses are
+# left out because they rotate and each one would take a certificate with it.
+ipv6=$(ip -6 addr show scope global -tentative -deprecated \
+	| grep -v temporary \
+	| sed -n 's|^ *inet6 \([23][0-9a-f:]*\)/.*|\1|p')
+
+{
+	cat <<'EOF'
+{
+	# There is no admin email address in this deployment, so ACME registration happens
+	# without an account email and the global email directive is left out on purpose.
+
+	# Nothing on this instance is reached over http, so the http to https redirect vhost that
+	# Caddy would otherwise put on port 80 has nothing to redirect, and would only take that
+	# port away from whatever else the user runs here.
+	auto_https disable_redirects
+EOF
+
+	# Browsers do not send SNI when the URL is an IP literal, so Caddy picks a certificate by
+	# the connection's local address. A NAT'd floating IPv4 address arrives with the private
+	# fixed address as the local address, and there is no certificate for that, so IPv4
+	# handshakes fail without this line. IPv6 is routed rather than NAT'd and does not need it.
+	if [ -n "$fip" ]; then
+		printf '\n\tfallback_sni %s\n' "$fip"
+	fi
+
+	cat <<'EOF'
+}
+
+(guacamole_site) {
+	tls {
+		issuer acme {
+			# Let's Encrypt only issues certificates for IP addresses under the shortlived
+			# profile, which has a lifetime of about six days. Caddy renews automatically.
+			profile shortlived
+
+			# The default rules open only 443 over IPv6, so HTTP-01 cannot complete at an
+			# IPv6 address. Without this Caddy tries it and stalls quietly. TLS-ALPN-01 on
+			# port 443 is the challenge that works at every address.
+			disable_http_challenge
+		}
+	}
+
+	# Guacamole's token endpoint is cross-origin when the browser talks to this instance
+	# directly, so answer it with the CORS headers for the Exosphere origin that launched
+	# this instance.
+	@exosphere_token {
+		path /guacamole/api/tokens
+		header Origin "{{ exo_origin }}"
+	}
+	header @exosphere_token {
+		Access-Control-Allow-Origin "{header.Origin}"
+		Access-Control-Allow-Methods "POST, OPTIONS"
+		Access-Control-Allow-Headers "Content-Type"
+		Vary Origin
+		defer
+	}
+
+	# Guacamole returns a 500 for OPTIONS on the token endpoint, so answer the preflight here
+	# instead of passing it through.
+	@exosphere_token_preflight {
+		method OPTIONS
+		path /guacamole/api/tokens
+	}
+	respond @exosphere_token_preflight 204
+
+	redir / /guacamole/
+	reverse_proxy 127.0.0.1:49528
+}
+EOF
+
+	# With no address at all this leaves a Caddyfile with no sites, and Caddy runs idle until
+	# the instance gets one.
+	for address in $fip; do
+		printf '\nhttps://%s {\n\timport guacamole_site\n}\n' "$address"
+	done
+	for address in $ipv6; do
+		printf '\nhttps://[%s] {\n\timport guacamole_site\n}\n' "$address"
+	done
+} >"$staged"
+
+cmp -s "$staged" "$caddyfile" && exit 0
+
+caddy validate --adapter caddyfile --config "$staged" >/dev/null
+cp "$caddyfile" "$tmp/previous"
+chmod 0644 "$staged"
+mv "$staged" "$caddyfile"
+
+# Caddy is not running yet the first time the Ansible role calls this, and reloading rather than
+# restarting keeps the certificates and sessions Caddy already has. If it refuses the new file,
+# hand back the one it was running so the next timer run can try again.
+systemctl try-reload-or-restart caddy || { cp "$tmp/previous" "$caddyfile"; exit 1; }

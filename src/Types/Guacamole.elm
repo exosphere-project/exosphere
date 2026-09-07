@@ -17,6 +17,7 @@ type ServerGuacamoleStatus
 type alias LaunchedWithGuacProps =
     { sshSupported : Bool
     , vncSupported : Bool
+    , tlsSupported : Bool
     , authToken : GuacamoleTokenRDPP
     }
 

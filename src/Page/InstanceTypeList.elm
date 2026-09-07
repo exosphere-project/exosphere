@@ -72,9 +72,7 @@ view context project instanceTypes =
                                     image.uuid
                                     image.name
                                     instanceTypeVersion.restrictFlavorIds
-                                    (GetterSetters.getUserAppProxyFromContext project context
-                                        |> Maybe.map (\_ -> True)
-                                    )
+                                    (Just True)
 
                         buttonStyleProto =
                             if instanceTypeVersion.isPrimary then

@@ -373,13 +373,26 @@ buildRuleSshIPv6 =
 
 buildRuleGuacamole : SecurityGroupRuleTemplate
 buildRuleGuacamole =
+    -- This is Helpers.GuacamoleEndpoint.guacUpstreamPort, spelled out because importing that module
+    -- here would make an import cycle back through OpenStack.Types. Keep the two in step.
     buildRuleTcpIngress Ipv4 49528 "Guacamole"
+
+
+{-| Instances serve Guacamole themselves over HTTPS, so the browser reaches them on 443 at
+whichever address family it has. Certificates are obtained with the TLS-ALPN-01 challenge, which
+also runs on 443, so port 80 does not need to be open. IPv4 on 443 is already covered by
+`buildRuleExposeAllIncomingPorts`.
+-}
+buildRuleHttpsIPv6 : SecurityGroupRuleTemplate
+buildRuleHttpsIPv6 =
+    buildRuleTcpIngress Ipv6 443 "HTTPS IPv6"
 
 
 defaultRules : List SecurityGroupRuleTemplate
 defaultRules =
     [ buildRuleSsh
     , buildRuleSshIPv6
+    , buildRuleHttpsIPv6
     , buildRuleIcmp
     , buildRuleIcmpIPv6
     , buildRuleMosh

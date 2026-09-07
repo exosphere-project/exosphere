@@ -1,0 +1,38 @@
+---
+
+- name: '/etc/apt/keyrings directory created'
+  file:
+    path: '/etc/apt/keyrings'
+    state: 'directory'
+    owner: 'root'
+    group: 'root'
+    mode: '0755'
+
+- name: 'Caddy GPG key added'
+  get_url:
+    url: 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key'
+    dest: '/etc/apt/keyrings/caddy-stable.asc'
+    mode: '0644'
+
+- name: 'Caddy repository added'
+  apt_repository:
+    repo: 'deb [signed-by=/etc/apt/keyrings/caddy-stable.asc] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main'
+    state: 'present'
+    filename: 'caddy-stable'
+    update_cache: 'true'
+  # Refreshing the package lists needs the APT lock
+  register: 'apt_status'
+  until: 'apt_status is success'
+  delay: 10
+  retries: 60
+
+- name: 'Caddy package installed'
+  apt:
+    name:
+      - 'caddy'
+    state: 'present'
+  # This stuff waits for APT/dpkg lock if unattended upgrades are running
+  register: 'apt_status'
+  until: 'apt_status is success'
+  delay: 10
+  retries: 60

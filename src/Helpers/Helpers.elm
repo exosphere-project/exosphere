@@ -1,6 +1,7 @@
 module Helpers.Helpers exposing
     ( alwaysRegex
     , appVersionUpdateBanner
+    , automaticSkipsFloatingIp
     , currentAppVersion
     , decodeFloatingIpOption
     , getNewFloatingIpOption
@@ -32,6 +33,7 @@ module Helpers.Helpers exposing
 -- Getter/setter functions that remain here are too "smart" (too much business logic) for GetterSetters.elm.
 
 import Dict
+import Helpers.Cidr as Cidr
 import Helpers.Credentials as Credentials
 import Helpers.ExoSetupStatus
 import Helpers.GetterSetters as GetterSetters
@@ -294,9 +296,8 @@ getNewFloatingIpOption project osServer floatingIpOption =
             Automatic ->
                 if isDoneBuilding && hasPort then
                     if
-                        GetterSetters.getServerFixedIps project osServer.uuid
-                            |> List.map ipv4AddressInRfc1918Space
-                            |> List.member (Ok HelperTypes.PublicNonRfc1918Space)
+                        automaticSkipsFloatingIp osServer.details
+                            (GetterSetters.getServerFixedIps project osServer.uuid)
                     then
                         DoNotUseFloatingIp
 
@@ -320,6 +321,36 @@ getNewFloatingIpOption project osServer floatingIpOption =
             DoNotUseFloatingIp ->
                 -- This is a terminal state
                 DoNotUseFloatingIp
+
+
+{-| Whether the `Automatic` floating IP option should leave this instance without one.
+
+A public IPv4 fixed address is reachable as it stands. So is a globally routable IPv6 fixed
+address, but only for what Exosphere opens over IPv6, which is Guacamole served by the instance
+itself. Floating IP addresses are scarce, so an instance with either should not take one.
+
+-}
+automaticSkipsFloatingIp : OSTypes.ServerDetails -> List OSTypes.IpAddressValue -> Bool
+automaticSkipsFloatingIp serverDetails fixedIps =
+    let
+        servesGuacamoleOverTls =
+            case serverOrigin serverDetails of
+                ServerFromExo exoOriginProps ->
+                    case exoOriginProps.guacamoleStatus of
+                        GuacTypes.LaunchedWithGuacamole guacProps ->
+                            guacProps.tlsSupported
+
+                        GuacTypes.NotLaunchedWithGuacamole ->
+                            False
+
+                ServerNotFromExo ->
+                    False
+    in
+    (fixedIps
+        |> List.map ipv4AddressInRfc1918Space
+        |> List.member (Ok HelperTypes.PublicNonRfc1918Space)
+    )
+        || (List.any Cidr.isGlobalUnicastIPv6 fixedIps && servesGuacamoleOverTls)
 
 
 ipv4AddressInRfc1918Space : OSTypes.IpAddressValue -> Result String HelperTypes.IPv4AddressPublicRoutability
@@ -356,7 +387,8 @@ renderUserDataTemplate :
     -> String
     -> Bool
     -> String
-renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole deployDesktopEnvironment maybeCustomWorkflowSource installOperatingSystemUpdates instanceConfigMgtRepoUrl instanceConfigMgtRepoCheckout injectOpenStackCredentials =
+    -> String
+renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole deployDesktopEnvironment maybeCustomWorkflowSource installOperatingSystemUpdates instanceConfigMgtRepoUrl instanceConfigMgtRepoCheckout injectOpenStackCredentials exoOrigin =
     -- Configure cloud-init user data based on user's choice for SSH keypair and Guacamole
     let
         getPublicKeyFromKeypairName : String -> Maybe String
@@ -392,6 +424,13 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
 
                   else
                     "false"
+
+                -- The instance serves Guacamole to this origin and no other, so it needs to know
+                -- which Exosphere deployment launched it.
+                , """,\\"exo_origin\\":"""
+                , """\\\""""
+                , exoOrigin
+                , """\\\""""
                 , case maybeCustomWorkflowSource of
                     Nothing ->
                         ""
@@ -442,10 +481,13 @@ newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEn
                 [ ( "exoGuac"
                   , Json.Encode.string <|
                         Json.Encode.encode 0 <|
+                            -- Version 2 added "tls", recording whether this instance was set up to
+                            -- serve Guacamole over HTTPS itself. Read back by guacamolePropsDecoder.
                             Json.Encode.object
-                                [ ( "v", Json.Encode.int 1 )
+                                [ ( "v", Json.Encode.int 2 )
                                 , ( "ssh", Json.Encode.bool True )
                                 , ( "vnc", Json.Encode.bool deployDesktopEnvironment )
+                                , ( "tls", Json.Encode.bool True )
                                 ]
                   )
                 ]
@@ -542,12 +584,19 @@ customWorkflowPropsDecoder =
         (Decode.field "path" Decode.string)
 
 
+{-| Decode the `exoGuac` server metadata item.
+
+Version 1 has no `tls` field. Instances launched at that version reach Guacamole through the
+cloud's user application proxy, never directly, so a missing field decodes as `False`.
+
+-}
 guacamolePropsDecoder : Decode.Decoder GuacTypes.LaunchedWithGuacProps
 guacamolePropsDecoder =
-    Decode.map3
+    Decode.map4
         GuacTypes.LaunchedWithGuacProps
         (Decode.field "ssh" Decode.bool)
         (Decode.field "vnc" Decode.bool)
+        (Decode.oneOf [ Decode.field "tls" Decode.bool, Decode.succeed False ])
         (Decode.succeed RDPP.empty)
 
 

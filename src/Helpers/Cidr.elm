@@ -1,4 +1,4 @@
-module Helpers.Cidr exposing (expandIPv6, isValidCidr, isValidIPv4, isValidIPv6)
+module Helpers.Cidr exposing (expandIPv6, isGlobalUnicastIPv6, isValidCidr, isValidIPv4, isValidIPv6)
 
 import OpenStack.SecurityGroupRule exposing (SecurityGroupRuleEthertype(..))
 
@@ -67,6 +67,25 @@ isValidIPv6 ipAddress =
                     String.split ":" expandedAddress
             in
             List.length groups == 8 && List.all isValidIPv6Group groups
+
+        Nothing ->
+            False
+
+
+{-| Whether an IPv6 address is in the global unicast range, 2000::/3.
+
+Neutron reports link-local (fe80::/10) and unique-local (fc00::/7) addresses alongside globally
+routable ones, and a browser somewhere else on the internet cannot reach an instance at either of
+those. Global unicast is the whole of the address space IANA has handed out for public use, so its
+top three bits being 001 is the same as its first hex digit being 2 or 3.
+
+-}
+isGlobalUnicastIPv6 : String -> Bool
+isGlobalUnicastIPv6 ipAddress =
+    case expandIPv6 ipAddress of
+        Just expandedAddress ->
+            isValidIPv6 ipAddress
+                && List.member (String.left 1 expandedAddress) [ "2", "3" ]
 
         Nothing ->
             False

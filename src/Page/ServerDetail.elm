@@ -58,9 +58,9 @@ import Time
 import Types.Error exposing (HttpErrorWithBody)
 import Types.ExtensionApproval as ExtensionApproval exposing (ExtensionApproval)
 import Types.ExtensionBatch as ExtensionBatch exposing (ExtensionBatch)
-import Types.Guacamole exposing (ServerGuacamoleStatus(..))
 import Types.HelperTypes exposing (FloatingIpOption(..), ProjectIdentifier, ServerResourceQtys, UserAppProxyHostname)
 import Types.Interaction as ITypes
+import Types.Ipv6Reachability exposing (Ipv6Reachability)
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoFeature(..), ExoSetupStatus(..), Server, ServerOrigin(..), ServerUiStatus(..))
 import Types.ServerResourceUsage
@@ -2635,8 +2635,8 @@ popoverMsgMapper popoverId =
     SharedMsg <| SharedMsg.TogglePopover popoverId
 
 
-view : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Element.Element Msg
-view context project currentTimeAndZone model =
+view : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Ipv6Reachability -> Model -> Element.Element Msg
+view context project currentTimeAndZone ipv6Reachability model =
     let
         renderHasServers servers =
             let
@@ -2645,7 +2645,7 @@ view context project currentTimeAndZone model =
             in
             case maybeServer of
                 Just server ->
-                    serverDetail_ context project currentTimeAndZone model server
+                    serverDetail_ context project currentTimeAndZone ipv6Reachability model server
 
                 Nothing ->
                     Element.text <|
@@ -2661,8 +2661,8 @@ view context project currentTimeAndZone model =
         renderHasServers
 
 
-serverDetail_ : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Server -> Element.Element Msg
-serverDetail_ context project ( currentTime, timeZone ) model server =
+serverDetail_ : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Ipv6Reachability -> Model -> Server -> Element.Element Msg
+serverDetail_ context project ( currentTime, timeZone ) ipv6Reachability model server =
     {- Render details of a server type and associated resources (e.g. volumes) -}
     let
         details =
@@ -2859,6 +2859,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     server
                     currentTime
                     (GetterSetters.getUserAppProxyFromContext project context)
+                    ipv6Reachability
                 ]
             , VH.tile
                 context
@@ -3057,23 +3058,10 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                         -- because an empty rule list will imply no incoming/outgoing connections are allowed.
                         |> Maybe.map (List.concatMap .rules)
 
-                ( guacamoleRequired, vncRequired ) =
-                    case server.exoProps.serverOrigin of
-                        ServerFromExo serverFromExo ->
-                            case serverFromExo.guacamoleStatus of
-                                LaunchedWithGuacamole props ->
-                                    ( True, props.vncSupported )
-
-                                _ ->
-                                    ( False, False )
-
-                        _ ->
-                            ( False, False )
-
                 { isConnectivityBroken, connectivityChecks } =
                     VH.isConnectivityBroken context
                         (maybeSecurityGroupRules |> Maybe.withDefault [])
-                        { guacamoleRequired = guacamoleRequired, vncRequired = vncRequired }
+                        (VH.guacamoleConnectivityRequirements server)
 
                 -- Don't show connectivity warnings when security group data may be unreliable or changing (esp. while building).
                 serverUiStatus =
@@ -3588,8 +3576,8 @@ serverStatus context project server =
         ]
 
 
-interactions : View.Types.Context -> Project -> Server -> Time.Posix -> Maybe UserAppProxyHostname -> Element.Element Msg
-interactions context project server currentTime tlsReverseProxyHostname =
+interactions : View.Types.Context -> Project -> Server -> Time.Posix -> Maybe UserAppProxyHostname -> Ipv6Reachability -> Element.Element Msg
+interactions context project server currentTime tlsReverseProxyHostname ipv6Reachability =
     let
         renderInteraction interaction =
             let
@@ -3601,6 +3589,7 @@ interactions context project server currentTime tlsReverseProxyHostname =
                         context
                         currentTime
                         tlsReverseProxyHostname
+                        ipv6Reachability
             in
             case interactionStatus of
                 ITypes.Hidden ->
@@ -3633,6 +3622,9 @@ interactions context project server currentTime tlsReverseProxyHostname =
                                     renderReason reason
 
                                 ITypes.Warn _ reason ->
+                                    renderReason reason
+
+                                ITypes.WarnWithFix reason _ ->
                                     renderReason reason
 
                                 _ ->
@@ -3787,6 +3779,20 @@ interactions context project server currentTime tlsReverseProxyHostname =
                             toggleTipId
                             contents
                             ST.PositionRightBottom
+                        , case interactionStatus of
+                            ITypes.WarnWithFix _ fix ->
+                                Element.link []
+                                    { url = fix.url
+                                    , label =
+                                        Widget.textButton
+                                            (SH.materialStyle context.palette).button
+                                            { text = fix.label
+                                            , onPress = Just NoOp
+                                            }
+                                    }
+
+                            _ ->
+                                Element.none
                         ]
     in
     [ ITypes.GuacTerminal

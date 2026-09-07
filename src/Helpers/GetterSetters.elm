@@ -861,17 +861,14 @@ serverPresentNotDeleting model serverUuid =
     List.member serverUuid notDeletingServerUuids
 
 
+getCloudSpecificConfigFromContext : Project -> View.Types.Context -> Maybe HelperTypes.CloudSpecificConfig
+getCloudSpecificConfigFromContext project context =
+    Dict.get (UrlHelpers.hostnameFromUrl project.endpoints.keystone) context.cloudSpecificConfigs
+
+
 getUserAppProxyFromContext : Project -> View.Types.Context -> Maybe HelperTypes.UserAppProxyHostname
 getUserAppProxyFromContext project context =
-    let
-        projectKeystoneHostname =
-            UrlHelpers.hostnameFromUrl project.endpoints.keystone
-
-        getCloudSpecificConfig : Maybe HelperTypes.CloudSpecificConfig
-        getCloudSpecificConfig =
-            Dict.get projectKeystoneHostname context.cloudSpecificConfigs
-    in
-    getCloudSpecificConfig
+    getCloudSpecificConfigFromContext project context
         |> Maybe.andThen (getUserAppProxyFromCloudSpecificConfig project)
 
 

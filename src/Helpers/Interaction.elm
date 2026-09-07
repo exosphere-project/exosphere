@@ -1,9 +1,11 @@
-module Helpers.Interaction exposing (getLaunchedWithGaucamoleProps, interactionDetails, interactionStatus, interactionStatusWordColor)
+module Helpers.Interaction exposing (getLaunchedWithGaucamoleProps, interactionDetails, interactionStatus, interactionStatusWordColor, ipv6NeedsFloatingIp)
 
 import Element
 import FeatherIcons as Icons
 import Helpers.Cidr as Cidr
+import Helpers.ExoSetupStatus
 import Helpers.GetterSetters as GetterSetters
+import Helpers.GuacamoleEndpoint as GuacamoleEndpoint
 import Helpers.Helpers as Helpers
 import Helpers.Image
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -18,6 +20,7 @@ import Time
 import Types.Guacamole as GuacTypes exposing (LaunchedWithGuacProps, ServerGuacamoleStatus(..))
 import Types.HelperTypes exposing (UserAppProxyHostname)
 import Types.Interaction as ITypes
+import Types.Ipv6Reachability exposing (Ipv6Reachability(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (Server, ServerFromExoProps, ServerOrigin(..))
 import Types.Workflow exposing (ServerCustomWorkflowStatus(..))
@@ -26,14 +29,26 @@ import Url.Builder
 import View.Types
 
 
-interactionStatus : Project -> Server -> ITypes.Interaction -> View.Types.Context -> Time.Posix -> Maybe UserAppProxyHostname -> ITypes.InteractionStatus
-interactionStatus project server interaction context currentTime tlsReverseProxyHostname =
+interactionStatus : Project -> Server -> ITypes.Interaction -> View.Types.Context -> Time.Posix -> Maybe UserAppProxyHostname -> Ipv6Reachability -> ITypes.InteractionStatus
+interactionStatus project server interaction context currentTime tlsReverseProxyHostname ipv6Reachability =
     let
         maybeFloatingIpAddress : Maybe OSTypes.IpAddressValue
         maybeFloatingIpAddress =
             GetterSetters.getServerFloatingIps project server.osProps.uuid
                 |> List.map .address
                 |> List.head
+
+        guacInstance : GuacamoleEndpoint.Instance
+        guacInstance =
+            { tlsSupported =
+                getLaunchedWithGaucamoleProps server
+                    |> Maybe.map .tlsSupported
+                    |> Maybe.withDefault False
+            , userAppProxyHostname = tlsReverseProxyHostname
+            , floatingIpAddress = maybeFloatingIpAddress
+            , fixedIpAddresses = GetterSetters.getServerFixedIps project server.osProps.uuid
+            , ipv6Reachability = ipv6Reachability
+            }
 
         guac : GuacType -> ITypes.InteractionStatus
         guac guacType =
@@ -53,8 +68,7 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                         server
                         context
                         currentTime
-                        tlsReverseProxyHostname
-                        maybeFloatingIpAddress
+                        guacInstance
                         exoOriginProps
                         guacType
 
@@ -194,6 +208,9 @@ interactionStatusWordColor palette status =
             ( "Ready", SH.toElementColor palette.success.default )
 
         ITypes.Warn _ _ ->
+            ( "Warning", SH.toElementColor palette.warning.default )
+
+        ITypes.WarnWithFix _ _ ->
             ( "Warning", SH.toElementColor palette.warning.default )
 
         ITypes.Error _ ->
@@ -405,17 +422,107 @@ customWorkflowfInteractionStatus project server context currentTime tlsReversePr
                                                     )
 
 
+{-| Why Guacamole cannot be reached, given that resolving an endpoint came up empty.
+
+In direct mode the instance needs a public address of its own, and the address it needs depends on
+whether the project has IPv6, so name both. Otherwise this says what it has always said.
+
+-}
+guacEndpointUnavailableMessage : View.Types.Context -> GuacamoleEndpoint.Instance -> String
+guacEndpointUnavailableMessage context guacInstance =
+    let
+        noPublicAddress extraAddressPhrases =
+            String.join " " <|
+                [ context.localization.virtualComputer
+                    |> Helpers.String.toTitleCase
+                , "does not have"
+                , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
+                , context.localization.floatingIpAddress
+                ]
+                    ++ extraAddressPhrases
+    in
+    if GuacamoleEndpoint.directModeApplies guacInstance then
+        noPublicAddress [ "or a public IPv6 address" ]
+
+    else
+        case guacInstance.userAppProxyHostname of
+            Nothing ->
+                "Cannot find TLS-terminating reverse proxy server"
+
+            Just _ ->
+                noPublicAddress []
+
+
+{-| Whether this instance is only reachable over IPv6, this browser has been found not to have
+IPv6, and a floating IP address would fix it.
+
+The instance's own setup has to be finished first. Guacamole is not being served before that, so
+failures until then are an instance that is not ready yet, not a browser without IPv6.
+
+An instance that already holds a token is answering, whatever the session learned elsewhere, so it
+gets no offer to spend a floating IP address.
+
+-}
+ipv6NeedsFloatingIp : GuacamoleEndpoint.Instance -> ServerFromExoProps -> LaunchedWithGuacProps -> Bool
+ipv6NeedsFloatingIp guacInstance exoOriginProps guacProps =
+    let
+        hasToken =
+            case guacProps.authToken.data of
+                RDPP.DoHave _ _ ->
+                    True
+
+                RDPP.DontHave ->
+                    False
+    in
+    GuacamoleEndpoint.directModeApplies guacInstance
+        && (guacInstance.ipv6Reachability == Unreachable)
+        && (guacInstance.floatingIpAddress == Nothing)
+        && (GuacamoleEndpoint.ipv6Address guacInstance /= Nothing)
+        && Helpers.ExoSetupStatus.exoSetupIsComplete exoOriginProps
+        && not hasToken
+
+
+{-| What to tell a user whose browser cannot reach an instance that only has an IPv6 address.
+-}
+ipv6NeedsFloatingIpMessage : View.Types.Context -> String
+ipv6NeedsFloatingIpMessage context =
+    String.join " "
+        [ "Your network can't reach this"
+        , context.localization.virtualComputer
+        , "over IPv6. Assign"
+        , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
+        , context.localization.floatingIpAddress
+        , "to connect over IPv4."
+        ]
+
+
+{-| A way out of that: Exosphere's own assignment flow, already pointed at this instance.
+-}
+assignFloatingIpFix : View.Types.Context -> Project -> Server -> ITypes.InteractionFix
+assignFloatingIpFix context project server =
+    { label =
+        String.join " "
+            [ "Assign"
+            , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
+            , context.localization.floatingIpAddress
+            ]
+    , url =
+        Route.toUrl context.urlPathPrefix <|
+            Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                Route.FloatingIpAssign Nothing (Just server.osProps.uuid)
+    }
+
+
 serverFromExoGuacStatus :
     Project
     -> Server
     -> View.Types.Context
     -> Time.Posix
-    -> Maybe UserAppProxyHostname
-    -> Maybe OSTypes.IpAddressValue
+    -> GuacamoleEndpoint.Instance
     -> ServerFromExoProps
     -> GuacType
     -> ITypes.InteractionStatus
-serverFromExoGuacStatus project server context currentTime tlsReverseProxyHostname maybeFloatingIpAddress exoOriginProps guacType =
+serverFromExoGuacStatus project server context currentTime guacInstance exoOriginProps guacType =
     case exoOriginProps.guacamoleStatus of
         GuacTypes.NotLaunchedWithGuacamole ->
             if exoOriginProps.exoServerVersion < 3 then
@@ -449,12 +556,9 @@ serverFromExoGuacStatus project server context currentTime tlsReverseProxyHostna
             else
                 case guacProps.authToken.data of
                     RDPP.DoHave token _ ->
-                        case ( tlsReverseProxyHostname, maybeFloatingIpAddress ) of
-                            ( Just proxyHostname, Just floatingIp ) ->
+                        case GuacamoleEndpoint.resolve guacInstance of
+                            Just guacEndpoint ->
                                 let
-                                    guacUpstreamPort =
-                                        49528
-
                                     connectionStringBase64 =
                                         -- Per https://sourceforge.net/p/guacamole/discussion/1110834/thread/fb609070/
                                         case guacType of
@@ -467,29 +571,22 @@ serverFromExoGuacStatus project server context currentTime tlsReverseProxyHostna
                                                 "ZGVza3RvcABjAGRlZmF1bHQ="
                                 in
                                 ITypes.Ready <|
-                                    UrlHelpers.buildProxyUrl
-                                        proxyHostname
-                                        floatingIp
-                                        guacUpstreamPort
-                                        Url.Http
+                                    GuacamoleEndpoint.buildUrl
+                                        guacEndpoint
                                         [ "guacamole", "#", "client", connectionStringBase64 ]
                                         [ Url.Builder.string "token" token ]
 
-                            ( Nothing, _ ) ->
-                                ITypes.Unavailable "Cannot find TLS-terminating reverse proxy server"
-
-                            ( _, Nothing ) ->
+                            Nothing ->
                                 ITypes.Unavailable <|
-                                    String.join " "
-                                        [ context.localization.virtualComputer
-                                            |> Helpers.String.toTitleCase
-                                        , "does not have"
-                                        , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
-                                        , context.localization.floatingIpAddress
-                                        ]
+                                    guacEndpointUnavailableMessage context guacInstance
 
                     RDPP.DontHave ->
-                        if hasRecentServerEvent project server currentTime then
+                        if ipv6NeedsFloatingIp guacInstance exoOriginProps guacProps then
+                            ITypes.WarnWithFix
+                                (ipv6NeedsFloatingIpMessage context)
+                                (assignFloatingIpFix context project server)
+
+                        else if hasRecentServerEvent project server currentTime then
                             ITypes.Unavailable <|
                                 String.join " "
                                     [ context.localization.virtualComputer
@@ -499,25 +596,15 @@ serverFromExoGuacStatus project server context currentTime tlsReverseProxyHostna
 
                         else
                             case
-                                ( tlsReverseProxyHostname
-                                , maybeFloatingIpAddress
+                                ( GuacamoleEndpoint.resolve guacInstance
                                 , GetterSetters.getServerExouserPassphrase server.osProps.details
                                 )
                             of
-                                ( Nothing, _, _ ) ->
-                                    ITypes.Error "Cannot find TLS-terminating reverse proxy server"
-
-                                ( _, Nothing, _ ) ->
+                                ( Nothing, _ ) ->
                                     ITypes.Error <|
-                                        String.join " "
-                                            [ context.localization.virtualComputer
-                                                |> Helpers.String.toTitleCase
-                                            , "does not have"
-                                            , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
-                                            , context.localization.floatingIpAddress
-                                            ]
+                                        guacEndpointUnavailableMessage context guacInstance
 
-                                ( _, _, Nothing ) ->
+                                ( _, Nothing ) ->
                                     ITypes.Error <|
                                         String.join " "
                                             [ "Cannot find"
@@ -525,7 +612,7 @@ serverFromExoGuacStatus project server context currentTime tlsReverseProxyHostna
                                             , "passphrase to authenticate"
                                             ]
 
-                                ( Just _, Just _, Just _ ) ->
+                                ( Just _, Just _ ) ->
                                     case guacProps.authToken.refreshStatus of
                                         RDPP.Loading ->
                                             ITypes.Loading

@@ -2,15 +2,30 @@ module Helpers.ExoSetupStatus exposing
     ( decodeExoSetupJson
     , encodeMetadataItem
     , exoSetupDecoder
+    , exoSetupIsComplete
     , exoSetupStatusToStr
     , parseConsoleLogExoSetupStatus
     )
 
+import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Time exposing (hoursToMillis, minutesToMillis)
 import Json.Decode
 import Json.Encode
 import Time
-import Types.Server exposing (ExoSetupStatus(..))
+import Types.Server exposing (ExoSetupStatus(..), ServerFromExoProps)
+
+
+{-| Whether an instance has finished setting itself up, and so should be serving what Exosphere
+deployed onto it.
+-}
+exoSetupIsComplete : ServerFromExoProps -> Bool
+exoSetupIsComplete { exoSetupStatus } =
+    case exoSetupStatus.data of
+        RDPP.DoHave ( ExoSetupComplete, _ ) _ ->
+            True
+
+        _ ->
+            False
 
 
 parseConsoleLogExoSetupStatus : ( ExoSetupStatus, Maybe Time.Posix ) -> String -> Time.Posix -> Time.Posix -> ( ExoSetupStatus, Maybe Time.Posix )

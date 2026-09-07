@@ -1,0 +1,55 @@
+---
+
+- name: 'operating system specific tasks imported'
+  include_tasks: "{{ item }}"
+  with_first_found:
+    - files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/tasks"
+
+# Which addresses this instance answers on is not settled when this play runs, and does not
+# stay settled either: Exosphere attaches a floating IP after Nova reports the server active,
+# and a user can attach or detach one at any time afterwards. So the Caddyfile is written by a
+# script that reruns every minute rather than templated once from here, and an instance with
+# no address yet is not an error.
+- name: 'Caddyfile script installed'
+  template:
+    src: 'exosphere-caddy-addresses.j2'
+    dest: '/usr/local/sbin/exosphere-caddy-addresses'
+    owner: 'root'
+    group: 'root'
+    mode: '0755'
+
+- name: 'Caddyfile script service and timer installed'
+  copy:
+    src: '{{ item }}'
+    dest: '/etc/systemd/system/{{ item }}'
+    owner: 'root'
+    group: 'root'
+    mode: '0644'
+  loop:
+    - 'exosphere-caddy-addresses.service'
+    - 'exosphere-caddy-addresses.timer'
+
+# On Debian the package has already started Caddy with its default Caddyfile, so replace it and
+# reload now rather than leave that serving until the timer's first run.
+- name: 'Caddyfile written for the addresses this instance has now'
+  command: '/usr/local/sbin/exosphere-caddy-addresses'
+  changed_when: true
+
+- name: 'Caddy service enabled and started'
+  systemd:
+    name: 'caddy'
+    enabled: true
+    state: 'started'
+
+- name: 'Caddyfile script timer enabled and started'
+  systemd:
+    name: 'exosphere-caddy-addresses.timer'
+    enabled: true
+    state: 'started'
+    daemon_reload: true

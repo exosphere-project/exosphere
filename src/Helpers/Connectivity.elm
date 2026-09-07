@@ -1,5 +1,6 @@
-module Helpers.Connectivity exposing (ConnectionEtherType(..), ConnectionPorts(..), ConnectionRemote(..), ConnectivityRule, incomingGuacamoleRule, incomingSshRule, incomingVncRule, isConnectionPermitted, outgoingDnsTcpRule, outgoingDnsUdpRule, outgoingHttpRule, outgoingHttpsRule, securityGroupRuleTemplateToConnectivtyRule)
+module Helpers.Connectivity exposing (ConnectionEtherType(..), ConnectionPorts(..), ConnectionRemote(..), ConnectivityRule, GuacamoleAccess(..), incomingGuacamoleRule, incomingSshRule, incomingVncRule, isConnectionPermitted, outgoingDnsTcpRule, outgoingDnsUdpRule, outgoingHttpRule, outgoingHttpsRule, securityGroupRuleTemplateToConnectivtyRule)
 
+import Helpers.GuacamoleEndpoint as GuacamoleEndpoint
 import Helpers.String exposing (removeEmptiness)
 import OpenStack.SecurityGroupRule exposing (Remote(..), SecurityGroupRule, SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype, SecurityGroupRuleProtocol(..), SecurityGroupRuleTemplate, getRemote, portRangeSubsumedBy, protocolSubsumedBy, remoteMatch)
 import View.Types exposing (Context)
@@ -193,21 +194,46 @@ incomingSshRule context =
     }
 
 
-incomingGuacamoleRule : Context -> ConnectivityRule
-incomingGuacamoleRule context =
-    { ethertype = SomeEtherType
-    , direction = Ingress
-    , protocol = Just ProtocolTcp
-    , ports = PortRange 49528 49528
-    , remote = SomeRemote
-    , description =
-        Just <|
-            "Remote "
-                ++ context.localization.commandDrivenTextInterface
-                ++ " and "
-                ++ context.localization.graphicalDesktopEnvironment
-                ++ " (Guacamole)"
-    }
+{-| How the browser reaches Guacamole on an instance, which decides the port that has to be open.
+
+Through the cloud's user application proxy it is Guacamole's own port. Directly it is HTTPS, which
+the instance serves itself and forwards to Guacamole over its loopback interface.
+
+-}
+type GuacamoleAccess
+    = GuacamoleThroughUserAppProxy
+    | GuacamoleDirect
+
+
+incomingGuacamoleRule : Context -> GuacamoleAccess -> ConnectivityRule
+incomingGuacamoleRule context guacamoleAccess =
+    let
+        describe suffix =
+            Just <|
+                "Remote "
+                    ++ context.localization.commandDrivenTextInterface
+                    ++ " and "
+                    ++ context.localization.graphicalDesktopEnvironment
+                    ++ suffix
+    in
+    case guacamoleAccess of
+        GuacamoleThroughUserAppProxy ->
+            { ethertype = SomeEtherType
+            , direction = Ingress
+            , protocol = Just ProtocolTcp
+            , ports = PortRange GuacamoleEndpoint.guacUpstreamPort GuacamoleEndpoint.guacUpstreamPort
+            , remote = SomeRemote
+            , description = describe " (Guacamole)"
+            }
+
+        GuacamoleDirect ->
+            { ethertype = SomeEtherType
+            , direction = Ingress
+            , protocol = Just ProtocolTcp
+            , ports = PortRange 443 443
+            , remote = SomeRemote
+            , description = describe " (Guacamole over HTTPS)"
+            }
 
 
 incomingVncRule : Context -> ConnectivityRule

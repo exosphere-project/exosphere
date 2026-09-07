@@ -1,6 +1,7 @@
 module Types.Interaction exposing
     ( Interaction(..)
     , InteractionDetails
+    , InteractionFix
     , InteractionStatus(..)
     , InteractionStatusReason
     , InteractionType(..)
@@ -23,12 +24,22 @@ type InteractionStatus
     | Loading
     | Ready String
     | Warn String InteractionStatusReason
+    | WarnWithFix InteractionStatusReason InteractionFix
     | Error InteractionStatusReason
     | Hidden
 
 
 type alias InteractionStatusReason =
     String
+
+
+{-| Something the user can do to make a warned interaction work: what the button says, and where in
+Exosphere it takes them.
+-}
+type alias InteractionFix =
+    { label : String
+    , url : String
+    }
 
 
 type InteractionType

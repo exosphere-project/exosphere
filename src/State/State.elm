@@ -7,6 +7,7 @@ import Dict
 import File.Download
 import Helpers.ExoSetupStatus
 import Helpers.GetterSetters as GetterSetters
+import Helpers.GuacamoleEndpoint as GuacamoleEndpoint
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ServerActionRequestQueue exposing (marshalServerActionRequestQueue)
@@ -72,6 +73,7 @@ import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Banner exposing (receiveBanners, requestBanners)
 import Rest.Designate
 import Rest.Glance
+import Rest.Guacamole
 import Rest.Keystone
 import Rest.Neutron
 import Rest.Nova
@@ -91,6 +93,7 @@ import Types.ExtensionBatch as ExtensionBatch
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes exposing (UnscopedProviderProject)
 import Types.Interactivity as Interactivity exposing (InteractionLevel(..))
+import Types.Ipv6Reachability as Ipv6Reachability
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Endpoints, Project, ProjectSecret(..))
@@ -1704,6 +1707,7 @@ processProjectSpecificMsg outerModel project msg =
                             sharedModel.instanceConfigMgtRepoUrl
                             sharedModel.instanceConfigMgtRepoCheckout
                             pageModel.injectOpenStackCredentials
+                            (Url.toString viewContext.baseUrl)
                     , metadata =
                         Helpers.newServerMetadata
                             currentExoServerVersion
@@ -4630,7 +4634,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 )
                 outerModel
 
-        ReceiveGuacamoleAuthToken result ->
+        ReceiveGuacamoleAuthToken attempt result ->
             let
                 errorContext =
                     ErrorContext
@@ -4663,13 +4667,91 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     case exoOriginProps.guacamoleStatus of
                         GuacTypes.LaunchedWithGuacamole oldGuacProps ->
                             let
-                                newGuacProps =
+                                maybeFloatingIpAddress =
+                                    GetterSetters.getServerFloatingIps project server.osProps.uuid
+                                        |> List.map .address
+                                        |> List.head
+
+                                -- A token that came back over IPv6 settles it for the session: this
+                                -- browser has IPv6, and nothing afterwards changes that. A later
+                                -- failure somewhere else is far more likely to be that one instance.
+                                --
+                                -- Short of that, a network error on an IPv6 address is read as a
+                                -- browser without IPv6, either because the floating IP address
+                                -- answered right afterwards or because the instance has finished its
+                                -- setup and has no other address to try. Elm reports a refused TLS
+                                -- handshake the same way it reports an address it cannot open, so
+                                -- this is a guess; the first token that arrives over IPv6 corrects it.
+                                newIpv6Reachability =
+                                    case sharedModel.ipv6Reachability of
+                                        Ipv6Reachability.Reachable ->
+                                            Ipv6Reachability.Reachable
+
+                                        _ ->
+                                            let
+                                                attemptedIpv6 =
+                                                    GuacamoleEndpoint.isIpv6Endpoint attempt.endpoint
+                                            in
+                                            case result of
+                                                Ok _ ->
+                                                    if attempt.retryAfterIpv6Failure then
+                                                        Ipv6Reachability.Unreachable
+
+                                                    else if attemptedIpv6 then
+                                                        Ipv6Reachability.Reachable
+
+                                                    else
+                                                        sharedModel.ipv6Reachability
+
+                                                Err httpError ->
+                                                    if
+                                                        attemptedIpv6
+                                                            && (httpError == Http.NetworkError)
+                                                            && (maybeFloatingIpAddress == Nothing)
+                                                            && Helpers.ExoSetupStatus.exoSetupIsComplete exoOriginProps
+                                                    then
+                                                        Ipv6Reachability.Unreachable
+
+                                                    else
+                                                        sharedModel.ipv6Reachability
+
+                                -- An instance with a floating IP address gets that tried immediately
+                                -- instead of waiting out another failure on the address the browser
+                                -- cannot reach.
+                                maybeRetry =
                                     case result of
-                                        Ok tokenValue ->
-                                            if
+                                        Ok _ ->
+                                            Nothing
+
+                                        Err httpError ->
+                                            Maybe.map2 Tuple.pair
+                                                (GuacamoleEndpoint.nextEndpointAfterError httpError attempt.endpoint maybeFloatingIpAddress)
+                                                (GetterSetters.getServerExouserPassphrase server.osProps.details)
+
+                                ( newGuacProps, cmd ) =
+                                    case ( result, maybeRetry ) of
+                                        ( Err _, Just ( retryEndpoint, passphrase ) ) ->
+                                            ( { oldGuacProps
+                                                | authToken = RDPP.setLoading oldGuacProps.authToken
+                                              }
+                                            , Rest.Guacamole.requestLoginToken
+                                                (GuacamoleEndpoint.buildUrl retryEndpoint [ "guacamole", "api", "tokens" ] [])
+                                                "exouser"
+                                                passphrase
+                                                (\retryResult ->
+                                                    ProjectMsg (GetterSetters.projectIdentifier project) <|
+                                                        ServerMsg server.osProps.uuid <|
+                                                            ReceiveGuacamoleAuthToken
+                                                                { endpoint = retryEndpoint, retryAfterIpv6Failure = True }
+                                                                retryResult
+                                                )
+                                            )
+
+                                        ( Ok tokenValue, _ ) ->
+                                            ( if
                                                 List.member server.osProps.details.openstackStatus
                                                     [ OSTypes.ServerActive, OSTypes.ServerVerifyResize ]
-                                            then
+                                              then
                                                 { oldGuacProps
                                                     | authToken =
                                                         RDPP.RemoteDataPlusPlus
@@ -4680,25 +4762,27 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                                             (RDPP.NotLoading Nothing)
                                                 }
 
-                                            else
+                                              else
                                                 -- Server is not active, this token won't work, so we don't store it
-                                                { oldGuacProps
-                                                    | authToken =
-                                                        RDPP.empty
-                                                }
+                                                { oldGuacProps | authToken = RDPP.empty }
+                                            , Cmd.none
+                                            )
 
-                                        Err e ->
-                                            { oldGuacProps
+                                        ( Err httpError, Nothing ) ->
+                                            ( { oldGuacProps
                                                 | authToken =
                                                     RDPP.RemoteDataPlusPlus
                                                         oldGuacProps.authToken.data
-                                                        (RDPP.NotLoading (Just ( e, sharedModel.clientCurrentTime )))
-                                            }
+                                                        (RDPP.NotLoading (Just ( httpError, sharedModel.clientCurrentTime )))
+                                              }
+                                            , Cmd.none
+                                            )
+
+                                newSharedModel =
+                                    sharedModelUpdateGuacProps exoOriginProps newGuacProps
                             in
-                            ( sharedModelUpdateGuacProps
-                                exoOriginProps
-                                newGuacProps
-                            , Cmd.none
+                            ( { newSharedModel | ipv6Reachability = newIpv6Reachability }
+                            , cmd
                             )
                                 |> mapToOuterMsg
                                 |> mapToOuterModel outerModel

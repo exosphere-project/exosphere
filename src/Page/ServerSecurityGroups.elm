@@ -32,10 +32,9 @@ import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Style.Widgets.Validation as Validation
 import Time
-import Types.Guacamole exposing (ServerGuacamoleStatus(..))
 import Types.Project exposing (Project)
 import Types.SecurityGroupActions as SecurityGroupActions
-import Types.Server exposing (Server, ServerOrigin(..))
+import Types.Server exposing (Server)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -617,23 +616,10 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
             , let
                 connectivityWarningView server =
                     let
-                        ( guacamoleRequired, vncRequired ) =
-                            case server.exoProps.serverOrigin of
-                                ServerFromExo serverFromExo ->
-                                    case serverFromExo.guacamoleStatus of
-                                        LaunchedWithGuacamole props ->
-                                            ( True, props.vncSupported )
-
-                                        _ ->
-                                            ( False, False )
-
-                                _ ->
-                                    ( False, False )
-
                         { isConnectivityBroken, connectivityChecks } =
                             VH.isConnectivityBroken context
                                 rules
-                                { guacamoleRequired = guacamoleRequired, vncRequired = vncRequired }
+                                (VH.guacamoleConnectivityRequirements server)
                     in
                     if isConnectivityBroken then
                         Alert.alert [ Element.width Element.fill ]
