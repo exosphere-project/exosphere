@@ -1,8 +1,10 @@
 module LocalStorage.LocalStorage exposing
-    ( endpointsDecoder
+    ( encodeServerExoActions
+    , endpointsDecoder
     , generateStoredState
     , hydrateModelFromStoredState
     , serverExoActionDecoder
+    , serverExoActionsDecoder
     , storedStateDecoder
     )
 
@@ -690,21 +692,49 @@ parseStyleMode styleModeStr =
 serverExoActionsDecoder : Decode.Decoder (Dict OSTypes.ServerUuid Server.ServerExoActions)
 serverExoActionsDecoder =
     Decode.oneOf
-        [ Decode.dict serverExoActionDecoder
+        [ Decode.dict (Decode.maybe serverExoActionDecoder)
+            |> Decode.map (Dict.toList >> List.filterMap resumableEntry >> Dict.fromList)
         , Decode.succeed Dict.empty
         ]
+
+
+resumableEntry : ( OSTypes.ServerUuid, Maybe Server.ServerExoActions ) -> Maybe ( OSTypes.ServerUuid, Server.ServerExoActions )
+resumableEntry ( serverId, maybeExoAction ) =
+    maybeExoAction
+        |> Maybe.andThen
+            (\exoAction ->
+                if Server.actionIsResumable exoAction then
+                    Just ( serverId, exoAction )
+
+                else
+                    Nothing
+            )
 
 
 serverExoActionDecoder : Decode.Decoder Server.ServerExoActions
 serverExoActionDecoder =
     Decode.map3 Server.ServerExoActions
-        (Decode.field "targetOpenstackStatus" (Decode.nullable <| Decode.list serverStatusDecoder))
-        (Decode.oneOf
-            [ Decode.field "quotaRefreshTargetOpenstackStatus" (Decode.nullable <| Decode.list serverStatusDecoder)
-            , Decode.succeed Nothing
-            ]
-        )
+        (storedServerStatuses "targetOpenstackStatus")
+        (storedServerStatuses "quotaRefreshTargetOpenstackStatus")
         (Decode.field "request" (RDPP.decoder (Decode.succeed ()) httpErrorWithBodyDecoder))
+        |> Decode.map
+            (\exoAction ->
+                case exoAction.request.refreshStatus of
+                    RDPP.NotLoading (Just _) ->
+                        -- Stored state can pair a failure with statuses the instance will not reach.
+                        Server.abandonActionTargets exoAction
+
+                    _ ->
+                        exoAction
+            )
+
+
+storedServerStatuses : String -> Decode.Decoder (Maybe (List OSTypes.ServerStatus))
+storedServerStatuses field =
+    Decode.oneOf
+        [ Decode.field field (Decode.nullable <| Decode.list serverStatusDecoder)
+        , Decode.succeed Nothing
+        ]
 
 
 serverStatusDecoder : Decode.Decoder OSTypes.ServerStatus
@@ -716,7 +746,9 @@ serverStatusDecoder =
 
 encodeServerExoActions : Dict OSTypes.ServerUuid Server.ServerExoActions -> Encode.Value
 encodeServerExoActions exoActions =
-    Encode.dict identity encodeServerExoAction exoActions
+    exoActions
+        |> Dict.filter (\_ exoAction -> Server.actionIsResumable exoAction)
+        |> Encode.dict identity encodeServerExoAction
 
 
 encodeServerExoAction : Server.ServerExoActions -> Encode.Value

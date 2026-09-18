@@ -1,13 +1,16 @@
-module Tests.Types.Server exposing (serverExoActionsSuite)
+module Tests.Types.Server exposing (serverActionLifecycleSuite, serverExoActionsSuite)
 
+import Dict
 import Expect
 import Helpers.RemoteDataPlusPlus as RDPP
+import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
 import LocalStorage.LocalStorage as LocalStorage
 import OpenStack.ServerActions as ServerActions
 import OpenStack.Types as OSTypes
 import Test exposing (Test, describe, test)
+import Time
 import Types.Server as Server
 
 
@@ -177,3 +180,260 @@ serverExoActionsSuite =
                 ++ actionWithoutGenericQuotaRefreshTargetTests
     in
     describe "server quota refresh actions" tests
+
+
+serverActionLifecycleSuite : Test
+serverActionLifecycleSuite =
+    let
+        acknowledgedAt =
+            Time.millisToPosix 1000
+
+        failedAt =
+            Time.millisToPosix 2000
+
+        httpError =
+            { error = Http.BadStatus 503, body = "service unavailable" }
+
+        pendingShelve =
+            { targetOpenstackStatus = Server.shelveTargetOpenstackStatus
+            , quotaRefreshTargetOpenstackStatus = Server.shelveQuotaRefreshTargetOpenstackStatus
+            , request = RDPP.setLoading RDPP.empty
+            }
+
+        acknowledgedShelve =
+            { pendingShelve
+                | request =
+                    RDPP.RemoteDataPlusPlus
+                        (RDPP.DoHave () acknowledgedAt)
+                        (RDPP.NotLoading Nothing)
+            }
+
+        -- Dispatching keeps any earlier response, so an in-flight request can carry one.
+        reDispatchedShelve =
+            { acknowledgedShelve | request = RDPP.setLoading acknowledgedShelve.request }
+
+        -- Locking has no status to wait for.
+        acknowledgedLock =
+            { targetOpenstackStatus = Nothing
+            , quotaRefreshTargetOpenstackStatus = Nothing
+            , request =
+                RDPP.RemoteDataPlusPlus
+                    (RDPP.DoHave () acknowledgedAt)
+                    (RDPP.NotLoading Nothing)
+            }
+
+        failedShelve =
+            Server.failAction httpError failedAt pendingShelve
+
+        failedAfterAnEarlierAction =
+            Server.failAction httpError failedAt reDispatchedShelve
+
+        -- Shelving reaches SHELVED first, leaving the quota refresh owed until SHELVED_OFFLOADED.
+        awaitingQuotaRefreshOnly =
+            Server.clearActionTargetIfTargetStatusReached acknowledgedShelve OSTypes.ServerShelved
+
+        legacyFailedShelve =
+            { pendingShelve
+                | request = RDPP.setNotLoading (Just ( httpError, failedAt )) RDPP.empty
+            }
+
+        -- Hand-written: the encoder emits only shapes the application still writes.
+        storedFailure requestedTargets =
+            Encode.object
+                (requestedTargets
+                    ++ [ ( "request"
+                         , Encode.object
+                            [ ( "haveness", Encode.bool False )
+                            , ( "loading", Encode.bool False )
+                            , ( "errored", Encode.bool True )
+                            , ( "error"
+                              , Encode.object
+                                    [ ( "error"
+                                      , Encode.object
+                                            [ ( "type", Encode.string "badStatus" )
+                                            , ( "status", Encode.int 503 )
+                                            ]
+                                      )
+                                    , ( "body", Encode.string "service unavailable" )
+                                    ]
+                              )
+                            , ( "errorReceivedTime", Encode.int 2000 )
+                            ]
+                         )
+                       ]
+                )
+
+        storedAcknowledged targetFields =
+            Encode.object
+                (targetFields
+                    ++ [ ( "request"
+                         , Encode.object
+                            [ ( "haveness", Encode.bool True )
+                            , ( "data", Encode.null )
+                            , ( "dataReceivedTime", Encode.int 1000 )
+                            , ( "loading", Encode.bool False )
+                            , ( "errored", Encode.bool False )
+                            ]
+                         )
+                       ]
+                )
+
+        storedFailureNamingUnknownStatus =
+            storedFailure
+                [ ( "targetOpenstackStatus", Encode.list Encode.string [ "Shelved", "NoSuchStatus" ] ) ]
+
+        storedFailureWithoutTargets =
+            storedFailure []
+
+        decodedFailure =
+            { targetOpenstackStatus = Nothing
+            , quotaRefreshTargetOpenstackStatus = Nothing
+            , request =
+                RDPP.setNotLoading
+                    (Just ( { error = Http.BadStatus 503, body = "service unavailable" }, Time.millisToPosix 2000 ))
+                    RDPP.empty
+            }
+
+        storedPendingShelve =
+            Encode.object
+                [ ( "targetOpenstackStatus"
+                  , Encode.list (Encode.string << OSTypes.serverStatusToString)
+                        [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
+                  )
+                , ( "quotaRefreshTargetOpenstackStatus", Encode.null )
+                , ( "request"
+                  , RDPP.encode (\() -> Encode.null) (\_ -> Encode.null) (RDPP.setLoading RDPP.empty)
+                  )
+                ]
+
+        storeAndRead exoAction =
+            LocalStorage.encodeServerExoActions (Dict.fromList [ ( "server-uuid", exoAction ) ])
+                |> Decode.decodeValue LocalStorage.serverExoActionsDecoder
+
+        tests =
+            [ test "a failed action gives up the statuses it was waiting for" <|
+                \_ ->
+                    ( failedShelve.targetOpenstackStatus, failedShelve.quotaRefreshTargetOpenstackStatus )
+                        |> Expect.equal ( Nothing, Nothing )
+            , test "a failed action keeps the error explaining why it did not happen" <|
+                \_ ->
+                    failedShelve.request.refreshStatus
+                        |> Expect.equal (RDPP.NotLoading (Just ( httpError, failedAt )))
+            , test "an action still in flight does not survive being stored" <|
+                \_ ->
+                    storeAndRead pendingShelve
+                        |> Expect.equal (Ok Dict.empty)
+            , test "an in-flight action does not survive on the strength of an earlier response" <|
+                \_ ->
+                    storeAndRead reDispatchedShelve
+                        |> Expect.equal (Ok Dict.empty)
+            , test "an action with no status left to wait for does not survive being stored" <|
+                \_ ->
+                    storeAndRead acknowledgedLock
+                        |> Expect.equal (Ok Dict.empty)
+            , test "a server with no action on record does not survive being stored" <|
+                \_ ->
+                    storeAndRead Server.initServerExoActions
+                        |> Expect.equal (Ok Dict.empty)
+            , test "an acknowledged action still waiting on a status survives being stored" <|
+                \_ ->
+                    storeAndRead acknowledgedShelve
+                        |> Expect.equal (Ok (Dict.fromList [ ( "server-uuid", acknowledgedShelve ) ]))
+            , test "an action still owed a quota refresh survives being stored" <|
+                \_ ->
+                    storeAndRead awaitingQuotaRefreshOnly
+                        |> Expect.equal (Ok (Dict.fromList [ ( "server-uuid", awaitingQuotaRefreshOnly ) ]))
+            , test "a failure survives being stored so it can still be reported" <|
+                \_ ->
+                    storeAndRead failedShelve
+                        |> Expect.equal (Ok (Dict.fromList [ ( "server-uuid", failedShelve ) ]))
+            , test "a failure survives when an earlier action had already been acknowledged" <|
+                \_ ->
+                    storeAndRead failedAfterAnEarlierAction
+                        |> Expect.equal (Ok (Dict.fromList [ ( "server-uuid", failedAfterAnEarlierAction ) ]))
+            , test "a failure stored with the statuses it was waiting for gives them up when read" <|
+                \_ ->
+                    storeAndRead legacyFailedShelve
+                        |> Expect.equal
+                            (Ok
+                                (Dict.fromList
+                                    [ ( "server-uuid"
+                                      , { legacyFailedShelve
+                                            | targetOpenstackStatus = Nothing
+                                            , quotaRefreshTargetOpenstackStatus = Nothing
+                                        }
+                                      )
+                                    ]
+                                )
+                            )
+            , test "an action left in flight by an earlier version of the application is dropped" <|
+                \_ ->
+                    Decode.decodeValue LocalStorage.serverExoActionsDecoder
+                        (Encode.object [ ( "server-uuid", storedPendingShelve ) ])
+                        |> Expect.equal (Ok Dict.empty)
+            , test "an action stored without any target statuses still decodes" <|
+                \_ ->
+                    Decode.decodeValue LocalStorage.serverExoActionsDecoder
+                        (Encode.object [ ( "server-uuid", storedFailureWithoutTargets ) ])
+                        |> Expect.equal (Ok (Dict.fromList [ ( "server-uuid", decodedFailure ) ]))
+            , test "a failure naming a status the application cannot read keeps the failure" <|
+                \_ ->
+                    Decode.decodeValue LocalStorage.serverExoActionsDecoder
+                        (Encode.object [ ( "server-uuid", storedFailureNamingUnknownStatus ) ])
+                        |> Expect.equal (Ok (Dict.fromList [ ( "server-uuid", decodedFailure ) ]))
+            , test "an action that cannot be read does not discard the others" <|
+                \_ ->
+                    Decode.decodeValue LocalStorage.serverExoActionsDecoder
+                        (Encode.object
+                            [ ( "unreadable", Encode.object [ ( "targetOpenstackStatus", Encode.null ) ] )
+                            , ( "server-uuid", storedFailureWithoutTargets )
+                            ]
+                        )
+                        |> Expect.equal (Ok (Dict.fromList [ ( "server-uuid", decodedFailure ) ]))
+            , test "an acknowledged action naming a status the application cannot read is dropped alone" <|
+                \_ ->
+                    Decode.decodeValue LocalStorage.serverExoActionsDecoder
+                        (Encode.object
+                            [ ( "unreadable-target"
+                              , storedAcknowledged
+                                    [ ( "targetOpenstackStatus"
+                                      , Encode.list Encode.string [ "Active", "NoSuchStatus" ]
+                                      )
+                                    ]
+                              )
+                            , ( "server-uuid", storedFailureWithoutTargets )
+                            ]
+                        )
+                        |> Expect.equal (Ok (Dict.fromList [ ( "server-uuid", decodedFailure ) ]))
+            , test "an acknowledged action keeps a readable target when its quota target cannot be read" <|
+                \_ ->
+                    Decode.decodeValue LocalStorage.serverExoActionsDecoder
+                        (Encode.object
+                            [ ( "server-uuid"
+                              , storedAcknowledged
+                                    [ ( "targetOpenstackStatus", Encode.list Encode.string [ "Active" ] )
+                                    , ( "quotaRefreshTargetOpenstackStatus"
+                                      , Encode.list Encode.string [ "NoSuchStatus" ]
+                                      )
+                                    ]
+                              )
+                            ]
+                        )
+                        |> Expect.equal
+                            (Ok
+                                (Dict.fromList
+                                    [ ( "server-uuid"
+                                      , { targetOpenstackStatus = Just [ OSTypes.ServerActive ]
+                                        , quotaRefreshTargetOpenstackStatus = Nothing
+                                        , request =
+                                            RDPP.RemoteDataPlusPlus
+                                                (RDPP.DoHave () (Time.millisToPosix 1000))
+                                                (RDPP.NotLoading Nothing)
+                                        }
+                                      )
+                                    ]
+                                )
+                            )
+            ]
+    in
+    describe "instance action lifecycle" tests

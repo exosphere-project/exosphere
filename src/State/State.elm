@@ -1967,7 +1967,9 @@ processProjectSpecificMsg outerModel project msg =
                                             | level = Error.ErrorDebug
                                             , actionContext =
                                                 errorContext.actionContext
-                                                    ++ " -- 404 means server may have been deleted"
+                                                    ++ " -- 404 means the "
+                                                    ++ sharedModel.viewContext.localization.virtualComputer
+                                                    ++ " may have been deleted"
                                         }
 
                                     -- Get the deletion flag before we remove the server.
@@ -4132,15 +4134,10 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
                 Err httpError ->
                     let
-                        -- Set the ServerExoAction error.
                         updatedProject =
                             GetterSetters.projectUpdateServerExoActions project
                                 server.osProps.uuid
-                                (\exoActions ->
-                                    { exoActions
-                                        | request = RDPP.setNotLoading (Just ( httpError, sharedModel.clientCurrentTime )) exoActions.request
-                                    }
-                                )
+                                (Server.failAction httpError sharedModel.clientCurrentTime)
 
                         updatedSharedModel =
                             GetterSetters.modelUpdateProject sharedModel updatedProject
@@ -4168,7 +4165,45 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
-        ReceiveDeleteServer ->
+        ReceiveDeleteServer errorContext (Err httpError) ->
+            let
+                ( updatedProject, deleteErrorContext ) =
+                    if httpError.error == Http.BadStatus 404 then
+                        -- The instance is already deleted.
+                        ( project
+                        , { errorContext
+                            | level = ErrorDebug
+                            , actionContext =
+                                errorContext.actionContext
+                                    ++ " -- 404 means the "
+                                    ++ sharedModel.viewContext.localization.virtualComputer
+                                    ++ " has already been deleted"
+                          }
+                        )
+
+                    else
+                        let
+                            oldExoProps =
+                                server.exoProps
+
+                            projectWithServer =
+                                GetterSetters.projectUpdateServer project
+                                    { server | exoProps = { oldExoProps | deletionAttempted = False } }
+                        in
+                        ( GetterSetters.projectUpdateServerExoActions projectWithServer
+                            server.osProps.uuid
+                            (Server.failAction httpError sharedModel.clientCurrentTime)
+                        , errorContext
+                        )
+            in
+            processProjectSynchronousApiError
+                (GetterSetters.modelUpdateProject sharedModel updatedProject)
+                deleteErrorContext
+                httpError
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        ReceiveDeleteServer _ (Ok ()) ->
             let
                 recordSets : List OpenStack.DnsRecordSet.DnsRecordSet
                 recordSets =

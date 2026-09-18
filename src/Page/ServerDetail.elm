@@ -461,80 +461,81 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 { targetOpenstackStatus, request } =
                     GetterSetters.getServerExoActions project server.osProps.uuid
             in
-            case ( targetOpenstackStatus, request ) of
-                ( Just _, { data, refreshStatus } ) ->
-                    case ( data, refreshStatus ) of
-                        ( _, Loading ) ->
-                            -- The server status is a transition so we don't indicate anything further.
-                            Element.none
-
-                        ( _, NotLoading (Just ( error, _ )) ) ->
-                            Alert.alert [ Element.width Element.fill ]
-                                context.palette
-                                { state = Alert.Danger
-                                , showIcon = False
-                                , showContainer = True
-                                , content =
-                                    Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
-                                        [ Text.p [ Element.width Element.fill ] [ Text.body <| Error.formattedError error ]
-                                        , Button.button Button.Danger
-                                            context.palette
-                                            { text = "Clear"
-                                            , onPress = Just GotResetServerAction
-                                            }
-                                        ]
-                                }
-
-                        ( DoHave _ receivedAt, _ ) ->
-                            -- If we've been waiting > 5 minutes, show a reset button.
-                            if Time.posixToMillis currentTime < (Time.posixToMillis receivedAt + 5 * 60 * 1000) then
-                                Element.none
-
-                            else
-                                Alert.alert [ Element.width Element.fill ]
+            case ( request.refreshStatus, request.data, targetOpenstackStatus ) of
+                ( NotLoading (Just ( error, erroredAt )), _, _ ) ->
+                    -- Date failures for later sessions.
+                    Alert.alert [ Element.width Element.fill ]
+                        context.palette
+                        { state = Alert.Danger
+                        , showIcon = False
+                        , showContainer = True
+                        , content =
+                            Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
+                                [ Text.p [ Element.width Element.fill ]
+                                    [ Text.body <|
+                                        "This action failed "
+                                            ++ DateFormat.Relative.relativeTime currentTime erroredAt
+                                            ++ ": "
+                                    , Text.body <| Error.formattedError error
+                                    ]
+                                , Button.button Button.Danger
                                     context.palette
-                                    { state = Alert.Warning
-                                    , showIcon = False
-                                    , showContainer = True
-                                    , content =
-                                        let
-                                            action =
-                                                VH.getServerUiStatus project server |> VH.getServerUiStatusStr
-
-                                            toggleTipId =
-                                                Helpers.String.hyphenate
-                                                    [ "resetToggleTip"
-                                                    , project.auth.project.uuid
-                                                    , server.osProps.uuid
-                                                    ]
-
-                                            relativeTime =
-                                                DateFormat.Relative.relativeTime currentTime receivedAt
-
-                                            resetToggleTip =
-                                                Style.Widgets.ToggleTip.toggleTip
-                                                    context
-                                                    popoverMsgMapper
-                                                    toggleTipId
-                                                    (Text.body <| "This operation was submitted " ++ relativeTime ++ " & may take some time to complete.\nIf it seems stuck, you can reset & try the action again.")
-                                                    ST.PositionLeft
-                                        in
-                                        Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
-                                            -- TODO: Some server actions are slower than others, we can probably estimate this better than using a fixed time.
-                                            [ Text.p [ Element.width Element.fill ] [ Text.body <| action ++ " is taking longer than expected." ]
-                                            , resetToggleTip
-                                            , Button.button Button.Warning
-                                                context.palette
-                                                { text = "Reset"
-                                                , onPress = Just GotResetServerAction
-                                                }
-                                            ]
+                                    { text = "Clear"
+                                    , onPress = Just GotResetServerAction
                                     }
+                                ]
+                        }
 
-                        _ ->
-                            Element.none
+                ( Loading, _, _ ) ->
+                    Element.none
 
-                ( Nothing, _ ) ->
+                ( NotLoading Nothing, DoHave _ receivedAt, Just _ ) ->
+                    -- If we've been waiting > 5 minutes, show a reset button.
+                    if Time.posixToMillis currentTime < (Time.posixToMillis receivedAt + 5 * 60 * 1000) then
+                        Element.none
+
+                    else
+                        Alert.alert [ Element.width Element.fill ]
+                            context.palette
+                            { state = Alert.Warning
+                            , showIcon = False
+                            , showContainer = True
+                            , content =
+                                let
+                                    action =
+                                        VH.getServerUiStatus project server |> VH.getServerUiStatusStr
+
+                                    toggleTipId =
+                                        Helpers.String.hyphenate
+                                            [ "resetToggleTip"
+                                            , project.auth.project.uuid
+                                            , server.osProps.uuid
+                                            ]
+
+                                    relativeTime =
+                                        DateFormat.Relative.relativeTime currentTime receivedAt
+
+                                    resetToggleTip =
+                                        Style.Widgets.ToggleTip.toggleTip
+                                            context
+                                            popoverMsgMapper
+                                            toggleTipId
+                                            (Text.body <| "This operation was submitted " ++ relativeTime ++ " & may take some time to complete.\nIf it seems stuck, you can reset & try the action again.")
+                                            ST.PositionLeft
+                                in
+                                Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
+                                    -- TODO: Some server actions are slower than others, we can probably estimate this better than using a fixed time.
+                                    [ Text.p [ Element.width Element.fill ] [ Text.body <| action ++ " is taking longer than expected." ]
+                                    , resetToggleTip
+                                    , Button.button Button.Warning
+                                        context.palette
+                                        { text = "Reset"
+                                        , onPress = Just GotResetServerAction
+                                        }
+                                    ]
+                            }
+
+                _ ->
                     Element.none
 
         connectivityWarningView =
