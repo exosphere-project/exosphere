@@ -34,6 +34,7 @@ module OpenStack.ObjectStorage exposing
     , hidePrefixPlaceholder
     , listingPageLimit
     , markerForNextPage
+    , newFolderError
     , nextListingMarker
     , nextUploadId
     , objectContainingPrefix
@@ -131,6 +132,28 @@ folderNameError name =
 folderPlaceholderObjectName : Maybe Prefix -> String -> ObjectName
 folderPlaceholderObjectName maybePrefix folderName =
     Maybe.withDefault "" maybePrefix ++ folderName ++ "/"
+
+
+{-| A new folder must pass the folder name rule and its placeholder object `<prefix><name>/` must fit
+the object name limit, so a deep prefix leaves less room for the name.
+-}
+newFolderError : Maybe Prefix -> String -> Maybe String
+newFolderError maybePrefix folderName =
+    case folderNameError folderName of
+        Just error ->
+            Just error
+
+        Nothing ->
+            case objectNameError (folderPlaceholderObjectName maybePrefix folderName) of
+                Just _ ->
+                    Just
+                        ("Folder name is too long for this location (the folder and everything before it must be at most "
+                            ++ String.fromInt objectNameMaxBytes
+                            ++ " bytes when UTF-8 encoded)."
+                        )
+
+                Nothing ->
+                    Nothing
 
 
 type alias ContainerName =

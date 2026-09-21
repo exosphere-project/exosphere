@@ -206,7 +206,7 @@ update msg project model =
         NewFolderSubmit ->
             case model.newFolder of
                 Just name ->
-                    if ObjectStorage.folderNameError name == Nothing then
+                    if ObjectStorage.newFolderError model.prefix name == Nothing then
                         ( { model | newFolder = Nothing }
                         , Cmd.none
                         , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
@@ -1378,7 +1378,7 @@ newFolderForm context model =
         Just name ->
             let
                 nameError =
-                    ObjectStorage.folderNameError name
+                    ObjectStorage.newFolderError model.prefix name
 
                 confirmMsg =
                     if nameError == Nothing then

@@ -17,6 +17,7 @@ module Tests.OpenStack.ObjectStorage exposing
     , grantEditorSuite
     , hidePrefixPlaceholderSuite
     , markerPaginationSuite
+    , newFolderErrorSuite
     , nextListingMarkerSuite
     , objectContainingPrefixSuite
     , objectListingDecoderSuite
@@ -1213,6 +1214,35 @@ folderNameErrorSuite =
         , test "86 three-byte CJK chars (258 bytes) is rejected, proves BYTES not String.length" <|
             \_ ->
                 Expect.notEqual Nothing (ObjectStorage.folderNameError (String.repeat 86 "中"))
+        ]
+
+
+newFolderErrorSuite : Test
+newFolderErrorSuite =
+    describe "newFolderError checks the folder name and the placeholder object name it produces"
+        [ test "a normal folder name inside a prefix is accepted" <|
+            \_ ->
+                Expect.equal Nothing (ObjectStorage.newFolderError (Just "a/b/") "reports")
+        , test "a 200-byte name under an 801-byte prefix still fits the 1024-byte object name limit" <|
+            \_ ->
+                Expect.equal Nothing
+                    (ObjectStorage.newFolderError
+                        (Just (String.repeat 800 "a" ++ "/"))
+                        (String.repeat 200 "b")
+                    )
+        , test "a 200-byte name under a 901-byte prefix is rejected, though the name alone is fine" <|
+            \_ ->
+                Expect.equal ( Nothing, True )
+                    ( ObjectStorage.folderNameError (String.repeat 200 "b")
+                    , ObjectStorage.newFolderError
+                        (Just (String.repeat 900 "a" ++ "/"))
+                        (String.repeat 200 "b")
+                        /= Nothing
+                    )
+        , test "the plain folder name error wins over the length of the placeholder name" <|
+            \_ ->
+                Expect.equal (ObjectStorage.folderNameError "a/b")
+                    (ObjectStorage.newFolderError (Just (String.repeat 1200 "a" ++ "/")) "a/b")
         ]
 
 
