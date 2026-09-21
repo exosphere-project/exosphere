@@ -1239,6 +1239,19 @@ newFolderErrorSuite =
                         (String.repeat 200 "b")
                         /= Nothing
                     )
+        , test "a placeholder name of exactly 1024 bytes is accepted, 1025 rejected, counting CJK as 3 bytes" <|
+            \_ ->
+                let
+                    prefix =
+                        Just (String.repeat 822 "a" ++ "/")
+
+                    name200Bytes =
+                        String.repeat 66 "中" ++ "bb"
+                in
+                Expect.equal ( Nothing, True )
+                    ( ObjectStorage.newFolderError prefix name200Bytes
+                    , ObjectStorage.newFolderError prefix (name200Bytes ++ "b") /= Nothing
+                    )
         , test "the plain folder name error wins over the length of the placeholder name" <|
             \_ ->
                 Expect.equal (ObjectStorage.folderNameError "a/b")
