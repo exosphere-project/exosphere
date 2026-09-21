@@ -545,7 +545,7 @@ deleteContainerDropdownItem context project model metadata =
                     SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                         SharedMsg.RequestDeleteContainer model.containerName recursive
         }
-        ST.PositionBottomLeft
+        ST.PositionBottomRight
         (\togglePopoverMsg _ ->
             Button.button Button.DangerSecondary
                 context.palette
@@ -1152,7 +1152,7 @@ makePublicPopconfirm context project model onConfirm =
         , onCancel = Just NoOp
         , onConfirm = Just onConfirm
         }
-        ST.PositionBottomLeft
+        ST.PositionBottomRight
         (\togglePopoverMsg _ ->
             Button.button Button.Secondary
                 context.palette
@@ -1192,7 +1192,7 @@ makePrivatePopconfirm context project model onConfirm =
         , onCancel = Just NoOp
         , onConfirm = Just onConfirm
         }
-        ST.PositionBottomLeft
+        ST.PositionBottomRight
         (\togglePopoverMsg _ ->
             Button.button Button.Secondary
                 context.palette
