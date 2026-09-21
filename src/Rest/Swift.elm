@@ -1,5 +1,6 @@
 module Rest.Swift exposing
-    ( cacheBuster
+    ( aclUpdateHeaders
+    , cacheBuster
     , containerPageLimit
     , postContainerMetadata
     , recursiveDeleteMaxCycles
@@ -563,8 +564,10 @@ Swift replies `204 No Content` with an empty body, so `expectVoidWithErrorBody` 
 success. The header set is derived from the `ContainerAclUpdate`:
 
   - `SetAcl v` → `X-Container-Read`/`-Write: v`.
-  - `RemoveAcl` → `X-Remove-Container-Read`/`-Write: true` (NEVER an empty-valued `X-Container-*`,
-    which an Exosphere-style CORS proxy strips).
+  - `RemoveAcl` → both an empty-valued `X-Container-Read`/`-Write` and `X-Remove-Container-Read`/
+    `-Write: true`. Ceph RADOS Gateway implements `X-Remove-Container-*` for metadata only and
+    clears an ACL on the empty-valued set header; native Swift clears on either header, so it still
+    revokes through an Exosphere-style CORS proxy that strips empty-valued headers.
   - `LeaveAcl` → no header for that field (Swift only changes headers you send), so an unrelated ACL
     is never clobbered.
 
@@ -609,7 +612,7 @@ aclChangeHeaders ( setName, removeName ) change =
             [ ( setName, value ) ]
 
         ObjectStorage.RemoveAcl ->
-            [ ( removeName, "true" ) ]
+            [ ( setName, "" ), ( removeName, "true" ) ]
 
         ObjectStorage.LeaveAcl ->
             []

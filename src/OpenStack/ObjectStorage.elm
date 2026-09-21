@@ -273,7 +273,8 @@ granteeToString grantee =
             token
 
 
-{-| An empty ACL serializes to `Nothing`, driving `X-Remove-Container-*` instead of an empty header.
+{-| An empty ACL serializes to `Nothing`, the revoke signal the request layer turns into the paired
+`X-Container-*` (empty) and `X-Remove-Container-*` headers.
 -}
 serializeAcl : Acl -> Maybe String
 serializeAcl acl =
@@ -363,7 +364,7 @@ aclToChange acl =
             RemoveAcl
 
 
-{-| Empty raw ACL text revokes via `X-Remove-Container-*`; non-empty text is passed through trimmed.
+{-| Empty raw ACL text revokes via `RemoveAcl`; non-empty text is passed through trimmed.
 -}
 rawAclChange : String -> AclChange
 rawAclChange raw =

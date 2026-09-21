@@ -171,7 +171,7 @@ containerUsageLabelSuite =
 read/write duplication. `Nothing` (untouched)
 falls back to the container's current metadata ACL; `Just s` is the user's edit and always wins, even
 `Just ""` (edited-to-empty), which must show blank, NOT the metadata fallback, because an empty field
-is what drives the `X-Remove-Container-*` revoke path.
+is what drives the revoke path.
 -}
 aclFieldValueSuite : Test
 aclFieldValueSuite =

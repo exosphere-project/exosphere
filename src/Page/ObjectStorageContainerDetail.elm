@@ -1161,8 +1161,8 @@ makePublicPopconfirm context project model onConfirm =
 
 
 {-| The make-private popconfirm warns that existing public links will stop working before it revokes
-public access. The copy stays at the user level; the `X-Remove-Container-Read` revoke remains under
-the hood.
+public access. The copy stays at the user level; the paired empty `X-Container-Read` plus
+`X-Remove-Container-Read` revoke remains under the hood.
 -}
 makePrivatePopconfirm : View.Types.Context -> Project -> Model -> Msg -> Element.Element Msg
 makePrivatePopconfirm context project model onConfirm =
@@ -1291,8 +1291,7 @@ enableListingsPopconfirm context project model onConfirm =
 {-| The displayed value of a raw advanced-ACL text field. `Nothing` (untouched) falls back to the
 container's current metadata ACL;
 `Just s` is the user's edit and always wins, including `Just ""` (edited-to-empty), which shows blank
-rather than the metadata fallback, because a cleared field is what drives the `X-Remove-Container-*`
-revoke path.
+rather than the metadata fallback, because a cleared field is what drives the revoke path.
 -}
 aclFieldValue : Maybe String -> Maybe String -> String
 aclFieldValue userEdit metadataValue =
@@ -1301,7 +1300,8 @@ aclFieldValue userEdit metadataValue =
 
 {-| The raw advanced-ACL escape hatch: plain text inputs for `X-Container-Read` and
 `X-Container-Write`. Each field defaults to the container's CURRENT ACL until edited. Applying posts
-each verbatim (trimmed only); a cleared field sends `X-Remove-Container-*`.
+each verbatim (trimmed only); a cleared field sends the empty `X-Container-*` plus
+`X-Remove-Container-*` revoke pair.
 
 PROVISIONAL: the exact ACL grammar Ceph RGW accepts is unverified (e.g. on a Jetstream2 cloud);
 verified on devstack Swift 2.37. These strings are passed through with NO validation beyond

@@ -747,9 +747,9 @@ aclNoClobberSuite =
         ]
 
 
-{-| Revoke-to-empty: an ACL with zero grantees serializes to `Nothing`, which the request layer
-turns into `X-Remove-Container-Read`, never an empty-valued `X-Container-Read` header (an
-Exosphere-style CORS proxy strips empty-valued headers).
+{-| Revoke-to-empty: an ACL with zero grantees serializes to `Nothing`, which the request layer turns
+into the paired empty `X-Container-Read` plus `X-Remove-Container-Read: true` headers (see
+`Tests.Rest.Swift.aclUpdateHeadersSuite`).
 -}
 aclRevokeSuite : Test
 aclRevokeSuite =
@@ -866,7 +866,7 @@ grantEditorSuite =
 
 
 {-| `rawAclChange` maps a raw advanced-ACL text field to an `AclChange`: a blank (after trimming)
-field is the revoke signal (`RemoveAcl` → `X-Remove-Container-*`); any other content is sent verbatim
+field is the revoke signal (`RemoveAcl`); any other content is sent verbatim
 after trimming (`SetAcl`). This is the semantics the advanced-ACL escape hatch relies on to send a
 `RemoveAcl` only when the user explicitly clears a field.
 -}
