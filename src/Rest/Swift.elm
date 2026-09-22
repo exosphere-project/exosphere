@@ -566,8 +566,8 @@ success. The header set is derived from the `ContainerAclUpdate`:
   - `SetAcl v` → `X-Container-Read`/`-Write: v`.
   - `RemoveAcl` → both an empty-valued `X-Container-Read`/`-Write` and `X-Remove-Container-Read`/
     `-Write: true`. Ceph RADOS Gateway implements `X-Remove-Container-*` for metadata only and
-    clears an ACL on the empty-valued set header; native Swift clears on either header, so it still
-    revokes through an Exosphere-style CORS proxy that strips empty-valued headers.
+    clears an ACL on the empty-valued set header; native Swift clears on either header, so a proxy
+    that drops empty-valued headers still revokes on Swift (RGW needs the empty header to arrive).
   - `LeaveAcl` → no header for that field (Swift only changes headers you send), so an unrelated ACL
     is never clobbered.
 

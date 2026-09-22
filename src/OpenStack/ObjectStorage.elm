@@ -147,9 +147,9 @@ newFolderError maybePrefix folderName =
             case objectNameError (folderPlaceholderObjectName maybePrefix folderName) of
                 Just _ ->
                     Just
-                        ("Folder name is too long for this location (the folder and everything before it must be at most "
+                        ("Folder name is too long for this location. The full path, including parent folders, can be at most "
                             ++ String.fromInt objectNameMaxBytes
-                            ++ " bytes when UTF-8 encoded)."
+                            ++ " bytes when UTF-8 encoded."
                         )
 
                 Nothing ->

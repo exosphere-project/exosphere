@@ -24,7 +24,7 @@ cacheBusterSuite =
 
 
 {-| `RemoveAcl` sends both revoke headers: Ceph RGW acts on the empty-valued `X-Container-*`, native
-Swift acts on either one, so a CORS proxy that strips empty-valued headers still revokes.
+Swift acts on either one, so a proxy that drops empty-valued headers still revokes on Swift.
 -}
 aclUpdateHeadersSuite : Test
 aclUpdateHeadersSuite =

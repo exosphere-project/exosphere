@@ -1217,6 +1217,11 @@ folderNameErrorSuite =
         ]
 
 
+isLocationError : Maybe String -> Bool
+isLocationError =
+    Maybe.map (String.startsWith "Folder name is too long for this location") >> Maybe.withDefault False
+
+
 newFolderErrorSuite : Test
 newFolderErrorSuite =
     describe "newFolderError checks the folder name and the placeholder object name it produces"
@@ -1237,7 +1242,7 @@ newFolderErrorSuite =
                     , ObjectStorage.newFolderError
                         (Just (String.repeat 900 "a" ++ "/"))
                         (String.repeat 200 "b")
-                        /= Nothing
+                        |> isLocationError
                     )
         , test "a placeholder name of exactly 1024 bytes is accepted, 1025 rejected, counting CJK as 3 bytes" <|
             \_ ->
@@ -1250,7 +1255,7 @@ newFolderErrorSuite =
                 in
                 Expect.equal ( Nothing, True )
                     ( ObjectStorage.newFolderError prefix name200Bytes
-                    , ObjectStorage.newFolderError prefix (name200Bytes ++ "b") /= Nothing
+                    , ObjectStorage.newFolderError prefix (name200Bytes ++ "b") |> isLocationError
                     )
         , test "the plain folder name error wins over the length of the placeholder name" <|
             \_ ->
