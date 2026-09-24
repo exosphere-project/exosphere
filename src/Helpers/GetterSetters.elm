@@ -39,7 +39,9 @@ module Helpers.GetterSetters exposing
     , isVolumeReservedForShelvedInstance
     , modelUpdateProject
     , modelUpdateUnscopedProvider
+    , objectStorageListingKey
     , projectAddSecurityGroupRule
+    , projectClearFinishedUploads
     , projectDefaultSecurityGroup
     , projectDeleteSecurityGroup
     , projectDeleteSecurityGroupActions
@@ -47,15 +49,24 @@ module Helpers.GetterSetters exposing
     , projectDeleteServer
     , projectDeleteServerExoAction
     , projectDeleteServerVolumeAction
+    , projectEnqueueUpload
     , projectIdentifier
     , projectLookup
+    , projectLookupObjectStorageContainerMetadata
+    , projectLookupObjectStorageListing
     , projectRemoveServerActionRequestJob
     , projectSetAutoAllocatedNetworkUuidLoading
     , projectSetDnsRecordSetsLoading
+    , projectSetEc2CredentialsLoading
     , projectSetFloatingIpsLoading
     , projectSetImagesLoading
     , projectSetJetstream2AllocationLoading
     , projectSetNetworksLoading
+    , projectSetObjectStorageContainerMetadata
+    , projectSetObjectStorageContainerMetadataLoading
+    , projectSetObjectStorageContainersLoading
+    , projectSetObjectStorageListing
+    , projectSetObjectStorageListingLoading
     , projectSetPortsLoading
     , projectSetSecurityGroupsLoading
     , projectSetServerEventsLoading
@@ -1135,9 +1146,107 @@ projectSetSharesLoading project =
     { project | shares = RDPP.setLoading project.shares }
 
 
-projectSetShareTypesLoading : Project -> Project
-projectSetShareTypesLoading project =
-    { project | shareTypes = RDPP.setLoading project.shareTypes }
+projectSetObjectStorageContainersLoading : Project -> Project
+projectSetObjectStorageContainersLoading project =
+    { project | objectStorageContainers = RDPP.setLoading project.objectStorageContainers }
+
+
+projectSetEc2CredentialsLoading : Project -> Project
+projectSetEc2CredentialsLoading project =
+    { project | ec2Credentials = RDPP.setLoading project.ec2Credentials }
+
+
+{-| Canonical cache key; root prefix is stored as `""`.
+-}
+objectStorageListingKey : ObjectStorage.ContainerName -> Maybe ObjectStorage.Prefix -> ( ObjectStorage.ContainerName, ObjectStorage.Prefix )
+objectStorageListingKey containerName maybePrefix =
+    ( containerName, Maybe.withDefault "" maybePrefix )
+
+
+{-| Missing cache entries behave like empty RDPP values.
+-}
+projectLookupObjectStorageListing : ObjectStorage.ContainerName -> Maybe ObjectStorage.Prefix -> Project -> RemoteDataPlusPlus HttpErrorWithBody ObjectStorage.ObjectListing
+projectLookupObjectStorageListing containerName maybePrefix project =
+    Dict.get (objectStorageListingKey containerName maybePrefix) project.objectStorageListings
+        |> Maybe.withDefault RDPP.empty
+
+
+projectSetObjectStorageListingLoading : ObjectStorage.ContainerName -> Maybe ObjectStorage.Prefix -> Project -> Project
+projectSetObjectStorageListingLoading containerName maybePrefix project =
+    { project
+        | objectStorageListings =
+            Dict.update (objectStorageListingKey containerName maybePrefix)
+                (\entry ->
+                    case entry of
+                        Just listing ->
+                            Just (RDPP.setLoading listing)
+
+                        Nothing ->
+                            Just (RDPP.setLoading RDPP.empty)
+                )
+                project.objectStorageListings
+    }
+
+
+projectSetObjectStorageListing : ObjectStorage.ContainerName -> Maybe ObjectStorage.Prefix -> RemoteDataPlusPlus HttpErrorWithBody ObjectStorage.ObjectListing -> Project -> Project
+projectSetObjectStorageListing containerName maybePrefix listing project =
+    { project
+        | objectStorageListings =
+            Dict.insert (objectStorageListingKey containerName maybePrefix) listing project.objectStorageListings
+    }
+
+
+{-| Missing metadata entries behave like empty RDPP values.
+-}
+projectLookupObjectStorageContainerMetadata : ObjectStorage.ContainerName -> Project -> RemoteDataPlusPlus HttpErrorWithBody ObjectStorage.ContainerMetadata
+projectLookupObjectStorageContainerMetadata containerName project =
+    Dict.get containerName project.objectStorageContainerMetadata
+        |> Maybe.withDefault RDPP.empty
+
+
+projectSetObjectStorageContainerMetadataLoading : ObjectStorage.ContainerName -> Project -> Project
+projectSetObjectStorageContainerMetadataLoading containerName project =
+    { project
+        | objectStorageContainerMetadata =
+            Dict.update containerName
+                (\entry ->
+                    case entry of
+                        Just metadata ->
+                            Just (RDPP.setLoading metadata)
+
+                        Nothing ->
+                            Just (RDPP.setLoading RDPP.empty)
+                )
+                project.objectStorageContainerMetadata
+    }
+
+
+projectSetObjectStorageContainerMetadata : ObjectStorage.ContainerName -> RemoteDataPlusPlus HttpErrorWithBody ObjectStorage.ContainerMetadata -> Project -> Project
+projectSetObjectStorageContainerMetadata containerName metadata project =
+    { project
+        | objectStorageContainerMetadata =
+            Dict.insert containerName metadata project.objectStorageContainerMetadata
+    }
+
+
+{-| Upload queue identity is `(container, prefix, objectName)`.
+-}
+sameUploadTarget : ObjectStorage.ContainerName -> Maybe ObjectStorage.Prefix -> ObjectStorage.ObjectName -> ObjectStorage.Upload -> Bool
+sameUploadTarget containerName maybePrefix objectName upload =
+    upload.containerName == containerName && upload.prefix == maybePrefix && upload.objectName == objectName
+
+
+{-| Re-enqueueing the same upload target replaces the prior queue entry.
+-}
+projectEnqueueUpload : ObjectStorage.Upload -> Project -> Project
+projectEnqueueUpload upload project =
+    { project
+        | objectStorageUploads =
+            upload
+                :: List.filter
+                    (not << sameUploadTarget upload.containerName upload.prefix upload.objectName)
+                    project.objectStorageUploads
+    }
 
 
 {-| Update the status of the queued upload whose unique `id` matches.
@@ -1148,6 +1257,18 @@ projectSetUploadStatusById id status project =
         | objectStorageUploads =
             ObjectStorage.setUploadStatusById id status project.objectStorageUploads
     }
+
+
+projectClearFinishedUploads : Project -> Project
+projectClearFinishedUploads project =
+    { project
+        | objectStorageUploads = ObjectStorage.clearFinishedUploads project.objectStorageUploads
+    }
+
+
+projectSetShareTypesLoading : Project -> Project
+projectSetShareTypesLoading project =
+    { project | shareTypes = RDPP.setLoading project.shareTypes }
 
 
 projectSetShareAccessRulesLoading : OSTypes.ShareUuid -> Project -> Project

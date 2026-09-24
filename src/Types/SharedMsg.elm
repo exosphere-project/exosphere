@@ -8,6 +8,7 @@ module Types.SharedMsg exposing
 import Browser
 import Browser.Events
 import Bytes exposing (Bytes)
+import File exposing (File)
 import Http
 import OpenStack.DnsRecordSet
 import OpenStack.ObjectStorage
@@ -133,8 +134,63 @@ type ProjectSpecificMsgConstructor
     | ReceiveShareExportLocations ( OSTypes.ShareUuid, List OSTypes.ExportLocation )
     | ReceiveShares (List OSTypes.Share)
     | ReceiveShareTypes (List OSTypes.ShareType)
+    | RequestCreateEc2Credential
+    | ReceiveEc2Credentials ErrorContext (Result HttpErrorWithBody (List OSTypes.Ec2Credential))
+    | ReceiveCreateEc2Credential ErrorContext (Result HttpErrorWithBody OSTypes.Ec2Credential)
+    | ReceiveContainers ErrorContext (Maybe String) (Result HttpErrorWithBody (List OpenStack.ObjectStorage.Container))
+    | RequestCreateContainer OpenStack.ObjectStorage.ContainerName
+      -- The Bool is `recursive`: when True the container's ordinary objects are deleted first.
+    | RequestDeleteContainer OpenStack.ObjectStorage.ContainerName Bool
+    | ReceiveCreateContainer ErrorContext (Result HttpErrorWithBody ())
+    | ReceiveDeleteContainer ErrorContext (Result HttpErrorWithBody ())
+      -- Recursive non-empty-container delete (Int = remaining re-list cycle budget; remaining
+      -- bulk-delete chunks are threaded through the messages so no loop state lives in the model).
+    | ReceiveContainerObjectNamesForDeletion ErrorContext OpenStack.ObjectStorage.ContainerName Int (Result HttpErrorWithBody (List OpenStack.ObjectStorage.ObjectName))
+    | ReceiveBulkDeleteContainerObjects ErrorContext OpenStack.ObjectStorage.ContainerName Int (List (List OpenStack.ObjectStorage.ObjectName)) (Result HttpErrorWithBody OpenStack.ObjectStorage.BulkDeleteResult)
+      -- Object listing (container detail). The Maybe Prefix is the pseudo-folder level; the Maybe
+      -- String is the marker the page was requested with (Nothing = first page, replaces the cache;
+      -- Just = a user-driven "load more" continuation that appends).
+    | RequestObjectListingPage OpenStack.ObjectStorage.ContainerName (Maybe OpenStack.ObjectStorage.Prefix) (Maybe String)
+    | ReceiveObjectListing ErrorContext OpenStack.ObjectStorage.ContainerName (Maybe OpenStack.ObjectStorage.Prefix) (Maybe String) (Result HttpErrorWithBody OpenStack.ObjectStorage.ObjectListing)
+    | RequestDeleteObject OpenStack.ObjectStorage.ContainerName (Maybe OpenStack.ObjectStorage.Prefix) OpenStack.ObjectStorage.ObjectName
+    | ReceiveDeleteObject ErrorContext OpenStack.ObjectStorage.ContainerName (Maybe OpenStack.ObjectStorage.Prefix) (Result HttpErrorWithBody ())
+    | RequestBulkDeleteObjects OpenStack.ObjectStorage.ContainerName (Maybe OpenStack.ObjectStorage.Prefix) (List OpenStack.ObjectStorage.ObjectName)
+    | ReceiveBulkDeleteObjects ErrorContext OpenStack.ObjectStorage.ContainerName (Maybe OpenStack.ObjectStorage.Prefix) (Result HttpErrorWithBody OpenStack.ObjectStorage.BulkDeleteResult)
+      -- Upload (container detail). RequestUploadObjects carries the user's picked File values; State
+      -- size-guards each (rejecting oversized files WITHOUT reading them), enqueues with a unique id,
+      -- then for accepted files runs File.toBytes -> ReceiveUploadObjectBytes (objectName = prefix ++
+      -- filename, contentType) -> Rest.Swift PUT -> ReceiveUploadObject. The Int is that unique upload
+      -- id, threaded through so a superseded (re-enqueued) upload's late completion is ignored rather
+      -- than clobbering the replacement (see OpenStack.ObjectStorage.setUploadStatusById). Status lives
+      -- on Project (transient); ClearFinishedUploads drops terminal entries from the queue.
+    | RequestUploadObjects OpenStack.ObjectStorage.ContainerName (Maybe OpenStack.ObjectStorage.Prefix) (List File)
+    | ReceiveUploadObjectBytes Int OpenStack.ObjectStorage.ContainerName (Maybe OpenStack.ObjectStorage.Prefix) OpenStack.ObjectStorage.ObjectName String Bytes
     | ReceiveUploadObject ErrorContext Int OpenStack.ObjectStorage.ContainerName (Maybe OpenStack.ObjectStorage.Prefix) (Result HttpErrorWithBody ())
+    | ClearFinishedUploads
+      -- Private download (container detail): GET the object bytes via the proxy (an anchor cannot
+      -- carry the token/proxy headers), then File.Download.bytes in State. The object name is FULL
+      -- (prefix already included), so no separate prefix is needed.
+    | RequestDownloadObject OpenStack.ObjectStorage.ContainerName OpenStack.ObjectStorage.ObjectName
     | ReceiveDownloadObject ErrorContext OpenStack.ObjectStorage.ObjectName (Result HttpErrorWithBody Bytes)
+      -- Server-side copy / move (container detail). RequestCopyObject PUTs the destination object with
+      -- an X-Copy-From header (source-container, source-prefix (the viewed level, for refresh),
+      -- source-object, dest-container, dest-object). The trailing Bool is `isMove`: on a 2xx copy,
+      -- ReceiveCopyObject then DELETEs the source (never fire-and-forget both) and refreshes the
+      -- affected listings.
+    | RequestCopyObject OpenStack.ObjectStorage.ContainerName (Maybe OpenStack.ObjectStorage.Prefix) OpenStack.ObjectStorage.ObjectName OpenStack.ObjectStorage.ContainerName OpenStack.ObjectStorage.ObjectName Bool
+    | ReceiveCopyObject ErrorContext OpenStack.ObjectStorage.ContainerName (Maybe OpenStack.ObjectStorage.Prefix) OpenStack.ObjectStorage.ObjectName OpenStack.ObjectStorage.ContainerName OpenStack.ObjectStorage.ObjectName Bool (Result HttpErrorWithBody ())
+      -- New pseudo-folder (container detail): PUT a zero-byte `application/directory` object named
+      -- `<prefix><name>/`. The Maybe Prefix is the current level (where the folder appears + is
+      -- refreshed). On success ReceiveCreateFolder re-lists that level so the new subdir row shows.
+    | RequestCreateFolder OpenStack.ObjectStorage.ContainerName (Maybe OpenStack.ObjectStorage.Prefix) OpenStack.ObjectStorage.ObjectName
+    | ReceiveCreateFolder ErrorContext OpenStack.ObjectStorage.ContainerName (Maybe OpenStack.ObjectStorage.Prefix) (Result HttpErrorWithBody ())
+      -- Manage access (container detail). ReceiveContainerMetadata populates the dormant
+      -- objectStorageContainerMetadata cache from a HEAD read; RequestSetContainerAcl POSTs a
+      -- no-clobber read/write ACL change; ReceiveSetContainerMetadata re-HEADs on success (refresh,
+      -- mirroring ReceiveDeleteObject) rather than optimistically writing the cache.
+    | ReceiveContainerMetadata ErrorContext OpenStack.ObjectStorage.ContainerName (Result HttpErrorWithBody OpenStack.ObjectStorage.ContainerMetadata)
+    | RequestSetContainerAcl OpenStack.ObjectStorage.ContainerName OpenStack.ObjectStorage.ContainerAclUpdate
+    | ReceiveSetContainerMetadata ErrorContext OpenStack.ObjectStorage.ContainerName (Result HttpErrorWithBody ())
     | ReceiveDeleteShare OSTypes.ShareUuid
     | ReceiveShareQuota ErrorContext (Result HttpErrorWithBody OSTypes.ShareQuota)
     | ReceiveCreateVolume

@@ -4,6 +4,7 @@ import Browser
 import Browser.Events
 import Browser.Navigation
 import Dict
+import File
 import File.Download
 import Helpers.ExoSetupStatus
 import Helpers.GetterSetters as GetterSetters
@@ -45,6 +46,9 @@ import Page.KeypairList
 import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
+import Page.ObjectStorageContainerCreate
+import Page.ObjectStorageContainerDetail
+import Page.ObjectStorageList
 import Page.ProjectOverview
 import Page.SecurityGroupDetail
 import Page.SecurityGroupForm
@@ -75,6 +79,7 @@ import Rest.Glance
 import Rest.Keystone
 import Rest.Neutron
 import Rest.Nova
+import Rest.Swift
 import Route
 import Set
 import State.Auth
@@ -613,6 +618,51 @@ updateUnderlying outerMsg outerModel =
                                         ShareList newSharedModel
                               }
                             , Cmd.map ShareListMsg cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( ObjectStorageListMsg pageMsg, ObjectStorageList pageModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.ObjectStorageList.update pageMsg project pageModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId <|
+                                        ObjectStorageList newSharedModel
+                              }
+                            , Cmd.map ObjectStorageListMsg cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( ObjectStorageContainerCreateMsg pageMsg, ObjectStorageContainerCreate pageModel ) ->
+                            let
+                                ( newPageModel, cmd, sharedMsg ) =
+                                    Page.ObjectStorageContainerCreate.update pageMsg project pageModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId <|
+                                        ObjectStorageContainerCreate newPageModel
+                              }
+                            , Cmd.map ObjectStorageContainerCreateMsg cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( ObjectStorageContainerDetailMsg pageMsg, ObjectStorageContainerDetail pageModel ) ->
+                            let
+                                ( newPageModel, cmd, sharedMsg ) =
+                                    Page.ObjectStorageContainerDetail.update pageMsg project pageModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId <|
+                                        ObjectStorageContainerDetail newPageModel
+                              }
+                            , Cmd.map ObjectStorageContainerDetailMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -3310,16 +3360,560 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
-        ReceiveUploadObject errorContext uploadId _ _ result ->
+        RequestCreateEc2Credential ->
+            ( outerModel, Rest.Keystone.requestCreateEc2Credential project )
+                |> mapToOuterMsg
+
+        ReceiveEc2Credentials errorContext result ->
+            -- OS-EC2 lists all user projects; cache only this project's tenant keys.
+            case result of
+                Ok creds ->
+                    let
+                        scopedCreds =
+                            creds
+                                |> List.filter (\cred -> cred.tenantId == project.auth.project.uuid)
+
+                        newProject =
+                            { project
+                                | ec2Credentials =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave scopedCreds sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newProject =
+                            { project
+                                | ec2Credentials =
+                                    RDPP.setNotLoading
+                                        (Just ( httpError, sharedModel.clientCurrentTime ))
+                                        project.ec2Credentials
+                            }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    processProjectSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveCreateEc2Credential errorContext result ->
+            case result of
+                Ok _ ->
+                    ApiModelHelpers.requestEc2Credentials (GetterSetters.projectIdentifier project) sharedModel
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newProject =
+                            { project
+                                | ec2Credentials =
+                                    RDPP.setNotLoading
+                                        (Just ( httpError, sharedModel.clientCurrentTime ))
+                                        project.ec2Credentials
+                            }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    processProjectSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveContainers errorContext requestedMarker result ->
+            -- First page replaces cached containers; marker pages append.
+            case result of
+                Ok page ->
+                    let
+                        accumulated =
+                            OpenStack.ObjectStorage.stitchPage
+                                requestedMarker
+                                (RDPP.withDefault [] project.objectStorageContainers)
+                                page
+
+                        ( refreshStatus, cmd, modelForUpdate ) =
+                            case ( OpenStack.ObjectStorage.markerForNextPage Rest.Swift.containerPageLimit page, project.endpoints.swift ) of
+                                ( Just marker, Just url ) ->
+                                    let
+                                        nonce =
+                                            sharedModel.swiftRequestNonce + 1
+
+                                        modelWithNonce =
+                                            { sharedModel | swiftRequestNonce = nonce }
+                                    in
+                                    ( RDPP.Loading
+                                    , Rest.Swift.requestContainersPage project url sharedModel.clientCurrentTime nonce (Just marker)
+                                    , modelWithNonce
+                                    )
+
+                                _ ->
+                                    ( RDPP.NotLoading Nothing, Cmd.none, sharedModel )
+
+                        newProject =
+                            { project
+                                | objectStorageContainers =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave accumulated sharedModel.clientCurrentTime)
+                                        refreshStatus
+                            }
+
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject modelForUpdate newProject
+                    in
+                    ( newSharedModel, cmd )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newProject =
+                            { project
+                                | objectStorageContainers =
+                                    RDPP.setNotLoading
+                                        (Just ( httpError, sharedModel.clientCurrentTime ))
+                                        project.objectStorageContainers
+                            }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    processProjectSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        RequestCreateContainer containerName ->
+            case project.endpoints.swift of
+                Just swiftUrl ->
+                    ( outerModel, Rest.Swift.requestCreateContainer project swiftUrl containerName )
+                        |> mapToOuterMsg
+
+                Nothing ->
+                    ( outerModel, Cmd.none )
+
+        RequestDeleteContainer containerName recursive ->
+            case project.endpoints.swift of
+                Just swiftUrl ->
+                    if recursive then
+                        let
+                            nonce =
+                                sharedModel.swiftRequestNonce + 1
+
+                            newSharedModel =
+                                { sharedModel | swiftRequestNonce = nonce }
+                        in
+                        ( { outerModel | sharedModel = newSharedModel }
+                        , Rest.Swift.requestContainerObjectNames project swiftUrl sharedModel.clientCurrentTime nonce containerName Rest.Swift.recursiveDeleteMaxCycles
+                        )
+                            |> mapToOuterMsg
+
+                    else
+                        ( outerModel, Rest.Swift.requestDeleteContainer project swiftUrl containerName )
+                            |> mapToOuterMsg
+
+                Nothing ->
+                    ( outerModel, Cmd.none )
+
+        ReceiveCreateContainer errorContext result ->
             case result of
                 Ok () ->
-                    -- Mark Succeeded; listing/container refresh is restored in the stacked object-browser MR.
+                    let
+                        ( newOuterModel, refreshCmd ) =
+                            ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project) sharedModel
+                                |> mapToOuterMsg
+                                |> mapToOuterModel outerModel
+                    in
+                    -- The create page has done its job, so send the user to the list that now
+                    -- holds the new container, the way a created volume returns to its list.
+                    ( newOuterModel
+                    , Cmd.batch
+                        [ refreshCmd
+                        , Route.pushUrl sharedModel.viewContext
+                            (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.ObjectStorageList)
+                        ]
+                    )
+
+                Err httpError ->
+                    processProjectSynchronousApiError sharedModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveDeleteContainer errorContext result ->
+            case result of
+                Ok () ->
+                    ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project) sharedModel
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    processProjectSynchronousApiError sharedModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveContainerObjectNamesForDeletion errorContext containerName budget result ->
+            case ( result, project.endpoints.swift ) of
+                ( Ok names, Just swiftUrl ) ->
+                    case names of
+                        [] ->
+                            ( outerModel, Rest.Swift.requestDeleteContainer project swiftUrl containerName )
+                                |> mapToOuterMsg
+
+                        _ :: _ ->
+                            if budget <= 0 then
+                                -- Bound the re-list loop so recursive delete cannot spin forever.
+                                processProjectStringError sharedModel
+                                    errorContext
+                                    ("Gave up deleting " ++ Helpers.String.pluralize sharedModel.viewContext.localization.objectStoreObject ++ " in " ++ sharedModel.viewContext.localization.objectStoreContainer ++ " " ++ containerName ++ " after too many attempts; some " ++ Helpers.String.pluralize sharedModel.viewContext.localization.objectStoreObject ++ " may remain.")
+                                    |> Helpers.pipelineCmd
+                                        (ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project))
+                                    |> mapToOuterMsg
+                                    |> mapToOuterModel outerModel
+
+                            else
+                                case OpenStack.ObjectStorage.chunkForBulkDelete names of
+                                    firstChunk :: remainingChunks ->
+                                        ( outerModel, Rest.Swift.requestBulkDeleteContainerObjects project swiftUrl containerName budget remainingChunks firstChunk )
+                                            |> mapToOuterMsg
+
+                                    [] ->
+                                        ( outerModel, Rest.Swift.requestDeleteContainer project swiftUrl containerName )
+                                            |> mapToOuterMsg
+
+                ( Ok _, Nothing ) ->
+                    ( outerModel, Cmd.none )
+
+                ( Err httpError, _ ) ->
+                    processProjectSynchronousApiError sharedModel errorContext httpError
+                        |> Helpers.pipelineCmd
+                            (ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project))
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveBulkDeleteContainerObjects errorContext containerName budget remainingChunks result ->
+            case ( result, project.endpoints.swift ) of
+                ( Ok bulkResult, Just swiftUrl ) ->
+                    if OpenStack.ObjectStorage.bulkDeleteSucceeded bulkResult then
+                        case remainingChunks of
+                            nextChunk :: restChunks ->
+                                ( outerModel, Rest.Swift.requestBulkDeleteContainerObjects project swiftUrl containerName budget restChunks nextChunk )
+                                    |> mapToOuterMsg
+
+                            [] ->
+                                let
+                                    nonce =
+                                        sharedModel.swiftRequestNonce + 1
+
+                                    newSharedModel =
+                                        { sharedModel | swiftRequestNonce = nonce }
+                                in
+                                ( { outerModel | sharedModel = newSharedModel }
+                                , Rest.Swift.requestContainerObjectNames project swiftUrl sharedModel.clientCurrentTime nonce containerName (budget - 1)
+                                )
+                                    |> mapToOuterMsg
+
+                    else
+                        let
+                            errorMessage =
+                                if List.isEmpty bulkResult.errors then
+                                    "Bulk delete reported " ++ bulkResult.responseStatus
+
+                                else
+                                    "Some "
+                                        ++ Helpers.String.pluralize sharedModel.viewContext.localization.objectStoreObject
+                                        ++ " could not be deleted: "
+                                        ++ (bulkResult.errors
+                                                |> List.map (\( path, status ) -> path ++ " (" ++ status ++ ")")
+                                                |> String.join ", "
+                                           )
+                        in
+                        processProjectStringError sharedModel errorContext errorMessage
+                            |> Helpers.pipelineCmd
+                                (ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project))
+                            |> mapToOuterMsg
+                            |> mapToOuterModel outerModel
+
+                ( Ok _, Nothing ) ->
+                    ( outerModel, Cmd.none )
+
+                ( Err httpError, _ ) ->
+                    processProjectSynchronousApiError sharedModel errorContext httpError
+                        |> Helpers.pipelineCmd
+                            (ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project))
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        RequestObjectListingPage containerName maybePrefix maybeMarker ->
+            case project.endpoints.swift of
+                Just swiftUrl ->
+                    let
+                        newProject =
+                            GetterSetters.projectSetObjectStorageListingLoading containerName maybePrefix project
+
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+
+                        nonce =
+                            newSharedModel.swiftRequestNonce + 1
+
+                        newerSharedModel =
+                            { newSharedModel | swiftRequestNonce = nonce }
+                    in
+                    ( newerSharedModel, Rest.Swift.requestObjects project swiftUrl sharedModel.clientCurrentTime nonce containerName maybePrefix maybeMarker )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Nothing ->
+                    ( outerModel, Cmd.none )
+
+        ReceiveObjectListing errorContext containerName maybePrefix requestedMarker result ->
+            -- First page replaces cached objects; marker pages append.
+            case result of
+                Ok page ->
+                    let
+                        visiblePage =
+                            OpenStack.ObjectStorage.hidePrefixPlaceholder maybePrefix page
+
+                        existing =
+                            GetterSetters.projectLookupObjectStorageListing containerName maybePrefix project
+                                |> RDPP.withDefault { objects = [], subdirs = [], nextMarker = Nothing }
+
+                        accumulatedRows =
+                            { objects = OpenStack.ObjectStorage.stitchPage requestedMarker existing.objects visiblePage.objects
+                            , subdirs = OpenStack.ObjectStorage.stitchPage requestedMarker existing.subdirs visiblePage.subdirs
+                            , nextMarker = Nothing
+                            }
+
+                        accumulated =
+                            { accumulatedRows
+                                | nextMarker =
+                                    OpenStack.ObjectStorage.nextListingMarker
+                                        OpenStack.ObjectStorage.listingPageLimit
+                                        page
+                                        accumulatedRows
+                            }
+
+                        newListing =
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave accumulated sharedModel.clientCurrentTime)
+                                (RDPP.NotLoading Nothing)
+
+                        newProject =
+                            GetterSetters.projectSetObjectStorageListing containerName maybePrefix newListing project
+
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    ( newSharedModel, Cmd.none )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newListing =
+                            RDPP.setNotLoading
+                                (Just ( httpError, sharedModel.clientCurrentTime ))
+                                (GetterSetters.projectLookupObjectStorageListing containerName maybePrefix project)
+
+                        newProject =
+                            GetterSetters.projectSetObjectStorageListing containerName maybePrefix newListing project
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    processProjectSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        RequestDeleteObject containerName maybePrefix objectName ->
+            case project.endpoints.swift of
+                Just swiftUrl ->
+                    ( outerModel, Rest.Swift.requestDeleteObject project swiftUrl containerName maybePrefix objectName )
+                        |> mapToOuterMsg
+
+                Nothing ->
+                    ( outerModel, Cmd.none )
+
+        ReceiveDeleteObject errorContext containerName maybePrefix result ->
+            case result of
+                Ok () ->
+                    ApiModelHelpers.requestObjectStorageObjects (GetterSetters.projectIdentifier project) containerName maybePrefix sharedModel
+                        |> Helpers.pipelineCmd
+                            (ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project))
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    processProjectSynchronousApiError sharedModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        RequestBulkDeleteObjects containerName maybePrefix objectNames ->
+            case project.endpoints.swift of
+                Just swiftUrl ->
+                    -- Chunk bulk-delete requests to stay within Swift's per-request cap.
+                    ( outerModel
+                    , objectNames
+                        |> OpenStack.ObjectStorage.chunkForBulkDelete
+                        |> List.map (Rest.Swift.requestBulkDelete project swiftUrl containerName maybePrefix)
+                        |> Cmd.batch
+                    )
+                        |> mapToOuterMsg
+
+                Nothing ->
+                    ( outerModel, Cmd.none )
+
+        ReceiveBulkDeleteObjects errorContext containerName maybePrefix result ->
+            -- Swift can return 200 on partial failure, so trust the parsed body.
+            let
+                refresh model_ =
+                    ApiModelHelpers.requestObjectStorageObjects (GetterSetters.projectIdentifier project) containerName maybePrefix model_
+                        |> Helpers.pipelineCmd
+                            (ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project))
+            in
+            case result of
+                Ok bulkResult ->
+                    if OpenStack.ObjectStorage.bulkDeleteSucceeded bulkResult then
+                        refresh sharedModel
+                            |> mapToOuterMsg
+                            |> mapToOuterModel outerModel
+
+                    else
+                        let
+                            ( refreshedModel, refreshCmd ) =
+                                refresh sharedModel
+
+                            errorMessage =
+                                if List.isEmpty bulkResult.errors then
+                                    "Bulk delete reported " ++ bulkResult.responseStatus
+
+                                else
+                                    "Some "
+                                        ++ Helpers.String.pluralize sharedModel.viewContext.localization.objectStoreObject
+                                        ++ " could not be deleted: "
+                                        ++ (bulkResult.errors
+                                                |> List.map (\( path, status ) -> path ++ " (" ++ status ++ ")")
+                                                |> String.join ", "
+                                           )
+
+                            ( erroredModel, errorCmd ) =
+                                processProjectStringError refreshedModel errorContext errorMessage
+                        in
+                        ( erroredModel, Cmd.batch [ refreshCmd, errorCmd ] )
+                            |> mapToOuterMsg
+                            |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    processProjectSynchronousApiError sharedModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        RequestUploadObjects containerName maybePrefix files ->
+            -- Reject oversized files before reading them into memory.
+            case project.endpoints.swift of
+                Just _ ->
+                    let
+                        prefixStr =
+                            Maybe.withDefault "" maybePrefix
+
+                        processFile file ( accProject, accCmds ) =
+                            let
+                                objectName =
+                                    prefixStr ++ File.name file
+
+                                sizeBytes =
+                                    File.size file
+
+                                -- Unique ids guard against stale completions after re-enqueue.
+                                uploadId =
+                                    OpenStack.ObjectStorage.nextUploadId accProject.objectStorageUploads
+                            in
+                            case OpenStack.ObjectStorage.uploadSizeError sizeBytes of
+                                Just reason ->
+                                    ( GetterSetters.projectEnqueueUpload
+                                        { id = uploadId
+                                        , containerName = containerName
+                                        , prefix = maybePrefix
+                                        , objectName = objectName
+                                        , sizeBytes = sizeBytes
+                                        , status = OpenStack.ObjectStorage.Rejected reason
+                                        }
+                                        accProject
+                                    , accCmds
+                                    )
+
+                                Nothing ->
+                                    let
+                                        readCmd =
+                                            Task.perform
+                                                (\bytes ->
+                                                    let
+                                                        contentType =
+                                                            if File.mime file == "" then
+                                                                OpenStack.ObjectStorage.contentTypeForFilename (File.name file)
+
+                                                            else
+                                                                File.mime file
+                                                    in
+                                                    ProjectMsg (GetterSetters.projectIdentifier project)
+                                                        (ReceiveUploadObjectBytes uploadId containerName maybePrefix objectName contentType bytes)
+                                                )
+                                                (File.toBytes file)
+                                    in
+                                    ( GetterSetters.projectEnqueueUpload
+                                        { id = uploadId
+                                        , containerName = containerName
+                                        , prefix = maybePrefix
+                                        , objectName = objectName
+                                        , sizeBytes = sizeBytes
+                                        , status = OpenStack.ObjectStorage.Queued
+                                        }
+                                        accProject
+                                    , readCmd :: accCmds
+                                    )
+
+                        ( updatedProject, cmds ) =
+                            List.foldl processFile ( project, [] ) files
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel updatedProject, Cmd.batch cmds )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Nothing ->
+                    ( outerModel, Cmd.none )
+
+        ReceiveUploadObjectBytes uploadId containerName maybePrefix objectName contentType bytes ->
+            -- The id-guard prevents stale file-read completions from reviving old rows.
+            case project.endpoints.swift of
+                Just swiftUrl ->
+                    let
+                        newProject =
+                            GetterSetters.projectSetUploadStatusById uploadId OpenStack.ObjectStorage.Uploading project
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject
+                    , Rest.Swift.requestUploadObject project swiftUrl containerName maybePrefix objectName uploadId contentType bytes
+                    )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Nothing ->
+                    ( outerModel, Cmd.none )
+
+        ReceiveUploadObject errorContext uploadId containerName maybePrefix result ->
+            case result of
+                Ok () ->
                     let
                         newModel =
                             GetterSetters.projectSetUploadStatusById uploadId OpenStack.ObjectStorage.Succeeded project
                                 |> GetterSetters.modelUpdateProject sharedModel
                     in
-                    ( newModel, Cmd.none )
+                    ApiModelHelpers.requestObjectStorageObjects (GetterSetters.projectIdentifier project) containerName maybePrefix newModel
+                        |> Helpers.pipelineCmd
+                            (ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project))
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -3333,6 +3927,32 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
+        ClearFinishedUploads ->
+            ( GetterSetters.projectClearFinishedUploads project
+                |> GetterSetters.modelUpdateProject sharedModel
+            , Cmd.none
+            )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        RequestDownloadObject containerName objectName ->
+            case project.endpoints.swift of
+                Just swiftUrl ->
+                    let
+                        nonce =
+                            sharedModel.swiftRequestNonce + 1
+
+                        newSharedModel =
+                            { sharedModel | swiftRequestNonce = nonce }
+                    in
+                    ( { outerModel | sharedModel = newSharedModel }
+                    , Rest.Swift.requestDownloadObject project swiftUrl sharedModel.clientCurrentTime nonce containerName objectName
+                    )
+                        |> mapToOuterMsg
+
+                Nothing ->
+                    ( outerModel, Cmd.none )
+
         ReceiveDownloadObject errorContext objectName result ->
             case result of
                 Ok bytes ->
@@ -3341,6 +3961,125 @@ processProjectSpecificMsg outerModel project msg =
                             objectName |> String.split "/" |> List.reverse |> List.head |> Maybe.withDefault objectName
                     in
                     ( outerModel, File.Download.bytes basename (OpenStack.ObjectStorage.contentTypeForFilename basename) bytes )
+
+                Err httpError ->
+                    processProjectSynchronousApiError sharedModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        RequestCopyObject sourceContainer sourcePrefix sourceObject destContainer destObject isMove ->
+            case project.endpoints.swift of
+                Just swiftUrl ->
+                    ( outerModel, Rest.Swift.requestCopyObject project swiftUrl sourceContainer sourcePrefix sourceObject destContainer destObject isMove )
+                        |> mapToOuterMsg
+
+                Nothing ->
+                    ( outerModel, Cmd.none )
+
+        ReceiveCopyObject errorContext sourceContainer sourcePrefix sourceObject destContainer destObject isMove result ->
+            -- For move, delete the source only after the copy returns 2xx.
+            case result of
+                Ok () ->
+                    let
+                        destPrefix =
+                            OpenStack.ObjectStorage.objectContainingPrefix destObject
+
+                        ( refreshedModel, refreshCmd ) =
+                            ApiModelHelpers.requestObjectStorageObjects (GetterSetters.projectIdentifier project) destContainer destPrefix sharedModel
+                                |> Helpers.pipelineCmd
+                                    (ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project))
+
+                        moveCmd =
+                            case ( isMove, project.endpoints.swift ) of
+                                ( True, Just swiftUrl ) ->
+                                    Rest.Swift.requestDeleteObject project swiftUrl sourceContainer sourcePrefix sourceObject
+
+                                _ ->
+                                    Cmd.none
+                    in
+                    ( refreshedModel, Cmd.batch [ refreshCmd, moveCmd ] )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    processProjectSynchronousApiError sharedModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        RequestCreateFolder containerName maybePrefix placeholderName ->
+            case project.endpoints.swift of
+                Just swiftUrl ->
+                    ( outerModel, Rest.Swift.requestCreateFolder project swiftUrl containerName maybePrefix placeholderName )
+                        |> mapToOuterMsg
+
+                Nothing ->
+                    ( outerModel, Cmd.none )
+
+        ReceiveCreateFolder errorContext containerName maybePrefix result ->
+            case result of
+                Ok () ->
+                    ApiModelHelpers.requestObjectStorageObjects (GetterSetters.projectIdentifier project) containerName maybePrefix sharedModel
+                        |> Helpers.pipelineCmd
+                            (ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project))
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    processProjectSynchronousApiError sharedModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveContainerMetadata errorContext containerName result ->
+            case result of
+                Ok metadata ->
+                    let
+                        newMetadata =
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave metadata sharedModel.clientCurrentTime)
+                                (RDPP.NotLoading Nothing)
+
+                        newProject =
+                            GetterSetters.projectSetObjectStorageContainerMetadata containerName newMetadata project
+
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    ( newSharedModel, Cmd.none )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newMetadata =
+                            RDPP.setNotLoading
+                                (Just ( httpError, sharedModel.clientCurrentTime ))
+                                (GetterSetters.projectLookupObjectStorageContainerMetadata containerName project)
+
+                        newProject =
+                            GetterSetters.projectSetObjectStorageContainerMetadata containerName newMetadata project
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    processProjectSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        RequestSetContainerAcl containerName aclUpdate ->
+            case project.endpoints.swift of
+                Just swiftUrl ->
+                    ( outerModel, Rest.Swift.postContainerMetadata project swiftUrl containerName aclUpdate )
+                        |> mapToOuterMsg
+
+                Nothing ->
+                    ( outerModel, Cmd.none )
+
+        ReceiveSetContainerMetadata errorContext containerName result ->
+            case result of
+                Ok () ->
+                    ApiModelHelpers.requestObjectStorageContainerMetadata (GetterSetters.projectIdentifier project) containerName sharedModel
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
                 Err httpError ->
                     processProjectSynchronousApiError sharedModel errorContext httpError
@@ -4869,6 +5608,10 @@ createProject_ outerModel description authToken region endpoints =
             , shareAccessRules = Dict.empty
             , shareExportLocations = Dict.empty
             , shareTypes = RDPP.empty
+            , objectStorageContainers = RDPP.empty
+            , objectStorageListings = Dict.empty
+            , objectStorageContainerMetadata = Dict.empty
+            , ec2Credentials = RDPP.empty
             , objectStorageUploads = []
             , networks = RDPP.empty
             , autoAllocatedNetworkUuid = RDPP.empty

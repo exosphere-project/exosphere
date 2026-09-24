@@ -1,4 +1,4 @@
-module Style.Widgets.IconButton exposing (FlowOrder(..), clickableIcon, navIconButton, notes)
+module Style.Widgets.IconButton exposing (FlowOrder(..), clickableIcon, navIconButton, notes, sizedClickableIcon)
 
 import Element
 import Element.Font as Font
@@ -40,6 +40,22 @@ type FlowOrder
 
 clickableIcon : List (Element.Attribute msg) -> { icon : Icons.Icon, accessibilityLabel : String, onClick : Maybe msg, color : Element.Color, hoverColor : Element.Color } -> Element.Element msg
 clickableIcon attributes { icon, accessibilityLabel, onClick, color, hoverColor } =
+    sizedClickableIcon attributes
+        { icon = icon
+        , accessibilityLabel = accessibilityLabel
+        , onClick = onClick
+        , color = color
+        , hoverColor = hoverColor
+        , size = 22
+        }
+
+
+{-| A `clickableIcon` with a caller-chosen icon size, so row-action clusters can match the 18px
+sizing Exosphere's other row affordances use (`DeleteButton.deleteIconButton` and the copyable-text
+accessory are both 18px). `clickableIcon` defaults to 22px.
+-}
+sizedClickableIcon : List (Element.Attribute msg) -> { icon : Icons.Icon, accessibilityLabel : String, onClick : Maybe msg, color : Element.Color, hoverColor : Element.Color, size : Float } -> Element.Element msg
+sizedClickableIcon attributes { icon, accessibilityLabel, onClick, color, hoverColor, size } =
     Input.button []
         { onPress = onClick
         , label =
@@ -65,7 +81,7 @@ clickableIcon attributes { icon, accessibilityLabel, onClick, color, hoverColor 
                        )
                     ++ attributes
                 )
-                (icon |> withSize 22)
+                (icon |> withSize size)
         }
 
 

@@ -22,6 +22,9 @@ import Page.KeypairList
 import Page.LoginOpenIdConnect
 import Page.LoginOpenstack
 import Page.MessageLog
+import Page.ObjectStorageContainerCreate
+import Page.ObjectStorageContainerDetail
+import Page.ObjectStorageList
 import Page.ProjectOverview
 import Page.SecurityGroupDetail
 import Page.SecurityGroupList
@@ -221,6 +224,8 @@ routeToViewStateModelCmd sharedModel route =
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestShares (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestShareQuotas (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestVolumes (GetterSetters.projectIdentifier project))
@@ -328,6 +333,52 @@ routeToViewStateModelCmd sharedModel route =
                                             (ApiModelHelpers.requestComputeQuota (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| KeypairList <| Page.KeypairList.init True
+                            , newSharedModel
+                            , newCmd
+                            )
+
+                        Route.ObjectStorageList ->
+                            let
+                                ( newSharedModel, newCmd ) =
+                                    ( GetterSetters.modelUpdateProject sharedModel project
+                                    , Ports.instantiateClipboardJs ()
+                                    )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestEc2Credentials (GetterSetters.projectIdentifier project))
+                            in
+                            ( projectViewProto <| ObjectStorageList (Page.ObjectStorageList.init True)
+                            , newSharedModel
+                            , newCmd
+                            )
+
+                        Route.ObjectStorageContainerCreate ->
+                            let
+                                ( newSharedModel, newCmd ) =
+                                    ApiModelHelpers.requestObjectStorageContainers
+                                        (GetterSetters.projectIdentifier project)
+                                        (GetterSetters.modelUpdateProject sharedModel project)
+                            in
+                            ( projectViewProto <| ObjectStorageContainerCreate Page.ObjectStorageContainerCreate.init
+                            , newSharedModel
+                            , newCmd
+                            )
+
+                        Route.ObjectStorageContainerDetail containerName maybePrefix ->
+                            let
+                                ( newSharedModel, newCmd ) =
+                                    ( GetterSetters.modelUpdateProject sharedModel project
+                                    , Ports.instantiateClipboardJs ()
+                                    )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestObjectStorageObjects (GetterSetters.projectIdentifier project) containerName maybePrefix)
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestObjectStorageContainerMetadata (GetterSetters.projectIdentifier project) containerName)
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestObjectStorageContainers (GetterSetters.projectIdentifier project))
+                            in
+                            ( projectViewProto <| ObjectStorageContainerDetail (Page.ObjectStorageContainerDetail.init containerName maybePrefix)
                             , newSharedModel
                             , newCmd
                             )

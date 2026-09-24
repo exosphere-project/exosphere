@@ -368,6 +368,38 @@ breadcrumb_ outerModel context =
                                       }
                                     ]
 
+                                ObjectStorageList _ ->
+                                    [ { route = Nothing
+                                      , label =
+                                            context.localization.objectStoreContainer
+                                                |> Helpers.String.pluralize
+                                                |> Helpers.String.toTitleCase
+                                      }
+                                    ]
+
+                                ObjectStorageContainerCreate _ ->
+                                    [ { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ "Create"
+                                                , context.localization.objectStoreContainer
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    ]
+
+                                ObjectStorageContainerDetail pageModel ->
+                                    [ { route = Just <| Route.ProjectRoute projectId <| Route.ObjectStorageList
+                                      , label =
+                                            context.localization.objectStoreContainer
+                                                |> Helpers.String.pluralize
+                                                |> Helpers.String.toTitleCase
+                                      }
+                                    , { route = Nothing
+                                      , label = pageModel.containerName
+                                      }
+                                    ]
+
                                 VolumeAttach _ ->
                                     [ { route = Just <| Route.ProjectRoute projectId <| Route.VolumeList
                                       , label =

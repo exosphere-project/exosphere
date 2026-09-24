@@ -221,6 +221,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
             , cloudCorsProxyUrl = flags.cloudCorsProxyUrl
             , clientUuid = uuid
             , clientCurrentTime = currentTime
+            , swiftRequestNonce = 0
             , timeZone = timeZone
             , showDebugMsgs = showDebugMsgs
             , style = style
