@@ -1235,13 +1235,6 @@ processSharedMsg sharedMsg outerModel =
                     -- Could not find auth token, nothing to do
                     ( outerModel, Cmd.none )
 
-        AbandonProjectRegionSelection keystoneUrl projectUuid ->
-            -- Skip this login and continue the credential-file chain.
-            ( outerModel, Cmd.none )
-                |> pipelineCmdOuterModelMsg (releaseHeldToken keystoneUrl projectUuid)
-                |> pipelineCmdOuterModelMsg (removeUnscopedProject keystoneUrl projectUuid)
-                |> pipelineCmdOuterModelMsg startNextLoginIntent
-
         ReceiveUnscopedAuthToken keystoneUrl ( metadata, response ) ->
             case Rest.Keystone.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->

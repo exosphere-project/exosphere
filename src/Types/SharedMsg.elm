@@ -46,7 +46,6 @@ type SharedMsg
     | ReceiveUnscopedRegions OSTypes.KeystoneUrl ErrorContext (Result HttpErrorWithBody (List HelperTypes.UnscopedProviderRegion))
     | RequestProjectScopedToken OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
     | CreateProjectsFromRegionSelections OSTypes.KeystoneUrl OSTypes.ProjectUuid (List OSTypes.RegionId)
-    | AbandonProjectRegionSelection OSTypes.KeystoneUrl OSTypes.ProjectUuid
     | RequestBanners
     | DismissBanner String
     | ReceiveBanners ErrorContext (Result HttpErrorWithBody BannerTypes.Banners)

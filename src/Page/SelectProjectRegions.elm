@@ -8,7 +8,6 @@ import OpenStack.Types as OSTypes
 import Set
 import State.LoginChain
 import Style.Widgets.Button as Button
-import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
@@ -26,7 +25,6 @@ type alias Model =
 type Msg
     = GotBoxChecked OSTypes.RegionId Bool
     | GotSubmit
-    | GotCancel
 
 
 init : OSTypes.KeystoneUrl -> OSTypes.ProjectUuid -> Model
@@ -34,9 +32,8 @@ init keystoneUrl projectUuid =
     Model keystoneUrl projectUuid Set.empty
 
 
-{-| Whether there is anything to submit. Submitting no regions builds no project and drops the
-login that is waiting on this answer, which is a thing to ask for on purpose with Cancel rather
-than a thing to fall into by pressing Choose.
+{-| Whether there is anything to submit. Submitting no regions would build no project and drop
+the login that is waiting on this answer, so Choose stays disabled until a region is ticked.
 -}
 canSubmit : Model -> Bool
 canSubmit model =
@@ -65,12 +62,6 @@ update msg _ model =
             , SharedMsg.CreateProjectsFromRegionSelections model.providerKeystoneUrl
                 model.projectUuid
                 (Set.toList model.selectedRegions)
-            )
-
-        GotCancel ->
-            ( model
-            , Cmd.none
-            , SharedMsg.AbandonProjectRegionSelection model.providerKeystoneUrl model.projectUuid
             )
 
 
@@ -112,29 +103,16 @@ views context sharedModel model =
                                 (renderRegion model.selectedRegions)
                                 regions
                             )
-                            [ Element.row
-                                [ Element.width Element.fill
-                                , Element.paddingXY 0 spacer.px16
-                                , Element.spacing spacer.px12
-                                ]
-                                [ Button.default
-                                    context.palette
-                                    { text = "Cancel"
-                                    , onPress = Just GotCancel
-                                    }
-                                , Element.el [ Element.alignRight ]
-                                    (Button.primary
-                                        context.palette
-                                        { text = "Choose"
-                                        , onPress =
-                                            if canSubmit model then
-                                                Just GotSubmit
+                            [ Button.primary
+                                context.palette
+                                { text = "Choose"
+                                , onPress =
+                                    if canSubmit model then
+                                        Just GotSubmit
 
-                                            else
-                                                Nothing
-                                        }
-                                    )
-                                ]
+                                    else
+                                        Nothing
+                                }
                             ]
 
                 maybeProvider =

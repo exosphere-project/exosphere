@@ -58,10 +58,6 @@ suite =
                 Expect.equal
                     ( Just "cloud-a", Just "cloud-b", [] )
                     ( first, second, afterSecond )
-        , test "cancel skips the current login and exposes the next one" <|
-            \_ ->
-                State.LoginChain.popNext [ "cloud-b" ]
-                    |> Expect.equal ( Just "cloud-b", [] )
         , test "leaving region selection abandons the held login and remaining chain" <|
             \_ ->
                 let
