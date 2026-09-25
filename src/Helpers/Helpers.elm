@@ -13,6 +13,7 @@ module Helpers.Helpers exposing
     , naiveUuidParser
     , newServerMetadata
     , newServerNetworkOptions
+    , objectStorageTileVisible
     , parseConsoleLogForWorkflowToken
     , pipelineCmd
     , renderUserDataTemplate
@@ -176,6 +177,7 @@ serviceCatalogToEndpoints catalog maybeRegionId =
             , ( "jetstream2Accounting", getService "accounting" )
             , ( "designate", getService "dns" )
             , ( "swift", getService "object-store" )
+            , ( "s3", getService "s3" )
             ]
 
         missingServiceName service =
@@ -189,8 +191,8 @@ serviceCatalogToEndpoints catalog maybeRegionId =
     case
         List.map Tuple.second endpoints
     of
-        [ Just cinderUrl, Just glanceUrl, Just keystoneUrl, maybeManilaUrl, Just novaUrl, Just neutronUrl, maybePlacementUrl, maybeJetstream2AccountingUrl, maybeDesignateUrl, maybeSwiftUrl ] ->
-            Ok <| Endpoints cinderUrl glanceUrl keystoneUrl maybeManilaUrl novaUrl neutronUrl maybePlacementUrl maybeJetstream2AccountingUrl maybeDesignateUrl maybeSwiftUrl
+        [ Just cinderUrl, Just glanceUrl, Just keystoneUrl, maybeManilaUrl, Just novaUrl, Just neutronUrl, maybePlacementUrl, maybeJetstream2AccountingUrl, maybeDesignateUrl, maybeSwiftUrl, maybeS3Url ] ->
+            Ok <| Endpoints cinderUrl glanceUrl keystoneUrl maybeManilaUrl novaUrl neutronUrl maybePlacementUrl maybeJetstream2AccountingUrl maybeDesignateUrl maybeSwiftUrl maybeS3Url
 
         _ ->
             Err <|
@@ -199,6 +201,13 @@ serviceCatalogToEndpoints catalog maybeRegionId =
                             |> List.filterMap missingServiceName
                             |> String.join ", "
                        )
+
+
+{-| Object Storage is visible only behind the feature flag and a Swift endpoint.
+-}
+objectStorageTileVisible : Bool -> Maybe HelperTypes.Url -> Bool
+objectStorageTileVisible experimentalFeaturesEnabled maybeSwiftUrl =
+    experimentalFeaturesEnabled && maybeSwiftUrl /= Nothing
 
 
 encodeFloatingIpOption : FloatingIpOption -> List ( String, Json.Encode.Value )

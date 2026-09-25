@@ -16,6 +16,7 @@ module Style.Widgets.DataList exposing
     , init
     , update
     , view
+    , viewHidingNonSelectableLock
     )
 
 import Dict
@@ -299,6 +300,9 @@ borderStyleForRow rowStyle length i =
         rowStyle
 
 
+{-| Render a data list with the default treatment of non-selectable rows: a lock icon in place of the
+selection checkbox. Most pages want this.
+-}
 view :
     String
     -> Model
@@ -311,7 +315,44 @@ view :
     -> Maybe (SelectionFilters record msg)
     -> Maybe (SearchFilter record)
     -> Element.Element msg
-view resourceName model toMsg context styleAttrs listItemView data bulkActions selectionFilters searchFilter =
+view =
+    viewWithLockOption False
+
+
+{-| Same as `view`, but non-selectable rows omit the checkbox column so their content is left-aligned.
+Opt in on lists where a non-selectable row is not "locked/private" and the lock would mislead, e.g.
+pseudo-folder rows in the object-storage container detail. Every other page keeps the lock via `view`.
+-}
+viewHidingNonSelectableLock :
+    String
+    -> Model
+    -> (Msg -> msg)
+    -> { viewContext | palette : ExoPalette, showPopovers : Set.Set PopoverId }
+    -> List (Element.Attribute msg)
+    -> (DataRecord record -> Element.Element msg)
+    -> List (DataRecord record)
+    -> List (Set.Set RowId -> Element.Element msg)
+    -> Maybe (SelectionFilters record msg)
+    -> Maybe (SearchFilter record)
+    -> Element.Element msg
+viewHidingNonSelectableLock =
+    viewWithLockOption True
+
+
+viewWithLockOption :
+    Bool
+    -> String
+    -> Model
+    -> (Msg -> msg) -- convert DataList.Msg to a consumer's msg
+    -> { viewContext | palette : ExoPalette, showPopovers : Set.Set PopoverId }
+    -> List (Element.Attribute msg)
+    -> (DataRecord record -> Element.Element msg)
+    -> List (DataRecord record)
+    -> List (Set.Set RowId -> Element.Element msg)
+    -> Maybe (SelectionFilters record msg)
+    -> Maybe (SearchFilter record)
+    -> Element.Element msg
+viewWithLockOption hideNonSelectableLock resourceName model toMsg context styleAttrs listItemView data bulkActions selectionFilters searchFilter =
     let
         filteredData =
             case selectionFilters of
@@ -415,7 +456,7 @@ view resourceName model toMsg context styleAttrs listItemView data bulkActions s
                         not (List.isEmpty bulkActions)
                 in
                 List.indexedMap
-                    (rowView model toMsg context.palette styleForRow listItemView showRowCheckbox)
+                    (rowView hideNonSelectableLock model toMsg context.palette styleForRow listItemView showRowCheckbox)
                     filteredData
     in
     Element.column
@@ -443,7 +484,8 @@ view resourceName model toMsg context styleAttrs listItemView data bulkActions s
 
 
 rowView :
-    Model
+    Bool
+    -> Model
     -> (Msg -> msg) -- convert DataList.Msg to a consumer's msg
     -> Style.Types.ExoPalette
     -> (Int -> List (Element.Attribute msg))
@@ -452,37 +494,49 @@ rowView :
     -> Int
     -> DataRecord record
     -> Element.Element msg
-rowView model toMsg palette rowStyle listItemView showRowCheckbox i dataRecord =
+rowView hideNonSelectableLock model toMsg palette rowStyle listItemView showRowCheckbox i dataRecord =
     let
-        rowCheckbox =
-            if showRowCheckbox then
-                if dataRecord.selectable then
-                    Input.checkbox [ Element.width Element.shrink ]
-                        { checked = Set.member dataRecord.id model.selectedRowIds
-                        , onChange = \isChecked -> ChangeRowSelection dataRecord.id isChecked
-                        , icon = Input.defaultCheckbox
-                        , label = Input.labelHidden ("select row " ++ String.fromInt i)
-                        }
-
-                else
-                    Input.checkbox [ Element.width Element.shrink ]
-                        { checked = False
-                        , onChange = \_ -> NoOp
-                        , icon =
-                            \_ ->
-                                Icon.lock
-                                    (SH.toElementColor palette.neutral.icon)
-                                    16
-                        , label = Input.labelHidden "locked row cannot be selected"
-                        }
-
-            else
-                Element.none
+        -- When hiding the non-selectable lock, drop the checkbox column entirely on non-selectable
+        -- rows (e.g. pseudo-folders) so their content is LEFT-aligned with the Select-All checkbox
+        -- rather than indented by an empty reserved column.
+        omitCheckboxColumn =
+            showRowCheckbox && hideNonSelectableLock && not dataRecord.selectable
     in
     Element.row (rowStyle i)
-        [ rowCheckbox |> Element.map toMsg
-        , listItemView dataRecord -- consumer-provided view already returns consumer's msg
-        ]
+        (if omitCheckboxColumn then
+            [ listItemView dataRecord ]
+
+         else
+            let
+                rowCheckbox =
+                    if showRowCheckbox then
+                        if dataRecord.selectable then
+                            Input.checkbox [ Element.width Element.shrink ]
+                                { checked = Set.member dataRecord.id model.selectedRowIds
+                                , onChange = \isChecked -> ChangeRowSelection dataRecord.id isChecked
+                                , icon = Input.defaultCheckbox
+                                , label = Input.labelHidden ("select row " ++ String.fromInt i)
+                                }
+
+                        else
+                            Input.checkbox [ Element.width Element.shrink ]
+                                { checked = False
+                                , onChange = \_ -> NoOp
+                                , icon =
+                                    \_ ->
+                                        Icon.lock
+                                            (SH.toElementColor palette.neutral.icon)
+                                            16
+                                , label = Input.labelHidden "locked row cannot be selected"
+                                }
+
+                    else
+                        Element.none
+            in
+            [ rowCheckbox |> Element.map toMsg
+            , listItemView dataRecord -- consumer-provided view already returns consumer's msg
+            ]
+        )
 
 
 toolbarView :

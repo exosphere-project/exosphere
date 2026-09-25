@@ -16,7 +16,7 @@ server {
 
     location / {
         return 301 https://$host$request_uri;
-    }    
+    }
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
     }
@@ -27,7 +27,7 @@ resolver 127.0.0.11;
 server {
     listen 443 ssl;
     server_name ${NGINX_HOSTNAME};
-    
+
     ssl_certificate /etc/letsencrypt/live/${NGINX_HOSTNAME}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/${NGINX_HOSTNAME}/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
@@ -36,8 +36,27 @@ server {
     add_header Access-Control-Allow-Origin $cors_origin_header always;
     add_header Access-Control-Allow-Credentials $cors_cred;
     add_header "Access-Control-Allow-Methods" "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD";
-    add_header "Access-Control-Allow-Headers" "Authorization, Origin, X-Requested-With, Content-Type, Accept, exo-proxy-orig-host, exo-proxy-orig-port, X-Auth-Token, Openstack-API-Version, X-OpenStack-Manila-API-Version, X-OpenStack-Nova-API-Version";
-    add_header "Access-Control-Expose-Headers" "X-Subject-Token";
+
+    # Request headers a browser may send to the proxy.
+    # (A preflight request is only sent when the app & proxy are on different origins.)
+    #
+    #   - Common CORS: Authorization, Origin, X-Requested-With, Content-Type, Accept.
+    #   - Proxy routing: exo-proxy-orig-host, exo-proxy-orig-port.
+    #   - OpenStack authentication: X-Auth-Token.
+    #   - OpenStack microversions: Openstack-API-Version, X-OpenStack-Manila-API-Version, X-OpenStack-Nova-API-Version.
+    #   - Object storage ACLs: X-Container-* & X-Remove-Container-*.
+    #   - Object storage operations: X-Copy-From.
+    add_header "Access-Control-Allow-Headers" "Authorization, Origin, X-Requested-With, Content-Type, Accept, exo-proxy-orig-host, exo-proxy-orig-port, X-Auth-Token, Openstack-API-Version, X-OpenStack-Manila-API-Version, X-OpenStack-Nova-API-Version, X-Container-Read, X-Container-Write, X-Remove-Container-Read, X-Remove-Container-Write, X-Copy-From";
+
+    # Response headers a cross-origin page is allowed to read.
+    #
+    #   - Keystone authentication: X-Subject-Token.
+    #   - Object storage ACLs: X-Container-Read, X-Container-Write.
+    #   - Object storage usage: X-Container-Bytes-Used, X-Container-Object-Count.
+    #   - Object storage properties: X-Timestamp, X-Storage-Policy.
+    #   - Common CORS: ETag, Content-Disposition.
+    add_header "Access-Control-Expose-Headers" "X-Subject-Token, X-Container-Read, X-Container-Write, X-Container-Bytes-Used, X-Container-Object-Count, X-Timestamp, X-Storage-Policy, ETag, Content-Disposition";
+
     add_header "Access-Control-Max-Age" 86400;
 
     charset utf-8;
@@ -53,6 +72,14 @@ server {
 
     location ~* ^/proxy/(.*) {
         resolver 127.0.0.11 [::1];
+
+        # Exosphere rejects object uploads larger than 100MB.
+        client_max_body_size 128m;
+
+        # Stream the upload body instead of spooling all of it to disk first.
+        proxy_http_version 1.1;
+        proxy_request_buffering off;
+
         set $backend https://$http_exo_proxy_orig_host:$http_exo_proxy_orig_port/$1$is_args$args;
         proxy_pass $backend;
     }

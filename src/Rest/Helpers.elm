@@ -2,6 +2,7 @@ module Rest.Helpers exposing
     ( encodeHttpErrorWithBody
     , expectBytesWithErrorBody
     , expectJsonWithErrorBody
+    , expectMetadataWithErrorBody
     , expectStringWithErrorBody
     , expectVoidWithErrorBody
     , httpErrorWithBodyDecoder
@@ -35,6 +36,9 @@ httpRequestMethodStr method =
     case method of
         Get ->
             "GET"
+
+        Head ->
+            "HEAD"
 
         Post ->
             "POST"
@@ -219,6 +223,11 @@ expectVoidWithErrorBody toMsg =
 {-| Expect a **binary** response body (an object's bytes), preserving them for `File.Download.bytes`.
 On a non-2xx status the error body is decoded to a String best-effort (so the standard error toast can
 show it); a body that is not valid UTF-8 falls back to "".
+
+This is NOT the metadata-preserving expect (which additionally keeps response HEADERS for
+HEAD-container ACL/usage reads, see `expectMetadataWithErrorBody` below); this one keeps only the
+body bytes.
+
 -}
 expectBytesWithErrorBody : (Result HttpErrorWithBody Bytes -> msg) -> Http.Expect msg
 expectBytesWithErrorBody toMsg =
@@ -245,6 +254,33 @@ bytesToStringBestEffort : Bytes -> String
 bytesToStringBestEffort bytes =
     Bytes.Decode.decode (Bytes.Decode.string (Bytes.width bytes)) bytes
         |> Maybe.withDefault ""
+
+
+{-| Expect a response whose value is its **metadata** (status + response HEADERS), not its body. The
+normal `expect*WithErrorBody` helpers discard `Http.Metadata`, so a `HEAD container` ACL/usage read
+(whose entire payload is in the `X-Container-*` response headers) is impossible without this. A HEAD
+response has no body, so none is read on success; a non-2xx status still produces `HttpErrorWithBody`
+carrying the body (best-effort) exactly like the sibling helpers, so the standard error toast works.
+-}
+expectMetadataWithErrorBody : (Result HttpErrorWithBody Http.Metadata -> msg) -> Http.Expect msg
+expectMetadataWithErrorBody toMsg =
+    Http.expectStringResponse toMsg <|
+        \response ->
+            case response of
+                Http.BadUrl_ url ->
+                    Err <| HttpErrorWithBody (Http.BadUrl url) ""
+
+                Http.Timeout_ ->
+                    Err <| HttpErrorWithBody Http.Timeout ""
+
+                Http.NetworkError_ ->
+                    Err <| HttpErrorWithBody Http.NetworkError ""
+
+                Http.BadStatus_ metadata body ->
+                    Err <| HttpErrorWithBody (Http.BadStatus metadata.statusCode) body
+
+                Http.GoodStatus_ metadata _ ->
+                    Ok metadata
 
 
 expectJsonWithErrorBody : (Result HttpErrorWithBody a -> msg) -> Decode.Decoder a -> Http.Expect msg

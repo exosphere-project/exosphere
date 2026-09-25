@@ -38,6 +38,8 @@ var config = {
     staticRepresentationOfBlockDeviceContents: "image",
     blockDevice: "volume",
     share: "share",
+    objectStoreContainer: "container",
+    objectStoreObject: "object",
     accessRule: "share rule",
     exportLocation: "export location",
     nonFloatingIpAddress: "internal IP address",

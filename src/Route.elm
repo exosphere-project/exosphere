@@ -12,6 +12,7 @@ module Route exposing
 
 import Browser.Navigation
 import Dict
+import OpenStack.ObjectStorage as ObjectStorage
 import OpenStack.Types as OSTypes
 import Types.HelperTypes as HelperTypes
 import Url
@@ -56,6 +57,9 @@ type ProjectRouteConstructor
     | FloatingIpCreate (Maybe OSTypes.ServerUuid)
     | KeypairCreate
     | KeypairList
+    | ObjectStorageList
+    | ObjectStorageContainerCreate
+    | ObjectStorageContainerDetail ObjectStorage.ContainerName (Maybe ObjectStorage.Prefix)
     | SecurityGroupDetail OSTypes.SecurityGroupUuid
     | SecurityGroupList
     | ServerCreate OSTypes.ImageUuid String (Maybe (List OSTypes.FlavorId)) (Maybe Bool)
@@ -231,6 +235,31 @@ toUrl maybePathPrefix route =
                         KeypairList ->
                             ( [ "keypairs" ]
                             , []
+                            )
+
+                        ObjectStorageList ->
+                            ( [ "objectstorage" ]
+                            , []
+                            )
+
+                        ObjectStorageContainerCreate ->
+                            ( [ "createcontainer" ]
+                            , []
+                            )
+
+                        ObjectStorageContainerDetail containerName maybePrefix ->
+                            -- `Url.Builder` does NOT percent-encode path segments (only query
+                            -- values), and `Url.Parser` does not decode them, so we encode the
+                            -- container name here and decode it in the parser. This lets names with
+                            -- spaces / `#` / unicode survive the URL round-trip. (Container names
+                            -- may not contain `/`, so a single segment is always correct.)
+                            ( [ "objectstorage", Url.percentEncode containerName ]
+                            , case normalizePrefix maybePrefix of
+                                Just prefix ->
+                                    [ UB.string "prefix" prefix ]
+
+                                Nothing ->
+                                    []
                             )
 
                         SecurityGroupDetail securityGroupUuid ->
@@ -418,6 +447,24 @@ toUrl maybePathPrefix route =
             buildUrlFunc
                 [ "settings" ]
                 []
+
+
+{-| Normalize an object-storage prefix query value: treat `Just ""` as `Nothing`.
+
+The route carries `prefix` as a query parameter (prefixes contain `/`, unicode, and spaces, which
+round-trip more safely in the query than in a path segment). An empty prefix and an absent prefix
+are the same thing, the top level of a container, but `Query.string` with an empty value is
+ambiguous, so we collapse both to `Nothing` on the way in and out.
+
+-}
+normalizePrefix : Maybe String -> Maybe ObjectStorage.Prefix
+normalizePrefix maybePrefix =
+    case maybePrefix of
+        Just "" ->
+            Nothing
+
+        other ->
+            other
 
 
 buildPrefixedUrl : Maybe String -> List String -> List UB.QueryParameter -> String
@@ -701,6 +748,21 @@ projectRouteParsers =
     , map
         KeypairCreate
         (s "uploadkeypair")
+
+    -- Object storage container details accept an optional `prefix` query parameter for folder navigation.
+    , map
+        (\encodedContainerName maybePrefix ->
+            ObjectStorageContainerDetail
+                (encodedContainerName |> Url.percentDecode |> Maybe.withDefault encodedContainerName)
+                (normalizePrefix maybePrefix)
+        )
+        (s "objectstorage" </> string <?> Query.string "prefix")
+    , map
+        ObjectStorageList
+        (s "objectstorage")
+    , map
+        ObjectStorageContainerCreate
+        (s "createcontainer")
     , map
         identity
         (let

@@ -33,6 +33,8 @@ exosphereLocalizedStrings =
     , ( "staticRepresentationOfBlockDeviceContents", "image" )
     , ( "blockDevice", "volume" )
     , ( "share", "share" )
+    , ( "objectStoreContainer", "container" )
+    , ( "objectStoreObject", "object" )
     , ( "exportLocation", "export location" )
     , ( "nonFloatingIpAddress", "internal IP address" )
     , ( "floatingIpAddress", "floating IP address" )

@@ -4,7 +4,8 @@ import DesignSystem.Helpers exposing (Plugins, Renderer, ThemeModel, palettize)
 import Element
 import Element.Font as Font
 import Element.Input as Input
-import Style.Widgets.CopyableText as CopyableText exposing (copyableScript, copyableText, copyableTextAccessory)
+import FeatherIcons
+import Style.Widgets.CopyableText as CopyableText exposing (copyableScript, copyableScriptMasked, copyableText, copyableTextAccessory)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import UIExplorer
@@ -46,6 +47,28 @@ export OS_PROJECT_DOMAIN_NAME="default"
 export OS_REGION_NAME="CellOne"
 export OS_PASSWORD=$OS_PASSWORD_INPUT
 """
+          , { note = CopyableText.notes }
+          )
+        , ( "copyable script with a masked value"
+          , \m ->
+                renderer (palettize m) <|
+                    copyableScriptMasked (palettize m)
+                        { display = "export OS_PASSWORD=\"••••••••\""
+                        , clipboard = "export OS_PASSWORD=\"hunter2\""
+                        }
+          , { note = CopyableText.notes }
+          )
+        , ( "compact copy button"
+          , \m ->
+                renderer (palettize m) <|
+                    Element.row [ Element.spacing spacer.px8 ]
+                        [ Element.text "cloud-riders"
+                        , CopyableText.copyButton (palettize m)
+                            { icon = FeatherIcons.clipboard
+                            , accessibilityLabel = "Copy name"
+                            , textToCopy = "cloud-riders"
+                            }
+                        ]
           , { note = CopyableText.notes }
           )
         , ( "separate accessory"

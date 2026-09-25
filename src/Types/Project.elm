@@ -40,9 +40,15 @@ type alias Project =
     , shareExportLocations : Dict OSTypes.ShareUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ExportLocation))
     , shareTypes : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ShareType)
 
-    -- Transient (never persisted) browser-side upload queue with honest per-file queue-state status.
-    -- Lives here (not page-local) because upload results arrive as SharedMsg in State.State; precedent
-    -- for transient action state on Project: serverVolumeActions / serverActionRequestQueue above.
+    -- Object storage caches live on Project, not page-local models.
+    , objectStorageContainers : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List ObjectStorage.Container)
+    , objectStorageListings : Dict ( ObjectStorage.ContainerName, ObjectStorage.Prefix ) (RDPP.RemoteDataPlusPlus HttpErrorWithBody ObjectStorage.ObjectListing)
+    , objectStorageContainerMetadata : Dict ObjectStorage.ContainerName (RDPP.RemoteDataPlusPlus HttpErrorWithBody ObjectStorage.ContainerMetadata)
+
+    -- EC2/S3 credentials are filtered to this project before caching; `secret` is never persisted.
+    , ec2Credentials : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Ec2Credential)
+
+    -- Transient upload queue; results arrive as SharedMsg in State.State.
     , objectStorageUploads : List ObjectStorage.Upload
     , flavors : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Flavor)
     , keypairs : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Keypair)
@@ -86,6 +92,7 @@ type alias Endpoints =
     , jetstream2Accounting : Maybe HelperTypes.Url
     , designate : Maybe HelperTypes.Url
     , swift : Maybe HelperTypes.Url
+    , s3 : Maybe HelperTypes.Url
     }
 
 

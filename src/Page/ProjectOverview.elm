@@ -7,9 +7,11 @@ import FeatherIcons as Icons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting
 import Helpers.GetterSetters as GetterSetters
+import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Html.Attributes
+import OpenStack.ObjectStorage
 import OpenStack.Types as OSTypes
 import Page.Jetstream2Allocation
 import Page.QuotaUsage
@@ -163,6 +165,20 @@ view context project currentTime _ =
 
                 _ ->
                     Element.none
+            , if Helpers.objectStorageTileVisible context.experimentalFeaturesEnabled project.endpoints.swift then
+                renderTile
+                    (Icon.featherIcon [] Icons.archive)
+                    (context.localization.objectStoreContainer
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                    )
+                    Element.none
+                    Route.ObjectStorageList
+                    Nothing
+                    (objectStorageTileContents context project)
+
+              else
+                Element.none
             , renderTile
                 (Icon.ipAddress (SH.toElementColor context.palette.neutral.text.default) 24)
                 (context.localization.floatingIpAddress
@@ -300,6 +316,32 @@ shareTileContents context project =
         VH.renderRDPP
         renderShare
         showShare
+
+
+objectStorageTileContents : View.Types.Context -> Project -> Element.Element Msg
+objectStorageTileContents context project =
+    let
+        renderContainer : OpenStack.ObjectStorage.Container -> List (Element.Element Msg)
+        renderContainer container =
+            [ container.name
+                |> VH.ellipsizedText
+                |> Element.el
+                    [ Element.centerY
+                    , Element.width Element.fill
+                    , Html.Attributes.style "min-width" "0" |> Element.htmlAttribute
+                    ]
+            , Helpers.Formatting.usageLabel context.locale Helpers.Formatting.Bytes container.bytes
+                |> Element.text
+                |> Element.el [ Element.centerY ]
+            ]
+    in
+    tileContents
+        context
+        project.objectStorageContainers
+        context.localization.objectStoreContainer
+        VH.renderRDPP
+        renderContainer
+        (\_ -> True)
 
 
 securityGroupTileContents : View.Types.Context -> Project -> Element.Element Msg

@@ -52,7 +52,7 @@ stories :
             { note : String }
 stories { renderer, toMsg, onDeleteServers, onDeleteServer, onPopOver } =
     let
-        renderModel model =
+        renderModelWith dataListView model =
             let
                 now : Time.Posix
                 now =
@@ -62,7 +62,7 @@ stories { renderer, toMsg, onDeleteServers, onDeleteServer, onPopOver } =
                     DesignSystem.Helpers.palettize model
             in
             renderer palette <|
-                Style.Widgets.DataList.view
+                dataListView
                     "server"
                     model.customModel.dataList
                     toMsg
@@ -87,7 +87,12 @@ stories { renderer, toMsg, onDeleteServers, onDeleteServer, onPopOver } =
                     (Just searchFilter)
     in
     UIExplorer.storiesOf "DataList"
-        [ ( "default", renderModel, { note = """""" } ) ]
+        [ ( "default", renderModelWith Style.Widgets.DataList.view, { note = """""" } )
+        , ( "hiding non-selectable lock"
+          , renderModelWith Style.Widgets.DataList.viewHidingNonSelectableLock
+          , { note = """Non-selectable rows show blank space instead of a lock icon. Use this when a non-selectable row is not "locked/private" and the lock would mislead, e.g. pseudo-folder rows in the object storage container detail page.""" }
+          )
+        ]
 
 
 searchFilter : Style.Widgets.DataList.SearchFilter { record | name : String }

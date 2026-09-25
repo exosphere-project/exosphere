@@ -8,6 +8,7 @@ import Element.Font as Font
 import Element.Region as Region
 import FeatherIcons as Icons
 import Helpers.GetterSetters as GetterSetters
+import Helpers.Helpers as Helpers
 import Helpers.String
 import Html
 import Html.Attributes
@@ -26,6 +27,9 @@ import Page.LoginOpenIdConnect
 import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
+import Page.ObjectStorageContainerCreate
+import Page.ObjectStorageContainerDetail
+import Page.ObjectStorageList
 import Page.ProjectOverview
 import Page.SecurityGroupDetail
 import Page.SecurityGroupList
@@ -395,6 +399,18 @@ projectContentView model context p viewConstructor =
             Page.ShareList.view context p model.clientCurrentTime pageModel
                 |> Element.map ShareListMsg
 
+        ObjectStorageList pageModel ->
+            Page.ObjectStorageList.view context p pageModel
+                |> Element.map ObjectStorageListMsg
+
+        ObjectStorageContainerCreate pageModel ->
+            Page.ObjectStorageContainerCreate.view context p pageModel
+                |> Element.map ObjectStorageContainerCreateMsg
+
+        ObjectStorageContainerDetail pageModel ->
+            Page.ObjectStorageContainerDetail.view context p ( model.clientCurrentTime, model.timeZone ) pageModel
+                |> Element.map ObjectStorageContainerDetailMsg
+
         VolumeAttach pageModel ->
             Page.VolumeAttach.view context p pageModel
                 |> Element.map VolumeAttachMsg
@@ -549,6 +565,17 @@ createProjectResourcesButton context project =
 
                     _ ->
                         Element.none
+                , if Helpers.objectStorageTileVisible context.experimentalFeaturesEnabled project.endpoints.swift then
+                    renderButton
+                        (sizedFeatherIcon 18 Icons.archive)
+                        (context.localization.objectStoreContainer
+                            |> Helpers.String.toTitleCase
+                        )
+                        (Route.ProjectRoute projectId <| Route.ObjectStorageContainerCreate)
+                        closeDropdown
+
+                  else
+                    Element.none
                 , renderButton
                     (sizedFeatherIcon 18 Icons.key)
                     (context.localization.pkiPublicKeyForSsh

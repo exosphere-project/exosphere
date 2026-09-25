@@ -4,12 +4,16 @@ module Rest.ApiModelHelpers exposing
     , requestAutoAllocatedNetwork
     , requestComputeQuota
     , requestComputeQuotaAndProjectUsages
+    , requestEc2Credentials
     , requestFlavors
     , requestFloatingIps
     , requestImages
     , requestJetstream2Allocation
     , requestNetworkQuota
     , requestNetworks
+    , requestObjectStorageContainerMetadata
+    , requestObjectStorageContainers
+    , requestObjectStorageObjects
     , requestPorts
     , requestProjectLimits
     , requestProjectUsages
@@ -35,6 +39,7 @@ module Rest.ApiModelHelpers exposing
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
+import OpenStack.ObjectStorage
 import OpenStack.Quotas
 import OpenStack.ServerVolumes
 import OpenStack.Shares
@@ -47,8 +52,10 @@ import Rest.AppVersion
 import Rest.Designate
 import Rest.Glance
 import Rest.Jetstream2Accounting
+import Rest.Keystone
 import Rest.Neutron
 import Rest.Nova
+import Rest.Swift
 import Types.Error
 import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.Interactivity exposing (InteractionLevel)
@@ -241,6 +248,129 @@ requestShares projectUuid model =
                         |> GetterSetters.projectSetSharesLoading
                         |> GetterSetters.modelUpdateProject model
                     , OpenStack.Shares.requestShares project url
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+{-| Load the project's object-storage (Swift) container list, no-op when Swift is absent.
+
+Mirrors `requestShares`: sets the loading state centrally and dispatches the first page; the
+marker loop for subsequent pages is driven by the `ReceiveContainers` handler in `State.State`.
+Pages/views should fire **this**, never `Rest.Swift.requestContainers` directly, so the
+loading-state + missing-endpoint guards stay in one place.
+
+-}
+requestObjectStorageContainers : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestObjectStorageContainers projectUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            case project.endpoints.swift of
+                Just url ->
+                    let
+                        nonce =
+                            model.swiftRequestNonce + 1
+
+                        newModel =
+                            { model | swiftRequestNonce = nonce }
+                    in
+                    ( project
+                        |> GetterSetters.projectSetObjectStorageContainersLoading
+                        |> GetterSetters.modelUpdateProject newModel
+                    , Rest.Swift.requestContainers project url model.clientCurrentTime nonce
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+{-| Load the project's EC2/S3 credentials (Keystone OS-EC2), no-op when the s3 endpoint is absent.
+
+Guarded on `project.endpoints.s3` (not keystone, which always exists) so s3-less clouds never issue
+the OS-EC2 GET; the ObjectStorageList route-load then fires this unconditionally, matching how the
+Swift wrappers self-guard.
+
+-}
+requestEc2Credentials : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestEc2Credentials projectUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            case project.endpoints.s3 of
+                Just _ ->
+                    ( project
+                        |> GetterSetters.projectSetEc2CredentialsLoading
+                        |> GetterSetters.modelUpdateProject model
+                    , Rest.Keystone.requestEc2Credentials project
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+{-| Load the first page of a container's object listing at a given pseudo-folder `prefix`, no-op when
+Swift is absent. Mirrors `requestObjectStorageContainers`: sets the (container, prefix) listing to
+loading centrally, then dispatches the first page (marker `Nothing`, which replaces the cache).
+User-driven "load more" continuations are dispatched via the `RequestObjectListingPage` handler in
+`State.State`, not here.
+-}
+requestObjectStorageObjects : ProjectIdentifier -> OpenStack.ObjectStorage.ContainerName -> Maybe OpenStack.ObjectStorage.Prefix -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestObjectStorageObjects projectUuid containerName maybePrefix model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            case project.endpoints.swift of
+                Just url ->
+                    let
+                        nonce =
+                            model.swiftRequestNonce + 1
+
+                        newModel =
+                            { model | swiftRequestNonce = nonce }
+                    in
+                    ( project
+                        |> GetterSetters.projectSetObjectStorageListingLoading containerName maybePrefix
+                        |> GetterSetters.modelUpdateProject newModel
+                    , Rest.Swift.requestObjects project url model.clientCurrentTime nonce containerName maybePrefix Nothing
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+{-| Load a container's HEAD-container access settings (ACL + usage), no-op when Swift is absent.
+Mirrors `requestObjectStorageObjects`: sets the container's metadata RDPP to loading centrally, then
+dispatches the HEAD. Fired from the container-detail route load (and re-fired by `State.State` after a
+successful ACL POST to refresh, rather than optimistically writing the cache).
+-}
+requestObjectStorageContainerMetadata : ProjectIdentifier -> OpenStack.ObjectStorage.ContainerName -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestObjectStorageContainerMetadata projectUuid containerName model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            case project.endpoints.swift of
+                Just url ->
+                    let
+                        nonce =
+                            model.swiftRequestNonce + 1
+
+                        newModel =
+                            { model | swiftRequestNonce = nonce }
+                    in
+                    ( project
+                        |> GetterSetters.projectSetObjectStorageContainerMetadataLoading containerName
+                        |> GetterSetters.modelUpdateProject newModel
+                    , Rest.Swift.requestContainerMetadata project url model.clientCurrentTime nonce containerName
                     )
 
                 Nothing ->

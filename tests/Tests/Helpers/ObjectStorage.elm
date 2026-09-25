@@ -1,12 +1,13 @@
-module Tests.Helpers.ObjectStorage exposing (serviceCatalogSwiftSuite)
+module Tests.Helpers.ObjectStorage exposing
+    ( objectStorageTileVisibleSuite
+    , serviceCatalogS3Suite
+    , serviceCatalogSwiftSuite
+    )
 
 import Expect
 import Helpers.Helpers as Helpers
-import OpenStack.ObjectStorage as ObjectStorage
 import OpenStack.Types as OSTypes
 import Test exposing (Test, describe, test)
-import Types.Error exposing (ErrorLevel(..))
-import Types.SharedMsg as SharedMsg
 
 
 {-| Build a Public endpoint with a placeholder region.
@@ -60,49 +61,50 @@ serviceCatalogSwiftSuite =
             \_ ->
                 case Helpers.serviceCatalogToEndpoints baseCatalog Nothing of
                     Ok endpoints ->
-                        let
-                            uploadStatusReasons =
-                                [ ObjectStorage.Failed "transport failed"
-                                , ObjectStorage.Rejected "file too large"
-                                ]
-                                    |> List.map
-                                        (\status ->
-                                            case status of
-                                                ObjectStorage.Failed reason ->
-                                                    reason
-
-                                                ObjectStorage.Rejected reason ->
-                                                    reason
-
-                                                _ ->
-                                                    ""
-                                        )
-
-                            uploadCallbackPayload =
-                                case
-                                    SharedMsg.ReceiveUploadObject
-                                        { actionContext = "upload object"
-                                        , level = ErrorWarn
-                                        , recoveryHint = Nothing
-                                        }
-                                        7
-                                        "container"
-                                        (Just "prefix/")
-                                        (Ok ())
-                                of
-                                    SharedMsg.ReceiveUploadObject _ _ containerName maybePrefix _ ->
-                                        ( containerName, maybePrefix )
-
-                                    _ ->
-                                        ( "", Nothing )
-                        in
-                        Expect.all
-                            [ \_ -> Expect.equal Nothing endpoints.swift
-                            , \_ -> Expect.equal [ "transport failed", "file too large" ] uploadStatusReasons
-                            , \_ -> Expect.equal ( "container", Just "prefix/" ) uploadCallbackPayload
-                            ]
-                            ()
+                        Expect.equal Nothing endpoints.swift
 
                     Err e ->
                         Expect.fail ("expected Ok endpoints, got Err: " ++ e)
+        ]
+
+
+serviceCatalogS3Suite : Test
+serviceCatalogS3Suite =
+    describe "serviceCatalogToEndpoints maps the s3 service"
+        [ test "maps an s3 service to endpoints.s3 = Just url" <|
+            \_ ->
+                let
+                    catalog =
+                        baseCatalog
+                            ++ [ service "s3" "http://s3.example.com" ]
+                in
+                case Helpers.serviceCatalogToEndpoints catalog Nothing of
+                    Ok endpoints ->
+                        Expect.equal (Just "http://s3.example.com") endpoints.s3
+
+                    Err e ->
+                        Expect.fail ("expected Ok endpoints, got Err: " ++ e)
+        , test "maps a missing s3 service to endpoints.s3 = Nothing" <|
+            \_ ->
+                case Helpers.serviceCatalogToEndpoints baseCatalog Nothing of
+                    Ok endpoints ->
+                        Expect.equal Nothing endpoints.s3
+
+                    Err e ->
+                        Expect.fail ("expected Ok endpoints, got Err: " ++ e)
+        ]
+
+
+objectStorageTileVisibleSuite : Test
+objectStorageTileVisibleSuite =
+    describe "objectStorageTileVisible gates the Object Storage tile"
+        [ test "hidden when Swift endpoint is absent, even with experimental on" <|
+            \_ ->
+                Expect.equal False (Helpers.objectStorageTileVisible True Nothing)
+        , test "hidden when experimental features are off, even with Swift present" <|
+            \_ ->
+                Expect.equal False (Helpers.objectStorageTileVisible False (Just "https://swift.example.com"))
+        , test "visible when experimental on and Swift present" <|
+            \_ ->
+                Expect.equal True (Helpers.objectStorageTileVisible True (Just "https://swift.example.com"))
         ]
