@@ -801,20 +801,31 @@ credentialFileHelp context =
                 [ Element.paragraph []
                     [ Element.text
                         (String.concat
-                            [ "Horizon, your "
-                            , context.localization.openstackWithOwnKeystone
-                            , " dashboard: open Identity, then Application "
+                            [ "This file holds an application "
                             , context.localization.credential
-                                |> Helpers.String.pluralize
-                                |> Helpers.String.toTitleCase
-                            , ", create one, and download the file it offers."
+                            , ". It lets Exosphere log in to one "
+                            , context.localization.unitOfTenancy
+                            , " without your password."
                             ]
                         )
                     ]
                 , Element.paragraph []
                     [ Element.text
                         (String.concat
-                            [ "Another Exosphere, like jetstream2.exosphere.app: open your "
+                            [ "From Horizon, your "
+                            , context.localization.openstackWithOwnKeystone
+                            , "'s dashboard: go to Identity, then "
+                            , {- @nonlocalized -} "Application Credentials"
+                            , ", and create one. Download the openrc or clouds.yaml file right away, because Horizon shows the secret only once."
+                            ]
+                        )
+                    ]
+                , Element.paragraph []
+                    [ Element.text
+                        (String.concat
+                            [ "From another Exosphere where you have the "
+                            , context.localization.unitOfTenancy
+                            , ": open the "
                             , context.localization.unitOfTenancy
                             , ", choose "
                             , context.localization.credential
@@ -824,6 +835,9 @@ credentialFileHelp context =
                             ]
                         )
                     ]
+                , Link.externalLink context.palette
+                    "https://docs.openstack.org/keystone/latest/user/application_credentials.html"
+                    ("Learn about application " ++ Helpers.String.pluralize context.localization.credential)
                 ]
 
         target togglePopoverMsg _ =
