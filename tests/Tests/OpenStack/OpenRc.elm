@@ -473,6 +473,24 @@ processOpenRcSuite =
                 openrcAppCredential
                     |> OpenStack.OpenRc.parseOpenRcProjectName
                     |> Expect.equal Nothing
+        , test "parse the region name when it is quoted" <|
+            \() ->
+                openrcPreV3
+                    |> OpenStack.OpenRc.parseOpenRcRegionName
+                    |> Expect.equal (Just "CellOne")
+        , test "report no region name when the file leaves it empty" <|
+            \() ->
+                """
+                export OS_REGION_NAME=""
+                if [ -z "$OS_REGION_NAME" ]; then unset OS_REGION_NAME; fi
+                """
+                    |> OpenStack.OpenRc.parseOpenRcRegionName
+                    |> Expect.equal Nothing
+        , test "parse the region name past Horizon's line that unsets an empty one" <|
+            \() ->
+                openrcV3withComments
+                    |> OpenStack.OpenRc.parseOpenRcRegionName
+                    |> Expect.equal (Just "CellOne")
         , test "recognize an OpenRC file by its OpenStack variables" <|
             \() ->
                 openrcAppCredential

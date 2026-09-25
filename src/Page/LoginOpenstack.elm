@@ -281,9 +281,9 @@ readOpenRc existingCreds contents =
                 , authUrl = authUrl
                 , appCredential = appCredential
 
-                -- OS_REGION_NAME is deliberately not read here. Unlike a clouds.yaml entry, an
-                -- OpenRC file is one login that the user may well want in several regions.
-                , regionName = Nothing
+                -- Read like a clouds.yaml entry's region_name: used when the catalog has that
+                -- region, and the region question is asked when it does not.
+                , regionName = OpenStack.OpenRc.parseOpenRcRegionName contents
                 }
 
         _ ->

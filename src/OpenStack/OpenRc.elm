@@ -1,4 +1,4 @@
-module OpenStack.OpenRc exposing (looksLikeOpenRc, openRcUsesAppCredentialAuth, parseOpenRcAppCredential, parseOpenRcAuthUrl, parseOpenRcProjectName, processOpenRc)
+module OpenStack.OpenRc exposing (looksLikeOpenRc, openRcUsesAppCredentialAuth, parseOpenRcAppCredential, parseOpenRcAuthUrl, parseOpenRcProjectName, parseOpenRcRegionName, processOpenRc)
 
 import Helpers.String exposing (normalizeLineEndings)
 import List.Extra
@@ -44,6 +44,14 @@ to log in to, so it is fine for this to be absent.
 parseOpenRcProjectName : String -> Maybe String
 parseOpenRcProjectName openRc =
     parseNonBlankVar openRc "OS_PROJECT_NAME"
+
+
+{-| The region an OpenRC file names, when it names one. Horizon writes an empty `OS_REGION_NAME`
+for a cloud without regions, which counts as naming none.
+-}
+parseOpenRcRegionName : String -> Maybe OSTypes.RegionId
+parseOpenRcRegionName openRc =
+    parseNonBlankVar openRc "OS_REGION_NAME"
 
 
 {-| A variable that a login needs, which a file can name and still leave empty. `OS_AUTH_URL=` is

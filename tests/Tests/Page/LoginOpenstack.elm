@@ -215,7 +215,7 @@ readCredentialFileSuite =
                             { name = "cloud-riders"
                             , authUrl = "https://cell.alliance.rebel:5000/v3"
                             , appCredential = ApplicationCredential "abcd-efgh" "supersecret"
-                            , regionName = Nothing
+                            , regionName = Just "IU"
                             }
                         )
         , test "an OpenRC file without a project name falls back to the auth URL host" <|
