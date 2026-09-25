@@ -1,9 +1,9 @@
-module Tests.Page.LoginOpenstack exposing (alreadyAddedSuite, cloudSelectionSuite, readCredentialFileSuite)
+module Tests.Page.LoginOpenstack exposing (alreadyAddedSuite, cloudSelectionSuite, readCredentialFileSuite, showSecretsSuite)
 
 import Expect
 import OpenStack.CloudsYaml
 import OpenStack.Types exposing (ApplicationCredential)
-import Page.LoginOpenstack exposing (CredentialFileError(..), CredentialFileOutcome(..))
+import Page.LoginOpenstack exposing (CredentialFileError(..), CredentialFileOutcome(..), Msg(..))
 import Set
 import Test exposing (Test, describe, test)
 import Types.HelperTypes as HelperTypes
@@ -313,4 +313,67 @@ export OS_APPLICATION_CREDENTIAL_SECRET=
             \() ->
                 read ""
                     |> Expect.equal (CredentialFileProblem UnrecognizedFile)
+        ]
+
+
+updateWith : Page.LoginOpenstack.Msg -> Page.LoginOpenstack.Model -> Page.LoginOpenstack.Model
+updateWith msg model =
+    let
+        ( newModel, _, _ ) =
+            Page.LoginOpenstack.updateModel msg model
+    in
+    newModel
+
+
+showSecretsSuite : Test
+showSecretsSuite =
+    describe "showing the secrets in the paste box only when asked"
+        [ test "a file that arrives has its secrets hidden, even after the last one was shown" <|
+            \() ->
+                Page.LoginOpenstack.init Nothing
+                    |> updateWith GotToggleShowSecrets
+                    |> updateWith (GotCredentialFileContents openrcWithAppCredential)
+                    |> .showSecrets
+                    |> Expect.equal False
+        , test "the toggle shows the secrets, and pressed again hides them" <|
+            \() ->
+                let
+                    shown =
+                        Page.LoginOpenstack.init Nothing
+                            |> updateWith (GotCredentialFileContents openrcWithAppCredential)
+                            |> updateWith GotToggleShowSecrets
+                in
+                Expect.equal ( True, False ) ( shown.showSecrets, (updateWith GotToggleShowSecrets shown).showSecrets )
+        , test "editing while the secrets are shown keeps them shown" <|
+            \() ->
+                Page.LoginOpenstack.init Nothing
+                    |> updateWith (GotCredentialFileContents openrcWithAppCredential)
+                    |> updateWith GotToggleShowSecrets
+                    |> updateWith (GotCredentialFileText (openrcWithAppCredential ++ "export OS_INTERFACE=public\n"))
+                    |> .showSecrets
+                    |> Expect.equal True
+        , test "a paste hides the secrets even after they were shown, and typing leaves them hidden" <|
+            \() ->
+                let
+                    pasted =
+                        Page.LoginOpenstack.init Nothing
+                            |> updateWith (GotCredentialFileContents openrcWithAppCredential)
+                            |> updateWith GotToggleShowSecrets
+                            |> updateWith GotCredentialFileTextPasted
+                in
+                Expect.equal
+                    ( False, False )
+                    ( pasted.showSecrets
+                    , (updateWith (GotCredentialFileText (openrcWithAppCredential ++ "export OS_INTERFACE=public\n")) pasted).showSecrets
+                    )
+        , test "Clear empties the box, forgets what was read from it, and hides the secrets" <|
+            \() ->
+                let
+                    cleared =
+                        Page.LoginOpenstack.init Nothing
+                            |> updateWith (GotCredentialFileContents openrcWithAppCredential)
+                            |> updateWith GotToggleShowSecrets
+                            |> updateWith GotClearCredentialFileText
+                in
+                Expect.equal ( "", Nothing, False ) ( cleared.credentialFileText, cleared.foundCredential, cleared.showSecrets )
         ]

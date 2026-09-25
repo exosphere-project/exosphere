@@ -1,4 +1,4 @@
-module Page.LoginOpenstack exposing (CredentialFileError(..), CredentialFileOutcome(..), EntryType, FoundCredential, Model, Msg, defaultCreds, headerView, init, maxCredentialFileBytes, noteProjectAlreadyAdded, processCredentialFile, readCredentialFile, selectedClouds, update, view)
+module Page.LoginOpenstack exposing (CredentialFileError(..), CredentialFileOutcome(..), EntryType, FoundCredential, Model, Msg(..), defaultCreds, headerView, init, maxCredentialFileBytes, noteProjectAlreadyAdded, processCredentialFile, readCredentialFile, selectedClouds, update, updateModel, view)
 
 import Element
 import Element.Background as Background
@@ -11,6 +11,8 @@ import File
 import File.Select
 import Helpers.String
 import Helpers.Url
+import Html
+import Html.Attributes
 import Html.Events
 import Json.Decode
 import OpenStack.CloudsYaml
@@ -39,6 +41,7 @@ import View.Types
 type alias Model =
     { creds : OSTypes.OpenstackLogin
     , credentialFileText : String
+    , showSecrets : Bool
     , entryType : EntryType
     , credentialFileError : Maybe CredentialFileError
     , foundCredential : Maybe FoundCredential
@@ -90,6 +93,9 @@ type Msg
     | GotUsername String
     | GotPassword String
     | GotCredentialFileText String
+    | GotCredentialFileTextPasted
+    | GotToggleShowSecrets
+    | GotClearCredentialFileText
     | GotSelectCredentialFileInput
     | GotSelectCredsInput
     | GotBrowseForCredentialFile
@@ -106,6 +112,7 @@ init : Maybe OSTypes.OpenstackLogin -> Model
 init maybeCreds =
     { creds = Maybe.withDefault defaultCreds maybeCreds
     , credentialFileText = ""
+    , showSecrets = False
     , entryType = CredsEntry
     , credentialFileError = Nothing
     , foundCredential = Nothing
@@ -140,6 +147,13 @@ maxCredentialFileBytes =
 
 update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg _ model =
+    updateModel msg model
+
+
+{-| `update` without the shared model, which it never reads, so that a test can call it.
+-}
+updateModel : Msg -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+updateModel msg model =
     let
         oldCreds =
             model.creds
@@ -174,6 +188,17 @@ update msg _ model =
             , SharedMsg.NoOp
             )
 
+        GotCredentialFileTextPasted ->
+            -- A paste or a drop into the box is a new file as far as the user is concerned, so
+            -- its secrets start hidden even when the last ones were shown. Typing leaves them be.
+            ( { model | showSecrets = False }, Cmd.none, SharedMsg.NoOp )
+
+        GotToggleShowSecrets ->
+            ( { model | showSecrets = not model.showSecrets }, Cmd.none, SharedMsg.NoOp )
+
+        GotClearCredentialFileText ->
+            updateModel (GotCredentialFileText "") { model | showSecrets = False }
+
         GotSelectCredentialFileInput ->
             ( { model | entryType = CredentialFileEntry, credentialFileError = Nothing }, Cmd.none, SharedMsg.NoOp )
 
@@ -206,7 +231,8 @@ update msg _ model =
 
         GotCredentialFileContents contents ->
             -- Reading a file processes it right away, so a drop is one gesture rather than two.
-            ( processCredentialFile { model | credentialFileText = contents }, Cmd.none, SharedMsg.NoOp )
+            -- A new file starts with its secrets hidden, whatever the last one was showing.
+            ( processCredentialFile { model | credentialFileText = contents, showSecrets = False }, Cmd.none, SharedMsg.NoOp )
 
         GotFileOverDropZone isOver ->
             ( { model | fileIsOverDropZone = isOver }, Cmd.none, SharedMsg.NoOp )
@@ -587,20 +613,99 @@ loginOpenstackCredentialFileEntry context model =
         , credentialFileStatus context model
         , credentialFileHelp context
         , orPasteSeparator context
-        , Input.multiline
-            (VH.inputItemAttributes context.palette
+        , credentialFileTextBox context model
+        ]
+
+
+{-| The paste box, with its secrets hidden until the user asks to see them, because this screen
+gets screenshotted and shared. Hidden means left out of the page, not covered up: elm-ui keeps a
+copy of a multiline input's text in the page, so while the secrets are hidden the input is not
+drawn at all and a read-only copy of the redacted text stands in its place.
+-}
+credentialFileTextBox : View.Types.Context -> Model -> Element.Element Msg
+credentialFileTextBox context model =
+    let
+        boxAttributes =
+            VH.inputItemAttributes context.palette
                 ++ [ Element.width Element.fill
                    , Element.height (Element.px 200)
                    , Text.fontSize Text.Tiny
                    ]
-            )
-            { onChange = GotCredentialFileText
-            , text = model.credentialFileText
-            , placeholder = Just (Input.placeholder [] pastePlaceholder)
-            , label = Input.labelHidden "Paste an OpenRC or clouds.yaml file"
-            , spellcheck = False
-            }
-        ]
+
+        textHasSecrets =
+            OpenStack.CredentialFile.hasSecrets model.credentialFileText
+
+        box =
+            if textHasSecrets && not model.showSecrets then
+                -- In an el of its own, because a column grows a child past a fixed height to fit
+                -- its content, and this box has to scroll instead
+                Element.el [ Element.width Element.fill ] <|
+                    Element.el
+                        (boxAttributes
+                            ++ [ Border.width 1
+                               , Border.rounded 3
+                               , Element.padding spacer.px12
+                               , Element.scrollbarY
+                               ]
+                        )
+                        (Element.html <|
+                            Html.div
+                                [ -- Keeps the line breaks and the indentation a clouds.yaml is read by
+                                  Html.Attributes.style "white-space" "pre-wrap"
+                                , Html.Attributes.style "overflow-wrap" "anywhere"
+
+                                -- The text box turns its spacing into line height and moves its
+                                -- text up by half of it. Doing the same keeps the lines in place
+                                -- when the secrets are shown.
+                                , Html.Attributes.style "line-height" ("calc(1em + " ++ String.fromInt spacer.px12 ++ "px)")
+                                , Html.Attributes.style "margin-top" ("-" ++ String.fromInt (spacer.px12 // 2) ++ "px")
+                                ]
+                                [ Html.text (OpenStack.CredentialFile.redactSecrets model.credentialFileText) ]
+                        )
+
+            else
+                Input.multiline
+                    (boxAttributes
+                        ++ [ -- A paste or a drop fires before the text changes, so the render
+                             -- after one is already hidden. Nothing is read from the clipboard.
+                             Element.htmlAttribute (Html.Events.on "paste" (Json.Decode.succeed GotCredentialFileTextPasted))
+                           , Element.htmlAttribute (Html.Events.on "drop" (Json.Decode.succeed GotCredentialFileTextPasted))
+                           ]
+                    )
+                    { onChange = GotCredentialFileText
+                    , text = model.credentialFileText
+                    , placeholder = Just (Input.placeholder [] pastePlaceholder)
+                    , label = Input.labelHidden "Paste an OpenRC or clouds.yaml file"
+                    , spellcheck = False
+                    }
+
+        secretControls =
+            if textHasSecrets then
+                Element.row [ Element.alignRight, Element.spacing spacer.px8 ]
+                    [ Button.button Button.Text
+                        context.palette
+                        { text =
+                            if model.showSecrets then
+                                "Hide secrets"
+
+                            else
+                                "Show secrets"
+                        , onPress = Just GotToggleShowSecrets
+                        }
+                    , Button.button Button.Text
+                        context.palette
+                        { text = "Clear"
+                        , onPress = Just GotClearCredentialFileText
+                        }
+                    ]
+
+            else
+                Element.none
+    in
+    -- One column whether or not there are controls under the box, so that a text box being typed
+    -- in stays the same element, and keeps its focus, when its last secret is deleted
+    Element.column [ Element.width Element.fill, Element.spacing spacer.px8 ]
+        [ box, secretControls ]
 
 
 pastePlaceholder : Element.Element Msg

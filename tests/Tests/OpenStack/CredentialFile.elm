@@ -1,4 +1,4 @@
-module Tests.OpenStack.CredentialFile exposing (credentialFileSuite)
+module Tests.OpenStack.CredentialFile exposing (credentialFileSuite, redactSecretsSuite)
 
 import Expect
 import OpenStack.CredentialFile exposing (Kind(..))
@@ -123,4 +123,90 @@ credentialFileSuite =
             \() ->
                 OpenStack.CredentialFile.detect "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAA\n-----END OPENSSH PRIVATE KEY-----\n"
                     |> Expect.equal UnrecognizedFile
+        ]
+
+
+redactSecretsSuite : Test
+redactSecretsSuite =
+    describe "hiding the secrets in a credential file"
+        [ test "hides an openrc application credential secret and leaves its ID showing" <|
+            \() ->
+                OpenStack.CredentialFile.redactSecrets openrcAppCredential
+                    |> Expect.equal
+                        """#!/usr/bin/env bash
+
+export OS_AUTH_TYPE=v3applicationcredential
+export OS_AUTH_URL=https://cell.alliance.rebel:5000/v3
+export OS_APPLICATION_CREDENTIAL_ID="abcd-efgh"
+export OS_APPLICATION_CREDENTIAL_SECRET=••••••••
+"""
+        , test "hides an openrc password without showing how long it is" <|
+            \() ->
+                [ "export OS_PASSWORD=\"hunter2\"", "export OS_PASSWORD=\"correct-horse-battery-staple\"" ]
+                    |> List.map OpenStack.CredentialFile.redactSecrets
+                    |> Expect.equal [ "export OS_PASSWORD=••••••••", "export OS_PASSWORD=••••••••" ]
+        , test "hides a clouds.yaml secret nested under auth and keeps its indentation" <|
+            \() ->
+                OpenStack.CredentialFile.redactSecrets cloudsYaml
+                    |> Expect.equal
+                        """clouds:
+  openstack:
+    auth:
+      auth_url: https://cell.alliance.rebel:5000
+      application_credential_id: abcd-efgh
+      application_credential_secret: ••••••••
+"""
+        , test "hides a PowerShell password without stopping at $env:" <|
+            \() ->
+                OpenStack.CredentialFile.redactSecrets "$env:OS_PASSWORD = \"hunter2\""
+                    |> Expect.equal "$env:OS_PASSWORD = ••••••••"
+        , test "leaves a blank value as it is, there being nothing to hide" <|
+            \() ->
+                [ "export OS_PASSWORD=\nexport OS_AUTH_URL=https://cell.alliance.rebel:5000/v3\n"
+                , "    auth:\n      application_credential_secret:   \n    region_name: IU\n"
+                ]
+                    |> List.map OpenStack.CredentialFile.redactSecrets
+                    |> Expect.equal
+                        [ "export OS_PASSWORD=\nexport OS_AUTH_URL=https://cell.alliance.rebel:5000/v3\n"
+                        , "    auth:\n      application_credential_secret:   \n    region_name: IU\n"
+                        ]
+        , test "hides a YAML value written below its key, up to the next key as deep as it" <|
+            \() ->
+                [ "      password: |\n        hunter2\n\n        and more\n      username: enfysnest\n"
+                , "      password: |-\n        hunter2\n      username: enfysnest\n"
+                , "      password: >\n        hunter2\n      username: enfysnest\n"
+                , "      application_credential_secret:\n        hunter2\n      application_credential_id: abcd-efgh\n"
+                ]
+                    |> List.map OpenStack.CredentialFile.redactSecrets
+                    |> Expect.equal
+                        [ "      password: |\n        ••••••••\n\n        ••••••••\n      username: enfysnest\n"
+                        , "      password: |-\n        ••••••••\n      username: enfysnest\n"
+                        , "      password: >\n        ••••••••\n      username: enfysnest\n"
+                        , "      application_credential_secret:\n        ••••••••\n      application_credential_id: abcd-efgh\n"
+                        ]
+        , test "knows a YAML value written below its key is a secret" <|
+            \() ->
+                [ "password: |\n  hunter2\n", "password: |-\n  hunter2\n", "password: >\n  hunter2\n", "password:\n  hunter2\n" ]
+                    |> List.map OpenStack.CredentialFile.hasSecrets
+                    |> Expect.equal [ True, True, True, True ]
+        , test "leaves text without a secret as it is" <|
+            \() ->
+                "export OS_AUTH_URL=https://cell.alliance.rebel:5000/v3\nexport OS_REGION_NAME=\"IU\"\n"
+                    |> OpenStack.CredentialFile.redactSecrets
+                    |> Expect.equal "export OS_AUTH_URL=https://cell.alliance.rebel:5000/v3\nexport OS_REGION_NAME=\"IU\"\n"
+        , test "keeps every line" <|
+            \() ->
+                [ openrcAppCredential, cloudsYaml, openrcWithCloudsYamlHereDoc ]
+                    |> List.map (OpenStack.CredentialFile.redactSecrets >> String.lines >> List.length)
+                    |> Expect.equal (List.map (String.lines >> List.length) [ openrcAppCredential, cloudsYaml, openrcWithCloudsYamlHereDoc ])
+        , test "knows a file with a secret in it has secrets" <|
+            \() ->
+                [ openrcAppCredential, cloudsYaml ]
+                    |> List.map OpenStack.CredentialFile.hasSecrets
+                    |> Expect.equal [ True, True ]
+        , test "knows a file without a secret, or with only a blank one, has none" <|
+            \() ->
+                [ "export OS_AUTH_URL=https://cell.alliance.rebel:5000/v3\n", "export OS_PASSWORD=\n", "" ]
+                    |> List.map OpenStack.CredentialFile.hasSecrets
+                    |> Expect.equal [ False, False, False ]
         ]
