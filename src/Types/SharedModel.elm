@@ -20,7 +20,7 @@ type alias SharedModel =
     , unscopedProviders : List HelperTypes.UnscopedProvider
     , pendingLoginIntents : List LoginIntent
     , activeLoginIntent : Maybe LoginIntent
-    , heldLoginToken : Maybe HeldLoginToken
+    , heldLoginTokens : List HeldLoginToken
     , loginChainGeneration : Int
     , deferredCredentialFileAlreadyAddedProjects : List String
     , banners : BannerTypes.BannerModel

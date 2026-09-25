@@ -84,12 +84,9 @@ navigateToPage url outerModel =
                     False
 
         credentialFileLoginChainIsActive =
-            case ( outerModel.sharedModel.heldLoginToken, outerModel.sharedModel.activeLoginIntent, outerModel.sharedModel.pendingLoginIntents ) of
-                ( Nothing, Nothing, [] ) ->
-                    False
-
-                _ ->
-                    True
+            (outerModel.sharedModel.activeLoginIntent /= Nothing)
+                || not (List.isEmpty outerModel.sharedModel.pendingLoginIntents)
+                || List.any (\token -> token.appCredential /= Nothing) outerModel.sharedModel.heldLoginTokens
 
         sharedModelBeforeNavigation =
             if
@@ -100,8 +97,9 @@ navigateToPage url outerModel =
                     sharedModel =
                         outerModel.sharedModel
                 in
+                -- Abandon only the credential-file chain. A password login waiting on regions is not part of it.
                 { sharedModel
-                    | heldLoginToken = Nothing
+                    | heldLoginTokens = State.LoginChain.dropCredentialFileTokens sharedModel.heldLoginTokens
                     , activeLoginIntent = Nothing
                     , pendingLoginIntents = []
                     , loginChainGeneration = State.LoginChain.nextGeneration sharedModel.loginChainGeneration

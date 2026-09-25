@@ -941,10 +941,11 @@ processSharedMsg sharedMsg outerModel =
                     State.LoginChain.nextGeneration sharedModel.loginChainGeneration
 
                 resetSharedModel =
+                    -- A password login waiting on regions is not part of the old chain, so it keeps its token
                     { sharedModel
                         | pendingLoginIntents = []
                         , activeLoginIntent = Nothing
-                        , heldLoginToken = Nothing
+                        , heldLoginTokens = State.LoginChain.dropCredentialFileTokens sharedModel.heldLoginTokens
                         , loginChainGeneration = nextGeneration
                     }
             in
@@ -1175,12 +1176,13 @@ processSharedMsg sharedMsg outerModel =
 
                                             newModel =
                                                 { oldSharedmodel
-                                                    | heldLoginToken =
-                                                        Just
+                                                    | heldLoginTokens =
+                                                        State.LoginChain.holdToken
                                                             { keystoneUrl = keystoneUrl
                                                             , authToken = authToken
                                                             , appCredential = maybeAppCredential
                                                             }
+                                                            oldSharedmodel.heldLoginTokens
                                                 }
                                         in
                                         ( newModel
@@ -1219,24 +1221,14 @@ processSharedMsg sharedMsg outerModel =
                             -- no more unscoped projects to choose regions for
                             startNextLoginIntent outerModel_
             in
-            case
-                sharedModel.heldLoginToken
-                    |> Maybe.andThen
-                        (\tokenWithCred ->
-                            if tokenWithCred.keystoneUrl == keystoneUrl && tokenWithCred.authToken.project.uuid == projectUuid then
-                                Just tokenWithCred
-
-                            else
-                                Nothing
-                        )
-            of
+            case State.LoginChain.findHeldToken keystoneUrl projectUuid sharedModel.heldLoginTokens of
                 Just tokenWithCred ->
                     regionIds
                         |> List.map (createProject keystoneUrl tokenWithCred.appCredential tokenWithCred.authToken)
                         |> List.foldl pipelineCmdOuterModelMsg ( outerModel, Cmd.none )
                         |> pipelineCmdOuterModelMsg (removeUnscopedProject keystoneUrl projectUuid)
                         -- Retire this token before starting the next login.
-                        |> pipelineCmdOuterModelMsg clearHeldLoginToken
+                        |> pipelineCmdOuterModelMsg (releaseHeldToken keystoneUrl projectUuid)
                         |> pipelineCmdOuterModelMsg dealWithNextProject
 
                 Nothing ->
@@ -1246,7 +1238,7 @@ processSharedMsg sharedMsg outerModel =
         AbandonProjectRegionSelection keystoneUrl projectUuid ->
             -- Skip this login and continue the credential-file chain.
             ( outerModel, Cmd.none )
-                |> pipelineCmdOuterModelMsg clearHeldLoginToken
+                |> pipelineCmdOuterModelMsg (releaseHeldToken keystoneUrl projectUuid)
                 |> pipelineCmdOuterModelMsg (removeUnscopedProject keystoneUrl projectUuid)
                 |> pipelineCmdOuterModelMsg startNextLoginIntent
 
@@ -4992,19 +4984,27 @@ continueCredentialFileChainAfter origin outerModel =
             ( outerModel, Cmd.none )
 
 
-clearHeldLoginToken : OuterModel -> ( OuterModel, Cmd OuterMsg )
-clearHeldLoginToken outerModel =
+releaseHeldToken : OSTypes.KeystoneUrl -> OSTypes.ProjectUuid -> OuterModel -> ( OuterModel, Cmd OuterMsg )
+releaseHeldToken keystoneUrl projectUuid outerModel =
     let
         sharedModel =
             outerModel.sharedModel
     in
-    ( { outerModel | sharedModel = { sharedModel | heldLoginToken = Nothing } }, Cmd.none )
+    ( { outerModel
+        | sharedModel =
+            { sharedModel
+                | heldLoginTokens = State.LoginChain.releaseHeldToken keystoneUrl projectUuid sharedModel.heldLoginTokens
+            }
+      }
+    , Cmd.none
+    )
 
 
 abandonCredentialFileLoginChainIfSelectingRegions : OuterModel -> OuterModel
 abandonCredentialFileLoginChainIfSelectingRegions outerModel =
     case outerModel.viewState of
         NonProjectView (SelectProjectRegions _) ->
+            -- Abandon only the credential-file chain. A password login waiting on regions is not part of it.
             let
                 sharedModel =
                     outerModel.sharedModel
@@ -5014,7 +5014,7 @@ abandonCredentialFileLoginChainIfSelectingRegions outerModel =
                     { sharedModel
                         | pendingLoginIntents = []
                         , activeLoginIntent = Nothing
-                        , heldLoginToken = Nothing
+                        , heldLoginTokens = State.LoginChain.dropCredentialFileTokens sharedModel.heldLoginTokens
                         , loginChainGeneration = State.LoginChain.nextGeneration sharedModel.loginChainGeneration
                     }
             }

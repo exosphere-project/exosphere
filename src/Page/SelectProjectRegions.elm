@@ -6,6 +6,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Set
+import State.LoginChain
 import Style.Widgets.Button as Button
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
@@ -77,15 +78,7 @@ views : View.Types.Context -> SharedModel -> Model -> ( Maybe (Element.Element m
 views context sharedModel model =
     let
         maybeScopedAuthTokenWaitingSelection =
-            sharedModel.heldLoginToken
-                |> Maybe.andThen
-                    (\token ->
-                        if token.keystoneUrl == model.providerKeystoneUrl && token.authToken.project.uuid == model.projectUuid then
-                            Just token
-
-                        else
-                            Nothing
-                    )
+            State.LoginChain.findHeldToken model.providerKeystoneUrl model.projectUuid sharedModel.heldLoginTokens
     in
     case maybeScopedAuthTokenWaitingSelection of
         Just scopedAuthTokenWaitingSelection ->

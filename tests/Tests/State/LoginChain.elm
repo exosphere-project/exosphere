@@ -1,8 +1,46 @@
 module Tests.State.LoginChain exposing (suite)
 
 import Expect
+import OpenStack.Types as OSTypes
 import State.LoginChain
 import Test exposing (Test, describe, test)
+import Time
+import Types.LoginIntent exposing (HeldLoginToken)
+
+
+heldToken : OSTypes.KeystoneUrl -> OSTypes.ProjectUuid -> Maybe OSTypes.ApplicationCredential -> HeldLoginToken
+heldToken keystoneUrl projectUuid maybeAppCredential =
+    let
+        nameAndUuid =
+            { name = "cloud-riders", uuid = projectUuid }
+    in
+    { keystoneUrl = keystoneUrl
+    , authToken =
+        { catalog = []
+        , project = nameAndUuid
+        , projectDomain = nameAndUuid
+        , user = nameAndUuid
+        , userDomain = nameAndUuid
+        , expiresAt = Time.millisToPosix 0
+        , tokenValue = projectUuid
+        }
+    , appCredential = maybeAppCredential
+    }
+
+
+alliance : OSTypes.KeystoneUrl
+alliance =
+    "https://cell.alliance.rebel:5000/v3"
+
+
+empire : OSTypes.KeystoneUrl
+empire =
+    "https://keystone.empire.gov:5000/v3"
+
+
+fileCredential : OSTypes.ApplicationCredential
+fileCredential =
+    { uuid = "a1b2c3", secret = "hope" }
 
 
 suite : Test
@@ -77,4 +115,54 @@ suite =
                     |> State.LoginChain.addNotice "rogue-squadron"
                     |> State.LoginChain.addNotice "cloud-riders"
                     |> Expect.equal [ "cloud-riders", "rogue-squadron" ]
+        , describe "tokens waiting on a region question"
+            [ test "two projects logged in together both keep their tokens" <|
+                \_ ->
+                    let
+                        heldTokens =
+                            []
+                                |> State.LoginChain.holdToken (heldToken alliance "project-a" Nothing)
+                                |> State.LoginChain.holdToken (heldToken alliance "project-b" Nothing)
+                    in
+                    Expect.equal
+                        ( Just (heldToken alliance "project-a" Nothing), Just (heldToken alliance "project-b" Nothing) )
+                        ( State.LoginChain.findHeldToken alliance "project-a" heldTokens
+                        , State.LoginChain.findHeldToken alliance "project-b" heldTokens
+                        )
+            , test "the same project UUID on two clouds is two tokens" <|
+                \_ ->
+                    let
+                        heldTokens =
+                            []
+                                |> State.LoginChain.holdToken (heldToken alliance "project-a" Nothing)
+                                |> State.LoginChain.holdToken (heldToken empire "project-a" (Just fileCredential))
+                    in
+                    Expect.equal
+                        ( Just (heldToken alliance "project-a" Nothing), Just (heldToken empire "project-a" (Just fileCredential)) )
+                        ( State.LoginChain.findHeldToken alliance "project-a" heldTokens
+                        , State.LoginChain.findHeldToken empire "project-a" heldTokens
+                        )
+            , test "a second token for the same project replaces the first" <|
+                \_ ->
+                    []
+                        |> State.LoginChain.holdToken (heldToken alliance "project-a" Nothing)
+                        |> State.LoginChain.holdToken (heldToken alliance "project-a" (Just fileCredential))
+                        |> Expect.equal [ heldToken alliance "project-a" (Just fileCredential) ]
+            , test "answering one question releases only that token" <|
+                \_ ->
+                    []
+                        |> State.LoginChain.holdToken (heldToken alliance "project-a" Nothing)
+                        |> State.LoginChain.holdToken (heldToken alliance "project-b" Nothing)
+                        |> State.LoginChain.holdToken (heldToken empire "project-a" Nothing)
+                        |> State.LoginChain.releaseHeldToken alliance "project-a"
+                        |> List.map (\token -> ( token.keystoneUrl, token.authToken.project.uuid ))
+                        |> Expect.equal [ ( empire, "project-a" ), ( alliance, "project-b" ) ]
+            , test "abandoning the credential-file chain keeps password logins waiting" <|
+                \_ ->
+                    []
+                        |> State.LoginChain.holdToken (heldToken alliance "project-a" Nothing)
+                        |> State.LoginChain.holdToken (heldToken empire "project-b" (Just fileCredential))
+                        |> State.LoginChain.dropCredentialFileTokens
+                        |> Expect.equal [ heldToken alliance "project-a" Nothing ]
+            ]
         ]
