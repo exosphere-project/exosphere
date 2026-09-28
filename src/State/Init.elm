@@ -524,6 +524,7 @@ flavorGroupDecoder =
 
 customResourceDecoder : Decode.Decoder HelperTypes.CustomResource
 customResourceDecoder =
-    Decode.map2 HelperTypes.CustomResource
+    Decode.map3 HelperTypes.CustomResource
         (Decode.field "resource" Decode.string)
         (Decode.field "friendlyName" Decode.string)
+        (Decode.maybe (Decode.field "alias" Decode.string))

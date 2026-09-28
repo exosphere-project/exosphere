@@ -1,5 +1,6 @@
 module Helpers.String exposing
     ( capitalizeWord
+    , equalsCaseInsensitive
     , formatStringTemplate
     , hyphenate
     , indefiniteArticle
@@ -185,3 +186,8 @@ removeEmptiness description =
                 else
                     Just d
             )
+
+
+equalsCaseInsensitive : String -> String -> Bool
+equalsCaseInsensitive left right =
+    String.toLower left == String.toLower right

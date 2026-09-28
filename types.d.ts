@@ -118,6 +118,7 @@ declare namespace Exosphere {
   type CloudCustomResource = {
     resource: string;
     friendlyName: string;
+    alias?: null | string;
   };
 
   type CloudSecurityGroup = {

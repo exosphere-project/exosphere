@@ -1,5 +1,6 @@
 module Helpers.Image exposing (ImageOperatingSystem, detectImageOperatingSystem, detectOperatingSystem, guessOsDefaultUsername)
 
+import Helpers.String exposing (equalsCaseInsensitive)
 import List.Extra
 import OpenStack.Types as OSTypes
 
@@ -133,10 +134,6 @@ guessOsDefaultUsername osDistro maybeOsVersion =
 detectOperatingSystem : String -> Maybe String -> Maybe String -> Maybe ImageOperatingSystem
 detectOperatingSystem imageName maybeOsDistro maybeOsVersion =
     let
-        stringSimilar : String -> String -> Bool
-        stringSimilar left right =
-            String.toLower left == String.toLower right
-
         stringContainsSimilar : String -> String -> Bool
         stringContainsSimilar needle haystack =
             String.contains
@@ -146,7 +143,7 @@ detectOperatingSystem imageName maybeOsDistro maybeOsVersion =
         imageIsLikelyToBe : String -> Bool
         imageIsLikelyToBe name =
             maybeOsDistro
-                |> Maybe.map (stringSimilar name)
+                |> Maybe.map (equalsCaseInsensitive name)
                 |> Maybe.withDefault (stringContainsSimilar name imageName)
     in
     case
@@ -163,7 +160,7 @@ detectOperatingSystem imageName maybeOsDistro maybeOsVersion =
                     maybeOsVersion
                         |> Maybe.andThen
                             (\v ->
-                                if List.any (stringSimilar v) supportedVersions then
+                                if List.any (equalsCaseInsensitive v) supportedVersions then
                                     Just True
 
                                 else

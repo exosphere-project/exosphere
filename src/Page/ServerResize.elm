@@ -1,14 +1,17 @@
 module Page.ServerResize exposing (Model, Msg, init, update, view)
 
 import Element
+import Helpers.FlavorLimits as FlavorLimits
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
+import Page.QuotaUsage
 import Route
 import Style.Widgets.Button as Button
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
+import Style.Widgets.Validation exposing (invalidMessage)
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
 import Types.SharedModel exposing (SharedModel)
@@ -101,6 +104,27 @@ view_ context project model computeQuota =
 
         currentFlavorId =
             GetterSetters.serverLookup project model.serverUuid |> Maybe.map (\server -> server.osProps.details.flavorId)
+
+        currentFlavor =
+            currentFlavorId |> Maybe.andThen (GetterSetters.flavorLookup project)
+
+        flavorLimitEvaluation =
+            FlavorLimits.evaluate
+                { computeQuota = computeQuota
+                , computeQuotaOperation = FlavorLimits.ResizeFrom currentFlavor
+                , customResources = GetterSetters.getCustomResources project context
+                , flavors = RDPP.withDefault [] project.flavors
+                , locale = context.locale
+                , localization = context.localization
+                , registeredLimits = RDPP.toMaybe project.registeredLimits
+                , projectLimits = RDPP.toMaybe project.projectLimits
+                , projectUsages = RDPP.toMaybe project.projectUsages
+                }
+
+        selectedFlavorExceedsLimits =
+            model.flavorId
+                |> Maybe.map (\flavorId -> FlavorLimits.exceedsLimit flavorId flavorLimitEvaluation)
+                |> Maybe.withDefault False
     in
     Element.column VH.formContainer
         [ Text.heading context.palette
@@ -111,32 +135,54 @@ view_ context project model computeQuota =
                 [ "Resize"
                 , context.localization.virtualComputer
                     |> Helpers.String.toTitleCase
-                , case currentFlavorId of
-                    Just flavorId ->
-                        "(Current Size: " ++ (GetterSetters.flavorLookup project flavorId |> Maybe.map .name |> Maybe.withDefault "") ++ ")"
+                , case currentFlavor of
+                    Just flavor ->
+                        String.concat
+                            [ "(Current "
+                            , Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig
+                            , ": "
+                            , flavor.name
+                            , ")"
+                            ]
 
                     Nothing ->
                         ""
                 ]
             )
         , Element.column [ Element.spacing spacer.px16 ]
-            [ VH.flavorPicker context
+            [ Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Compute project)
+            , VH.flavorPicker context
                 project
                 restrictFlavorIds
-                (Just ("This flavor has a root disk smaller than your current " ++ context.localization.virtualComputer))
-                computeQuota
+                (Just
+                    (String.concat
+                        [ "This "
+                        , context.localization.virtualComputerHardwareConfig
+                        , " has a root disk smaller than your current "
+                        , context.localization.virtualComputer
+                        ]
+                    )
+                )
+                flavorLimitEvaluation
                 (\flavorGroupTipId -> SharedMsg <| SharedMsg.TogglePopover flavorGroupTipId)
                 (Helpers.String.hyphenate [ "serverResizeFlavorGroupTip", project.auth.project.uuid ])
                 currentFlavorId
                 model.flavorId
                 GotFlavorId
-            , Element.row [ Element.width Element.fill ]
-                [ Element.el [ Element.alignRight ]
+            , Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
+                [ Element.el [ Element.width Element.fill ] <|
+                    if selectedFlavorExceedsLimits then
+                        invalidMessage context.palette <|
+                            FlavorLimits.invalidSelectionMessage context.localization
+
+                    else
+                        Element.none
+                , Element.el [ Element.alignRight ]
                     (Button.primary
                         context.palette
                         { text = "Resize"
                         , onPress =
-                            if model.flavorId == currentFlavorId then
+                            if model.flavorId == currentFlavorId || selectedFlavorExceedsLimits then
                                 Nothing
 
                             else

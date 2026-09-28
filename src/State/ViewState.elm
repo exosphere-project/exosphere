@@ -428,6 +428,8 @@ routeToViewStateModelCmd sharedModel route =
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestFlavors (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestVolumeQuota (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestNetworkQuota (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestRegisteredLimits (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestProjectLimits (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <|
                                 ServerCreate
@@ -539,6 +541,10 @@ routeToViewStateModelCmd sharedModel route =
                                             (ApiModelHelpers.requestProjectUsages (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestFlavors (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestRegisteredLimits (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestProjectLimits (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| ServerResize (Page.ServerResize.init serverId)
                             , newSharedModel
