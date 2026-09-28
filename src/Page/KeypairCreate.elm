@@ -7,6 +7,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.SshKeyTypeGuesser
 import Helpers.String
 import Html.Attributes
+import OpenStack.KeypairNameValidator exposing (keypairNameValidator)
 import String exposing (trim)
 import Style.Helpers as SH
 import Style.Widgets.Button as Button
@@ -66,15 +67,8 @@ view context project currentTime model =
                 Nothing ->
                     Element.none
 
-        invalidNameReason =
-            if String.isEmpty model.name then
-                Just "Name is required"
-
-            else if String.left 1 model.name == " " then
-                Just "Name cannot start with a space"
-
-            else
-                Nothing
+        invalidNameReasons =
+            keypairNameValidator model.name
 
         invalidValueReason =
             if String.isEmpty model.publicKey then
@@ -122,8 +116,9 @@ view context project currentTime model =
                                 [ context.localization.pkiPublicKeyForSsh, "name" ]
                         )
                 }
-             , renderInvalidReason invalidNameReason
+             , Text.text Text.Small [] "Use only letters, numbers, spaces, hyphens and underscores."
              ]
+                ++ List.map (Validation.invalidMessage context.palette) invalidNameReasons
                 ++ Forms.resourceNameAlreadyExists context
                     project
                     currentTime
@@ -158,15 +153,15 @@ view context project currentTime model =
         , renderInvalidReason invalidValueReason
         , let
             ( createKey, keyWarnText ) =
-                case ( invalidNameReason, invalidValueReason ) of
-                    ( Nothing, Nothing ) ->
+                case ( invalidNameReasons, invalidValueReason ) of
+                    ( [], Nothing ) ->
                         ( Just GotSubmit
                         , Nothing
                         )
 
                     _ ->
                         ( Nothing
-                        , Just <| "All fields are required"
+                        , Just <| "Please correct the problems above"
                         )
           in
           Element.row [ Element.width Element.fill ]
