@@ -21,7 +21,7 @@ async function commandExists(command) {
 
 async function main() {
   if (!(await commandExists("pre-commit"))) {
-    console.log("pre-commit is not installed, see contributing.md'");
+    console.log("pre-commit is not installed, see contributing.md");
     return;
   }
 
@@ -31,4 +31,7 @@ async function main() {
   }
 }
 
-main();
+main().catch((error) => {
+  console.log(error.stdout || error.message);
+  console.log("pre-commit install failed, see contributing.md");
+});
