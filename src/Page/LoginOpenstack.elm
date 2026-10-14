@@ -588,7 +588,7 @@ loginOpenstackCredsEntry context model allCredsEntered =
         , Input.currentPassword
             (VH.inputItemAttributes context.palette)
             { text = creds.password
-            , placeholder = Just (Input.placeholder [] (Element.text "Password e.g. correct-horse-battery-staple"))
+            , placeholder = Just (Input.placeholder [] (Element.text "Password"))
             , show = False
             , onChange = GotPassword
             , label = Input.labelAbove [ Text.fontSize Text.Small ] (Element.text "Password")
@@ -715,7 +715,7 @@ pastePlaceholder =
         (List.map Element.text
             [ "export OS_AUTH_URL=https://mycloud.net:5000/v3"
             , "export OS_APPLICATION_CREDENTIAL_ID=e.g. 6ee7d4f9c0a24b1f"
-            , "export OS_APPLICATION_CREDENTIAL_SECRET=e.g. hunter2"
+            , "export OS_APPLICATION_CREDENTIAL_SECRET=..."
             ]
         )
 
