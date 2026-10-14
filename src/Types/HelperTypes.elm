@@ -243,6 +243,7 @@ type alias FlavorGroupTitle =
 type alias CustomResource =
     { resource : String
     , friendlyName : String
+    , alias : Maybe String
     }
 
 

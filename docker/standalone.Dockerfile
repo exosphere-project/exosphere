@@ -17,6 +17,7 @@ RUN apt-get update && \
 
 # Install and cache dependencies
 COPY package*.json ./
+COPY scripts/* ./scripts/
 COPY elm.json ./
 COPY elm-git.json ./
 COPY elm-watch.json ./

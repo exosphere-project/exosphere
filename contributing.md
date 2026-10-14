@@ -18,6 +18,7 @@ In addition to [Running Exosphere For Development Work](docs/run-exosphere.md#fo
   `pre-commit` is a utility for managing git hooks. We use it to run tests, format tools, and code analysis tools.
   - Install [`pre-commit`](https://pre-commit.com/index.html#install)
     - If you already have Python, run `pip install --user pre-commit`
+    - Using [uv](https://docs.astral.sh/uv/) on any platform, run `uv tool install pre-commit`
     - Using [Homebrew](https://brew.sh/) on MacOS, run `brew install pre-commit`
     - If you use [Conda](https://conda.io/), run `conda install -c conda-forge pre-commit`
   - Run `npm install` and `npm run prepare` to set up `pre-commit` in your development environment.

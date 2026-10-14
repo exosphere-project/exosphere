@@ -5,10 +5,14 @@ module Tests.OpenStack.Quotas exposing
     )
 
 import Expect
+import Fuzz
 import Json.Decode as Decode
 import OpenStack.Quotas
     exposing
         ( computeQuotaDecoder
+        , computeQuotaFlavorCapacities
+        , computeQuotaFlavorResizeCapacities
+        , exceedsQuota
         , shareQuotaDecoder
         , volumeQuotaDecoder
         )
@@ -74,7 +78,150 @@ computeQuotasAndLimitsSuite =
                         , keypairsLimit = 100
                         }
                     )
+        , test "create reports every exceeded compute quota" <|
+            \_ ->
+                let
+                    computeQuota =
+                        { cores = { inUse = 8, limit = OSTypes.Limit 10 }
+                        , instances = { inUse = 1, limit = OSTypes.Limit 1 }
+                        , ram = { inUse = 8000, limit = OSTypes.Limit 10000 }
+                        , keypairsLimit = 10
+                        }
+                in
+                computeQuotaFlavorCapacities
+                    computeQuota
+                    (quotaTestFlavor "target" 4 4096)
+                    |> List.filter exceedsQuota
+                    |> List.map exceededSummary
+                    |> Expect.equal
+                        [ { resource = OpenStack.Quotas.Cores
+                          , required = 12
+                          , inUse = 8
+                          , limit = 10
+                          }
+                        , { resource = OpenStack.Quotas.Ram
+                          , required = 12096
+                          , inUse = 8000
+                          , limit = 10000
+                          }
+                        , { resource = OpenStack.Quotas.Instances
+                          , required = 2
+                          , inUse = 1
+                          , limit = 1
+                          }
+                        ]
+        , test "resize checks only positive cores and RAM deltas and ignores instance quota" <|
+            \_ ->
+                let
+                    currentFlavor =
+                        quotaTestFlavor "current" 4 4096
+
+                    computeQuota =
+                        { cores = { inUse = 8, limit = OSTypes.Limit 10 }
+                        , instances = { inUse = 1, limit = OSTypes.Limit 1 }
+                        , ram = { inUse = 8000, limit = OSTypes.Limit 10000 }
+                        , keypairsLimit = 10
+                        }
+                in
+                Expect.all
+                    [ \_ ->
+                        computeQuotaFlavorResizeCapacities
+                            computeQuota
+                            currentFlavor
+                            (quotaTestFlavor "within" 6 5632)
+                            |> List.filter exceedsQuota
+                            |> List.map exceededSummary
+                            |> Expect.equal []
+                    , \_ ->
+                        computeQuotaFlavorResizeCapacities
+                            computeQuota
+                            currentFlavor
+                            (quotaTestFlavor "cores-over" 7 5632)
+                            |> List.filter exceedsQuota
+                            |> List.map exceededSummary
+                            |> Expect.equal
+                                [ { resource = OpenStack.Quotas.Cores
+                                  , required = 11
+                                  , inUse = 8
+                                  , limit = 10
+                                  }
+                                ]
+                    , \_ ->
+                        computeQuotaFlavorResizeCapacities
+                            computeQuota
+                            currentFlavor
+                            (quotaTestFlavor "ram-over" 6 6656)
+                            |> List.filter exceedsQuota
+                            |> List.map exceededSummary
+                            |> Expect.equal
+                                [ { resource = OpenStack.Quotas.Ram
+                                  , required = 10560
+                                  , inUse = 8000
+                                  , limit = 10000
+                                  }
+                                ]
+                    ]
+                    ()
+        , test "resize permits non-increasing resources when usage is already over quota" <|
+            \_ ->
+                let
+                    currentFlavor =
+                        quotaTestFlavor "current" 8 8192
+
+                    computeQuota =
+                        { cores = { inUse = 11, limit = OSTypes.Limit 10 }
+                        , instances = { inUse = 2, limit = OSTypes.Limit 1 }
+                        , ram = { inUse = 11000, limit = OSTypes.Limit 10000 }
+                        , keypairsLimit = 10
+                        }
+                in
+                Expect.all
+                    [ \_ ->
+                        computeQuotaFlavorResizeCapacities
+                            computeQuota
+                            currentFlavor
+                            (quotaTestFlavor "same" 8 8192)
+                            |> List.filter exceedsQuota
+                            |> List.map exceededSummary
+                            |> Expect.equal []
+                    , \_ ->
+                        computeQuotaFlavorResizeCapacities
+                            computeQuota
+                            currentFlavor
+                            (quotaTestFlavor "smaller" 4 4096)
+                            |> List.filter exceedsQuota
+                            |> List.map exceededSummary
+                            |> Expect.equal []
+                    ]
+                    ()
+        , Test.fuzz3 (Fuzz.intRange 0 500) (Fuzz.intRange 0 500) (Fuzz.intRange 1 64) "exceeding a quota is exactly having no capacity" <|
+            \inUse limit vcpu ->
+                let
+                    computeQuota =
+                        { cores = { inUse = inUse, limit = OSTypes.Limit limit }
+                        , instances = { inUse = 0, limit = OSTypes.Unlimited }
+                        , ram = { inUse = 0, limit = OSTypes.Unlimited }
+                        , keypairsLimit = 10
+                        }
+                in
+                computeQuotaFlavorCapacities computeQuota (quotaTestFlavor "fuzzed" vcpu 1024)
+                    |> List.filter (\capacity -> capacity.resource == OpenStack.Quotas.Cores)
+                    |> List.map exceedsQuota
+                    |> Expect.equal [ inUse + vcpu > limit ]
         ]
+
+
+quotaTestFlavor : OSTypes.FlavorId -> Int -> Int -> OSTypes.Flavor
+quotaTestFlavor id vcpu ramMb =
+    { id = id
+    , name = id
+    , description = Nothing
+    , vcpu = vcpu
+    , ram_mb = ramMb
+    , disk_root = 0
+    , disk_ephemeral = 0
+    , extra_specs = []
+    }
 
 
 volumeQuotasAndLimitsSuite : Test
@@ -168,3 +315,14 @@ manilaQuotasAndLimitsSuite =
                         }
                     )
         ]
+
+
+{-| The facts an exceeded quota reports, without the capacity that is zero by construction.
+-}
+exceededSummary : OSTypes.QuotaCapacity resource -> { resource : resource, required : Int, inUse : Int, limit : Int }
+exceededSummary capacity =
+    { resource = capacity.resource
+    , required = capacity.required
+    , inUse = capacity.inUse
+    , limit = capacity.limit
+    }

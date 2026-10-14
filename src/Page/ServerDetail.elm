@@ -1587,7 +1587,7 @@ renderServerAction context project model server closeActionsDropdown serverActio
 
         ( _, _ ) ->
             -- This is ugly, we should have an explicit custom type for server actions and match on that
-            if String.toLower serverAction.name == String.toLower context.localization.staticRepresentationOfBlockDeviceContents then
+            if Helpers.String.equalsCaseInsensitive serverAction.name context.localization.staticRepresentationOfBlockDeviceContents then
                 -- Overriding button for image, because we just want to navigate to another page
                 Element.link [ Element.width Element.fill ]
                     { url =
