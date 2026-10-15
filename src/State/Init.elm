@@ -193,7 +193,11 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
         emptyModel showDebugMsgs uuid =
             { logMessages = logMessages
             , unscopedProviders = []
-            , scopedAuthTokensWaitingRegionSelection = []
+            , pendingLoginIntents = []
+            , activeLoginIntent = Nothing
+            , heldLoginTokens = []
+            , loginChainGeneration = 0
+            , deferredCredentialFileAlreadyAddedProjects = []
             , banners =
                 let
                     defaultUrl =

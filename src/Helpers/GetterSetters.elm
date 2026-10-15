@@ -37,6 +37,7 @@ module Helpers.GetterSetters exposing
     , isSnapshotOfVolume
     , isVolumeCurrentlyBackingServer
     , isVolumeReservedForShelvedInstance
+    , loginAlreadyImported
     , modelUpdateProject
     , modelUpdateUnscopedProvider
     , objectStorageListingKey
@@ -398,6 +399,34 @@ getCatalogRegionIds catalog =
         |> List.concatMap .endpoints
         |> List.map .regionId
         |> List.Extra.unique
+
+
+{-| Whether a scoped login has already been imported, given the regions of the projects that
+already carry its project UUID.
+
+When the region of the incoming login is settled, the same project UUID in another region is a
+different project that still needs importing, so only a match in that region counts. A project
+stored before Exosphere recorded regions has no region to compare against, so it counts as a
+match rather than being imported a second time.
+
+When the region is not settled, only a region-less project counts. A token refresh always carries
+the region of the project it is refreshing, so the only refresh that can arrive without one is for
+a project stored before regions were recorded, and that is the case this branch protects. A login
+that arrives without a region and finds the project held in named regions is a login that may be
+asking for one more region, so it is imported rather than swallowed. An OpenRC file is the usual
+way that happens: it names one application credential and no region, and the user may well want it
+in several.
+
+-}
+loginAlreadyImported : Maybe OSTypes.RegionId -> List (Maybe OSTypes.RegionId) -> Bool
+loginAlreadyImported maybeIncomingRegionId existingProjectRegionIds =
+    case maybeIncomingRegionId of
+        Just incomingRegionId ->
+            existingProjectRegionIds
+                |> List.any (\existingRegionId -> existingRegionId == Nothing || existingRegionId == Just incomingRegionId)
+
+        Nothing ->
+            List.member Nothing existingProjectRegionIds
 
 
 getServicePublicUrl : OSTypes.ServiceCatalog -> Maybe OSTypes.RegionId -> String -> Maybe HelperTypes.Url

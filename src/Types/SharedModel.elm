@@ -9,6 +9,7 @@ import Types.AppVersion exposing (AppVersion)
 import Types.Banner as BannerTypes
 import Types.Error exposing (ErrorContext, Toast)
 import Types.HelperTypes as HelperTypes
+import Types.LoginIntent exposing (HeldLoginToken, LoginIntent)
 import Types.Project exposing (Project)
 import UUID
 import View.Types
@@ -17,7 +18,11 @@ import View.Types
 type alias SharedModel =
     { logMessages : List LogMessage
     , unscopedProviders : List HelperTypes.UnscopedProvider
-    , scopedAuthTokensWaitingRegionSelection : List OSTypes.ScopedAuthToken
+    , pendingLoginIntents : List LoginIntent
+    , activeLoginIntent : Maybe LoginIntent
+    , heldLoginTokens : List HeldLoginToken
+    , loginChainGeneration : Int
+    , deferredCredentialFileAlreadyAddedProjects : List String
     , banners : BannerTypes.BannerModel
     , projects : List Project
     , toasties : Toasty.Stack Toast

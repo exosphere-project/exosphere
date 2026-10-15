@@ -99,7 +99,13 @@ requestAuthToken model project =
 
         ApplicationCredential appCred ->
             Ok <|
-                Rest.Keystone.requestScopedAuthToken model.cloudCorsProxyUrl <|
+                Rest.Keystone.requestScopedAuthToken
+                    model.cloudCorsProxyUrl
+                    -- Renewing a token nobody asked to renew. Whatever the user is looking at
+                    -- when it lands, this must not change it or comment on it.
+                    HelperTypes.TokenRefresh
+                    (project.region |> Maybe.map .id)
+                <|
                     OSTypes.AppCreds project.endpoints.keystone project.auth.project.name appCred
 
 

@@ -2,7 +2,7 @@ module Tests.OpenStack.OpenRc exposing (processOpenRcSuite)
 
 import Expect
 import OpenStack.OpenRc
-import OpenStack.Types exposing (OpenstackLogin)
+import OpenStack.Types exposing (ApplicationCredential, OpenstackLogin)
 import Page.LoginOpenstack
 import Test exposing (Test, describe, test)
 
@@ -112,6 +112,31 @@ withWindowsLineEndings =
     String.replace "\n" "\u{000D}\n"
 
 
+openrcAppCredential : String
+openrcAppCredential =
+    """
+export OS_AUTH_TYPE=v3applicationcredential
+export OS_AUTH_URL=https://mycloud.example:5000/v3
+export OS_APPLICATION_CREDENTIAL_ID=abcd-efgh
+export OS_APPLICATION_CREDENTIAL_SECRET=supersecret
+"""
+
+
+openrcAppCredentialQuotedAuthType : String
+openrcAppCredentialQuotedAuthType =
+    """
+export OS_AUTH_TYPE='v3applicationcredential'
+"""
+
+
+openrcAppCredentialCrlf : String
+openrcAppCredentialCrlf =
+    "export OS_AUTH_TYPE=v3applicationcredential\u{000D}\n"
+        ++ "export OS_AUTH_URL=https://mycloud.example:5000/v3\u{000D}\n"
+        ++ "export OS_APPLICATION_CREDENTIAL_ID=abcd-efgh\u{000D}\n"
+        ++ "export OS_APPLICATION_CREDENTIAL_SECRET=supersecret\u{000D}\n"
+
+
 processOpenRcSuite : Test
 processOpenRcSuite =
     describe "end result of processing imported openrc files"
@@ -128,6 +153,22 @@ processOpenRcSuite =
                     |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
                     |> .password
                     |> Expect.equal ""
+        , test "that a double-quoted \"$OS_PASSWORD_INPUT\" is *not* processed" <|
+            \() ->
+                """
+                export OS_PASSWORD="$OS_PASSWORD_INPUT"
+                """
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .password
+                    |> Expect.equal ""
+        , test "that a single-quoted '$literal' is kept as-is" <|
+            \() ->
+                """
+                export OS_PASSWORD='$literal'
+                """
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .password
+                    |> Expect.equal "$literal"
         , test "that double quotes are not included in a processed match" <|
             \() ->
                 """
@@ -141,6 +182,12 @@ processOpenRcSuite =
                 """
                 export OS_AUTH_URL='https://cell.alliance.rebel:5000/v3'
                 """
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .authUrl
+                    |> Expect.equal "https://cell.alliance.rebel:5000/v3"
+        , test "that a tab after export is accepted" <|
+            \() ->
+                "export\tOS_AUTH_URL=https://cell.alliance.rebel:5000/v3\n"
                     |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
                     |> .authUrl
                     |> Expect.equal "https://cell.alliance.rebel:5000/v3"
@@ -160,6 +207,107 @@ processOpenRcSuite =
                     |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
                     |> .authUrl
                     |> Expect.equal ""
+        , test "that an unquoted value with a stray trailing quote fails to parse" <|
+            \() ->
+                """
+                export OS_AUTH_URL=https://cell.alliance.rebel:5000/v3"
+                """
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .authUrl
+                    |> Expect.equal ""
+        , test "that an unquoted value with a stray trailing apostrophe fails to parse" <|
+            \() ->
+                """
+                export OS_AUTH_URL=https://cell.alliance.rebel:5000/v3'
+                """
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .authUrl
+                    |> Expect.equal ""
+        , test "that the last assignment of a variable is the one that counts" <|
+            \() ->
+                """
+                export OS_AUTH_URL=https://cell.alliance.rebel:5000/v3
+                export OS_AUTH_URL=https://rogue.squadron:5000/v3
+                """
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .authUrl
+                    |> Expect.equal "https://rogue.squadron:5000/v3"
+        , test "that an unreadable last assignment shadows a readable earlier one" <|
+            \() ->
+                """
+                export OS_PASSWORD=hunter2
+                export OS_PASSWORD=$OS_PASSWORD_INPUT
+                """
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .password
+                    |> Expect.equal ""
+        , test "that a trailing comment is not part of an unquoted value" <|
+            \() ->
+                """
+                export OS_AUTH_URL=https://cell.alliance.rebel:5000/v3 # the identity endpoint
+                """
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .authUrl
+                    |> Expect.equal "https://cell.alliance.rebel:5000/v3"
+        , test "that a trailing comment is not part of a quoted value" <|
+            \() ->
+                """
+                export OS_AUTH_URL="https://cell.alliance.rebel:5000/v3" # the identity endpoint
+                """
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .authUrl
+                    |> Expect.equal "https://cell.alliance.rebel:5000/v3"
+        , test "that a hash inside a word is part of the value" <|
+            \() ->
+                """
+                export OS_PASSWORD=hunter#2
+                """
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .password
+                    |> Expect.equal "hunter#2"
+        , test "that a hash inside quotes is part of the value" <|
+            \() ->
+                """
+                export OS_PASSWORD="hunter # 2"
+                """
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .password
+                    |> Expect.equal "hunter # 2"
+        , test "that a comment does not hide an application credential" <|
+            \() ->
+                """
+                export OS_APPLICATION_CREDENTIAL_ID=abcd-efgh # created 2026-08-01
+                export OS_APPLICATION_CREDENTIAL_SECRET="supersecret" # keep this safe
+                """
+                    |> OpenStack.OpenRc.parseOpenRcAppCredential
+                    |> Expect.equal (Just (ApplicationCredential "abcd-efgh" "supersecret"))
+        , test "that text after a closing quote is refused rather than guessed at" <|
+            \() ->
+                """
+                export OS_AUTH_URL="https://cell.alliance.rebel:5000/v3" and more
+                """
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .authUrl
+                    |> Expect.equal ""
+        , test "that a value with an escaped quote in it is refused rather than truncated" <|
+            \() ->
+                -- Shell escapes are out of scope. Reading up to the escaped quote would hand
+                -- Keystone half a password, which is worse than saying the file cannot be read.
+                "export OS_PASSWORD=\"hunter\\\"2\"\n"
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .password
+                    |> Expect.equal ""
+        , test "that a lone quote is an unclosed quote rather than an empty value" <|
+            \() ->
+                "export OS_AUTH_URL=\"\n"
+                    |> OpenStack.OpenRc.processOpenRc
+                        { authUrl = "https://cell.alliance.rebel:5000/v3"
+                        , userDomain = "Default"
+                        , username = "enfysnest"
+                        , password = "hunter2"
+                        }
+                    |> .authUrl
+                    |> Expect.equal "https://cell.alliance.rebel:5000/v3"
         , test "ensure pre-'API Version 3' can be processed " <|
             \() ->
                 openrcPreV3
@@ -216,4 +364,141 @@ processOpenRcSuite =
                             "redactedusername"
                             "redactedpassword"
                         )
+        , test "parse app credential id/secret from OpenRC" <|
+            \() ->
+                openrcAppCredential
+                    |> OpenStack.OpenRc.parseOpenRcAppCredential
+                    |> Expect.equal
+                        (Just
+                            (ApplicationCredential
+                                "abcd-efgh"
+                                "supersecret"
+                            )
+                        )
+        , test "do not parse app credential when one required field is missing" <|
+            \() ->
+                """
+                export OS_APPLICATION_CREDENTIAL_ID=abcd-efgh
+                """
+                    |> OpenStack.OpenRc.parseOpenRcAppCredential
+                    |> Expect.equal Nothing
+        , test "do not parse app credential when the id is empty" <|
+            \() ->
+                """
+                export OS_APPLICATION_CREDENTIAL_ID=
+                export OS_APPLICATION_CREDENTIAL_SECRET=supersecret
+                """
+                    |> OpenStack.OpenRc.parseOpenRcAppCredential
+                    |> Expect.equal Nothing
+        , test "do not parse app credential when the secret is quoted whitespace" <|
+            \() ->
+                """
+                export OS_APPLICATION_CREDENTIAL_ID=abcd-efgh
+                export OS_APPLICATION_CREDENTIAL_SECRET="   "
+                """
+                    |> OpenStack.OpenRc.parseOpenRcAppCredential
+                    |> Expect.equal Nothing
+        , test "keep the spaces a quoted application credential was written with" <|
+            \() ->
+                """
+                export OS_APPLICATION_CREDENTIAL_ID="  abcd-efgh  "
+                export OS_APPLICATION_CREDENTIAL_SECRET=" supersecret "
+                """
+                    |> OpenStack.OpenRc.parseOpenRcAppCredential
+                    |> Expect.equal (Just (ApplicationCredential "  abcd-efgh  " " supersecret "))
+        , test "report no auth URL when the file leaves it empty" <|
+            \() ->
+                """
+                export OS_AUTH_URL=""
+                export OS_APPLICATION_CREDENTIAL_ID=abcd-efgh
+                """
+                    |> OpenStack.OpenRc.parseOpenRcAuthUrl
+                    |> Expect.equal Nothing
+        , test "report no project name when the file leaves it empty" <|
+            \() ->
+                """
+                export OS_PROJECT_NAME=
+                """
+                    |> OpenStack.OpenRc.parseOpenRcProjectName
+                    |> Expect.equal Nothing
+        , test "detect app credential auth type from OpenRC" <|
+            \() ->
+                openrcAppCredential
+                    |> OpenStack.OpenRc.openRcUsesAppCredentialAuth
+                    |> Expect.equal True
+        , test "detect app credential auth type when quoted" <|
+            \() ->
+                openrcAppCredentialQuotedAuthType
+                    |> OpenStack.OpenRc.openRcUsesAppCredentialAuth
+                    |> Expect.equal True
+        , test "do not detect app credential auth type when absent" <|
+            \() ->
+                openrcV3
+                    |> OpenStack.OpenRc.openRcUsesAppCredentialAuth
+                    |> Expect.equal False
+        , test "detect app credential auth type from OpenRC with CRLF line endings" <|
+            \() ->
+                openrcAppCredentialCrlf
+                    |> OpenStack.OpenRc.openRcUsesAppCredentialAuth
+                    |> Expect.equal True
+        , test "parse app credential id/secret from OpenRC with CRLF line endings" <|
+            \() ->
+                openrcAppCredentialCrlf
+                    |> OpenStack.OpenRc.parseOpenRcAppCredential
+                    |> Expect.equal
+                        (Just
+                            (ApplicationCredential
+                                "abcd-efgh"
+                                "supersecret"
+                            )
+                        )
+        , test "parse auth URL from OpenRC with CRLF line endings without trailing carriage return" <|
+            \() ->
+                openrcAppCredentialCrlf
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .authUrl
+                    |> Expect.equal "https://mycloud.example:5000/v3"
+        , test "parse the project name when the file names one" <|
+            \() ->
+                openrcNoExportKeyword
+                    |> OpenStack.OpenRc.parseOpenRcProjectName
+                    |> Expect.equal (Just "redactedprojectname")
+        , test "parse the project name when it is quoted" <|
+            \() ->
+                openrcV3withComments
+                    |> OpenStack.OpenRc.parseOpenRcProjectName
+                    |> Expect.equal (Just "cloud-riders")
+        , test "report no project name when the file names none" <|
+            \() ->
+                openrcAppCredential
+                    |> OpenStack.OpenRc.parseOpenRcProjectName
+                    |> Expect.equal Nothing
+        , test "parse the region name when it is quoted" <|
+            \() ->
+                openrcPreV3
+                    |> OpenStack.OpenRc.parseOpenRcRegionName
+                    |> Expect.equal (Just "CellOne")
+        , test "report no region name when the file leaves it empty" <|
+            \() ->
+                """
+                export OS_REGION_NAME=""
+                if [ -z "$OS_REGION_NAME" ]; then unset OS_REGION_NAME; fi
+                """
+                    |> OpenStack.OpenRc.parseOpenRcRegionName
+                    |> Expect.equal Nothing
+        , test "parse the region name past Horizon's line that unsets an empty one" <|
+            \() ->
+                openrcV3withComments
+                    |> OpenStack.OpenRc.parseOpenRcRegionName
+                    |> Expect.equal (Just "CellOne")
+        , test "recognize an OpenRC file by its OpenStack variables" <|
+            \() ->
+                openrcAppCredential
+                    |> OpenStack.OpenRc.looksLikeOpenRc
+                    |> Expect.equal True
+        , test "do not recognize a shell script that sets no OpenStack variables" <|
+            \() ->
+                "#!/usr/bin/env bash\nexport PATH=/usr/bin\n"
+                    |> OpenStack.OpenRc.looksLikeOpenRc
+                    |> Expect.equal False
         ]

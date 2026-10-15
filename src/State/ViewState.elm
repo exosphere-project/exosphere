@@ -51,6 +51,7 @@ import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Keystone
 import Rest.Nova
 import Route
+import State.LoginChain
 import Time
 import Types.HelperTypes as HelperTypes
 import Types.Interactivity exposing (InteractionLevel(..))
@@ -69,8 +70,49 @@ navigateToPage url outerModel =
         route =
             Route.fromUrl outerModel.sharedModel.viewContext.urlPathPrefix Route.defaultRoute url
 
+        wasSelectingRegions =
+            case outerModel.viewState of
+                NonProjectView (SelectProjectRegions _) ->
+                    True
+
+                _ ->
+                    False
+
+        willSelectRegions =
+            case route of
+                Route.SelectProjectRegions _ _ ->
+                    True
+
+                _ ->
+                    False
+
+        credentialFileLoginChainIsActive =
+            (outerModel.sharedModel.activeLoginIntent /= Nothing)
+                || not (List.isEmpty outerModel.sharedModel.pendingLoginIntents)
+                || List.any (\token -> token.appCredential /= Nothing) outerModel.sharedModel.heldLoginTokens
+
+        sharedModelBeforeNavigation =
+            if
+                State.LoginChain.shouldAbandon wasSelectingRegions willSelectRegions
+                    && credentialFileLoginChainIsActive
+            then
+                let
+                    sharedModel =
+                        outerModel.sharedModel
+                in
+                -- Abandon only the credential-file chain. A password login waiting on regions is not part of it.
+                { sharedModel
+                    | heldLoginTokens = State.LoginChain.dropCredentialFileTokens sharedModel.heldLoginTokens
+                    , activeLoginIntent = Nothing
+                    , pendingLoginIntents = []
+                    , loginChainGeneration = State.LoginChain.nextGeneration sharedModel.loginChainGeneration
+                }
+
+            else
+                outerModel.sharedModel
+
         ( newViewState, pageSpecificSharedModel, pageSpecificCmd ) =
-            routeToViewStateModelCmd outerModel.sharedModel route
+            routeToViewStateModelCmd sharedModelBeforeNavigation route
 
         newUrl =
             Route.toUrl outerModel.sharedModel.viewContext.urlPathPrefix route
@@ -165,8 +207,15 @@ routeToViewStateModelCmd sharedModel route =
             )
 
         Route.LoginOpenstack maybeCreds ->
-            ( NonProjectView <| Login <| LoginOpenstack <| Page.LoginOpenstack.init maybeCreds
-            , sharedModel
+            let
+                loginModel =
+                    List.foldl
+                        (Page.LoginOpenstack.noteProjectAlreadyAdded HelperTypes.CredentialFileLogin)
+                        (Page.LoginOpenstack.init maybeCreds)
+                        sharedModel.deferredCredentialFileAlreadyAddedProjects
+            in
+            ( NonProjectView <| Login <| LoginOpenstack loginModel
+            , { sharedModel | deferredCredentialFileAlreadyAddedProjects = [] }
             , Cmd.none
             )
 

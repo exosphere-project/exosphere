@@ -1,63 +1,229 @@
-module OpenStack.OpenRc exposing (processOpenRc)
+module OpenStack.OpenRc exposing (looksLikeOpenRc, openRcUsesAppCredentialAuth, parseOpenRcAppCredential, parseOpenRcAuthUrl, parseOpenRcProjectName, parseOpenRcRegionName, processOpenRc)
 
 import Helpers.String exposing (normalizeLineEndings)
+import List.Extra
 import OpenStack.Types as OSTypes
-import Parser exposing ((|.), (|=))
-import Set
 
 
 processOpenRc : OSTypes.OpenstackLogin -> String -> OSTypes.OpenstackLogin
 processOpenRc existingCreds openRc =
-    let
-        parseVar : String -> Maybe String
-        parseVar varName =
-            let
-                parseVariable =
-                    Parser.succeed identity
-                        |= Parser.variable
-                            -- This discards any bash variables defined with other bash variables, e.g. $OS_PASSWORD_INPUT
-                            { start = \c -> c /= '$'
-                            , inner = \c -> not (List.member c [ '\n', '"', '\'' ])
-                            , reserved = Set.empty
-                            }
-
-                varParser : Parser.Parser String
-                varParser =
-                    -- Why does this need to be Parser.succeed identity instead of Parser.succeed ()?
-                    Parser.succeed identity
-                        |. Parser.spaces
-                        |. Parser.oneOf [ Parser.keyword "export", Parser.succeed () ]
-                        |. Parser.spaces
-                        |. Parser.keyword varName
-                        |. Parser.symbol "="
-                        |= Parser.oneOf
-                            [ Parser.succeed identity
-                                |. Parser.symbol "\""
-                                |= parseVariable
-                                |. Parser.symbol "\""
-                            , Parser.succeed identity
-                                |. Parser.symbol "'"
-                                |= parseVariable
-                                |. Parser.symbol "'"
-                            , Parser.succeed identity
-                                |= parseVariable
-                            ]
-                        |. Parser.oneOf [ Parser.symbol "\n", Parser.end ]
-            in
-            openRc
-                |> normalizeLineEndings
-                |> String.split "\n"
-                |> List.map (\line -> Parser.run varParser line)
-                |> List.filterMap Result.toMaybe
-                |> List.head
-    in
     OSTypes.OpenstackLogin
-        (parseVar "OS_AUTH_URL" |> Maybe.withDefault existingCreds.authUrl)
-        (parseVar "OS_USER_DOMAIN_NAME"
+        (parseVar openRc "OS_AUTH_URL" |> Maybe.withDefault existingCreds.authUrl)
+        (parseVar openRc "OS_USER_DOMAIN_NAME"
             |> Maybe.withDefault
-                (parseVar "OS_USER_DOMAIN_ID"
+                (parseVar openRc "OS_USER_DOMAIN_ID"
                     |> Maybe.withDefault existingCreds.userDomain
                 )
         )
-        (parseVar "OS_USERNAME" |> Maybe.withDefault existingCreds.username)
-        (parseVar "OS_PASSWORD" |> Maybe.withDefault existingCreds.password)
+        (parseVar openRc "OS_USERNAME" |> Maybe.withDefault existingCreds.username)
+        (parseVar openRc "OS_PASSWORD" |> Maybe.withDefault existingCreds.password)
+
+
+parseOpenRcAppCredential : String -> Maybe OSTypes.ApplicationCredential
+parseOpenRcAppCredential openRc =
+    case ( parseNonBlankVar openRc "OS_APPLICATION_CREDENTIAL_ID", parseNonBlankVar openRc "OS_APPLICATION_CREDENTIAL_SECRET" ) of
+        ( Just uuid, Just secret ) ->
+            Just (OSTypes.ApplicationCredential uuid secret)
+
+        _ ->
+            Nothing
+
+
+{-| The cloud an OpenRC file authenticates against, as the file itself gives it. Unlike
+`processOpenRc` this falls back on nothing, so a caller with no form for the user to correct can
+tell an absent auth URL apart from one the user typed somewhere else.
+-}
+parseOpenRcAuthUrl : String -> Maybe OSTypes.KeystoneUrl
+parseOpenRcAuthUrl openRc =
+    parseNonBlankVar openRc "OS_AUTH_URL"
+
+
+{-| The project an OpenRC file is scoped to, when it says. Used to name what the user is about
+to log in to, so it is fine for this to be absent.
+-}
+parseOpenRcProjectName : String -> Maybe String
+parseOpenRcProjectName openRc =
+    parseNonBlankVar openRc "OS_PROJECT_NAME"
+
+
+{-| The region an OpenRC file names, when it names one. Horizon writes an empty `OS_REGION_NAME`
+for a cloud without regions, which counts as naming none.
+-}
+parseOpenRcRegionName : String -> Maybe OSTypes.RegionId
+parseOpenRcRegionName openRc =
+    parseNonBlankVar openRc "OS_REGION_NAME"
+
+
+{-| A variable that a login needs, which a file can name and still leave empty. `OS_AUTH_URL=` is
+a variable the shell would clear, not a cloud to log in to, so an empty one counts as absent and
+the caller reports what the file is missing instead of sending the blank to Keystone.
+-}
+parseNonBlankVar : String -> String -> Maybe String
+parseNonBlankVar openRc varName =
+    parseVar openRc varName
+        |> Maybe.andThen
+            (\value ->
+                -- Trimmed only to ask the question. A quoted value is whatever is between its
+                -- quotes, spaces and all, and a secret that begins or ends with one has to reach
+                -- Keystone the way the file wrote it.
+                if String.isEmpty (String.trim value) then
+                    Nothing
+
+                else
+                    Just value
+            )
+
+
+{-| True when the text assigns at least one `OS_` variable, which is what makes an OpenRC file
+an OpenRC file. Used to tell OpenRC apart from other pasted or uploaded text.
+-}
+looksLikeOpenRc : String -> Bool
+looksLikeOpenRc openRc =
+    openRc
+        |> normalizeLineEndings
+        |> String.lines
+        |> List.any lineAssignsOpenStackVar
+
+
+lineAssignsOpenStackVar : String -> Bool
+lineAssignsOpenStackVar line =
+    let
+        assignment : String
+        assignment =
+            line |> String.trim |> dropExport
+    in
+    String.startsWith "OS_" assignment && String.contains "=" assignment
+
+
+openRcUsesAppCredentialAuth : String -> Bool
+openRcUsesAppCredentialAuth openRc =
+    parseVar openRc "OS_AUTH_TYPE"
+        |> Maybe.map String.toLower
+        |> Maybe.map ((==) "v3applicationcredential")
+        |> Maybe.withDefault False
+
+
+parseVar : String -> String -> Maybe String
+parseVar openRc varName =
+    openRc
+        |> normalizeLineEndings
+        |> String.lines
+        |> List.filter (assignsVar varName)
+        -- Sourcing a file runs every line, so the last assignment of a variable is the one left
+        -- standing. Picking the last line rather than the last readable value means an assignment
+        -- this parser cannot read still shadows the ones before it, instead of letting through a
+        -- value the shell would have overwritten.
+        |> List.Extra.last
+        |> Maybe.andThen (assignedValue varName)
+
+
+assignsVar : String -> String -> Bool
+assignsVar varName line =
+    String.startsWith (varName ++ "=") (line |> String.trim |> dropExport)
+
+
+assignedValue : String -> String -> Maybe String
+assignedValue varName line =
+    line
+        |> String.trim
+        |> dropExport
+        |> String.dropLeft (String.length varName + 1)
+        |> parseValue
+
+
+dropExport : String -> String
+dropExport line =
+    if String.startsWith "export " line || String.startsWith "export\t" line then
+        String.dropLeft 7 line |> String.trimLeft
+
+    else
+        line
+
+
+parseValue : String -> Maybe String
+parseValue rawValue =
+    let
+        value : String
+        value =
+            rawValue |> String.trim
+
+        discardBashVariable : String -> Maybe String
+        discardBashVariable unwrapped =
+            if String.startsWith "$" unwrapped then
+                -- Discard values that reference other bash variables, e.g. $OS_PASSWORD_INPUT
+                Nothing
+
+            else
+                Just unwrapped
+    in
+    if String.startsWith "\"" value then
+        -- Bash expands variables inside double quotes, so "$VAR" is discarded like a bare $VAR
+        unwrapQuotedValue "\"" value |> Maybe.andThen discardBashVariable
+
+    else if String.startsWith "'" value then
+        -- Single quotes are literal in bash, so '$VAR' is kept as-is
+        unwrapQuotedValue "'" value
+
+    else
+        let
+            unquoted : String
+            unquoted =
+                dropTrailingComment value
+        in
+        if String.endsWith "\"" unquoted || String.endsWith "'" unquoted then
+            -- A value that closes a quote it never opened is an unterminated string in bash too,
+            -- so it is refused rather than stored with the stray quote still on it. This is the
+            -- mirror of an opening quote that is never closed, refused below.
+            Nothing
+
+        else
+            discardBashVariable unquoted
+
+
+{-| The text between an opening quote and its match, given a value that starts with one. What
+follows the closing quote may only be a comment: anything else is a construct this parser does not
+understand, and guessing at it would be worse than refusing the line. A quote that is never closed
+is refused for the same reason bash refuses it.
+-}
+unwrapQuotedValue : String -> String -> Maybe String
+unwrapQuotedValue quote value =
+    let
+        afterOpeningQuote : String
+        afterOpeningQuote =
+            String.dropLeft 1 value
+    in
+    -- The first quote closes the value. Shell escapes are out of scope, so a value carrying an
+    -- escaped quote is refused rather than read up to the escape and silently truncated.
+    case String.indexes quote afterOpeningQuote of
+        closingQuoteIndex :: _ ->
+            if isBlankOrComment (String.dropLeft (closingQuoteIndex + 1) afterOpeningQuote) then
+                Just (String.left closingQuoteIndex afterOpeningQuote)
+
+            else
+                Nothing
+
+        [] ->
+            Nothing
+
+
+{-| Everything an unquoted value has before a trailing comment. A `#` only opens a comment in bash
+when it starts a word, so `pass#word` keeps its hash while `password # note` does not.
+-}
+dropTrailingComment : String -> String
+dropTrailingComment value =
+    case List.minimum (String.indexes " #" value ++ String.indexes "\t#" value) of
+        Just commentIndex ->
+            value |> String.left commentIndex |> String.trimRight
+
+        Nothing ->
+            value
+
+
+isBlankOrComment : String -> Bool
+isBlankOrComment text =
+    let
+        trimmed : String
+        trimmed =
+            String.trimLeft text
+    in
+    String.isEmpty trimmed || String.startsWith "#" trimmed

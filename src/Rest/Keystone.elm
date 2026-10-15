@@ -5,6 +5,7 @@ module Rest.Keystone exposing
     , ec2CredentialsDecoder
     , requestAppCredential
     , requestCreateEc2Credential
+    , requestCredentialFileLoginToken
     , requestEc2Credentials
     , requestScopedAuthToken
     , requestUnscopedAuthToken
@@ -34,6 +35,7 @@ import Rest.Helpers
 import Time
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes exposing (HttpRequestMethod(..), UnscopedProvider, UnscopedProviderProject, UnscopedProviderRegion)
+import Types.LoginIntent exposing (LoginIntent)
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import UUID
@@ -88,8 +90,13 @@ requestUnscopedAuthToken maybeProxyUrl creds =
         (resultToMsgErrorBody errorContext (ReceiveUnscopedAuthToken creds.authUrl))
 
 
-requestScopedAuthToken : Maybe HelperTypes.Url -> OSTypes.CredentialsForAuthToken -> Cmd SharedMsg
-requestScopedAuthToken maybeProxyUrl input =
+{-| `maybeRegionId` is the region the caller already knows this token belongs to, when it knows
+one, so that receiving the token does not have to ask a question that was already answered.
+`origin` says whether a person asked for this token or a timer did, which receiving it cannot tell
+by looking and which decides whether anything may be said on screen.
+-}
+requestScopedAuthToken : Maybe HelperTypes.Url -> HelperTypes.TokenRequestOrigin -> Maybe OSTypes.RegionId -> OSTypes.CredentialsForAuthToken -> Cmd SharedMsg
+requestScopedAuthToken maybeProxyUrl origin maybeRegionId input =
     let
         requestBody =
             case input of
@@ -168,7 +175,46 @@ requestScopedAuthToken maybeProxyUrl input =
         requestBody
         inputUrl
         maybeProxyUrl
-        (resultToMsgErrorBody errorContext (ReceiveProjectScopedToken inputUrl))
+        (resultToMsgErrorBody
+            errorContext
+            (ReceiveProjectScopedToken
+                inputUrl
+                (case input of
+                    OSTypes.AppCreds _ _ appCred ->
+                        Just appCred
+
+                    OSTypes.TokenCreds _ _ _ ->
+                        Nothing
+                )
+                maybeRegionId
+                origin
+            )
+        )
+
+
+requestCredentialFileLoginToken : Maybe HelperTypes.Url -> Int -> LoginIntent -> Cmd SharedMsg
+requestCredentialFileLoginToken maybeProxyUrl generation intent =
+    let
+        requestBody =
+            Encode.object
+                [ ( "auth"
+                  , Encode.object
+                        [ ( "identity"
+                          , Encode.object
+                                [ ( "methods", Encode.list Encode.string [ "application_credential" ] )
+                                , ( "application_credential"
+                                  , Encode.object
+                                        [ ( "id", Encode.string intent.appCredential.uuid )
+                                        , ( "secret", Encode.string intent.appCredential.secret )
+                                        ]
+                                  )
+                                ]
+                          )
+                        ]
+                  )
+                ]
+    in
+    requestAuthTokenHelper requestBody intent.authUrl maybeProxyUrl (ReceiveCredentialFileLoginToken generation intent)
 
 
 requestAuthTokenHelper : Encode.Value -> HelperTypes.Url -> Maybe HelperTypes.Url -> (Result HttpErrorWithBody ( Http.Metadata, String ) -> SharedMsg) -> Cmd SharedMsg

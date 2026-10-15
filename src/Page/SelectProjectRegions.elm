@@ -1,4 +1,4 @@
-module Page.SelectProjectRegions exposing (Model, Msg(..), init, update, views)
+module Page.SelectProjectRegions exposing (Model, Msg(..), canSubmit, init, update, views)
 
 import Element
 import Element.Input as Input
@@ -6,6 +6,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Set
+import State.LoginChain
 import Style.Widgets.Button as Button
 import Style.Widgets.Text as Text
 import Types.SharedModel exposing (SharedModel)
@@ -29,6 +30,14 @@ type Msg
 init : OSTypes.KeystoneUrl -> OSTypes.ProjectUuid -> Model
 init keystoneUrl projectUuid =
     Model keystoneUrl projectUuid Set.empty
+
+
+{-| Whether there is anything to submit. Submitting no regions would build no project and drop
+the login that is waiting on this answer, so Choose stays disabled until a region is ticked.
+-}
+canSubmit : Model -> Bool
+canSubmit model =
+    not (Set.isEmpty model.selectedRegions)
 
 
 update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -59,14 +68,33 @@ update msg _ model =
 views : View.Types.Context -> SharedModel -> Model -> ( Maybe (Element.Element msg), Element.Element Msg )
 views context sharedModel model =
     let
-        maybeScopedAuthToken =
-            sharedModel.scopedAuthTokensWaitingRegionSelection
-                |> List.filter (\t -> t.project.uuid == model.projectUuid)
-                |> List.head
+        maybeScopedAuthTokenWaitingSelection =
+            State.LoginChain.findHeldToken model.providerKeystoneUrl model.projectUuid sharedModel.heldLoginTokens
     in
-    case ( GetterSetters.unscopedProviderLookup sharedModel model.providerKeystoneUrl, maybeScopedAuthToken ) of
-        ( Just provider, Just scopedAuthToken ) ->
+    case maybeScopedAuthTokenWaitingSelection of
+        Just scopedAuthTokenWaitingSelection ->
             let
+                scopedAuthToken =
+                    scopedAuthTokenWaitingSelection.authToken
+
+                renderHeader : Maybe (Element.Element msg)
+                renderHeader =
+                    Just <|
+                        Text.heading context.palette
+                            VH.headerHeadingAttributes
+                            Element.none
+                            (String.join " "
+                                [ "Choose"
+                                , context.localization.openstackSharingKeystoneWithAnother
+                                    |> Helpers.String.pluralize
+                                    |> Helpers.String.toTitleCase
+                                , "for"
+                                , context.localization.unitOfTenancy
+                                    |> Helpers.String.toTitleCase
+                                , scopedAuthToken.project.name
+                                ]
+                            )
+
                 renderSuccessCase : List OSTypes.Region -> Element.Element Msg
                 renderSuccessCase regions =
                     Element.column VH.formContainer <|
@@ -79,36 +107,38 @@ views context sharedModel model =
                                 context.palette
                                 { text = "Choose"
                                 , onPress =
-                                    Just GotSubmit
+                                    if canSubmit model then
+                                        Just GotSubmit
+
+                                    else
+                                        Nothing
                                 }
                             ]
-            in
-            ( Just <|
-                Text.heading context.palette
-                    VH.headerHeadingAttributes
-                    Element.none
-                    (String.join " "
-                        [ "Choose"
-                        , context.localization.openstackSharingKeystoneWithAnother
-                            |> Helpers.String.pluralize
-                            |> Helpers.String.toTitleCase
-                        , "for"
-                        , context.localization.unitOfTenancy
-                            |> Helpers.String.toTitleCase
-                        , scopedAuthToken.project.name
-                        ]
-                    )
-            , VH.renderRDPP
-                context
-                provider.regionsAvailable
-                (context.localization.openstackSharingKeystoneWithAnother
-                    |> Helpers.String.pluralize
-                )
-                renderSuccessCase
-            )
 
-        _ ->
-            ( Nothing, Element.text "Provider or scoped auth token not found" )
+                maybeProvider =
+                    GetterSetters.unscopedProviderLookup sharedModel model.providerKeystoneUrl
+            in
+            case maybeProvider of
+                Just provider ->
+                    ( renderHeader
+                    , VH.renderRDPP
+                        context
+                        provider.regionsAvailable
+                        (context.localization.openstackSharingKeystoneWithAnother
+                            |> Helpers.String.pluralize
+                        )
+                        renderSuccessCase
+                    )
+
+                Nothing ->
+                    ( renderHeader
+                    , GetterSetters.getCatalogRegionIds scopedAuthToken.catalog
+                        |> List.map (\regionId -> OSTypes.Region regionId "")
+                        |> renderSuccessCase
+                    )
+
+        Nothing ->
+            ( Nothing, Element.text "Scoped auth token not found" )
 
 
 renderRegion : Set.Set OSTypes.RegionId -> OSTypes.Region -> Element.Element Msg

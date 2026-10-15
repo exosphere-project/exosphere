@@ -1,0 +1,379 @@
+module Tests.Page.LoginOpenstack exposing (alreadyAddedSuite, cloudSelectionSuite, readCredentialFileSuite, showSecretsSuite)
+
+import Expect
+import OpenStack.CloudsYaml
+import OpenStack.Types exposing (ApplicationCredential)
+import Page.LoginOpenstack exposing (CredentialFileError(..), CredentialFileOutcome(..), Msg(..))
+import Set
+import Test exposing (Test, describe, test)
+import Types.HelperTypes as HelperTypes
+
+
+cloud : String -> OpenStack.CloudsYaml.CloudEntry
+cloud name =
+    { name = name
+    , authUrl = "https://cell.alliance.rebel:5000/v3"
+    , appCredential = ApplicationCredential (name ++ "-id") (name ++ "-secret")
+    , regionName = Nothing
+    }
+
+
+modelWithClouds : List String -> List String -> Page.LoginOpenstack.Model
+modelWithClouds names selected =
+    let
+        model =
+            Page.LoginOpenstack.init Nothing
+    in
+    { model
+        | clouds = List.map cloud names
+        , selectedClouds = Set.fromList selected
+    }
+
+
+alreadyAddedSuite : Test
+alreadyAddedSuite =
+    describe "reporting that a login landed on a project already held"
+        [ test "starts with nothing to report" <|
+            \() ->
+                Page.LoginOpenstack.init Nothing
+                    |> .alreadyAddedProjects
+                    |> Expect.equal []
+        , test "a login the user asked for is reported" <|
+            \() ->
+                Page.LoginOpenstack.init Nothing
+                    |> Page.LoginOpenstack.noteProjectAlreadyAdded HelperTypes.UserLogin "cloud-riders"
+                    |> .alreadyAddedProjects
+                    |> Expect.equal [ "cloud-riders" ]
+        , test "a token refresh landing while the login screen is open is not reported" <|
+            \() ->
+                Page.LoginOpenstack.init Nothing
+                    |> Page.LoginOpenstack.noteProjectAlreadyAdded HelperTypes.TokenRefresh "cloud-riders"
+                    |> .alreadyAddedProjects
+                    |> Expect.equal []
+        , test "a refresh does not add to what a login already reported" <|
+            \() ->
+                Page.LoginOpenstack.init Nothing
+                    |> Page.LoginOpenstack.noteProjectAlreadyAdded HelperTypes.UserLogin "cloud-riders"
+                    |> Page.LoginOpenstack.noteProjectAlreadyAdded HelperTypes.TokenRefresh "rogue-squadron"
+                    |> .alreadyAddedProjects
+                    |> Expect.equal [ "cloud-riders" ]
+        , test "keeps every project of a batch, in the order they came back" <|
+            \() ->
+                Page.LoginOpenstack.init Nothing
+                    |> Page.LoginOpenstack.noteProjectAlreadyAdded HelperTypes.UserLogin "cloud-riders"
+                    |> Page.LoginOpenstack.noteProjectAlreadyAdded HelperTypes.UserLogin "rogue-squadron"
+                    |> .alreadyAddedProjects
+                    |> Expect.equal [ "cloud-riders", "rogue-squadron" ]
+        , test "names a project once however many times it comes back" <|
+            \() ->
+                Page.LoginOpenstack.init Nothing
+                    |> Page.LoginOpenstack.noteProjectAlreadyAdded HelperTypes.UserLogin "cloud-riders"
+                    |> Page.LoginOpenstack.noteProjectAlreadyAdded HelperTypes.UserLogin "cloud-riders"
+                    |> .alreadyAddedProjects
+                    |> Expect.equal [ "cloud-riders" ]
+        , test "reading a file again clears what the last login reported" <|
+            \() ->
+                let
+                    model =
+                        Page.LoginOpenstack.init Nothing
+                in
+                { model | credentialFileText = openrcWithAppCredential }
+                    |> Page.LoginOpenstack.noteProjectAlreadyAdded HelperTypes.UserLogin "cloud-riders"
+                    |> Page.LoginOpenstack.processCredentialFile
+                    |> .alreadyAddedProjects
+                    |> Expect.equal []
+        ]
+
+
+cloudSelectionSuite : Test
+cloudSelectionSuite =
+    describe "picking which clouds to log in to"
+        [ test "selects nothing when nothing is ticked" <|
+            \() ->
+                modelWithClouds [ "one", "two" ] []
+                    |> Page.LoginOpenstack.selectedClouds
+                    |> Expect.equal []
+        , test "selects only the ticked clouds" <|
+            \() ->
+                modelWithClouds [ "one", "two", "three" ] [ "two" ]
+                    |> Page.LoginOpenstack.selectedClouds
+                    |> List.map .name
+                    |> Expect.equal [ "two" ]
+        , test "keeps the order of the file rather than the order of the selection" <|
+            \() ->
+                modelWithClouds [ "one", "two", "three" ] [ "three", "one" ]
+                    |> Page.LoginOpenstack.selectedClouds
+                    |> List.map .name
+                    |> Expect.equal [ "one", "three" ]
+        , test "carries the application credential of each selected cloud" <|
+            \() ->
+                modelWithClouds [ "one", "two" ] [ "one", "two" ]
+                    |> Page.LoginOpenstack.selectedClouds
+                    |> List.map (.appCredential >> .uuid)
+                    |> Expect.equal [ "one-id", "two-id" ]
+        , test "ignores a selected name that is not in the file" <|
+            \() ->
+                modelWithClouds [ "one" ] [ "one", "ghost" ]
+                    |> Page.LoginOpenstack.selectedClouds
+                    |> List.map .name
+                    |> Expect.equal [ "one" ]
+        ]
+
+
+openrcWithAppCredential : String
+openrcWithAppCredential =
+    """#!/usr/bin/env bash
+
+export OS_AUTH_TYPE=v3applicationcredential
+export OS_AUTH_URL=https://cell.alliance.rebel:5000/v3
+export OS_REGION_NAME="IU"
+export OS_PROJECT_NAME="cloud-riders"
+export OS_APPLICATION_CREDENTIAL_ID=abcd-efgh
+export OS_APPLICATION_CREDENTIAL_SECRET=supersecret
+"""
+
+
+openrcWithAppCredentialAuthButNoCredential : String
+openrcWithAppCredentialAuthButNoCredential =
+    """#!/usr/bin/env bash
+
+export OS_AUTH_TYPE=v3applicationcredential
+export OS_AUTH_URL=https://cell.alliance.rebel:5000/v3
+export OS_APPLICATION_CREDENTIAL_ID=abcd-efgh
+"""
+
+
+openrcWithAppCredentialButNoAuthUrl : String
+openrcWithAppCredentialButNoAuthUrl =
+    """#!/usr/bin/env bash
+
+export OS_AUTH_TYPE=v3applicationcredential
+export OS_APPLICATION_CREDENTIAL_ID=abcd-efgh
+export OS_APPLICATION_CREDENTIAL_SECRET=supersecret
+"""
+
+
+openrcWithPassword : String
+openrcWithPassword =
+    """#!/usr/bin/env bash
+
+export OS_AUTH_URL=https://cell.alliance.rebel:5000/v3
+export OS_USER_DOMAIN_NAME="Default"
+export OS_USERNAME="enfysnest"
+export OS_PASSWORD="hunter2"
+"""
+
+
+singleCloudYaml : String
+singleCloudYaml =
+    """clouds:
+  cloud_riders_IU:
+    region_name: IU
+    auth:
+      auth_url: https://cell.alliance.rebel:5000/v3
+      application_credential_id: abcd-efgh
+      application_credential_secret: supersecret
+"""
+
+
+twoCloudsYaml : String
+twoCloudsYaml =
+    singleCloudYaml
+        ++ """  rogue_squadron_TACC:
+    region_name: TACC
+    auth:
+      auth_url: https://cell.alliance.rebel:5000/v3
+      application_credential_id: ijkl-mnop
+      application_credential_secret: alsosecret
+"""
+
+
+passwordCloudsYaml : String
+passwordCloudsYaml =
+    """clouds:
+  openstack:
+    auth:
+      auth_url: https://cell.alliance.rebel:5000/v3
+      username: enfysnest
+      password: hunter2
+"""
+
+
+read : String -> CredentialFileOutcome
+read =
+    Page.LoginOpenstack.readCredentialFile Page.LoginOpenstack.defaultCreds
+
+
+readCredentialFileSuite : Test
+readCredentialFileSuite =
+    describe "reading a credential file"
+        [ test "an OpenRC file with an application credential is ready to log in with" <|
+            \() ->
+                read openrcWithAppCredential
+                    |> Expect.equal
+                        (LogInWith
+                            { name = "cloud-riders"
+                            , authUrl = "https://cell.alliance.rebel:5000/v3"
+                            , appCredential = ApplicationCredential "abcd-efgh" "supersecret"
+                            , regionName = Just "IU"
+                            }
+                        )
+        , test "an OpenRC file without a project name falls back to the auth URL host" <|
+            \() ->
+                """export OS_AUTH_URL=https://cell.alliance.rebel:5000/v3
+export OS_APPLICATION_CREDENTIAL_ID=abcd-efgh
+export OS_APPLICATION_CREDENTIAL_SECRET=supersecret
+"""
+                    |> read
+                    |> Expect.equal
+                        (LogInWith
+                            { name = "cell.alliance.rebel"
+                            , authUrl = "https://cell.alliance.rebel:5000/v3"
+                            , appCredential = ApplicationCredential "abcd-efgh" "supersecret"
+                            , regionName = Nothing
+                            }
+                        )
+        , test "an OpenRC file with a password fills in the password form" <|
+            \() ->
+                read openrcWithPassword
+                    |> Expect.equal
+                        (FillInPasswordForm
+                            { authUrl = "https://cell.alliance.rebel:5000/v3"
+                            , userDomain = "Default"
+                            , username = "enfysnest"
+                            , password = "hunter2"
+                            }
+                        )
+        , test "an OpenRC file set up for application credentials but missing the secret is refused" <|
+            \() ->
+                read openrcWithAppCredentialAuthButNoCredential
+                    |> Expect.equal (CredentialFileProblem IncompleteAppCredential)
+        , test "an OpenRC file whose application credential is left empty is refused" <|
+            \() ->
+                """#!/usr/bin/env bash
+
+export OS_AUTH_TYPE=v3applicationcredential
+export OS_AUTH_URL=https://cell.alliance.rebel:5000/v3
+export OS_APPLICATION_CREDENTIAL_ID=abcd-efgh
+export OS_APPLICATION_CREDENTIAL_SECRET=
+"""
+                    |> read
+                    |> Expect.equal (CredentialFileProblem IncompleteAppCredential)
+        , test "an OpenRC file with an application credential but no auth URL is refused" <|
+            \() ->
+                read openrcWithAppCredentialButNoAuthUrl
+                    |> Expect.equal (CredentialFileProblem IncompleteAppCredential)
+        , test "an application credential never borrows an auth URL already typed into the form" <|
+            \() ->
+                openrcWithAppCredentialButNoAuthUrl
+                    |> Page.LoginOpenstack.readCredentialFile
+                        { authUrl = "https://some.other.cloud:5000/v3"
+                        , userDomain = "Default"
+                        , username = "enfysnest"
+                        , password = "hunter2"
+                        }
+                    |> Expect.equal (CredentialFileProblem IncompleteAppCredential)
+        , test "a clouds.yaml with one cloud is ready to log in with, region included" <|
+            \() ->
+                read singleCloudYaml
+                    |> Expect.equal
+                        (LogInWith
+                            { name = "cloud_riders_IU"
+                            , authUrl = "https://cell.alliance.rebel:5000/v3"
+                            , appCredential = ApplicationCredential "abcd-efgh" "supersecret"
+                            , regionName = Just "IU"
+                            }
+                        )
+        , test "a clouds.yaml with several clouds offers a choice" <|
+            \() ->
+                read twoCloudsYaml
+                    |> Expect.equal
+                        (ChooseAmongClouds
+                            [ { name = "cloud_riders_IU"
+                              , authUrl = "https://cell.alliance.rebel:5000/v3"
+                              , appCredential = ApplicationCredential "abcd-efgh" "supersecret"
+                              , regionName = Just "IU"
+                              }
+                            , { name = "rogue_squadron_TACC"
+                              , authUrl = "https://cell.alliance.rebel:5000/v3"
+                              , appCredential = ApplicationCredential "ijkl-mnop" "alsosecret"
+                              , regionName = Just "TACC"
+                              }
+                            ]
+                        )
+        , test "a password style clouds.yaml is refused" <|
+            \() ->
+                read passwordCloudsYaml
+                    |> Expect.equal (CredentialFileProblem NoApplicationCredentials)
+        , test "prose is refused" <|
+            \() ->
+                read "please find my credentials attached"
+                    |> Expect.equal (CredentialFileProblem UnrecognizedFile)
+        , test "an empty file is refused" <|
+            \() ->
+                read ""
+                    |> Expect.equal (CredentialFileProblem UnrecognizedFile)
+        ]
+
+
+updateWith : Page.LoginOpenstack.Msg -> Page.LoginOpenstack.Model -> Page.LoginOpenstack.Model
+updateWith msg model =
+    let
+        ( newModel, _, _ ) =
+            Page.LoginOpenstack.updateModel msg model
+    in
+    newModel
+
+
+showSecretsSuite : Test
+showSecretsSuite =
+    describe "showing the secrets in the paste box only when asked"
+        [ test "a file that arrives has its secrets hidden, even after the last one was shown" <|
+            \() ->
+                Page.LoginOpenstack.init Nothing
+                    |> updateWith GotToggleShowSecrets
+                    |> updateWith (GotCredentialFileContents openrcWithAppCredential)
+                    |> .showSecrets
+                    |> Expect.equal False
+        , test "the toggle shows the secrets, and pressed again hides them" <|
+            \() ->
+                let
+                    shown =
+                        Page.LoginOpenstack.init Nothing
+                            |> updateWith (GotCredentialFileContents openrcWithAppCredential)
+                            |> updateWith GotToggleShowSecrets
+                in
+                Expect.equal ( True, False ) ( shown.showSecrets, (updateWith GotToggleShowSecrets shown).showSecrets )
+        , test "editing while the secrets are shown keeps them shown" <|
+            \() ->
+                Page.LoginOpenstack.init Nothing
+                    |> updateWith (GotCredentialFileContents openrcWithAppCredential)
+                    |> updateWith GotToggleShowSecrets
+                    |> updateWith (GotCredentialFileText (openrcWithAppCredential ++ "export OS_INTERFACE=public\n"))
+                    |> .showSecrets
+                    |> Expect.equal True
+        , test "a paste hides the secrets even after they were shown, and typing leaves them hidden" <|
+            \() ->
+                let
+                    pasted =
+                        Page.LoginOpenstack.init Nothing
+                            |> updateWith (GotCredentialFileContents openrcWithAppCredential)
+                            |> updateWith GotToggleShowSecrets
+                            |> updateWith GotCredentialFileTextPasted
+                in
+                Expect.equal
+                    ( False, False )
+                    ( pasted.showSecrets
+                    , (updateWith (GotCredentialFileText (openrcWithAppCredential ++ "export OS_INTERFACE=public\n")) pasted).showSecrets
+                    )
+        , test "Clear empties the box, forgets what was read from it, and hides the secrets" <|
+            \() ->
+                let
+                    cleared =
+                        Page.LoginOpenstack.init Nothing
+                            |> updateWith (GotCredentialFileContents openrcWithAppCredential)
+                            |> updateWith GotToggleShowSecrets
+                            |> updateWith GotClearCredentialFileText
+                in
+                Expect.equal ( "", Nothing, False ) ( cleared.credentialFileText, cleared.foundCredential, cleared.showSecrets )
+        ]
