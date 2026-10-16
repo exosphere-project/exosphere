@@ -77,6 +77,9 @@ navigateToPage url outerModel =
                 || List.any (\token -> token.appCredential /= Nothing) outerModel.sharedModel.heldLoginTokens
     in
     case State.Navigation.classify { credentialFileLoginChainIsActive = credentialFileLoginChainIsActive } outerModel.viewState route of
+        State.Navigation.SamePage ->
+            ( outerModel, Cmd.none )
+
         State.Navigation.NewPage ->
             buildPage route outerModel.sharedModel outerModel
 
@@ -126,7 +129,7 @@ buildPage route sharedModelBeforeNavigation outerModel =
 
 
 
--- TODO consider viewStateToRoute to help with generating the breadcrumb
+-- TODO: State.Navigation.viewStateToRoute covers only the pages whose whole state lives in their URL. Extending it to every page would let the breadcrumb be generated from it.
 
 
 routeToViewStateModelCmd : SharedModel -> Route.Route -> ( ViewState, SharedModel, Cmd SharedMsg )
