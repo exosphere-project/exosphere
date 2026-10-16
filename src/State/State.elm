@@ -1026,17 +1026,8 @@ processSharedMsg sharedMsg outerModel =
 
         StartCredentialFileLoginChain intents ->
             let
-                nextGeneration =
-                    State.LoginChain.nextGeneration sharedModel.loginChainGeneration
-
                 resetSharedModel =
-                    -- A password login waiting on regions is not part of the old chain, so it keeps its token
-                    { sharedModel
-                        | pendingLoginIntents = []
-                        , activeLoginIntent = Nothing
-                        , heldLoginTokens = State.LoginChain.dropCredentialFileTokens sharedModel.heldLoginTokens
-                        , loginChainGeneration = nextGeneration
-                    }
+                    State.LoginChain.abandonCredentialFileChain sharedModel
             in
             case intents of
                 [] ->
@@ -1054,7 +1045,7 @@ processSharedMsg sharedMsg outerModel =
                                 , activeLoginIntent = Just correctedIntent
                             }
                       }
-                    , Rest.Keystone.requestCredentialFileLoginToken sharedModel.cloudCorsProxyUrl nextGeneration correctedIntent
+                    , Rest.Keystone.requestCredentialFileLoginToken sharedModel.cloudCorsProxyUrl resetSharedModel.loginChainGeneration correctedIntent
                         |> Cmd.map SharedMsg
                     )
 
@@ -5782,20 +5773,7 @@ abandonCredentialFileLoginChainIfSelectingRegions : OuterModel -> OuterModel
 abandonCredentialFileLoginChainIfSelectingRegions outerModel =
     case outerModel.viewState of
         NonProjectView (SelectProjectRegions _) ->
-            -- Abandon only the credential-file chain. A password login waiting on regions is not part of it.
-            let
-                sharedModel =
-                    outerModel.sharedModel
-            in
-            { outerModel
-                | sharedModel =
-                    { sharedModel
-                        | pendingLoginIntents = []
-                        , activeLoginIntent = Nothing
-                        , heldLoginTokens = State.LoginChain.dropCredentialFileTokens sharedModel.heldLoginTokens
-                        , loginChainGeneration = State.LoginChain.nextGeneration sharedModel.loginChainGeneration
-                    }
-            }
+            { outerModel | sharedModel = State.LoginChain.abandonCredentialFileChain outerModel.sharedModel }
 
         _ ->
             outerModel

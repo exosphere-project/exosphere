@@ -84,19 +84,7 @@ navigateToPage url outerModel =
             buildPage route outerModel.sharedModel outerModel
 
         State.Navigation.NewPageAbandoningCredentialFileChain ->
-            let
-                sharedModel =
-                    outerModel.sharedModel
-            in
-            -- Abandon only the credential-file chain. A password login waiting on regions is not part of it.
-            buildPage route
-                { sharedModel
-                    | heldLoginTokens = State.LoginChain.dropCredentialFileTokens sharedModel.heldLoginTokens
-                    , activeLoginIntent = Nothing
-                    , pendingLoginIntents = []
-                    , loginChainGeneration = State.LoginChain.nextGeneration sharedModel.loginChainGeneration
-                }
-                outerModel
+            buildPage route (State.LoginChain.abandonCredentialFileChain outerModel.sharedModel) outerModel
 
 
 buildPage : Route.Route -> SharedModel -> OuterModel -> ( OuterModel, Cmd OuterMsg )
