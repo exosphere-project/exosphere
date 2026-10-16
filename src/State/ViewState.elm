@@ -52,6 +52,7 @@ import Rest.Keystone
 import Rest.Nova
 import Route
 import State.LoginChain
+import State.Navigation
 import Time
 import Types.HelperTypes as HelperTypes
 import Types.Interactivity exposing (InteractionLevel(..))
@@ -70,47 +71,34 @@ navigateToPage url outerModel =
         route =
             Route.fromUrl outerModel.sharedModel.viewContext.urlPathPrefix Route.defaultRoute url
 
-        wasSelectingRegions =
-            case outerModel.viewState of
-                NonProjectView (SelectProjectRegions _) ->
-                    True
-
-                _ ->
-                    False
-
-        willSelectRegions =
-            case route of
-                Route.SelectProjectRegions _ _ ->
-                    True
-
-                _ ->
-                    False
-
         credentialFileLoginChainIsActive =
             (outerModel.sharedModel.activeLoginIntent /= Nothing)
                 || not (List.isEmpty outerModel.sharedModel.pendingLoginIntents)
                 || List.any (\token -> token.appCredential /= Nothing) outerModel.sharedModel.heldLoginTokens
+    in
+    case State.Navigation.classify { credentialFileLoginChainIsActive = credentialFileLoginChainIsActive } outerModel.viewState route of
+        State.Navigation.NewPage ->
+            buildPage route outerModel.sharedModel outerModel
 
-        sharedModelBeforeNavigation =
-            if
-                State.LoginChain.shouldAbandon wasSelectingRegions willSelectRegions
-                    && credentialFileLoginChainIsActive
-            then
-                let
-                    sharedModel =
-                        outerModel.sharedModel
-                in
-                -- Abandon only the credential-file chain. A password login waiting on regions is not part of it.
+        State.Navigation.NewPageAbandoningCredentialFileChain ->
+            let
+                sharedModel =
+                    outerModel.sharedModel
+            in
+            -- Abandon only the credential-file chain. A password login waiting on regions is not part of it.
+            buildPage route
                 { sharedModel
                     | heldLoginTokens = State.LoginChain.dropCredentialFileTokens sharedModel.heldLoginTokens
                     , activeLoginIntent = Nothing
                     , pendingLoginIntents = []
                     , loginChainGeneration = State.LoginChain.nextGeneration sharedModel.loginChainGeneration
                 }
+                outerModel
 
-            else
-                outerModel.sharedModel
 
+buildPage : Route.Route -> SharedModel -> OuterModel -> ( OuterModel, Cmd OuterMsg )
+buildPage route sharedModelBeforeNavigation outerModel =
+    let
         ( newViewState, pageSpecificSharedModel, pageSpecificCmd ) =
             routeToViewStateModelCmd sharedModelBeforeNavigation route
 
