@@ -419,9 +419,9 @@ parseSuite =
               , path = "/projects/proj-1/servers/srv-1//"
               , expected = Just (projectRoute (Route.ServerDetail "srv-1"))
               }
-            , { description = "percent escapes in a project UUID segment are not decoded"
+            , { description = "percent escapes in a project UUID segment decode"
               , path = "/projects/proj%201/servers"
-              , expected = Just (Route.ProjectRoute { projectUuid = "proj%201", regionId = Nothing } Route.ServerList)
+              , expected = Just (Route.ProjectRoute { projectUuid = "proj 1", regionId = Nothing } Route.ServerList)
               }
             , { description = "a container name that is not a valid percent escape is kept as written"
               , path = "/projects/proj-1/objectstorage/100%"
@@ -476,28 +476,28 @@ rootSuite =
         )
 
 
-{-| elm/url decodes query values differently from other URL libraries: it keeps `+` literally, and
-yields no value for a key whose value holds a raw `=`, is repeated, has no `=` at all, or is not a
-valid percent escape. `FloatingIpCreate` keeps its query value as a `Maybe`, so an absent value
-and an empty one stay distinguishable.
+{-| AppUrl reads `+` as a space, keeps a raw `=` in the value, gives the first of repeated values,
+reads a key without `=` as empty, and keeps an invalid percent escape as written. `FloatingIpCreate`
+keeps its query value as a `Maybe`, so an absent value and an empty one stay distinguishable.
 -}
 queryValueDecodingSuite : Test
 queryValueDecodingSuite =
     let
         testCases =
-            [ ( "a literal '+' stays a '+'", "?serveruuid=a+b", Just "a+b" )
+            [ ( "a literal '+' reads as a space", "?serveruuid=a+b", Just "a b" )
             , ( "%20 decodes to a space", "?serveruuid=a%20b", Just "a b" )
             , ( "%2B decodes to a '+'", "?serveruuid=a%2Bb", Just "a+b" )
             , ( "%3D decodes to a '='", "?serveruuid=a%3Db", Just "a=b" )
-            , ( "a raw '=' in the value yields no value", "?serveruuid=a=b", Nothing )
-            , ( "a repeated key yields no value", "?serveruuid=a&serveruuid=b", Nothing )
+            , ( "a raw '=' stays in the value", "?serveruuid=a=b", Just "a=b" )
+            , ( "a repeated key yields its first value", "?serveruuid=a&serveruuid=b", Just "a" )
             , ( "an empty value is empty", "?serveruuid=", Just "" )
-            , ( "a key without '=' yields no value", "?serveruuid", Nothing )
-            , ( "an invalid percent escape yields no value", "?serveruuid=%zz", Nothing )
+            , ( "a key without '=' is empty", "?serveruuid", Just "" )
+            , ( "an absent key yields no value", "", Nothing )
+            , ( "an invalid percent escape is kept as written", "?serveruuid=%zz", Just "%zz" )
             , ( "percent-encoded UTF-8 decodes", "?serveruuid=caf%C3%A9", Just "café" )
             ]
     in
-    describe "query values decode as elm/url decodes them"
+    describe "query values decode as AppUrl decodes them"
         (List.map
             (\( description, query, expectedServerUuid ) ->
                 test description <|
