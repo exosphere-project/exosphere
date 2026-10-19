@@ -18,6 +18,7 @@ routeSuite =
         , earlierUrlFormSuite
         , rootSuite
         , queryValueDecodingSuite
+        , analyticsUrlSuite
         ]
 
 
@@ -558,3 +559,61 @@ queryValueDecodingSuite =
             )
             testCases
         )
+
+
+analyticsUrlSuite : Test
+analyticsUrlSuite =
+    let
+        templateCases =
+            [ ( Nothing, regionalProjectRoute (Route.ServerDetail "srv-1"), "/projects/:project/regions/RegionOne/servers/:server" )
+            , ( Nothing, projectRoute Route.ServerList, "/projects/:project/servers" )
+            , ( Just "exosphere"
+              , regionalProjectRoute (Route.ServerCreateImage "srv-1" (Just "snap shot"))
+              , "/exosphere/projects/:project/regions/RegionOne/servers/:server/image"
+              )
+            , ( Nothing, projectRoute (Route.ObjectStorageContainerDetail "photos" (Just "a/b c/")), "/projects/:project/objectstorage/:container" )
+            , ( Nothing, projectRoute (Route.SecurityGroupDetail "sg-1"), "/projects/:project/securitygroups/:security-group" )
+            , ( Nothing, projectRoute (Route.ShareDetail "share-1"), "/projects/:project/shares/:share" )
+            , ( Nothing, projectRoute (Route.VolumeDetail "vol-1"), "/projects/:project/volumes/:volume" )
+            , ( Nothing, projectRoute (Route.VolumeAttach (Just "srv-1") (Just "vol-1")), "/projects/:project/attachvol" )
+            , ( Nothing, Route.SelectProjectRegions keystoneUrl "proj-1", "/selectprojectregions" )
+            , ( Nothing, Route.LoadingUnscopedProjects "token-1", "/loadingprojs" )
+            , ( Nothing, Route.MessageLog True, "/msglog" )
+            ]
+
+        identifyingFixtures =
+            [ "proj-1", "srv-1", "vol-1", "ip-1", "sg-1", "share-1", "img-1", "att-1", "f1", "f2", "photos", "café", "données", "dossier", "my #1", "literal", "back", "keystone.example", "token-1", "alice", "secret", "Default", "Ubuntu", "My Image", "snap", "sdb" ]
+
+        lossyRoutes =
+            [ ( "LoadingUnscopedProjects", Route.LoadingUnscopedProjects "token-1" )
+            , ( "LoginOpenstack with credentials"
+              , Route.LoginOpenstack (Just { authUrl = keystoneUrl, userDomain = "Default", username = "alice", password = "secret" })
+              )
+            , ( "GetSupport with an item", Route.GetSupport (Just ( HelperTypes.SupportableServer, Just "srv-1" )) )
+            ]
+
+        leaks : String -> List String
+        leaks analyticsUrl =
+            List.filter (\fixture -> String.contains fixture analyticsUrl) ("?" :: identifyingFixtures)
+    in
+    describe "toAnalyticsUrl"
+        [ describe "reports the route's shape"
+            (List.map
+                (\( maybePathPrefix, route, expected ) ->
+                    test expected <|
+                        \_ -> Expect.equal expected (Route.toAnalyticsUrl maybePathPrefix route)
+                )
+                templateCases
+            )
+        , describe "never reports an identifier, name, credential or query string"
+            (withAndWithoutPathPrefix
+                (\maybePathPrefix ->
+                    List.map
+                        (\( description, route ) ->
+                            test description <|
+                                \_ -> Expect.equal [] (leaks (Route.toAnalyticsUrl maybePathPrefix route))
+                        )
+                        (losslessRoutes ++ lossyRoutes)
+                )
+            )
+        ]

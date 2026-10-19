@@ -62,7 +62,6 @@ import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (SharedMsg)
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import Url
-import View.PageTitle
 
 
 navigateToPage : Url.Url -> OuterModel -> ( OuterModel, Cmd OuterMsg )
@@ -93,8 +92,8 @@ buildPage route sharedModelBeforeNavigation outerModel =
         ( newViewState, pageSpecificSharedModel, pageSpecificCmd ) =
             routeToViewStateModelCmd sharedModelBeforeNavigation route
 
-        newUrl =
-            Route.toUrl outerModel.sharedModel.viewContext.urlPathPrefix route
+        analyticsUrl =
+            Route.toAnalyticsUrl outerModel.sharedModel.viewContext.urlPathPrefix route
 
         newOuterModel =
             { outerModel
@@ -102,11 +101,10 @@ buildPage route sharedModelBeforeNavigation outerModel =
                 , sharedModel = pageSpecificSharedModel
             }
 
-        newPageTitle =
-            View.PageTitle.pageTitle newOuterModel
-
         updateMatomoCmd =
-            Ports.pushUrlAndTitleToMatomo { newUrl = newUrl, pageTitle = newPageTitle }
+            -- The browser's page title names projects and resources, so analytics gets the template as
+            -- its title too.
+            Ports.pushUrlAndTitleToMatomo { newUrl = analyticsUrl, pageTitle = analyticsUrl }
     in
     ( newOuterModel
     , Cmd.batch

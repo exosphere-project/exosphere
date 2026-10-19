@@ -6,6 +6,7 @@ module Route exposing
     , fromUrl
     , pushUrl
     , replaceUrl
+    , toAnalyticsUrl
     , toUrl
     )
 
@@ -276,6 +277,161 @@ toUrl maybePathPrefix route =
 
         Settings ->
             buildUrlFunc [ "settings" ] []
+
+
+{-| The URL to report to analytics: the route's path with every project, resource and container
+identifier replaced by a placeholder such as `:server`, and no query string, so analytics never
+receives a UUID, a resource name, a Keystone URL or a token. The path prefix and region stay, since
+they tell deployments and regions apart rather than identifying anyone.
+
+    toAnalyticsUrl Nothing (ProjectRoute { projectUuid = "…", regionId = Just "IU" } (ServerDetail "…"))
+        == "/projects/:project/regions/IU/servers/:server"
+
+-}
+toAnalyticsUrl : Maybe String -> Route -> String
+toAnalyticsUrl maybePathPrefix route =
+    toUrl maybePathPrefix (withoutIdentifiers route)
+        |> String.split "?"
+        |> List.head
+        |> Maybe.withDefault ""
+
+
+{-| Every constructor is listed, so a new route cannot reach analytics without deciding what it
+carries.
+-}
+withoutIdentifiers : Route -> Route
+withoutIdentifiers route =
+    case route of
+        GetSupport _ ->
+            GetSupport Nothing
+
+        HelpAbout ->
+            HelpAbout
+
+        Home ->
+            Home
+
+        LoadingUnscopedProjects _ ->
+            LoadingUnscopedProjects ""
+
+        LoginOpenstack _ ->
+            LoginOpenstack Nothing
+
+        LoginOpenIdConnect ->
+            LoginOpenIdConnect
+
+        LoginPicker ->
+            LoginPicker
+
+        MessageLog showDebugMsgs ->
+            MessageLog showDebugMsgs
+
+        PageNotFound ->
+            PageNotFound
+
+        ProjectRoute projectIdentifier projectRouteConstructor ->
+            ProjectRoute { projectIdentifier | projectUuid = ":project" }
+                (projectRouteWithoutIdentifiers projectRouteConstructor)
+
+        SelectProjectRegions _ _ ->
+            SelectProjectRegions "" ""
+
+        SelectProjects _ ->
+            SelectProjects ""
+
+        Settings ->
+            Settings
+
+
+projectRouteWithoutIdentifiers : ProjectRouteConstructor -> ProjectRouteConstructor
+projectRouteWithoutIdentifiers projectRouteConstructor =
+    case projectRouteConstructor of
+        ProjectOverview ->
+            ProjectOverview
+
+        FloatingIpAssign _ _ ->
+            FloatingIpAssign Nothing Nothing
+
+        FloatingIpList ->
+            FloatingIpList
+
+        ImageList ->
+            ImageList
+
+        InstanceSourcePicker ->
+            InstanceSourcePicker
+
+        FloatingIpCreate _ ->
+            FloatingIpCreate Nothing
+
+        KeypairCreate ->
+            KeypairCreate
+
+        KeypairList ->
+            KeypairList
+
+        ObjectStorageList ->
+            ObjectStorageList
+
+        ObjectStorageContainerCreate ->
+            ObjectStorageContainerCreate
+
+        ObjectStorageContainerDetail _ _ ->
+            ObjectStorageContainerDetail ":container" Nothing
+
+        SecurityGroupDetail _ ->
+            SecurityGroupDetail ":security-group"
+
+        SecurityGroupList ->
+            SecurityGroupList
+
+        ServerCreate _ _ _ _ ->
+            ServerCreate "" "" Nothing Nothing
+
+        ServerCreateImage _ _ ->
+            ServerCreateImage ":server" Nothing
+
+        ServerConsoleLog _ ->
+            ServerConsoleLog ":server"
+
+        ServerDetail _ ->
+            ServerDetail ":server"
+
+        ServerList ->
+            ServerList
+
+        ServerResize _ ->
+            ServerResize ":server"
+
+        ServerSecurityGroups _ ->
+            ServerSecurityGroups ":server"
+
+        ShareCreate ->
+            ShareCreate
+
+        ShareList ->
+            ShareList
+
+        ShareDetail _ ->
+            ShareDetail ":share"
+
+        VolumeAttach _ _ ->
+            VolumeAttach Nothing Nothing
+
+        VolumeCreate ->
+            VolumeCreate
+
+        VolumeDetail _ ->
+            VolumeDetail ":volume"
+
+        VolumeList ->
+            VolumeList
+
+        VolumeMountInstructions _ ->
+            VolumeMountInstructions { volumeUuid = "", serverUuid = "", attachmentUuid = "", device = Nothing }
+
+        Credentials ->
+            Credentials
 
 
 {-| Normalize an object-storage prefix query value: treat `Just ""` as `Nothing`.
