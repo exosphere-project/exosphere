@@ -15,6 +15,7 @@ routeSuite =
         , lossyRouteSuite
         , toUrlSuite
         , parseSuite
+        , earlierUrlFormSuite
         , rootSuite
         , queryValueDecodingSuite
         ]
@@ -84,6 +85,7 @@ losslessProjectConstructors =
     , ( "ObjectStorageContainerDetail, unicode name and prefix", Route.ObjectStorageContainerDetail "café-données" (Just "dossier/£/") )
     , ( "ObjectStorageContainerDetail, name with '#', '%' and spaces", Route.ObjectStorageContainerDetail "my #1 100% container" Nothing )
     , ( "ObjectStorageContainerDetail, name holding a literal percent escape", Route.ObjectStorageContainerDetail "literal%20name" Nothing )
+    , ( "ObjectStorageContainerDetail, name and prefix with a backslash", Route.ObjectStorageContainerDetail "back\\slash" (Just "dir\\sub/") )
     , ( "SecurityGroupDetail", Route.SecurityGroupDetail "sg-1" )
     , ( "SecurityGroupList", Route.SecurityGroupList )
     , ( "ServerCreate with restricted flavors and Guacamole", Route.ServerCreate "img-1" "My Image+1 & co" (Just [ "f1", "f2" ]) (Just True) )
@@ -257,9 +259,9 @@ toUrlSuite =
             , ( Nothing, Route.PageNotFound, "/pagenotfound" )
             , ( Nothing
               , Route.SelectProjectRegions keystoneUrl "proj-1"
-              , "/selectprojectregions?keystoneurl=https%3A%2F%2Fkeystone.example%3A5000%2Fv3&projectuuid=proj-1"
+              , "/selectprojectregions?keystoneurl=https://keystone.example:5000/v3&projectuuid=proj-1"
               )
-            , ( Nothing, Route.SelectProjects keystoneUrl, "/selectprojs?keystoneurl=https%3A%2F%2Fkeystone.example%3A5000%2Fv3" )
+            , ( Nothing, Route.SelectProjects keystoneUrl, "/selectprojs?keystoneurl=https://keystone.example:5000/v3" )
             , ( Nothing, Route.Settings, "/settings" )
             , ( Nothing, projectRoute Route.ProjectOverview, "/projects/proj-1/overview" )
             , ( Nothing, projectRoute Route.Credentials, "/projects/proj-1/credentials" )
@@ -278,28 +280,32 @@ toUrlSuite =
             , ( Nothing, projectRoute Route.ObjectStorageContainerCreate, "/projects/proj-1/createcontainer" )
             , ( Nothing
               , projectRoute (Route.ObjectStorageContainerDetail "my #1 café" (Just "a/b c/"))
-              , "/projects/proj-1/objectstorage/my%20%231%20caf%C3%A9?prefix=a%2Fb%20c%2F"
+              , "/projects/proj-1/objectstorage/my%20%231%20café?prefix=a/b+c/"
               )
             , ( Nothing
               , projectRoute (Route.ObjectStorageContainerDetail "literal%20name" Nothing)
               , "/projects/proj-1/objectstorage/literal%2520name"
               )
+            , ( Nothing
+              , projectRoute (Route.ObjectStorageContainerDetail "back\\slash" (Just "dir\\sub/"))
+              , "/projects/proj-1/objectstorage/back%5Cslash?prefix=dir%5Csub/"
+              )
             , ( Nothing, projectRoute (Route.SecurityGroupDetail "sg-1"), "/projects/proj-1/securitygroups/sg-1" )
             , ( Nothing, projectRoute Route.SecurityGroupList, "/projects/proj-1/securitygroups" )
             , ( Nothing
               , projectRoute (Route.ServerCreate "img-1" "My Image+1" (Just [ "f1", "f2" ]) (Just True))
-              , "/projects/proj-1/createserver?imageuuid=img-1&imagename=My%20Image%2B1&restrictflavorids=true%40f1%40f2&deployguac=justtrue"
+              , "/projects/proj-1/createserver?deployguac=justtrue&imagename=My+Image%2B1&imageuuid=img-1&restrictflavorids=true@f1@f2"
               )
             , ( Nothing
               , projectRoute (Route.ServerCreate "img-1" "Ubuntu" Nothing (Just False))
-              , "/projects/proj-1/createserver?imageuuid=img-1&imagename=Ubuntu&restrictflavorids=false&deployguac=justfalse"
+              , "/projects/proj-1/createserver?deployguac=justfalse&imagename=Ubuntu&imageuuid=img-1&restrictflavorids=false"
               )
             , ( Nothing
               , projectRoute (Route.ServerCreate "img-1" "Ubuntu" Nothing Nothing)
-              , "/projects/proj-1/createserver?imageuuid=img-1&imagename=Ubuntu&restrictflavorids=false&deployguac=nothing"
+              , "/projects/proj-1/createserver?deployguac=nothing&imagename=Ubuntu&imageuuid=img-1&restrictflavorids=false"
               )
-            , ( Nothing, projectRoute (Route.ServerCreateImage "srv-1" (Just "snap shot")), "/projects/proj-1/servers/srv-1/image?name=snap%20shot" )
-            , ( Nothing, projectRoute (Route.ServerCreateImage "srv-1" (Just "")), "/projects/proj-1/servers/srv-1/image?name=" )
+            , ( Nothing, projectRoute (Route.ServerCreateImage "srv-1" (Just "snap shot")), "/projects/proj-1/servers/srv-1/image?name=snap+shot" )
+            , ( Nothing, projectRoute (Route.ServerCreateImage "srv-1" (Just "")), "/projects/proj-1/servers/srv-1/image?name" )
             , ( Nothing, projectRoute (Route.ServerCreateImage "srv-1" Nothing), "/projects/proj-1/servers/srv-1/image" )
             , ( Nothing, projectRoute (Route.ServerConsoleLog "srv-1"), "/projects/proj-1/servers/srv-1/console-log" )
             , ( Nothing, projectRoute (Route.ServerDetail "srv-1"), "/projects/proj-1/servers/srv-1" )
@@ -311,7 +317,7 @@ toUrlSuite =
             , ( Nothing, projectRoute (Route.ShareDetail "share-1"), "/projects/proj-1/shares/share-1" )
             , ( Nothing
               , projectRoute (Route.VolumeAttach (Just "srv-1") (Just "vol-1"))
-              , "/projects/proj-1/attachvol?voluuid=vol-1&serveruuid=srv-1"
+              , "/projects/proj-1/attachvol?serveruuid=srv-1&voluuid=vol-1"
               )
             , ( Nothing, projectRoute (Route.VolumeAttach Nothing Nothing), "/projects/proj-1/attachvol" )
             , ( Nothing, projectRoute Route.VolumeCreate, "/projects/proj-1/createvolume" )
@@ -319,11 +325,11 @@ toUrlSuite =
             , ( Nothing, projectRoute Route.VolumeList, "/projects/proj-1/volumes" )
             , ( Nothing
               , projectRoute (Route.VolumeMountInstructions volumeAttachment)
-              , "/projects/proj-1/attachvolinstructions?voluuid=vol-1&serveruuid=srv-1&attachmentuuid=att-1&device=%2Fdev%2Fsdb"
+              , "/projects/proj-1/attachvolinstructions?attachmentuuid=att-1&device=/dev/sdb&serveruuid=srv-1&voluuid=vol-1"
               )
             , ( Nothing
               , projectRoute (Route.VolumeMountInstructions { volumeAttachment | device = Nothing })
-              , "/projects/proj-1/attachvolinstructions?voluuid=vol-1&serveruuid=srv-1&attachmentuuid=att-1"
+              , "/projects/proj-1/attachvolinstructions?attachmentuuid=att-1&serveruuid=srv-1&voluuid=vol-1"
               )
             , ( Nothing, regionalProjectRoute Route.ServerList, "/projects/proj-1/regions/RegionOne/servers" )
             , ( Just "exosphere", Route.Home, "/exosphere/home" )
@@ -450,6 +456,50 @@ parseSuite =
             ++ [ test "a path missing the configured prefix falls back to the default route" <|
                     \_ -> Expect.equal Nothing (parse (Just "exosphere") "/home")
                ]
+        )
+
+
+{-| Before the router moved to AppUrl, elm/url's `Url.Builder` wrote these URLs, so links and
+bookmarks in this form are still around.
+-}
+earlierUrlFormSuite : Test
+earlierUrlFormSuite =
+    let
+        testCases =
+            [ ( "/selectprojectregions?keystoneurl=https%3A%2F%2Fkeystone.example%3A5000%2Fv3&projectuuid=proj-1"
+              , Route.SelectProjectRegions keystoneUrl "proj-1"
+              )
+            , ( "/selectprojs?keystoneurl=https%3A%2F%2Fkeystone.example%3A5000%2Fv3", Route.SelectProjects keystoneUrl )
+            , ( "/projects/proj-1/objectstorage/my%20%231%20caf%C3%A9?prefix=a%2Fb%20c%2F"
+              , projectRoute (Route.ObjectStorageContainerDetail "my #1 café" (Just "a/b c/"))
+              )
+            , ( "/projects/proj-1/createserver?imageuuid=img-1&imagename=My%20Image%2B1&restrictflavorids=true%40f1%40f2&deployguac=justtrue"
+              , projectRoute (Route.ServerCreate "img-1" "My Image+1" (Just [ "f1", "f2" ]) (Just True))
+              )
+            , ( "/projects/proj-1/createserver?imageuuid=img-1&imagename=Ubuntu&restrictflavorids=false&deployguac=justfalse"
+              , projectRoute (Route.ServerCreate "img-1" "Ubuntu" Nothing (Just False))
+              )
+            , ( "/projects/proj-1/createserver?imageuuid=img-1&imagename=Ubuntu&restrictflavorids=false&deployguac=nothing"
+              , projectRoute (Route.ServerCreate "img-1" "Ubuntu" Nothing Nothing)
+              )
+            , ( "/projects/proj-1/servers/srv-1/image?name=snap%20shot", projectRoute (Route.ServerCreateImage "srv-1" (Just "snap shot")) )
+            , ( "/projects/proj-1/servers/srv-1/image?name=", projectRoute (Route.ServerCreateImage "srv-1" (Just "")) )
+            , ( "/projects/proj-1/attachvolinstructions?voluuid=vol-1&serveruuid=srv-1&attachmentuuid=att-1&device=%2Fdev%2Fsdb"
+              , projectRoute (Route.VolumeMountInstructions volumeAttachment)
+              )
+            , ( "/projects/proj-1/attachvolinstructions?voluuid=vol-1&serveruuid=srv-1&attachmentuuid=att-1"
+              , projectRoute (Route.VolumeMountInstructions { volumeAttachment | device = Nothing })
+              )
+            , ( "/projects/proj-1/attachvol?voluuid=vol-1&serveruuid=srv-1", projectRoute (Route.VolumeAttach (Just "srv-1") (Just "vol-1")) )
+            ]
+    in
+    describe "URLs in the earlier elm/url form still parse"
+        (List.map
+            (\( path, expected ) ->
+                test path <|
+                    \_ -> Expect.equal (Just expected) (parse Nothing path)
+            )
+            testCases
         )
 
 
