@@ -1,4 +1,4 @@
-module Page.ServerList exposing (Model, Msg, init, update, view)
+module Page.ServerList exposing (Model, Msg, init, listQuery, update, view)
 
 import Dict
 import Element
@@ -34,10 +34,12 @@ import Style.Widgets.Text as Text
 import Style.Widgets.Uuid exposing (uuidLabel)
 import Time
 import Types.Guacamole exposing (LaunchedWithGuacProps)
+import Types.HelperTypes as HelperTypes
 import Types.Interaction as ITypes
 import Types.Interactivity exposing (InteractionLevel(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (Server, ServerUiStatus)
+import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
@@ -47,6 +49,7 @@ import Widget
 type alias Model =
     { showHeading : Bool
     , dataListModel : DataList.Model
+    , defaultFilterOptions : DataList.SelectedFilterOptions
     , retainFloatingIpsWhenDeleting : Bool
     , deleteFloatingIpsWhenShelving : Bool
     , selectedBulkAction : Maybe ServerActions.ServerAction
@@ -65,21 +68,31 @@ type Msg
     | NoOp
 
 
-init : View.Types.Context -> Project -> Bool -> Model
-init context project showHeading =
-    { showHeading = showHeading
-    , dataListModel =
-        DataList.init <|
+init : View.Types.Context -> Project -> Bool -> HelperTypes.ListQuery -> Model
+init context project showHeading initialListQuery =
+    let
+        defaultFilterOptions =
             DataList.getDefaultFilterOptions
                 (filters context project project.auth.user.name (Time.millisToPosix 0))
+    in
+    { showHeading = showHeading
+    , dataListModel = DataList.initWithQuery defaultFilterOptions initialListQuery
+    , defaultFilterOptions = defaultFilterOptions
     , retainFloatingIpsWhenDeleting = False
     , deleteFloatingIpsWhenShelving = True
     , selectedBulkAction = Nothing
     }
 
 
-update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg project model =
+{-| The search and filters as the page URL carries them.
+-}
+listQuery : Model -> HelperTypes.ListQuery
+listQuery model =
+    DataList.toQuery model.defaultFilterOptions model.dataListModel
+
+
+update : Msg -> SharedModel -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg { viewContext } project model =
     case msg of
         GotDeleteConfirm serverId ->
             ( model
@@ -96,11 +109,19 @@ update msg project model =
             )
 
         DataListMsg dataListMsg ->
-            ( { model
-                | dataListModel =
-                    DataList.update dataListMsg model.dataListModel
-              }
-            , Cmd.none
+            let
+                newModel =
+                    { model | dataListModel = DataList.update dataListMsg model.dataListModel }
+            in
+            ( newModel
+            , if listQuery newModel == listQuery model then
+                -- Selecting rows leaves the URL alone.
+                Cmd.none
+
+              else
+                Route.replaceUrl viewContext <|
+                    Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                        Route.ServerList (listQuery newModel)
             , SharedMsg.NoOp
             )
 
