@@ -1,4 +1,4 @@
-module Tests.Helpers.GetterSetters exposing (loginAlreadyImportedSuite)
+module Tests.Helpers.GetterSetters exposing (loginAlreadyImportedSuite, proxyDestinationIpSuite)
 
 import Expect
 import Helpers.GetterSetters
@@ -56,4 +56,22 @@ loginAlreadyImportedSuite =
                     Helpers.GetterSetters.loginAlreadyImported Nothing []
                         |> Expect.equal False
             ]
+        ]
+
+
+proxyDestinationIpSuite : Test
+proxyDestinationIpSuite =
+    describe "picking the address the user app proxy reaches a server at"
+        [ test "a floating IP is preferred over a global IPv6 address" <|
+            \() ->
+                Helpers.GetterSetters.proxyDestinationIp [ "149.165.153.239" ] [ "10.0.0.5", "2001:18e8:c02:110:0:1a::5" ]
+                    |> Expect.equal (Just "149.165.153.239")
+        , test "without a floating IP, the global IPv6 address is used" <|
+            \() ->
+                Helpers.GetterSetters.proxyDestinationIp [] [ "10.0.0.5", "fe80::f816:3eff:fe12:3456", "2001:18e8:c02:110:0:1a::5" ]
+                    |> Expect.equal (Just "2001:18e8:c02:110:0:1a::5")
+        , test "a server with only a link-local IPv6 address has nothing to reach" <|
+            \() ->
+                Helpers.GetterSetters.proxyDestinationIp [] [ "10.0.0.5", "fe80::f816:3eff:fe12:3456" ]
+                    |> Expect.equal Nothing
         ]

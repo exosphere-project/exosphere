@@ -21,6 +21,7 @@ module Helpers.GetterSetters exposing
     , getServerFlavorGroup
     , getServerFloatingIps
     , getServerPorts
+    , getServerProxyDestinationIp
     , getServerSecurityGroups
     , getServerUuidsByVolumeAttached
     , getServerVolumeActions
@@ -91,6 +92,7 @@ module Helpers.GetterSetters exposing
     , projectUpsertServerSecurityGroups
     , projectUpsertServerVolumeAction
     , projectUpsertServerVolumeAttachments
+    , proxyDestinationIp
     , sanitizeMountpoint
     , securityGroupLookup
     , securityGroupsFromServerSecurityGroups
@@ -120,6 +122,7 @@ module Helpers.GetterSetters exposing
     )
 
 import Dict
+import Helpers.Cidr as Cidr
 import Helpers.List exposing (multiSortBy)
 import Helpers.Queue
 import Helpers.RemoteDataPlusPlus as RDPP exposing (RemoteDataPlusPlus)
@@ -524,6 +527,28 @@ getServerFloatingIps project serverUuid =
                     Nothing ->
                         False
             )
+
+
+{-| The address the user app proxy reaches a server at, see `proxyDestinationIp`.
+-}
+getServerProxyDestinationIp : Project -> OSTypes.ServerUuid -> Maybe OSTypes.IpAddressValue
+getServerProxyDestinationIp project serverUuid =
+    proxyDestinationIp
+        (getServerFloatingIps project serverUuid |> List.map .address)
+        (getServerFixedIps project serverUuid)
+
+
+{-| Given a server's floating IPs and fixed IPs, pick the address the user app proxy reaches it at:
+the first floating IP, or failing that the first globally routable IPv6 fixed address.
+-}
+proxyDestinationIp : List OSTypes.IpAddressValue -> List OSTypes.IpAddressValue -> Maybe OSTypes.IpAddressValue
+proxyDestinationIp floatingIps fixedIps =
+    case floatingIps of
+        floatingIp :: _ ->
+            Just floatingIp
+
+        [] ->
+            List.Extra.find Cidr.isGlobalUnicastIPv6 fixedIps
 
 
 getFloatingIpServer : Project -> OSTypes.FloatingIp -> Maybe Server

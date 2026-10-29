@@ -1,4 +1,4 @@
-module Helpers.Interaction exposing (getLaunchedWithGaucamoleProps, interactionDetails, interactionStatus, interactionStatusWordColor)
+module Helpers.Interaction exposing (getLaunchedWithGaucamoleProps, guacTokenErrorStatus, interactionDetails, interactionStatus, interactionStatusWordColor, setupDoneOverIpv6)
 
 import Element
 import FeatherIcons as Icons
@@ -9,6 +9,7 @@ import Helpers.Image
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Helpers.Url as UrlHelpers
+import Http
 import OpenStack.Types as OSTypes
 import Route
 import Style.Helpers as SH
@@ -16,10 +17,10 @@ import Style.Types
 import Style.Widgets.Icon as Icon
 import Time
 import Types.Guacamole as GuacTypes exposing (LaunchedWithGuacProps, ServerGuacamoleStatus(..))
-import Types.HelperTypes exposing (UserAppProxyHostname)
+import Types.HelperTypes exposing (Localization, UserAppProxyHostname)
 import Types.Interaction as ITypes
 import Types.Project exposing (Project)
-import Types.Server exposing (Server, ServerFromExoProps, ServerOrigin(..))
+import Types.Server exposing (ExoSetupStatus(..), Server, ServerFromExoProps, ServerOrigin(..))
 import Types.Workflow exposing (ServerCustomWorkflowStatus(..))
 import Url
 import Url.Builder
@@ -34,6 +35,10 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
             GetterSetters.getServerFloatingIps project server.osProps.uuid
                 |> List.map .address
                 |> List.head
+
+        maybeProxyDestinationIp : Maybe OSTypes.IpAddressValue
+        maybeProxyDestinationIp =
+            GetterSetters.getServerProxyDestinationIp project server.osProps.uuid
 
         guac : GuacType -> ITypes.InteractionStatus
         guac guacType =
@@ -54,7 +59,7 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                         context
                         currentTime
                         tlsReverseProxyHostname
-                        maybeFloatingIpAddress
+                        maybeProxyDestinationIp
                         exoOriginProps
                         guacType
 
@@ -415,7 +420,7 @@ serverFromExoGuacStatus :
     -> ServerFromExoProps
     -> GuacType
     -> ITypes.InteractionStatus
-serverFromExoGuacStatus project server context currentTime tlsReverseProxyHostname maybeFloatingIpAddress exoOriginProps guacType =
+serverFromExoGuacStatus project server context currentTime tlsReverseProxyHostname maybeDestinationIp exoOriginProps guacType =
     case exoOriginProps.guacamoleStatus of
         GuacTypes.NotLaunchedWithGuacamole ->
             if exoOriginProps.exoServerVersion < 3 then
@@ -449,8 +454,8 @@ serverFromExoGuacStatus project server context currentTime tlsReverseProxyHostna
             else
                 case guacProps.authToken.data of
                     RDPP.DoHave token _ ->
-                        case ( tlsReverseProxyHostname, maybeFloatingIpAddress ) of
-                            ( Just proxyHostname, Just floatingIp ) ->
+                        case ( tlsReverseProxyHostname, maybeDestinationIp ) of
+                            ( Just proxyHostname, Just destinationIp ) ->
                                 let
                                     guacUpstreamPort =
                                         49528
@@ -469,7 +474,7 @@ serverFromExoGuacStatus project server context currentTime tlsReverseProxyHostna
                                 ITypes.Ready <|
                                     UrlHelpers.buildProxyUrl
                                         proxyHostname
-                                        floatingIp
+                                        destinationIp
                                         guacUpstreamPort
                                         Url.Http
                                         [ "guacamole", "#", "client", connectionStringBase64 ]
@@ -489,7 +494,7 @@ serverFromExoGuacStatus project server context currentTime tlsReverseProxyHostna
                                         ]
 
                     RDPP.DontHave ->
-                        if hasRecentServerEvent project server currentTime then
+                        if hasRecentServerEvent project server currentTime && not (setupDoneOverIpv6 maybeDestinationIp exoOriginProps.exoSetupStatus.data) then
                             ITypes.Unavailable <|
                                 String.join " "
                                     [ context.localization.virtualComputer
@@ -500,7 +505,7 @@ serverFromExoGuacStatus project server context currentTime tlsReverseProxyHostna
                         else
                             case
                                 ( tlsReverseProxyHostname
-                                , maybeFloatingIpAddress
+                                , maybeDestinationIp
                                 , GetterSetters.getServerExouserPassphrase server.osProps.details
                                 )
                             of
@@ -525,7 +530,7 @@ serverFromExoGuacStatus project server context currentTime tlsReverseProxyHostna
                                             , "passphrase to authenticate"
                                             ]
 
-                                ( Just _, Just _, Just _ ) ->
+                                ( Just _, Just destinationIp, Just _ ) ->
                                     case guacProps.authToken.refreshStatus of
                                         RDPP.Loading ->
                                             ITypes.Loading
@@ -539,10 +544,46 @@ serverFromExoGuacStatus project server context currentTime tlsReverseProxyHostna
                                                     ITypes.Loading
 
                                                 Just ( httpError, _ ) ->
-                                                    ITypes.Error
-                                                        ("Exosphere tried to authenticate to the Guacamole API, and received this error: "
-                                                            ++ Helpers.httpErrorToString httpError
-                                                        )
+                                                    guacTokenErrorStatus context.localization destinationIp httpError
+
+
+{-| Whether Guacamole is reached over IPv6 on an instance that has finished its setup. Guacamole is
+running by then, so a token request that keeps failing is the network, and waiting will not fix it.
+-}
+setupDoneOverIpv6 : Maybe OSTypes.IpAddressValue -> RDPP.Haveness ( ExoSetupStatus, Maybe Time.Posix ) -> Bool
+setupDoneOverIpv6 maybeDestinationIp exoSetupStatus =
+    case ( maybeDestinationIp, exoSetupStatus ) of
+        ( Just destinationIp, RDPP.DoHave ( ExoSetupComplete, _ ) _ ) ->
+            Cidr.isValidIPv6 destinationIp
+
+        _ ->
+            False
+
+
+{-| Status to show when the Guacamole token request failed. An IPv6 destination means the instance has no
+floating IP, and the default security group does not let the proxy reach Guacamole over IPv6, so explain
+that instead of showing the raw error.
+-}
+guacTokenErrorStatus : Localization -> OSTypes.IpAddressValue -> Http.Error -> ITypes.InteractionStatus
+guacTokenErrorStatus localization destinationIp httpError =
+    if Cidr.isValidIPv6 destinationIp then
+        ITypes.Unavailable <|
+            String.join " "
+                [ localization.virtualComputer
+                    |> Helpers.String.toTitleCase
+                , "does not have"
+                , Helpers.String.indefiniteArticle localization.floatingIpAddress
+                , localization.floatingIpAddress ++ ", and the proxy could not reach it over IPv6. Assign"
+                , Helpers.String.indefiniteArticle localization.floatingIpAddress
+                , localization.floatingIpAddress ++ ", or allow port 49528 over IPv6 in its"
+                , localization.securityGroup ++ "."
+                ]
+
+    else
+        ITypes.Error
+            ("Exosphere tried to authenticate to the Guacamole API, and received this error: "
+                ++ Helpers.httpErrorToString httpError
+            )
 
 
 type GuacType

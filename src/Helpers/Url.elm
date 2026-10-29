@@ -1,6 +1,7 @@
 module Helpers.Url exposing (buildProxyUrl, dataUrl, hostnameFromUrl, sameHost, textDataUrl)
 
 import Base64
+import Helpers.Cidr as Cidr
 import OpenStack.Types as OSTypes
 import Types.HelperTypes as HelperTypes
 import Url
@@ -55,7 +56,17 @@ buildProxyUrl proxyHostname destinationIp port_ protocol =
 
         Url.Https ->
             ""
-    , destinationIp |> String.replace "." "-"
+    , case Cidr.expandIPv6 destinationIp of
+        Just expandedIpv6 ->
+            -- All eight groups, lowercase, without leading zeros or :: shortening, e.g. 2001-db8-0-0-0-0-0-1
+            expandedIpv6
+                |> String.toLower
+                |> String.split ":"
+                |> List.map stripLeadingZeros
+                |> String.join "-"
+
+        Nothing ->
+            destinationIp |> String.replace "." "-"
     , "-"
     , String.fromInt port_
     , "."
@@ -63,6 +74,20 @@ buildProxyUrl proxyHostname destinationIp port_ protocol =
     ]
         |> String.concat
         |> Url.Builder.crossOrigin
+
+
+stripLeadingZeros : String -> String
+stripLeadingZeros group =
+    case String.uncons group of
+        Just ( '0', rest ) ->
+            if String.isEmpty rest then
+                group
+
+            else
+                stripLeadingZeros rest
+
+        _ ->
+            group
 
 
 dataUrl : String -> String -> String
