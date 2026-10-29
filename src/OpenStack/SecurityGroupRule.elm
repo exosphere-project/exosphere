@@ -376,10 +376,16 @@ buildRuleGuacamole =
     buildRuleTcpIngress Ipv4 49528 "Guacamole"
 
 
+buildRuleGuacamoleIPv6 : SecurityGroupRuleTemplate
+buildRuleGuacamoleIPv6 =
+    buildRuleTcpIngress Ipv6 49528 "Guacamole IPv6"
+
+
 defaultRules : List SecurityGroupRuleTemplate
 defaultRules =
     [ buildRuleSsh
     , buildRuleSshIPv6
+    , buildRuleGuacamoleIPv6
     , buildRuleIcmp
     , buildRuleIcmpIPv6
     , buildRuleMosh
