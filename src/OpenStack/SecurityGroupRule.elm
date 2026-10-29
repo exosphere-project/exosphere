@@ -335,6 +335,19 @@ buildRuleExposeAllIncomingPorts =
     }
 
 
+buildRuleExposeAllIncomingPortsIPv6 : SecurityGroupRuleTemplate
+buildRuleExposeAllIncomingPortsIPv6 =
+    { ethertype = Ipv6
+    , direction = Ingress
+    , protocol = Just ProtocolTcp
+    , portRangeMin = Nothing
+    , portRangeMax = Nothing
+    , remoteIpPrefix = Nothing
+    , remoteGroupUuid = Nothing
+    , description = Just "Expose all incoming ports IPv6"
+    }
+
+
 buildRuleAllowAllOutgoingIPv4 : SecurityGroupRuleTemplate
 buildRuleAllowAllOutgoingIPv4 =
     { ethertype = Ipv4
@@ -384,6 +397,7 @@ defaultRules =
     , buildRuleIcmpIPv6
     , buildRuleMosh
     , buildRuleExposeAllIncomingPorts
+    , buildRuleExposeAllIncomingPortsIPv6
     , buildRuleAllowAllOutgoingIPv4
     , buildRuleAllowAllOutgoingIPv6
     ]
