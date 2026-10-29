@@ -30,12 +30,6 @@ import View.Types
 interactionStatus : Project -> Server -> ITypes.Interaction -> View.Types.Context -> Time.Posix -> Maybe UserAppProxyHostname -> ITypes.InteractionStatus
 interactionStatus project server interaction context currentTime tlsReverseProxyHostname =
     let
-        maybeFloatingIpAddress : Maybe OSTypes.IpAddressValue
-        maybeFloatingIpAddress =
-            GetterSetters.getServerFloatingIps project server.osProps.uuid
-                |> List.map .address
-                |> List.head
-
         maybeProxyDestinationIp : Maybe OSTypes.IpAddressValue
         maybeProxyDestinationIp =
             GetterSetters.getServerProxyDestinationIp project server.osProps.uuid
@@ -72,6 +66,13 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                     guac Desktop
 
                 ITypes.NativeSSH ->
+                    let
+                        maybeFloatingIpAddress : Maybe OSTypes.IpAddressValue
+                        maybeFloatingIpAddress =
+                            GetterSetters.getServerFloatingIps project server.osProps.uuid
+                                |> List.map .address
+                                |> List.head
+                    in
                     case maybeFloatingIpAddress of
                         Nothing ->
                             let
@@ -157,7 +158,7 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                                         ]
 
                             ServerFromExo exoOriginProps ->
-                                customWorkflowfInteractionStatus project server context currentTime tlsReverseProxyHostname exoOriginProps maybeFloatingIpAddress
+                                customWorkflowfInteractionStatus project server context currentTime tlsReverseProxyHostname exoOriginProps maybeProxyDestinationIp
 
                     else
                         ITypes.Hidden
@@ -331,7 +332,7 @@ customWorkflowfInteractionStatus :
     -> ServerFromExoProps
     -> Maybe OSTypes.IpAddressValue
     -> ITypes.InteractionStatus
-customWorkflowfInteractionStatus project server context currentTime tlsReverseProxyHostname exoOriginProps maybeFloatingIpAddress =
+customWorkflowfInteractionStatus project server context currentTime tlsReverseProxyHostname exoOriginProps maybeDestinationIp =
     case exoOriginProps.customWorkflowStatus of
         NotLaunchedWithCustomWorkflow ->
             -- Either exoOriginProps.exoServerVersion < 3, or instance was deployed without a workflow
@@ -340,12 +341,12 @@ customWorkflowfInteractionStatus project server context currentTime tlsReversePr
         LaunchedWithCustomWorkflow customWorkflow ->
             case customWorkflow.authToken.data of
                 RDPP.DoHave token _ ->
-                    case ( tlsReverseProxyHostname, maybeFloatingIpAddress ) of
-                        ( Just proxyHostname, Just floatingIp ) ->
+                    case ( tlsReverseProxyHostname, maybeDestinationIp ) of
+                        ( Just proxyHostname, Just destinationIp ) ->
                             ITypes.Ready <|
                                 UrlHelpers.buildProxyUrl
                                     proxyHostname
-                                    floatingIp
+                                    destinationIp
                                     8888
                                     Url.Http
                                     [ customWorkflow.source.path ]
@@ -374,7 +375,7 @@ customWorkflowfInteractionStatus project server context currentTime tlsReversePr
                                 ]
 
                     else
-                        case ( tlsReverseProxyHostname, maybeFloatingIpAddress ) of
+                        case ( tlsReverseProxyHostname, maybeDestinationIp ) of
                             ( Nothing, _ ) ->
                                 ITypes.Error "Cannot find TLS-terminating reverse proxy server"
 

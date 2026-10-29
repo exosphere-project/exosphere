@@ -19,7 +19,7 @@ https://http-198-51-100-99-12345.myexampleproxy.example.com/foobar
                 Entire URL path is passed along to the instance
 ```
 
-Guacamole on an instance without a floating IP address is reached at the instance's globally routable IPv6 address instead. The IPv6 address is written as all eight groups, lowercase, with leading zeros dropped and no `::` shortening, joined with dashes. For example, port 49528 over HTTP on `2001:db8:c02:110:0:1a::5` is `https://http-2001-db8-c02-110-0-1a-0-5-49528.myexampleproxy.example.com/`. The instance's security group must allow the proxy to reach port 49528 over IPv6, which Exosphere's default security group does. The example Nginx configuration below only handles IPv4 upstreams.
+Guacamole and workflows on an instance without a floating IP address are reached at the instance's globally routable IPv6 address instead. The IPv6 address is written as all eight groups, lowercase, with leading zeros dropped and no `::` shortening, joined with dashes. For example, port 49528 over HTTP on `2001:db8:c02:110:0:1a::5` is `https://http-2001-db8-c02-110-0-1a-0-5-49528.myexampleproxy.example.com/`. The instance's security group must allow the proxy to reach those ports over IPv6 (49528 for Guacamole, 8888 for workflows), which Exosphere's default security group does. The example Nginx configuration below only handles IPv4 upstreams.
 
 
 ## Security/Threat Model
