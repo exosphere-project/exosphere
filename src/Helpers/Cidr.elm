@@ -1,4 +1,4 @@
-module Helpers.Cidr exposing (expandIPv6, isValidCidr, isValidIPv4, isValidIPv6)
+module Helpers.Cidr exposing (expandIPv6, isGlobalUnicastIPv6, isValidCidr, isValidIPv4, isValidIPv6)
 
 import OpenStack.SecurityGroupRule exposing (SecurityGroupRuleEthertype(..))
 
@@ -67,6 +67,20 @@ isValidIPv6 ipAddress =
                     String.split ":" expandedAddress
             in
             List.length groups == 8 && List.all isValidIPv6Group groups
+
+        Nothing ->
+            False
+
+
+{-| Whether an IPv6 address is global unicast (2000::/3), which rules out link-local (fe80::/10) and
+unique local (fc00::/7) addresses.
+-}
+isGlobalUnicastIPv6 : String -> Bool
+isGlobalUnicastIPv6 ipAddress =
+    -- 2000::/3 is every address whose expanded form starts with 2 or 3.
+    case expandIPv6 ipAddress of
+        Just expandedAddress ->
+            isValidIPv6 ipAddress && List.member (String.left 1 expandedAddress) [ "2", "3" ]
 
         Nothing ->
             False

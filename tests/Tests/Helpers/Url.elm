@@ -1,8 +1,9 @@
-module Tests.Helpers.Url exposing (sameHostSuite)
+module Tests.Helpers.Url exposing (buildProxyUrlSuite, sameHostSuite)
 
 import Expect
 import Helpers.Url
 import Test exposing (Test, describe, test)
+import Url
 
 
 sameHostSuite : Test
@@ -58,4 +59,18 @@ sameHostSuite =
             \() ->
                 Helpers.Url.sameHost "cell.alliance.rebel" "https://cell.alliance.rebel:5000/v3"
                     |> Expect.equal False
+        ]
+
+
+buildProxyUrlSuite : Test
+buildProxyUrlSuite =
+    describe "building a user app proxy URL to an IPv6 address"
+        [ test "a compressed address is written as all eight groups" <|
+            \() ->
+                Helpers.Url.buildProxyUrl "proxy-js2-iu.exosphere.app" "2001:18e8:c02:110:0:1a::5" 49528 Url.Http [] []
+                    |> Expect.equal "https://http-2001-18e8-c02-110-0-1a-0-5-49528.proxy-js2-iu.exosphere.app/"
+        , test "leading zeros are dropped from each group" <|
+            \() ->
+                Helpers.Url.buildProxyUrl "proxy-js2-iu.exosphere.app" "2001:0db8:0000:0000:0000:0000:0000:0001" 8888 Url.Http [] []
+                    |> Expect.equal "https://http-2001-db8-0-0-0-0-0-1-8888.proxy-js2-iu.exosphere.app/"
         ]
