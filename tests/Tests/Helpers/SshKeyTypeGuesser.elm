@@ -51,12 +51,113 @@ c2ysNqUmsRQkCyNqTT0D9wUK9A01KFL8RnDPu1Qp4MkOIH+cp0LNOJJRgdDEnQF94TC6sv
 -----END OPENSSH PRIVATE KEY-----""")
         , test "public key" <|
             \_ ->
-                Expect.equal Helpers.SshKeyTypeGuesser.PublicKey
+                Expect.equal (Helpers.SshKeyTypeGuesser.PublicKey "ssh-rsa")
                     (Helpers.SshKeyTypeGuesser.guessKeyType """ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDUUNdSxvLPTfmpcJoODn6rNshA7ykz6Z8Qlycr3oRo7uVIZKr1GDB5KKh6D3Vvksi2X1uHO1kNZHZBtQxdBnuOa3F9zXN5NOBdOEc1/2WmmCGGbw7a0wRAgkji1nSxpFRPHaxFyKdjDzQgsziInE47c/8/CN8hQeCLx3u/TITAmJmqU2x5SAuurb5SIt81HEqonPi9cYqt1fN12EZPMRbIgfAQc+t0UZiouG8y/gqfVF03iXh+7xGuqDiAtJHzx8eL/EuTFGvNUpIoyEd+k9BNHCtRsFe3DxxANRlckEFWbdHnq+J5OsIAG1LiPwyFLd39BvGBvixCcZeq1JUbEKa70f7Yuhy0YCM+KdhtL/prnX39x7NWqkEhmT+mSWylO7cAPDltp00oj9smkC5Sd/A8OLlJfdGlBvT4O9G/kHzjWPwCnZWsv2+Wgz4B2ifVhm72j91lODluWEaZXaA6udJ6cx4UcS7LSalnFoyvPF8/ITqvMxwMcZFca9f8lEfAYRU= cmart@foobar""")
         , test "public key with the word 'private' in it" <|
             \_ ->
-                Expect.equal Helpers.SshKeyTypeGuesser.PublicKey
+                Expect.equal (Helpers.SshKeyTypeGuesser.PublicKey "ssh-rsa")
                     (Helpers.SshKeyTypeGuesser.guessKeyType """ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDUUNdSxvLPTfmpcJoODn6rNshA7ykz6Z8Qlycr3oRo7uVIZKr1GDB5KKh6D3Vvksi2X1uHO1kNZHZBtQxdBnuOa3F9zXN5NOBdOEc1/2WmmCGGbw7a0wRAgkji1nSxpFRPHaxFyKdjDzQgsziInE47c/8/CN8hQeCLx3u/TITAmJmqU2x5SprivateIt81HEqonPi9cYqt1fN12EZPMRbIgfAQc+t0UZiouG8y/gqfVF03iXh+7xGuqDiAtJHzx8eL/EuTFGvNUpIoyEd+k9BNHCtRsFe3DxxANRlckEFWbdHnq+J5OsIAG1LiPwyFLd39BvGBvixCcZeq1JUbEKa70f7Yuhy0YCM+KdhtL/prnX39x7NWqkEhmT+mSWylO7cAPDltp00oj9smkC5Sd/A8OLlJfdGlBvT4O9G/kHzjWPwCnZWsv2+Wgz4B2ifVhm72j91lODluWEaZXaA6udJ6cx4UcS7LSalnFoyvPF8/ITqvMxwMcZFca9f8lEfAYRU= cmart@privateer""")
+        , test "nistp521 public key" <|
+            \_ ->
+                Expect.equal (Helpers.SshKeyTypeGuesser.PublicKey "ecdsa-sha2-nistp521")
+                    (Helpers.SshKeyTypeGuesser.guessKeyType """ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1MjEAAACFBACIvvJrc7uVrOhEPAhan206+Ibf+NAMBTMecoGL6uXmNX0ngHIfu3p/p/XQMSlV+1iu5jXMLWpDTR5woqdPRtRShgH90hpyZM60hPuMYHIm4UroKsQa88uLm4tYwBunG6KikTry7lvKOhemfZHx+y3wAq+P0P6s+D3wEkvplnol/g1MgA== user@example""")
+        , test "ed25519 public key" <|
+            \_ ->
+                Expect.equal (Helpers.SshKeyTypeGuesser.PublicKey "ssh-ed25519")
+                    (Helpers.SshKeyTypeGuesser.guessKeyType """ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF/pPxwDo5JSrwE0yheNl2DQFPHRJRnVj3/gTv1I+7xO user@example""")
+        , test "nistp256 public key" <|
+            \_ ->
+                Expect.equal (Helpers.SshKeyTypeGuesser.PublicKey "ecdsa-sha2-nistp256")
+                    (Helpers.SshKeyTypeGuesser.guessKeyType """ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBNjyihbnQbTuKntFhU9ieZa9+2tQ1ZPVuz6xqs7VUxmr9dxoAqCS2aGCXHsNEs8y1NZI48o3dzFXm5Dvom0M+08= user@example""")
+        , test "security key ed25519 public key" <|
+            \_ ->
+                Expect.equal (Helpers.SshKeyTypeGuesser.PublicKey "sk-ssh-ed25519@openssh.com")
+                    (Helpers.SshKeyTypeGuesser.guessKeyType """sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIJPhniyH8XF5f5JDga75J3K9tLbwETdghRsr3IV6h0IZAAAABHNzaDo= user@example""")
+        , test "security key nistp256 public key" <|
+            \_ ->
+                Expect.equal (Helpers.SshKeyTypeGuesser.PublicKey "sk-ecdsa-sha2-nistp256@openssh.com")
+                    (Helpers.SshKeyTypeGuesser.guessKeyType """sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNhLXNoYTItbmlzdHAyNTZAb3BlbnNzaC5jb20AAAAIbmlzdHAyNTYAAABBBAIKLdaqEDMe3kGmZtgh+iZtK81s2jiZFXja7zpxuXfEUAf7tEwULd9q+9gE7QZhqTwHNARBkb8MroCnSyPYVwMAAAAEc3NoOg== user@example""")
+        , test "surrounding whitespace, which is trimmed on submit" <|
+            \_ ->
+                Expect.equal (Helpers.SshKeyTypeGuesser.PublicKey "ssh-ed25519")
+                    (Helpers.SshKeyTypeGuesser.guessKeyType """
+  ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF/pPxwDo5JSrwE0yheNl2DQFPHRJRnVj3/gTv1I+7xO user@example
+""")
+        , test "public key without a comment" <|
+            \_ ->
+                Expect.equal (Helpers.SshKeyTypeGuesser.PublicKey "ssh-ed25519")
+                    (Helpers.SshKeyTypeGuesser.guessKeyType """ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF/pPxwDo5JSrwE0yheNl2DQFPHRJRnVj3/gTv1I+7xO""")
+        , test "truncated blob" <|
+            \_ ->
+                Expect.equal Helpers.SshKeyTypeGuesser.Unknown
+                    (Helpers.SshKeyTypeGuesser.guessKeyType """ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF/pPxwDo5JSrwE0yheNl2DQFPHRJRnVj3/gTv1I""")
+        , test "blob wrapped onto several lines" <|
+            \_ ->
+                Expect.equal Helpers.SshKeyTypeGuesser.Unknown
+                    (Helpers.SshKeyTypeGuesser.guessKeyType """ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDJSB6X792i/rzUMfcBFq7g92hdKZEy0F/F5YOWm8
+wfEeP9d7fxf8ZC7moPJ20h+cTHcCKpre4Tbp4qOw9Q8liwR4iby8avVqbOA1pddi+ja1ejr01aKyFlt4S8GHhisBiZYl6N3j0YF3qrqqVzYOpvXGbZ7HklSNoypz0UKuzwcS2kM6r46J+Xe5CV2zB6FDmjvltkxvamaho7AHuwD+aVY1yrzfmdYMhHhuJJa6+S/KxpPotHQJLyFRXWjyVZWjJ9T+o0bKFfQAcs4VvN0qhLuilCbiHmmlK3XNVumWNoVUdDueSET1qtZr05V91qrMfM6+4esHztJ18nFkrzg9nj""")
+        , test "blob of another key type" <|
+            \_ ->
+                Expect.equal Helpers.SshKeyTypeGuesser.Unknown
+                    (Helpers.SshKeyTypeGuesser.guessKeyType """ssh-ed25519 AAAAB3NzaC1yc2EAAAADAQABAAABAQDJSB6X792i/rzUMfcBFq7g92hdKZEy0F/F5YOWm8wfEeP9d7fxf8ZC7moPJ20h+cTHcCKpre4Tbp4qOw9Q8liwR4iby8avVqbOA1pddi+ja1ejr01aKyFlt4S8GHhisBiZYl6N3j0YF3qrqqVzYOpvXGbZ7HklSNoypz0UKuzwcS2kM6r46J+Xe5CV2zB6FDmjvltkxvamaho7AHuwD+aVY1yrzfmdYMhHhuJJa6+S/KxpPotHQJLyFRXWjyVZWjJ9T+o0bKFfQAcs4VvN0qhLuilCbiHmmlK3XNVumWNoVUdDueSET1qtZr05V91qrMfM6+4esHztJ18nFkrzg9nj""")
+        , test "signature algorithm name instead of key type" <|
+            \_ ->
+                Expect.equal Helpers.SshKeyTypeGuesser.Unknown
+                    (Helpers.SshKeyTypeGuesser.guessKeyType """rsa-sha2-512 AAAAB3NzaC1yc2EAAAADAQABAAABAQDJSB6X792i/rzUMfcBFq7g92hdKZEy0F/F5YOWm8wfEeP9d7fxf8ZC7moPJ20h+cTHcCKpre4Tbp4qOw9Q8liwR4iby8avVqbOA1pddi+ja1ejr01aKyFlt4S8GHhisBiZYl6N3j0YF3qrqqVzYOpvXGbZ7HklSNoypz0UKuzwcS2kM6r46J+Xe5CV2zB6FDmjvltkxvamaho7AHuwD+aVY1yrzfmdYMhHhuJJa6+S/KxpPotHQJLyFRXWjyVZWjJ9T+o0bKFfQAcs4VvN0qhLuilCbiHmmlK3XNVumWNoVUdDueSET1qtZr05V91qrMfM6+4esHztJ18nFkrzg9nj""")
+        , test "known key type with a non-base64 blob" <|
+            \_ ->
+                Expect.equal Helpers.SshKeyTypeGuesser.Unknown
+                    (Helpers.SshKeyTypeGuesser.guessKeyType """ssh-ed25519 not*base64""")
+        , test "known key type with a short blob" <|
+            \_ ->
+                Expect.equal Helpers.SshKeyTypeGuesser.Unknown
+                    (Helpers.SshKeyTypeGuesser.guessKeyType """ssh-rsa x""")
+        , test "RFC 4716 public key" <|
+            \_ ->
+                Expect.equal Helpers.SshKeyTypeGuesser.Rfc4716PublicKey
+                    (Helpers.SshKeyTypeGuesser.guessKeyType """---- BEGIN SSH2 PUBLIC KEY ----
+Comment: "2048-bit RSA, user@example"
+AAAAB3NzaC1yc2EAAAADAQABAAABAQDJSB6X792i/rzUMfcBFq7g92hdKZEy0F/F5YOWm8
+wfEeP9d7fxf8ZC7moPJ20h+cTHcCKpre4Tbp4qOw9Q8liwR4iby8avVqbOA1pddi+ja1ej
+r01aKyFlt4S8GHhisBiZYl6N3j0YF3qrqqVzYOpvXGbZ7HklSNoypz0UKuzwcS2kM6r46J
++Xe5CV2zB6FDmjvltkxvamaho7AHuwD+aVY1yrzfmdYMhHhuJJa6+S/KxpPotHQJLyFRXW
+jyVZWjJ9T+o0bKFfQAcs4VvN0qhLuilCbiHmmlK3XNVumWNoVUdDueSET1qtZr05V91qrM
+fM6+4esHztJ18nFkrzg9nj
+---- END SSH2 PUBLIC KEY ----""")
+        , test "PKCS8 PEM public key" <|
+            \_ ->
+                Expect.equal Helpers.SshKeyTypeGuesser.PemPublicKey
+                    (Helpers.SshKeyTypeGuesser.guessKeyType """-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyUgel+/dov681DH3ARau
+4PdoXSmRMtBfxeWDlpvMHxHj/Xe38X/GQu5qDydtIfnEx3Aiqa3uE26eKjsPUPJY
+sEeIm8vGr1amzgNaXXYvo2tXo69NWishZbeEvBh4YrAYmWJejd49GBd6q6qlc2Dq
+b1xm2ex5JUjaMqc9FCrs8HEtpDOq+Oifl3uQldswehQ5o75bZMb2pmoaOwB7sA/m
+lWNcq835nWDIR4biSWuvkvysaT6LR0CS8hUV1o8lWVoyfU/qNGyhX0AHLOFbzdKo
+S7opQm4h5ppSt1zVbpljaFVHQ7nkhE9arWa9OVfdaqzHzOvuHrB87SdfJxZK84PZ
+4wIDAQAB
+-----END PUBLIC KEY-----""")
+        , test "PKCS1 PEM RSA public key" <|
+            \_ ->
+                Expect.equal Helpers.SshKeyTypeGuesser.PemPublicKey
+                    (Helpers.SshKeyTypeGuesser.guessKeyType """-----BEGIN RSA PUBLIC KEY-----
+MIIBCgKCAQEAyUgel+/dov681DH3ARau4PdoXSmRMtBfxeWDlpvMHxHj/Xe38X/G
+Qu5qDydtIfnEx3Aiqa3uE26eKjsPUPJYsEeIm8vGr1amzgNaXXYvo2tXo69NWish
+ZbeEvBh4YrAYmWJejd49GBd6q6qlc2Dqb1xm2ex5JUjaMqc9FCrs8HEtpDOq+Oif
+l3uQldswehQ5o75bZMb2pmoaOwB7sA/mlWNcq835nWDIR4biSWuvkvysaT6LR0CS
+8hUV1o8lWVoyfU/qNGyhX0AHLOFbzdKoS7opQm4h5ppSt1zVbpljaFVHQ7nkhE9a
+rWa9OVfdaqzHzOvuHrB87SdfJxZK84PZ4wIDAQAB
+-----END RSA PUBLIC KEY-----""")
+        , test "PuTTY private key" <|
+            \_ ->
+                Expect.equal Helpers.SshKeyTypeGuesser.PrivateKey
+                    (Helpers.SshKeyTypeGuesser.guessKeyType """PuTTY-User-Key-File-3: ssh-ed25519
+Encryption: none
+Comment: user@example
+Public-Lines: 2
+AAAAC3NzaC1lZDI1NTE5AAAAIF/pPxwDo5JSrwE0yheNl2DQFPHRJRnVj3/gTv1I+7xO
+Private-Lines: 1
+AAAAIDvw0QrzJ3xT9pQ2c3zZ6oQh8k0vQ0y7tGmH0V9QJv1a
+Private-MAC: 0000000000000000000000000000000000000000000000000000000000000000""")
         , test "not an SSH key at all" <|
             \_ ->
                 Expect.equal Helpers.SshKeyTypeGuesser.Unknown

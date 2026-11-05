@@ -4,9 +4,10 @@ import Element
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.GetterSetters as GetterSetters
-import Helpers.SshKeyTypeGuesser
+import Helpers.SshKeyTypeGuesser exposing (KeyTypeGuess(..))
 import Helpers.String
 import Html.Attributes
+import OpenStack.KeypairNameValidator exposing (keypairNameValidator)
 import String exposing (trim)
 import Style.Helpers as SH
 import Style.Widgets.Button as Button
@@ -51,45 +52,64 @@ update msg project model =
             ( model
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
-                SharedMsg.RequestCreateKeypair (trim model.name) model.publicKey
+                SharedMsg.RequestCreateKeypair (trim model.name) (trim model.publicKey)
             )
 
 
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
 view context project currentTime model =
     let
-        renderInvalidReason reason =
-            case reason of
-                Just r ->
-                    r |> Validation.invalidMessage context.palette
+        invalidNameReasons =
+            keypairNameValidator model.name
 
-                Nothing ->
-                    Element.none
-
-        invalidNameReason =
-            if String.isEmpty model.name then
-                Just "Name is required"
-
-            else if String.left 1 model.name == " " then
-                Just "Name cannot start with a space"
+        ( publicKeyFeedback, isPublicKeyAcceptable ) =
+            if String.isEmpty (trim model.publicKey) then
+                ( Validation.invalidMessage context.palette "Public key is required", False )
 
             else
-                Nothing
+                -- Only a private key blocks submission. Nova rejects any public key it cannot load, so a guess that
+                -- lags behind a newly supported key type must not stop the upload.
+                case Helpers.SshKeyTypeGuesser.guessKeyType model.publicKey of
+                    PrivateKey ->
+                        ( Validation.invalidMessage context.palette "Private key detected! Enter a public key instead. Public keys are usually found in a .pub file"
+                        , False
+                        )
 
-        invalidValueReason =
-            if String.isEmpty model.publicKey then
-                Just "Public key is required"
+                    PublicKey keyType ->
+                        let
+                            looksValid =
+                                String.concat [ "Looks like a valid ", context.localization.pkiPublicKeyForSsh, " (", keyType, ")." ]
+                        in
+                        -- Nova accepts only the key types its installed pyca/cryptography can load, so support for
+                        -- security key types varies by cloud (Jetstream2 has rejected them: "failed to generate fingerprint").
+                        if String.startsWith "sk-" keyType then
+                            ( Validation.warningMessage context.palette <|
+                                String.join " "
+                                    [ looksValid
+                                    , "Some"
+                                    , Helpers.String.pluralize context.localization.openstackWithOwnKeystone
+                                    , "might not support security key (sk-) types."
+                                    ]
+                            , True
+                            )
 
-            else
-                let
-                    keyTypeGuess =
-                        Helpers.SshKeyTypeGuesser.guessKeyType model.publicKey
-                in
-                if keyTypeGuess == Helpers.SshKeyTypeGuesser.PrivateKey then
-                    Just "Private key detected! Enter a public key instead. Public keys are usually found in a .pub file"
+                        else
+                            ( Validation.validMessage context.palette looksValid, True )
 
-                else
-                    Nothing
+                    Rfc4716PublicKey ->
+                        ( Validation.warningMessage context.palette "This key is in SSH2 (RFC 4716) format, as exported by PuTTY. Convert it to OpenSSH format with: ssh-keygen -i -f <file>"
+                        , True
+                        )
+
+                    PemPublicKey ->
+                        ( Validation.warningMessage context.palette "This key is in PEM format. Convert it to OpenSSH format with: ssh-keygen -i -m PKCS8 -f <file> (use -m PEM for a BEGIN RSA PUBLIC KEY)"
+                        , True
+                        )
+
+                    Unknown ->
+                        ( Validation.warningMessage context.palette "This doesn't look like an OpenSSH public key. Expected a single line starting with the key type, such as ssh-ed25519, as found in a .pub file"
+                        , True
+                        )
     in
     Element.column
         VH.formContainer
@@ -122,8 +142,9 @@ view context project currentTime model =
                                 [ context.localization.pkiPublicKeyForSsh, "name" ]
                         )
                 }
-             , renderInvalidReason invalidNameReason
+             , Text.text Text.Small [] "Use only letters, numbers, spaces, hyphens and underscores."
              ]
+                ++ List.map (Validation.invalidMessage context.palette) invalidNameReasons
                 ++ Forms.resourceNameAlreadyExists context
                     project
                     currentTime
@@ -155,18 +176,18 @@ view context project currentTime model =
                     )
             , spellcheck = False
             }
-        , renderInvalidReason invalidValueReason
+        , publicKeyFeedback
         , let
             ( createKey, keyWarnText ) =
-                case ( invalidNameReason, invalidValueReason ) of
-                    ( Nothing, Nothing ) ->
+                case ( invalidNameReasons, isPublicKeyAcceptable ) of
+                    ( [], True ) ->
                         ( Just GotSubmit
                         , Nothing
                         )
 
                     _ ->
                         ( Nothing
-                        , Just <| "All fields are required"
+                        , Just <| "Please correct the problems above"
                         )
           in
           Element.row [ Element.width Element.fill ]

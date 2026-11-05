@@ -2541,7 +2541,7 @@ processProjectSpecificMsg outerModel project msg =
                                 _ ->
                                     outerModel
                     in
-                    processProjectStringError sharedModel errorContext httpError.body
+                    processProjectSynchronousApiError sharedModel errorContext httpError
                         |> mapToOuterMsg
                         |> mapToOuterModel newOuterModel
 
