@@ -153,6 +153,20 @@ suite =
                         |> State.LoginChain.releaseHeldToken alliance "project-a"
                         |> List.map (\token -> ( token.keystoneUrl, token.authToken.project.uuid ))
                         |> Expect.equal [ ( empire, "project-a" ), ( alliance, "project-b" ) ]
+            , test "abandoning the chain clears its intents, keeps password logins waiting and invalidates in-flight responses" <|
+                \_ ->
+                    { pendingLoginIntents = [ "cloud-c" ]
+                    , activeLoginIntent = Just "cloud-b"
+                    , heldLoginTokens = [ heldToken alliance "project-a" Nothing, heldToken empire "project-b" (Just fileCredential) ]
+                    , loginChainGeneration = 3
+                    }
+                        |> State.LoginChain.abandonCredentialFileChain
+                        |> Expect.equal
+                            { pendingLoginIntents = []
+                            , activeLoginIntent = Nothing
+                            , heldLoginTokens = [ heldToken alliance "project-a" Nothing ]
+                            , loginChainGeneration = 4
+                            }
             , test "abandoning the credential-file chain keeps password logins waiting" <|
                 \_ ->
                     []

@@ -40,26 +40,20 @@ init maybeServerUuid maybeVolumeUuid =
 update : Msg -> SharedModel -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg { viewContext } project model =
     let
-        withReplaceUrl ( model_, cmd, sharedMsg ) =
-            Route.withReplaceUrl
-                viewContext
-                (Route.ProjectRoute
-                    (GetterSetters.projectIdentifier project)
-                    (Route.VolumeAttach
-                        model_.maybeServerUuid
-                        model_.maybeVolumeUuid
-                    )
-                )
-                ( model, cmd, sharedMsg )
+        mirrorInUrl newModel =
+            ( newModel
+            , Route.replaceUrl viewContext <|
+                Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                    Route.VolumeAttach newModel.maybeServerUuid newModel.maybeVolumeUuid
+            , SharedMsg.NoOp
+            )
     in
     case msg of
         GotServerUuid maybeServerUuid ->
-            ( { model | maybeServerUuid = maybeServerUuid }, Cmd.none, SharedMsg.NoOp )
-                |> withReplaceUrl
+            mirrorInUrl { model | maybeServerUuid = maybeServerUuid }
 
         GotVolumeUuid maybeVolumeUuid ->
-            ( { model | maybeVolumeUuid = maybeVolumeUuid }, Cmd.none, SharedMsg.NoOp )
-                |> withReplaceUrl
+            mirrorInUrl { model | maybeVolumeUuid = maybeVolumeUuid }
 
         GotSubmit serverUuid volumeUuid ->
             ( model

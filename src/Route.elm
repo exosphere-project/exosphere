@@ -7,7 +7,6 @@ module Route exposing
     , pushUrl
     , replaceUrl
     , toUrl
-    , withReplaceUrl
     )
 
 import Browser.Navigation
@@ -501,25 +500,6 @@ replaceUrl :
     -> Cmd msg
 replaceUrl { navigationKey, urlPathPrefix } route =
     Browser.Navigation.replaceUrl navigationKey (toUrl urlPathPrefix route)
-
-
-withReplaceUrl :
-    { r
-        | navigationKey : Browser.Navigation.Key
-        , urlPathPrefix : Maybe String
-    }
-    -> Route
-    -> ( model, Cmd msg, sharedMsg )
-    -> ( model, Cmd msg, sharedMsg )
-withReplaceUrl viewContext route ( model, cmd, sharedMsg ) =
-    -- Helper for use in pages
-    ( model
-    , Cmd.batch
-        [ cmd
-        , replaceUrl viewContext route
-        ]
-    , sharedMsg
-    )
 
 
 fromUrl : Maybe String -> Route -> Url.Url -> Route

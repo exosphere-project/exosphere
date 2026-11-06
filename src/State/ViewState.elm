@@ -52,6 +52,7 @@ import Rest.Keystone
 import Rest.Nova
 import Route
 import State.LoginChain
+import State.Navigation
 import Time
 import Types.HelperTypes as HelperTypes
 import Types.Interactivity exposing (InteractionLevel(..))
@@ -70,47 +71,25 @@ navigateToPage url outerModel =
         route =
             Route.fromUrl outerModel.sharedModel.viewContext.urlPathPrefix Route.defaultRoute url
 
-        wasSelectingRegions =
-            case outerModel.viewState of
-                NonProjectView (SelectProjectRegions _) ->
-                    True
-
-                _ ->
-                    False
-
-        willSelectRegions =
-            case route of
-                Route.SelectProjectRegions _ _ ->
-                    True
-
-                _ ->
-                    False
-
         credentialFileLoginChainIsActive =
             (outerModel.sharedModel.activeLoginIntent /= Nothing)
                 || not (List.isEmpty outerModel.sharedModel.pendingLoginIntents)
                 || List.any (\token -> token.appCredential /= Nothing) outerModel.sharedModel.heldLoginTokens
+    in
+    case State.Navigation.classify { credentialFileLoginChainIsActive = credentialFileLoginChainIsActive } outerModel.viewState route of
+        State.Navigation.SamePage ->
+            ( outerModel, Cmd.none )
 
-        sharedModelBeforeNavigation =
-            if
-                State.LoginChain.shouldAbandon wasSelectingRegions willSelectRegions
-                    && credentialFileLoginChainIsActive
-            then
-                let
-                    sharedModel =
-                        outerModel.sharedModel
-                in
-                -- Abandon only the credential-file chain. A password login waiting on regions is not part of it.
-                { sharedModel
-                    | heldLoginTokens = State.LoginChain.dropCredentialFileTokens sharedModel.heldLoginTokens
-                    , activeLoginIntent = Nothing
-                    , pendingLoginIntents = []
-                    , loginChainGeneration = State.LoginChain.nextGeneration sharedModel.loginChainGeneration
-                }
+        State.Navigation.NewPage ->
+            buildPage route outerModel.sharedModel outerModel
 
-            else
-                outerModel.sharedModel
+        State.Navigation.NewPageAbandoningCredentialFileChain ->
+            buildPage route (State.LoginChain.abandonCredentialFileChain outerModel.sharedModel) outerModel
 
+
+buildPage : Route.Route -> SharedModel -> OuterModel -> ( OuterModel, Cmd OuterMsg )
+buildPage route sharedModelBeforeNavigation outerModel =
+    let
         ( newViewState, pageSpecificSharedModel, pageSpecificCmd ) =
             routeToViewStateModelCmd sharedModelBeforeNavigation route
 
@@ -138,7 +117,7 @@ navigateToPage url outerModel =
 
 
 
--- TODO consider viewStateToRoute to help with generating the breadcrumb
+-- TODO: State.Navigation.viewStateToRoute covers only the pages whose whole state lives in their URL. Extending it to every page would let the breadcrumb be generated from it.
 
 
 routeToViewStateModelCmd : SharedModel -> Route.Route -> ( ViewState, SharedModel, Cmd SharedMsg )

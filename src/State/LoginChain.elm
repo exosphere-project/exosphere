@@ -1,5 +1,6 @@
 module State.LoginChain exposing
-    ( acceptsResponse
+    ( abandonCredentialFileChain
+    , acceptsResponse
     , addNotice
     , dropCredentialFileTokens
     , findHeldToken
@@ -42,6 +43,33 @@ popNext intents =
 
         [] ->
             ( Nothing, [] )
+
+
+{-| Abandon the credential-file chain: its pending and active intents, the tokens it holds, and any
+response still in flight. A password login waiting on regions holds a token without an application
+credential, so it keeps waiting.
+-}
+abandonCredentialFileChain :
+    { model
+        | pendingLoginIntents : List intent
+        , activeLoginIntent : Maybe intent
+        , heldLoginTokens : List HeldLoginToken
+        , loginChainGeneration : Int
+    }
+    ->
+        { model
+            | pendingLoginIntents : List intent
+            , activeLoginIntent : Maybe intent
+            , heldLoginTokens : List HeldLoginToken
+            , loginChainGeneration : Int
+        }
+abandonCredentialFileChain model =
+    { model
+        | pendingLoginIntents = []
+        , activeLoginIntent = Nothing
+        , heldLoginTokens = dropCredentialFileTokens model.heldLoginTokens
+        , loginChainGeneration = nextGeneration model.loginChainGeneration
+    }
 
 
 shouldAbandon : Bool -> Bool -> Bool

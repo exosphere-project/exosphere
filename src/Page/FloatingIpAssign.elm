@@ -42,23 +42,20 @@ init =
 update : Msg -> SharedModel -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg { viewContext } project model =
     let
-        withReplaceUrl ( model_, cmd, sharedMsg ) =
-            Route.withReplaceUrl
-                viewContext
-                (Route.ProjectRoute
-                    (GetterSetters.projectIdentifier project)
-                    (Route.FloatingIpAssign model_.ipUuid model_.serverUuid)
-                )
-                ( model, cmd, sharedMsg )
+        mirrorInUrl newModel =
+            ( newModel
+            , Route.replaceUrl viewContext <|
+                Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                    Route.FloatingIpAssign newModel.ipUuid newModel.serverUuid
+            , SharedMsg.NoOp
+            )
     in
     case msg of
         GotIpUuid maybeIpUuid ->
-            ( { model | ipUuid = maybeIpUuid }, Cmd.none, SharedMsg.NoOp )
-                |> withReplaceUrl
+            mirrorInUrl { model | ipUuid = maybeIpUuid }
 
         GotServerUuid maybeServerUuid ->
-            ( { model | serverUuid = maybeServerUuid }, Cmd.none, SharedMsg.NoOp )
-                |> withReplaceUrl
+            mirrorInUrl { model | serverUuid = maybeServerUuid }
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
