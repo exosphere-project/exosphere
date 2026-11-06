@@ -6,29 +6,17 @@ module Route exposing
     , fromUrl
     , pushUrl
     , replaceUrl
+    , toAnalyticsUrl
     , toUrl
     )
 
+import AppUrl exposing (AppUrl)
 import Browser.Navigation
 import Dict
 import OpenStack.ObjectStorage as ObjectStorage
 import OpenStack.Types as OSTypes
 import Types.HelperTypes as HelperTypes
 import Url
-import Url.Builder as UB
-import Url.Parser
-    exposing
-        ( (</>)
-        , (<?>)
-        , Parser
-        , map
-        , oneOf
-        , parse
-        , s
-        , string
-        , top
-        )
-import Url.Parser.Query as Query
 
 
 type Route
@@ -92,61 +80,40 @@ toUrl maybePathPrefix route =
     in
     case route of
         GetSupport _ ->
-            buildUrlFunc
-                [ "getsupport" ]
-                []
+            buildUrlFunc [ "getsupport" ] []
 
         HelpAbout ->
-            buildUrlFunc
-                [ "helpabout" ]
-                []
+            buildUrlFunc [ "helpabout" ] []
 
         Home ->
-            buildUrlFunc
-                [ "home" ]
-                []
+            buildUrlFunc [ "home" ] []
 
         LoadingUnscopedProjects _ ->
-            buildUrlFunc
-                [ "loadingprojs"
-                ]
-                []
+            buildUrlFunc [ "loadingprojs" ] []
 
         LoginOpenstack _ ->
-            buildUrlFunc
-                [ "login"
-                , "openstack"
-                ]
-                []
+            buildUrlFunc [ "login", "openstack" ] []
 
         LoginOpenIdConnect ->
-            buildUrlFunc
-                [ "login"
-                , "openidconnect"
-                ]
-                []
+            buildUrlFunc [ "login", "openidconnect" ] []
 
         LoginPicker ->
-            buildUrlFunc
-                [ "loginpicker" ]
-                []
+            buildUrlFunc [ "loginpicker" ] []
 
         MessageLog showDebugMsgs ->
-            buildUrlFunc
-                [ "msglog" ]
-                [ UB.string "showdebug"
-                    (if showDebugMsgs then
+            buildUrlFunc [ "msglog" ]
+                [ ( "showdebug"
+                  , [ if showDebugMsgs then
                         "true"
 
-                     else
+                      else
                         "false"
-                    )
+                    ]
+                  )
                 ]
 
         PageNotFound ->
-            buildUrlFunc
-                [ "pagenotfound" ]
-                []
+            buildUrlFunc [ "pagenotfound" ] []
 
         ProjectRoute projectIdentifier projectRouteConstructor ->
             let
@@ -166,294 +133,313 @@ toUrl maybePathPrefix route =
                 ( projectSpecificPath, projectSpecificQuery ) =
                     case projectRouteConstructor of
                         ProjectOverview ->
-                            ( [ "overview" ]
-                            , []
-                            )
+                            ( [ "overview" ], [] )
 
                         Credentials ->
-                            ( [ "credentials" ]
-                            , []
-                            )
+                            ( [ "credentials" ], [] )
 
                         FloatingIpAssign maybeIpUuid maybeServerUuid ->
-                            let
-                                ipUuidQP =
-                                    case maybeIpUuid of
-                                        Just ipUuid ->
-                                            [ UB.string "ipuuid" ipUuid ]
-
-                                        Nothing ->
-                                            []
-
-                                serverUuidQP =
-                                    case maybeServerUuid of
-                                        Just serverUuid ->
-                                            [ UB.string "serveruuid" serverUuid ]
-
-                                        Nothing ->
-                                            []
-                            in
                             ( [ "assignfloatingip" ]
-                            , List.concat [ ipUuidQP, serverUuidQP ]
+                            , [ ( "ipuuid", maybeToList maybeIpUuid )
+                              , ( "serveruuid", maybeToList maybeServerUuid )
+                              ]
                             )
 
                         FloatingIpList ->
-                            ( [ "floatingips" ]
-                            , []
-                            )
+                            ( [ "floatingips" ], [] )
 
                         ImageList ->
-                            ( [ "images" ]
-                            , []
-                            )
+                            ( [ "images" ], [] )
 
                         InstanceSourcePicker ->
-                            ( [ "instancesource" ]
-                            , []
-                            )
+                            ( [ "instancesource" ], [] )
 
                         FloatingIpCreate maybeServerUuid ->
-                            let
-                                serverUuidQP =
-                                    case maybeServerUuid of
-                                        Just serverUuid ->
-                                            [ UB.string "serveruuid" serverUuid ]
-
-                                        Nothing ->
-                                            []
-                            in
                             ( [ "createfloatingip" ]
-                            , serverUuidQP
+                            , [ ( "serveruuid", maybeToList maybeServerUuid ) ]
                             )
 
                         KeypairCreate ->
-                            ( [ "uploadkeypair" ]
-                            , []
-                            )
+                            ( [ "uploadkeypair" ], [] )
 
                         KeypairList ->
-                            ( [ "keypairs" ]
-                            , []
-                            )
+                            ( [ "keypairs" ], [] )
 
                         ObjectStorageList ->
-                            ( [ "objectstorage" ]
-                            , []
-                            )
+                            ( [ "objectstorage" ], [] )
 
                         ObjectStorageContainerCreate ->
-                            ( [ "createcontainer" ]
-                            , []
-                            )
+                            ( [ "createcontainer" ], [] )
 
                         ObjectStorageContainerDetail containerName maybePrefix ->
-                            -- `Url.Builder` does NOT percent-encode path segments (only query
-                            -- values), and `Url.Parser` does not decode them, so we encode the
-                            -- container name here and decode it in the parser. This lets names with
-                            -- spaces / `#` / unicode survive the URL round-trip. (Container names
-                            -- may not contain `/`, so a single segment is always correct.)
-                            ( [ "objectstorage", Url.percentEncode containerName ]
-                            , case normalizePrefix maybePrefix of
-                                Just prefix ->
-                                    [ UB.string "prefix" prefix ]
-
-                                Nothing ->
-                                    []
+                            ( [ "objectstorage", containerName ]
+                            , [ ( "prefix", maybeToList (normalizePrefix maybePrefix) ) ]
                             )
 
                         SecurityGroupDetail securityGroupUuid ->
-                            ( [ "securitygroups"
-                              , securityGroupUuid
-                              ]
-                            , []
-                            )
+                            ( [ "securitygroups", securityGroupUuid ], [] )
 
                         SecurityGroupList ->
-                            ( [ "securitygroups" ]
-                            , []
-                            )
+                            ( [ "securitygroups" ], [] )
 
                         ServerCreate imageUuid imageName restrictFlavorIds maybeDeployGuac ->
-                            ( [ "createserver"
-                              ]
-                            , [ UB.string "imageuuid" imageUuid
-                              , UB.string "imagename" imageName
-                              , UB.string "restrictflavorids"
-                                    (case restrictFlavorIds of
+                            ( [ "createserver" ]
+                            , [ ( "imageuuid", [ imageUuid ] )
+                              , ( "imagename", [ imageName ] )
+                              , ( "restrictflavorids"
+                                , [ case restrictFlavorIds of
                                         Nothing ->
                                             "false"
 
                                         Just flavorIds ->
-                                            -- OpenStack doesn't allow flavor IDs to contain the @ symbol,
-                                            -- so use it to separate them in this query parameter value
                                             String.join "@" ("true" :: flavorIds)
-                                    )
-                              , UB.string "deployguac"
-                                    (case maybeDeployGuac of
-                                        Just bool ->
-                                            if bool then
-                                                "justtrue"
+                                  ]
+                                )
+                              , ( "deployguac"
+                                , [ case maybeDeployGuac of
+                                        Just True ->
+                                            "justtrue"
 
-                                            else
-                                                "justfalse"
+                                        Just False ->
+                                            "justfalse"
 
                                         Nothing ->
                                             "nothing"
-                                    )
+                                  ]
+                                )
                               ]
                             )
 
                         ServerCreateImage serverUuid maybeImageName ->
-                            ( [ "servers"
-                              , serverUuid
-                              , "image"
-                              ]
-                            , case maybeImageName of
-                                Just imageName ->
-                                    [ UB.string "name" imageName
-                                    ]
-
-                                Nothing ->
-                                    []
+                            ( [ "servers", serverUuid, "image" ]
+                            , [ ( "name", maybeToList maybeImageName ) ]
                             )
 
                         ServerConsoleLog serverUuid ->
-                            ( [ "servers"
-                              , serverUuid
-                              , "console-log"
-                              ]
-                            , []
-                            )
+                            ( [ "servers", serverUuid, "console-log" ], [] )
 
                         ServerDetail serverUuid ->
-                            ( [ "servers"
-                              , serverUuid
-                              ]
-                            , []
-                            )
+                            ( [ "servers", serverUuid ], [] )
 
                         ServerList ->
-                            ( [ "servers" ]
-                            , []
-                            )
+                            ( [ "servers" ], [] )
 
                         ServerResize serverUuid ->
-                            ( [ "servers"
-                              , serverUuid
-                              , "resize"
-                              ]
-                            , []
-                            )
+                            ( [ "servers", serverUuid, "resize" ], [] )
 
                         ServerSecurityGroups serverUuid ->
-                            ( [ "servers"
-                              , serverUuid
-                              , "securitygroups"
-                              ]
-                            , []
-                            )
+                            ( [ "servers", serverUuid, "securitygroups" ], [] )
 
                         ShareCreate ->
-                            ( [ "createshare" ]
-                            , []
-                            )
+                            ( [ "createshare" ], [] )
 
                         ShareDetail shareUuid ->
-                            ( [ "shares"
-                              , shareUuid
-                              ]
-                            , []
-                            )
+                            ( [ "shares", shareUuid ], [] )
 
                         ShareList ->
-                            ( [ "shares" ]
-                            , []
-                            )
+                            ( [ "shares" ], [] )
 
                         VolumeAttach maybeServerUuid maybeVolumeUuid ->
-                            let
-                                volUuidQP =
-                                    case maybeVolumeUuid of
-                                        Just volUuid ->
-                                            [ UB.string "voluuid" volUuid ]
-
-                                        Nothing ->
-                                            []
-
-                                serverUuidQP =
-                                    case maybeServerUuid of
-                                        Just serverUuid ->
-                                            [ UB.string "serveruuid" serverUuid ]
-
-                                        Nothing ->
-                                            []
-                            in
-                            ( [ "attachvol"
+                            ( [ "attachvol" ]
+                            , [ ( "voluuid", maybeToList maybeVolumeUuid )
+                              , ( "serveruuid", maybeToList maybeServerUuid )
                               ]
-                            , List.concat [ volUuidQP, serverUuidQP ]
                             )
 
                         VolumeCreate ->
-                            ( [ "createvolume"
-                              ]
-                            , []
-                            )
+                            ( [ "createvolume" ], [] )
 
                         VolumeDetail volumeUuid ->
-                            ( [ "volumes"
-                              , volumeUuid
-                              ]
-                            , []
-                            )
+                            ( [ "volumes", volumeUuid ], [] )
 
                         VolumeList ->
-                            ( [ "volumes" ]
-                            , []
-                            )
+                            ( [ "volumes" ], [] )
 
                         VolumeMountInstructions attachment ->
                             ( [ "attachvolinstructions" ]
-                            , [ UB.string "voluuid" attachment.volumeUuid
-                              , UB.string "serveruuid" attachment.serverUuid
-                              , UB.string "attachmentuuid" attachment.attachmentUuid
+                            , [ ( "voluuid", [ attachment.volumeUuid ] )
+                              , ( "serveruuid", [ attachment.serverUuid ] )
+                              , ( "attachmentuuid", [ attachment.attachmentUuid ] )
+                              , ( "device", maybeToList attachment.device )
                               ]
-                                ++ (case attachment.device of
-                                        Just device ->
-                                            [ UB.string "device" device ]
-
-                                        Nothing ->
-                                            []
-                                   )
                             )
             in
             buildUrlFunc (projectIdentifierPath ++ projectSpecificPath) projectSpecificQuery
 
         SelectProjectRegions keystoneUrl projectUuid ->
-            buildUrlFunc
-                [ "selectprojectregions" ]
-                [ UB.string "keystoneurl" keystoneUrl
-                , UB.string "projectuuid" projectUuid
+            buildUrlFunc [ "selectprojectregions" ]
+                [ ( "keystoneurl", [ keystoneUrl ] )
+                , ( "projectuuid", [ projectUuid ] )
                 ]
 
         SelectProjects keystoneUrl ->
-            buildUrlFunc
-                [ "selectprojs"
-                ]
-                [ UB.string "keystoneurl" keystoneUrl
-                ]
+            buildUrlFunc [ "selectprojs" ] [ ( "keystoneurl", [ keystoneUrl ] ) ]
 
         Settings ->
-            buildUrlFunc
-                [ "settings" ]
-                []
+            buildUrlFunc [ "settings" ] []
+
+
+{-| The URL to report to analytics: the route's path with every project, resource and container
+identifier replaced by a placeholder such as `:server`, and no query string, so analytics never
+receives a UUID, a resource name, a Keystone URL or a token. The path prefix and region stay, since
+they tell deployments and regions apart rather than identifying anyone.
+
+    toAnalyticsUrl Nothing (ProjectRoute { projectUuid = "…", regionId = Just "IU" } (ServerDetail "…"))
+        == "/projects/:project/regions/IU/servers/:server"
+
+-}
+toAnalyticsUrl : Maybe String -> Route -> String
+toAnalyticsUrl maybePathPrefix route =
+    toUrl maybePathPrefix (withoutIdentifiers route)
+        |> String.split "?"
+        |> List.head
+        |> Maybe.withDefault ""
+
+
+{-| Every constructor is listed, so a new route cannot reach analytics without deciding what it
+carries.
+-}
+withoutIdentifiers : Route -> Route
+withoutIdentifiers route =
+    case route of
+        GetSupport _ ->
+            GetSupport Nothing
+
+        HelpAbout ->
+            HelpAbout
+
+        Home ->
+            Home
+
+        LoadingUnscopedProjects _ ->
+            LoadingUnscopedProjects ""
+
+        LoginOpenstack _ ->
+            LoginOpenstack Nothing
+
+        LoginOpenIdConnect ->
+            LoginOpenIdConnect
+
+        LoginPicker ->
+            LoginPicker
+
+        MessageLog showDebugMsgs ->
+            MessageLog showDebugMsgs
+
+        PageNotFound ->
+            PageNotFound
+
+        ProjectRoute projectIdentifier projectRouteConstructor ->
+            ProjectRoute { projectIdentifier | projectUuid = ":project" }
+                (projectRouteWithoutIdentifiers projectRouteConstructor)
+
+        SelectProjectRegions _ _ ->
+            SelectProjectRegions "" ""
+
+        SelectProjects _ ->
+            SelectProjects ""
+
+        Settings ->
+            Settings
+
+
+projectRouteWithoutIdentifiers : ProjectRouteConstructor -> ProjectRouteConstructor
+projectRouteWithoutIdentifiers projectRouteConstructor =
+    case projectRouteConstructor of
+        ProjectOverview ->
+            ProjectOverview
+
+        FloatingIpAssign _ _ ->
+            FloatingIpAssign Nothing Nothing
+
+        FloatingIpList ->
+            FloatingIpList
+
+        ImageList ->
+            ImageList
+
+        InstanceSourcePicker ->
+            InstanceSourcePicker
+
+        FloatingIpCreate _ ->
+            FloatingIpCreate Nothing
+
+        KeypairCreate ->
+            KeypairCreate
+
+        KeypairList ->
+            KeypairList
+
+        ObjectStorageList ->
+            ObjectStorageList
+
+        ObjectStorageContainerCreate ->
+            ObjectStorageContainerCreate
+
+        ObjectStorageContainerDetail _ _ ->
+            ObjectStorageContainerDetail ":container" Nothing
+
+        SecurityGroupDetail _ ->
+            SecurityGroupDetail ":security-group"
+
+        SecurityGroupList ->
+            SecurityGroupList
+
+        ServerCreate _ _ _ _ ->
+            ServerCreate "" "" Nothing Nothing
+
+        ServerCreateImage _ _ ->
+            ServerCreateImage ":server" Nothing
+
+        ServerConsoleLog _ ->
+            ServerConsoleLog ":server"
+
+        ServerDetail _ ->
+            ServerDetail ":server"
+
+        ServerList ->
+            ServerList
+
+        ServerResize _ ->
+            ServerResize ":server"
+
+        ServerSecurityGroups _ ->
+            ServerSecurityGroups ":server"
+
+        ShareCreate ->
+            ShareCreate
+
+        ShareList ->
+            ShareList
+
+        ShareDetail _ ->
+            ShareDetail ":share"
+
+        VolumeAttach _ _ ->
+            VolumeAttach Nothing Nothing
+
+        VolumeCreate ->
+            VolumeCreate
+
+        VolumeDetail _ ->
+            VolumeDetail ":volume"
+
+        VolumeList ->
+            VolumeList
+
+        VolumeMountInstructions _ ->
+            VolumeMountInstructions { volumeUuid = "", serverUuid = "", attachmentUuid = "", device = Nothing }
+
+        Credentials ->
+            Credentials
 
 
 {-| Normalize an object-storage prefix query value: treat `Just ""` as `Nothing`.
 
 The route carries `prefix` as a query parameter (prefixes contain `/`, unicode, and spaces, which
 round-trip more safely in the query than in a path segment). An empty prefix and an absent prefix
-are the same thing, the top level of a container, but `Query.string` with an empty value is
-ambiguous, so we collapse both to `Nothing` on the way in and out.
+are the same thing, the top level of a container, so both collapse to `Nothing` on the way in and
+out.
 
 -}
 normalizePrefix : Maybe String -> Maybe ObjectStorage.Prefix
@@ -466,18 +452,31 @@ normalizePrefix maybePrefix =
             other
 
 
-buildPrefixedUrl : Maybe String -> List String -> List UB.QueryParameter -> String
-buildPrefixedUrl maybePathPrefix pathParts queryParams =
-    let
-        prefixedPathParts =
-            case maybePathPrefix of
-                Just pathPrefix ->
-                    pathPrefix :: pathParts
+{-| A query parameter given no values is left out of the URL.
 
-                Nothing ->
-                    pathParts
-    in
-    UB.absolute prefixedPathParts queryParams
+AppUrl leaves `\` unescaped, but browsers read a `\` in an http(s) path as `/` (WHATWG URL
+Standard, path state), which would split a Swift container name (Swift allows `\` in one) across
+two segments. Writing it as `%5C` keeps it whole, and AppUrl decodes it back.
+
+-}
+buildPrefixedUrl : Maybe String -> List String -> List ( String, List String ) -> String
+buildPrefixedUrl maybePathPrefix pathParts queryParams =
+    AppUrl.toString
+        { path = maybeToList maybePathPrefix ++ pathParts
+        , queryParameters = Dict.fromList queryParams
+        , fragment = Nothing
+        }
+        |> String.replace "\\" "%5C"
+
+
+maybeToList : Maybe a -> List a
+maybeToList maybe =
+    case maybe of
+        Just value ->
+            [ value ]
+
+        Nothing ->
+            []
 
 
 pushUrl :
@@ -504,333 +503,277 @@ replaceUrl { navigationKey, urlPathPrefix } route =
 
 fromUrl : Maybe String -> Route -> Url.Url -> Route
 fromUrl maybePathPrefix defaultRoute_ url =
-    (case maybePathPrefix of
-        Nothing ->
-            parse
-                (oneOf
-                    (pathParsers defaultRoute_)
-                )
-                url
-
-        Just pathPrefix ->
-            parse
-                (s
-                    pathPrefix
-                    </> oneOf
-                            (pathParsers defaultRoute_)
-                )
-                url
-    )
+    let
+        appUrl =
+            AppUrl.fromUrl url
+    in
+    appUrl.path
+        |> dropOneTrailingEmptySegment
+        |> stripPathPrefix maybePathPrefix
+        |> Maybe.andThen (\path -> parseRoute { appUrl | path = path })
         |> Maybe.withDefault defaultRoute_
 
 
-pathParsers : Route -> List (Parser (Route -> b) b)
-pathParsers defaultRoute_ =
-    [ -- Non-project-specific pages
-      map defaultRoute_ top
-    , map
-        Home
-        (s "home")
-    , map
-        (\creds ->
-            LoginOpenstack (Just creds)
-        )
-        (let
-            queryParser =
-                Query.map4
-                    OSTypes.OpenstackLogin
-                    (Query.string "authurl"
-                        |> Query.map (Maybe.withDefault "")
+{-| `AppUrl.fromUrl` drops one trailing slash, and elm/url, which this router used before AppUrl,
+also accepted a second one (`/servers/s//`). Dropping one more empty segment keeps those links
+working.
+-}
+dropOneTrailingEmptySegment : List String -> List String
+dropOneTrailingEmptySegment path =
+    case List.reverse path of
+        "" :: rest ->
+            List.reverse rest
+
+        _ ->
+            path
+
+
+stripPathPrefix : Maybe String -> List String -> Maybe (List String)
+stripPathPrefix maybePathPrefix path =
+    case ( maybePathPrefix, path ) of
+        ( Nothing, _ ) ->
+            Just path
+
+        ( Just pathPrefix, first :: rest ) ->
+            if first == pathPrefix then
+                Just rest
+
+            else
+                Nothing
+
+        ( Just _, [] ) ->
+            Nothing
+
+
+{-| The first value given for a query parameter, percent-decoded, with `+` read as a space.
+-}
+queryValue : String -> AppUrl -> Maybe String
+queryValue key appUrl =
+    Dict.get key appUrl.queryParameters
+        |> Maybe.andThen List.head
+
+
+parseRoute : AppUrl -> Maybe Route
+parseRoute appUrl =
+    let
+        query key =
+            queryValue key appUrl
+
+        queryOrEmpty key =
+            Maybe.withDefault "" (query key)
+    in
+    case appUrl.path of
+        [ "home" ] ->
+            Just Home
+
+        [ "login", "openstack" ] ->
+            -- A login link may prefill everything but the password.
+            Just
+                (LoginOpenstack
+                    (Just
+                        { authUrl = queryOrEmpty "authurl"
+                        , userDomain = queryOrEmpty "udomain"
+                        , username = queryOrEmpty "uname"
+                        , password = ""
+                        }
                     )
-                    (Query.string "udomain"
-                        |> Query.map (Maybe.withDefault "")
-                    )
-                    (Query.string "uname"
-                        |> Query.map (Maybe.withDefault "")
-                    )
-                    -- This parses into a blank password, ugly I know
-                    (Query.string ""
-                        |> Query.map (\_ -> "")
-                    )
-         in
-         s "login" </> s "openstack" <?> queryParser
-        )
+                )
 
-    -- We no longer set this URL in the app but someone may still try to use it
-    , map
-        LoginPicker
-        (s "login" </> s "jetstream1")
+        -- We no longer set this URL in the app but someone may still try to use it
+        [ "login", "jetstream1" ] ->
+            Just LoginPicker
 
-    -- We no longer set this URL in the app but someone may still try to use it
-    , map
-        LoginPicker
-        (s "login" </> s "jetstream")
-    , map
-        LoginOpenIdConnect
-        (s "login" </> s "openidconnect")
-    , map
-        LoginPicker
-        (s "loginpicker")
-    , map
-        (\maybeTokenValue ->
-            case maybeTokenValue of
-                Just tokenValue ->
-                    LoadingUnscopedProjects tokenValue
+        -- We no longer set this URL in the app but someone may still try to use it
+        [ "login", "jetstream" ] ->
+            Just LoginPicker
 
-                Nothing ->
-                    PageNotFound
-        )
-        (s "auth" </> s "oidc-login" <?> Query.string "token")
-    , map
-        (\maybeKeystoneUrl maybeProjectUuid ->
-            case ( maybeKeystoneUrl, maybeProjectUuid ) of
-                ( Just keystoneUrl, Just projectUuid ) ->
-                    SelectProjectRegions keystoneUrl projectUuid
+        [ "login", "openidconnect" ] ->
+            Just LoginOpenIdConnect
 
-                _ ->
-                    PageNotFound
-        )
-        (s "selectprojectregions" <?> Query.string "keystoneurl" <?> Query.string "projectuuid")
-    , map
-        (\maybeKeystoneUrl ->
-            case maybeKeystoneUrl of
-                Just keystoneUrl ->
-                    SelectProjects keystoneUrl
+        [ "loginpicker" ] ->
+            Just LoginPicker
 
-                Nothing ->
-                    PageNotFound
-        )
-        (s "selectprojs" <?> Query.string "keystoneurl")
-    , map
-        (\maybeShowDebugMsgs -> MessageLog (maybeShowDebugMsgs == Just "true"))
-        (s "msglog" <?> Query.string "showdebug")
-    , map
-        Settings
-        (s "settings")
-    , map
-        (GetSupport Nothing)
-        (s "getsupport")
-    , map
-        HelpAbout
-        (s "helpabout")
-    , map
-        PageNotFound
-        (s "pagenotfound")
-    , map
-        (\projectUuid regionId projectRoute ->
-            ProjectRoute
-                { projectUuid = projectUuid
-                , regionId = Just regionId
-                }
-                projectRoute
-        )
-        (s "projects" </> string </> s "regions" </> string </> oneOf projectRouteParsers)
-    , map
-        (\uuid projectRoute ->
-            ProjectRoute
-                { projectUuid = uuid, regionId = Nothing }
-                projectRoute
-        )
-        (s "projects" </> string </> oneOf projectRouteParsers)
-    ]
+        [ "auth", "oidc-login" ] ->
+            Just (Maybe.withDefault PageNotFound (Maybe.map LoadingUnscopedProjects (query "token")))
+
+        [ "selectprojectregions" ] ->
+            Just
+                (Maybe.map2 SelectProjectRegions (query "keystoneurl") (query "projectuuid")
+                    |> Maybe.withDefault PageNotFound
+                )
+
+        [ "selectprojs" ] ->
+            Just (Maybe.withDefault PageNotFound (Maybe.map SelectProjects (query "keystoneurl")))
+
+        [ "msglog" ] ->
+            Just (MessageLog (query "showdebug" == Just "true"))
+
+        [ "settings" ] ->
+            Just Settings
+
+        [ "getsupport" ] ->
+            Just (GetSupport Nothing)
+
+        [ "helpabout" ] ->
+            Just HelpAbout
+
+        [ "pagenotfound" ] ->
+            Just PageNotFound
+
+        "projects" :: projectUuid :: "regions" :: regionId :: projectPath ->
+            parseProjectRoute appUrl projectPath
+                |> Maybe.map (ProjectRoute { projectUuid = projectUuid, regionId = Just regionId })
+
+        "projects" :: projectUuid :: projectPath ->
+            parseProjectRoute appUrl projectPath
+                |> Maybe.map (ProjectRoute { projectUuid = projectUuid, regionId = Nothing })
+
+        _ ->
+            Nothing
 
 
-projectRouteParsers : List (Parser (ProjectRouteConstructor -> b) b)
-projectRouteParsers =
-    [ map
-        InstanceSourcePicker
-        (s "instancesource")
+parseProjectRoute : AppUrl -> List String -> Maybe ProjectRouteConstructor
+parseProjectRoute appUrl projectPath =
+    let
+        query key =
+            queryValue key appUrl
 
-    -- Legacy URLs, keeping parsers around to handle any old links
-    , map
-        ProjectOverview
-        (s "resources")
+        queryOrEmpty key =
+            Maybe.withDefault "" (query key)
+    in
+    case projectPath of
+        [ "instancesource" ] ->
+            Just InstanceSourcePicker
 
-    -- Current URLs
-    , map
-        ProjectOverview
-        (s "overview")
-    , map
-        Credentials
-        (s "credentials")
-    , map
-        (\svrUuid imageName ->
-            ServerCreateImage svrUuid (Just imageName)
-        )
-        (let
-            queryParser =
-                Query.string "name"
-                    |> Query.map (Maybe.withDefault "")
-         in
-         s "servers" </> string </> s "image" <?> queryParser
-        )
-    , map
-        SecurityGroupDetail
-        (s "securitygroups" </> string)
-    , map
-        SecurityGroupList
-        (s "securitygroups")
-    , map
-        ServerConsoleLog
-        (s "servers" </> string </> s "console-log")
-    , map
-        ServerDetail
-        (s "servers" </> string)
-    , map
-        ServerList
-        (s "servers")
-    , map
-        ServerResize
-        (s "servers" </> string </> s "resize")
-    , map
-        ServerSecurityGroups
-        (s "servers" </> string </> s "securitygroups")
-    , map
-        ShareCreate
-        (s "createshare")
-    , map
-        ShareDetail
-        (s "shares" </> string)
-    , map
-        ShareList
-        (s "shares")
-    , map
-        VolumeDetail
-        (s "volumes" </> string)
-    , map
-        VolumeList
-        (s "volumes")
-    , map
-        FloatingIpList
-        (s "floatingips")
-    , map
-        (\( maybeIpUuid, maybeServerUuid ) -> FloatingIpAssign maybeIpUuid maybeServerUuid)
-        (let
-            queryparser =
-                Query.map2
-                    Tuple.pair
-                    (Query.string "ipuuid")
-                    (Query.string "serveruuid")
-         in
-         s "assignfloatingip" <?> queryparser
-        )
-    , map
-        (\maybeServerUuid -> FloatingIpCreate maybeServerUuid)
-        (let
-            queryParser =
-                Query.string "serveruuid"
-         in
-         s "createfloatingip" <?> queryParser
-        )
-    , map
-        KeypairList
-        (s "keypairs")
-    , map
-        KeypairCreate
-        (s "uploadkeypair")
+        -- Legacy URL, kept to handle any old links
+        [ "resources" ] ->
+            Just ProjectOverview
 
-    -- Object storage container details accept an optional `prefix` query parameter for folder navigation.
-    , map
-        (\encodedContainerName maybePrefix ->
-            ObjectStorageContainerDetail
-                (encodedContainerName |> Url.percentDecode |> Maybe.withDefault encodedContainerName)
-                (normalizePrefix maybePrefix)
-        )
-        (s "objectstorage" </> string <?> Query.string "prefix")
-    , map
-        ObjectStorageList
-        (s "objectstorage")
-    , map
-        ObjectStorageContainerCreate
-        (s "createcontainer")
-    , map
-        identity
-        (let
-            maybeBoolEnumDict =
-                Dict.fromList
-                    [ ( "justtrue", Just True )
-                    , ( "justfalse", Just False )
-                    , ( "nothing", Nothing )
-                    ]
+        [ "overview" ] ->
+            Just ProjectOverview
 
-            queryParser =
-                Query.map4
-                    ServerCreate
-                    (Query.string "imageuuid"
-                        |> Query.map (Maybe.withDefault "")
-                    )
-                    (Query.string "imagename"
-                        |> Query.map (Maybe.withDefault "")
-                    )
-                    (Query.string "restrictflavorids"
-                        |> Query.map
-                            (\value ->
-                                -- Nothing if this query parameter doesn't exist. Sorry for ugly factoring.
-                                -- elm-analyse doesn't let you map Nothing to Nothing in a case statement.
-                                value
-                                    |> Maybe.andThen
-                                        (\value_ ->
-                                            if value_ == "false" then
-                                                Nothing
+        [ "credentials" ] ->
+            Just Credentials
 
-                                            else
-                                                let
-                                                    -- The beginning of the value will be "true@";
-                                                    -- this is not to be interpreted as a flavor ID,
-                                                    -- it just indicates we are passing flavor IDs
-                                                    flavorIds =
-                                                        String.dropLeft 5 value_
-                                                in
-                                                Just
-                                                    (String.split "@" flavorIds)
-                                        )
-                            )
-                    )
-                    (Query.enum "deployguac" maybeBoolEnumDict
-                        |> Query.map (Maybe.withDefault Nothing)
-                    )
-         in
-         s "createserver" <?> queryParser
-        )
-    , map
-        VolumeCreate
-        (s "createvolume")
-    , map
-        (\( maybeServerUuid, maybeVolUuid ) ->
-            VolumeAttach maybeServerUuid maybeVolUuid
-        )
-        (let
-            queryParser =
-                Query.map2
-                    Tuple.pair
-                    (Query.string "serveruuid")
-                    (Query.string "voluuid")
-         in
-         s "attachvol" <?> queryParser
-        )
-    , map
-        VolumeMountInstructions
-        (let
-            queryParser =
-                Query.map4
-                    OSTypes.VolumeAttachment
-                    (Query.string "voluuid"
-                        |> Query.map (Maybe.withDefault "")
-                    )
-                    (Query.string "serveruuid"
-                        |> Query.map (Maybe.withDefault "")
-                    )
-                    (Query.string "attachmentuuid"
-                        |> Query.map (Maybe.withDefault "")
-                    )
-                    (Query.string "device")
-         in
-         s "attachvolinstructions" <?> queryParser
-        )
-    , map
-        ImageList
-        (s "images")
-    ]
+        [ "servers", serverUuid, "image" ] ->
+            Just (ServerCreateImage serverUuid (Just (queryOrEmpty "name")))
+
+        [ "securitygroups", securityGroupUuid ] ->
+            Just (SecurityGroupDetail securityGroupUuid)
+
+        [ "securitygroups" ] ->
+            Just SecurityGroupList
+
+        [ "servers", serverUuid, "console-log" ] ->
+            Just (ServerConsoleLog serverUuid)
+
+        [ "servers", serverUuid ] ->
+            Just (ServerDetail serverUuid)
+
+        [ "servers" ] ->
+            Just ServerList
+
+        [ "servers", serverUuid, "resize" ] ->
+            Just (ServerResize serverUuid)
+
+        [ "servers", serverUuid, "securitygroups" ] ->
+            Just (ServerSecurityGroups serverUuid)
+
+        [ "createshare" ] ->
+            Just ShareCreate
+
+        [ "shares", shareUuid ] ->
+            Just (ShareDetail shareUuid)
+
+        [ "shares" ] ->
+            Just ShareList
+
+        [ "volumes", volumeUuid ] ->
+            Just (VolumeDetail volumeUuid)
+
+        [ "volumes" ] ->
+            Just VolumeList
+
+        [ "floatingips" ] ->
+            Just FloatingIpList
+
+        [ "assignfloatingip" ] ->
+            Just (FloatingIpAssign (query "ipuuid") (query "serveruuid"))
+
+        [ "createfloatingip" ] ->
+            Just (FloatingIpCreate (query "serveruuid"))
+
+        [ "keypairs" ] ->
+            Just KeypairList
+
+        [ "uploadkeypair" ] ->
+            Just KeypairCreate
+
+        [ "objectstorage", containerName ] ->
+            Just (ObjectStorageContainerDetail containerName (normalizePrefix (query "prefix")))
+
+        [ "objectstorage" ] ->
+            Just ObjectStorageList
+
+        [ "createcontainer" ] ->
+            Just ObjectStorageContainerCreate
+
+        [ "createserver" ] ->
+            Just
+                (ServerCreate
+                    (queryOrEmpty "imageuuid")
+                    (queryOrEmpty "imagename")
+                    (query "restrictflavorids" |> Maybe.andThen parseRestrictFlavorIds)
+                    (query "deployguac" |> Maybe.andThen parseDeployGuac)
+                )
+
+        [ "createvolume" ] ->
+            Just VolumeCreate
+
+        [ "attachvol" ] ->
+            Just (VolumeAttach (query "serveruuid") (query "voluuid"))
+
+        [ "attachvolinstructions" ] ->
+            Just
+                (VolumeMountInstructions
+                    { volumeUuid = queryOrEmpty "voluuid"
+                    , serverUuid = queryOrEmpty "serveruuid"
+                    , attachmentUuid = queryOrEmpty "attachmentuuid"
+                    , device = query "device"
+                    }
+                )
+
+        [ "images" ] ->
+            Just ImageList
+
+        _ ->
+            Nothing
+
+
+{-| The value is `false`, or `true` followed by the flavor IDs, each after an `@`, so the IDs start
+after the five characters of `true@`. OpenStack forbids `@` in flavor IDs, which makes it a safe
+separator.
+-}
+parseRestrictFlavorIds : String -> Maybe (List OSTypes.FlavorId)
+parseRestrictFlavorIds value =
+    if value == "false" then
+        Nothing
+
+    else
+        Just (String.split "@" (String.dropLeft 5 value))
+
+
+parseDeployGuac : String -> Maybe Bool
+parseDeployGuac value =
+    case value of
+        "justtrue" ->
+            Just True
+
+        "justfalse" ->
+            Just False
+
+        _ ->
+            Nothing
 
 
 defaultRoute : Route

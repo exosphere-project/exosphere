@@ -15,8 +15,10 @@ routeSuite =
         , lossyRouteSuite
         , toUrlSuite
         , parseSuite
+        , earlierUrlFormSuite
         , rootSuite
         , queryValueDecodingSuite
+        , analyticsUrlSuite
         ]
 
 
@@ -84,6 +86,7 @@ losslessProjectConstructors =
     , ( "ObjectStorageContainerDetail, unicode name and prefix", Route.ObjectStorageContainerDetail "café-données" (Just "dossier/£/") )
     , ( "ObjectStorageContainerDetail, name with '#', '%' and spaces", Route.ObjectStorageContainerDetail "my #1 100% container" Nothing )
     , ( "ObjectStorageContainerDetail, name holding a literal percent escape", Route.ObjectStorageContainerDetail "literal%20name" Nothing )
+    , ( "ObjectStorageContainerDetail, name and prefix with a backslash", Route.ObjectStorageContainerDetail "back\\slash" (Just "dir\\sub/") )
     , ( "SecurityGroupDetail", Route.SecurityGroupDetail "sg-1" )
     , ( "SecurityGroupList", Route.SecurityGroupList )
     , ( "ServerCreate with restricted flavors and Guacamole", Route.ServerCreate "img-1" "My Image+1 & co" (Just [ "f1", "f2" ]) (Just True) )
@@ -257,9 +260,9 @@ toUrlSuite =
             , ( Nothing, Route.PageNotFound, "/pagenotfound" )
             , ( Nothing
               , Route.SelectProjectRegions keystoneUrl "proj-1"
-              , "/selectprojectregions?keystoneurl=https%3A%2F%2Fkeystone.example%3A5000%2Fv3&projectuuid=proj-1"
+              , "/selectprojectregions?keystoneurl=https://keystone.example:5000/v3&projectuuid=proj-1"
               )
-            , ( Nothing, Route.SelectProjects keystoneUrl, "/selectprojs?keystoneurl=https%3A%2F%2Fkeystone.example%3A5000%2Fv3" )
+            , ( Nothing, Route.SelectProjects keystoneUrl, "/selectprojs?keystoneurl=https://keystone.example:5000/v3" )
             , ( Nothing, Route.Settings, "/settings" )
             , ( Nothing, projectRoute Route.ProjectOverview, "/projects/proj-1/overview" )
             , ( Nothing, projectRoute Route.Credentials, "/projects/proj-1/credentials" )
@@ -278,28 +281,32 @@ toUrlSuite =
             , ( Nothing, projectRoute Route.ObjectStorageContainerCreate, "/projects/proj-1/createcontainer" )
             , ( Nothing
               , projectRoute (Route.ObjectStorageContainerDetail "my #1 café" (Just "a/b c/"))
-              , "/projects/proj-1/objectstorage/my%20%231%20caf%C3%A9?prefix=a%2Fb%20c%2F"
+              , "/projects/proj-1/objectstorage/my%20%231%20café?prefix=a/b+c/"
               )
             , ( Nothing
               , projectRoute (Route.ObjectStorageContainerDetail "literal%20name" Nothing)
               , "/projects/proj-1/objectstorage/literal%2520name"
               )
+            , ( Nothing
+              , projectRoute (Route.ObjectStorageContainerDetail "back\\slash" (Just "dir\\sub/"))
+              , "/projects/proj-1/objectstorage/back%5Cslash?prefix=dir%5Csub/"
+              )
             , ( Nothing, projectRoute (Route.SecurityGroupDetail "sg-1"), "/projects/proj-1/securitygroups/sg-1" )
             , ( Nothing, projectRoute Route.SecurityGroupList, "/projects/proj-1/securitygroups" )
             , ( Nothing
               , projectRoute (Route.ServerCreate "img-1" "My Image+1" (Just [ "f1", "f2" ]) (Just True))
-              , "/projects/proj-1/createserver?imageuuid=img-1&imagename=My%20Image%2B1&restrictflavorids=true%40f1%40f2&deployguac=justtrue"
+              , "/projects/proj-1/createserver?deployguac=justtrue&imagename=My+Image%2B1&imageuuid=img-1&restrictflavorids=true@f1@f2"
               )
             , ( Nothing
               , projectRoute (Route.ServerCreate "img-1" "Ubuntu" Nothing (Just False))
-              , "/projects/proj-1/createserver?imageuuid=img-1&imagename=Ubuntu&restrictflavorids=false&deployguac=justfalse"
+              , "/projects/proj-1/createserver?deployguac=justfalse&imagename=Ubuntu&imageuuid=img-1&restrictflavorids=false"
               )
             , ( Nothing
               , projectRoute (Route.ServerCreate "img-1" "Ubuntu" Nothing Nothing)
-              , "/projects/proj-1/createserver?imageuuid=img-1&imagename=Ubuntu&restrictflavorids=false&deployguac=nothing"
+              , "/projects/proj-1/createserver?deployguac=nothing&imagename=Ubuntu&imageuuid=img-1&restrictflavorids=false"
               )
-            , ( Nothing, projectRoute (Route.ServerCreateImage "srv-1" (Just "snap shot")), "/projects/proj-1/servers/srv-1/image?name=snap%20shot" )
-            , ( Nothing, projectRoute (Route.ServerCreateImage "srv-1" (Just "")), "/projects/proj-1/servers/srv-1/image?name=" )
+            , ( Nothing, projectRoute (Route.ServerCreateImage "srv-1" (Just "snap shot")), "/projects/proj-1/servers/srv-1/image?name=snap+shot" )
+            , ( Nothing, projectRoute (Route.ServerCreateImage "srv-1" (Just "")), "/projects/proj-1/servers/srv-1/image?name" )
             , ( Nothing, projectRoute (Route.ServerCreateImage "srv-1" Nothing), "/projects/proj-1/servers/srv-1/image" )
             , ( Nothing, projectRoute (Route.ServerConsoleLog "srv-1"), "/projects/proj-1/servers/srv-1/console-log" )
             , ( Nothing, projectRoute (Route.ServerDetail "srv-1"), "/projects/proj-1/servers/srv-1" )
@@ -311,7 +318,7 @@ toUrlSuite =
             , ( Nothing, projectRoute (Route.ShareDetail "share-1"), "/projects/proj-1/shares/share-1" )
             , ( Nothing
               , projectRoute (Route.VolumeAttach (Just "srv-1") (Just "vol-1"))
-              , "/projects/proj-1/attachvol?voluuid=vol-1&serveruuid=srv-1"
+              , "/projects/proj-1/attachvol?serveruuid=srv-1&voluuid=vol-1"
               )
             , ( Nothing, projectRoute (Route.VolumeAttach Nothing Nothing), "/projects/proj-1/attachvol" )
             , ( Nothing, projectRoute Route.VolumeCreate, "/projects/proj-1/createvolume" )
@@ -319,11 +326,11 @@ toUrlSuite =
             , ( Nothing, projectRoute Route.VolumeList, "/projects/proj-1/volumes" )
             , ( Nothing
               , projectRoute (Route.VolumeMountInstructions volumeAttachment)
-              , "/projects/proj-1/attachvolinstructions?voluuid=vol-1&serveruuid=srv-1&attachmentuuid=att-1&device=%2Fdev%2Fsdb"
+              , "/projects/proj-1/attachvolinstructions?attachmentuuid=att-1&device=/dev/sdb&serveruuid=srv-1&voluuid=vol-1"
               )
             , ( Nothing
               , projectRoute (Route.VolumeMountInstructions { volumeAttachment | device = Nothing })
-              , "/projects/proj-1/attachvolinstructions?voluuid=vol-1&serveruuid=srv-1&attachmentuuid=att-1"
+              , "/projects/proj-1/attachvolinstructions?attachmentuuid=att-1&serveruuid=srv-1&voluuid=vol-1"
               )
             , ( Nothing, regionalProjectRoute Route.ServerList, "/projects/proj-1/regions/RegionOne/servers" )
             , ( Just "exosphere", Route.Home, "/exosphere/home" )
@@ -419,9 +426,9 @@ parseSuite =
               , path = "/projects/proj-1/servers/srv-1//"
               , expected = Just (projectRoute (Route.ServerDetail "srv-1"))
               }
-            , { description = "percent escapes in a project UUID segment are not decoded"
+            , { description = "percent escapes in a project UUID segment decode"
               , path = "/projects/proj%201/servers"
-              , expected = Just (Route.ProjectRoute { projectUuid = "proj%201", regionId = Nothing } Route.ServerList)
+              , expected = Just (Route.ProjectRoute { projectUuid = "proj 1", regionId = Nothing } Route.ServerList)
               }
             , { description = "a container name that is not a valid percent escape is kept as written"
               , path = "/projects/proj-1/objectstorage/100%"
@@ -453,6 +460,50 @@ parseSuite =
         )
 
 
+{-| Before the router moved to AppUrl, elm/url's `Url.Builder` wrote these URLs, so links and
+bookmarks in this form are still around.
+-}
+earlierUrlFormSuite : Test
+earlierUrlFormSuite =
+    let
+        testCases =
+            [ ( "/selectprojectregions?keystoneurl=https%3A%2F%2Fkeystone.example%3A5000%2Fv3&projectuuid=proj-1"
+              , Route.SelectProjectRegions keystoneUrl "proj-1"
+              )
+            , ( "/selectprojs?keystoneurl=https%3A%2F%2Fkeystone.example%3A5000%2Fv3", Route.SelectProjects keystoneUrl )
+            , ( "/projects/proj-1/objectstorage/my%20%231%20caf%C3%A9?prefix=a%2Fb%20c%2F"
+              , projectRoute (Route.ObjectStorageContainerDetail "my #1 café" (Just "a/b c/"))
+              )
+            , ( "/projects/proj-1/createserver?imageuuid=img-1&imagename=My%20Image%2B1&restrictflavorids=true%40f1%40f2&deployguac=justtrue"
+              , projectRoute (Route.ServerCreate "img-1" "My Image+1" (Just [ "f1", "f2" ]) (Just True))
+              )
+            , ( "/projects/proj-1/createserver?imageuuid=img-1&imagename=Ubuntu&restrictflavorids=false&deployguac=justfalse"
+              , projectRoute (Route.ServerCreate "img-1" "Ubuntu" Nothing (Just False))
+              )
+            , ( "/projects/proj-1/createserver?imageuuid=img-1&imagename=Ubuntu&restrictflavorids=false&deployguac=nothing"
+              , projectRoute (Route.ServerCreate "img-1" "Ubuntu" Nothing Nothing)
+              )
+            , ( "/projects/proj-1/servers/srv-1/image?name=snap%20shot", projectRoute (Route.ServerCreateImage "srv-1" (Just "snap shot")) )
+            , ( "/projects/proj-1/servers/srv-1/image?name=", projectRoute (Route.ServerCreateImage "srv-1" (Just "")) )
+            , ( "/projects/proj-1/attachvolinstructions?voluuid=vol-1&serveruuid=srv-1&attachmentuuid=att-1&device=%2Fdev%2Fsdb"
+              , projectRoute (Route.VolumeMountInstructions volumeAttachment)
+              )
+            , ( "/projects/proj-1/attachvolinstructions?voluuid=vol-1&serveruuid=srv-1&attachmentuuid=att-1"
+              , projectRoute (Route.VolumeMountInstructions { volumeAttachment | device = Nothing })
+              )
+            , ( "/projects/proj-1/attachvol?voluuid=vol-1&serveruuid=srv-1", projectRoute (Route.VolumeAttach (Just "srv-1") (Just "vol-1")) )
+            ]
+    in
+    describe "URLs in the earlier elm/url form still parse"
+        (List.map
+            (\( path, expected ) ->
+                test path <|
+                    \_ -> Expect.equal (Just expected) (parse Nothing path)
+            )
+            testCases
+        )
+
+
 rootSuite : Test
 rootSuite =
     let
@@ -476,28 +527,28 @@ rootSuite =
         )
 
 
-{-| elm/url decodes query values differently from other URL libraries: it keeps `+` literally, and
-yields no value for a key whose value holds a raw `=`, is repeated, has no `=` at all, or is not a
-valid percent escape. `FloatingIpCreate` keeps its query value as a `Maybe`, so an absent value
-and an empty one stay distinguishable.
+{-| AppUrl reads `+` as a space, keeps a raw `=` in the value, gives the first of repeated values,
+reads a key without `=` as empty, and keeps an invalid percent escape as written. `FloatingIpCreate`
+keeps its query value as a `Maybe`, so an absent value and an empty one stay distinguishable.
 -}
 queryValueDecodingSuite : Test
 queryValueDecodingSuite =
     let
         testCases =
-            [ ( "a literal '+' stays a '+'", "?serveruuid=a+b", Just "a+b" )
+            [ ( "a literal '+' reads as a space", "?serveruuid=a+b", Just "a b" )
             , ( "%20 decodes to a space", "?serveruuid=a%20b", Just "a b" )
             , ( "%2B decodes to a '+'", "?serveruuid=a%2Bb", Just "a+b" )
             , ( "%3D decodes to a '='", "?serveruuid=a%3Db", Just "a=b" )
-            , ( "a raw '=' in the value yields no value", "?serveruuid=a=b", Nothing )
-            , ( "a repeated key yields no value", "?serveruuid=a&serveruuid=b", Nothing )
+            , ( "a raw '=' stays in the value", "?serveruuid=a=b", Just "a=b" )
+            , ( "a repeated key yields its first value", "?serveruuid=a&serveruuid=b", Just "a" )
             , ( "an empty value is empty", "?serveruuid=", Just "" )
-            , ( "a key without '=' yields no value", "?serveruuid", Nothing )
-            , ( "an invalid percent escape yields no value", "?serveruuid=%zz", Nothing )
+            , ( "a key without '=' is empty", "?serveruuid", Just "" )
+            , ( "an absent key yields no value", "", Nothing )
+            , ( "an invalid percent escape is kept as written", "?serveruuid=%zz", Just "%zz" )
             , ( "percent-encoded UTF-8 decodes", "?serveruuid=caf%C3%A9", Just "café" )
             ]
     in
-    describe "query values decode as elm/url decodes them"
+    describe "query values decode as AppUrl decodes them"
         (List.map
             (\( description, query, expectedServerUuid ) ->
                 test description <|
@@ -508,3 +559,61 @@ queryValueDecodingSuite =
             )
             testCases
         )
+
+
+analyticsUrlSuite : Test
+analyticsUrlSuite =
+    let
+        templateCases =
+            [ ( Nothing, regionalProjectRoute (Route.ServerDetail "srv-1"), "/projects/:project/regions/RegionOne/servers/:server" )
+            , ( Nothing, projectRoute Route.ServerList, "/projects/:project/servers" )
+            , ( Just "exosphere"
+              , regionalProjectRoute (Route.ServerCreateImage "srv-1" (Just "snap shot"))
+              , "/exosphere/projects/:project/regions/RegionOne/servers/:server/image"
+              )
+            , ( Nothing, projectRoute (Route.ObjectStorageContainerDetail "photos" (Just "a/b c/")), "/projects/:project/objectstorage/:container" )
+            , ( Nothing, projectRoute (Route.SecurityGroupDetail "sg-1"), "/projects/:project/securitygroups/:security-group" )
+            , ( Nothing, projectRoute (Route.ShareDetail "share-1"), "/projects/:project/shares/:share" )
+            , ( Nothing, projectRoute (Route.VolumeDetail "vol-1"), "/projects/:project/volumes/:volume" )
+            , ( Nothing, projectRoute (Route.VolumeAttach (Just "srv-1") (Just "vol-1")), "/projects/:project/attachvol" )
+            , ( Nothing, Route.SelectProjectRegions keystoneUrl "proj-1", "/selectprojectregions" )
+            , ( Nothing, Route.LoadingUnscopedProjects "token-1", "/loadingprojs" )
+            , ( Nothing, Route.MessageLog True, "/msglog" )
+            ]
+
+        identifyingFixtures =
+            [ "proj-1", "srv-1", "vol-1", "ip-1", "sg-1", "share-1", "img-1", "att-1", "f1", "f2", "photos", "café", "données", "dossier", "my #1", "literal", "back", "keystone.example", "token-1", "alice", "secret", "Default", "Ubuntu", "My Image", "snap", "sdb" ]
+
+        lossyRoutes =
+            [ ( "LoadingUnscopedProjects", Route.LoadingUnscopedProjects "token-1" )
+            , ( "LoginOpenstack with credentials"
+              , Route.LoginOpenstack (Just { authUrl = keystoneUrl, userDomain = "Default", username = "alice", password = "secret" })
+              )
+            , ( "GetSupport with an item", Route.GetSupport (Just ( HelperTypes.SupportableServer, Just "srv-1" )) )
+            ]
+
+        leaks : String -> List String
+        leaks analyticsUrl =
+            List.filter (\fixture -> String.contains fixture analyticsUrl) ("?" :: identifyingFixtures)
+    in
+    describe "toAnalyticsUrl"
+        [ describe "reports the route's shape"
+            (List.map
+                (\( maybePathPrefix, route, expected ) ->
+                    test expected <|
+                        \_ -> Expect.equal expected (Route.toAnalyticsUrl maybePathPrefix route)
+                )
+                templateCases
+            )
+        , describe "never reports an identifier, name, credential or query string"
+            (withAndWithoutPathPrefix
+                (\maybePathPrefix ->
+                    List.map
+                        (\( description, route ) ->
+                            test description <|
+                                \_ -> Expect.equal [] (leaks (Route.toAnalyticsUrl maybePathPrefix route))
+                        )
+                        (losslessRoutes ++ lossyRoutes)
+                )
+            )
+        ]
