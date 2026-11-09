@@ -137,7 +137,7 @@ view context project currentTime _ =
                         |> Element.map SharedMsg
                     )
                 )
-                Route.ServerList
+                (Route.ServerList Route.emptyListQuery)
                 (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Compute project))
                 (serverTileContents context project)
             , renderTile

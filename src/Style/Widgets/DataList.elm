@@ -14,6 +14,8 @@ module Style.Widgets.DataList exposing
     , UniselectOptionIdentifier(..)
     , getDefaultFilterOptions
     , init
+    , initWithQuery
+    , toQuery
     , update
     , view
     , viewHidingNonSelectableLock
@@ -41,6 +43,7 @@ import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
+import Types.HelperTypes as HelperTypes
 import View.Helpers as VH
 import Widget
 
@@ -108,6 +111,77 @@ init selectedFilters =
     , selectedFilters = selectedFilters
     , searchText = ""
     }
+
+
+{-| Start from a list query, as a page URL carries it, applied over the filters' defaults. A filter
+the query does not name keeps its default, and a key naming no filter is ignored.
+-}
+initWithQuery : SelectedFilterOptions -> HelperTypes.ListQuery -> Model
+initWithQuery (SelectedFilterOptions defaults) listQuery =
+    { selectedRowIds = Set.empty
+    , selectedFilters =
+        SelectedFilterOptions <|
+            Dict.map
+                (\filterId default ->
+                    case Dict.get filterId listQuery.filters of
+                        Just values ->
+                            selectionFromValues default (List.filter (not << String.isEmpty) values)
+
+                        Nothing ->
+                            default
+                )
+                defaults
+    , searchText = listQuery.search
+    }
+
+
+selectionFromValues : FilterSelectionValue -> List FilterOptionValue -> FilterSelectionValue
+selectionFromValues default values =
+    case ( default, values ) of
+        ( MultiselectOption _, _ ) ->
+            MultiselectOption (Set.fromList values)
+
+        ( UniselectOption _, value :: _ ) ->
+            UniselectOption (UniselectHasChoice value)
+
+        ( UniselectOption _, [] ) ->
+            UniselectOption UniselectNoChoice
+
+
+{-| The list's search text and every filter that differs from its default, in the form a page URL
+carries: `initWithQuery` with the same defaults gives back the same search and filters.
+-}
+toQuery : SelectedFilterOptions -> Model -> HelperTypes.ListQuery
+toQuery (SelectedFilterOptions defaults) model =
+    let
+        (SelectedFilterOptions selected) =
+            model.selectedFilters
+    in
+    { search = model.searchText
+    , filters =
+        Dict.filter (\filterId selection -> Dict.get filterId defaults /= Just selection) selected
+            |> Dict.map (\_ selection -> selectionToValues selection)
+    }
+
+
+{-| An empty selection is a single empty value, which keeps it apart from a filter left at its
+default and so absent.
+-}
+selectionToValues : FilterSelectionValue -> List FilterOptionValue
+selectionToValues selection =
+    case selection of
+        MultiselectOption values ->
+            if Set.isEmpty values then
+                [ "" ]
+
+            else
+                Set.toList values
+
+        UniselectOption (UniselectHasChoice value) ->
+            [ value ]
+
+        UniselectOption UniselectNoChoice ->
+            [ "" ]
 
 
 selectedFilterOptionValue : FilterId -> Model -> Maybe FilterSelectionValue

@@ -239,7 +239,7 @@ breadcrumb_ outerModel context =
                                     ]
 
                                 ServerConsoleLog pageModel ->
-                                    [ { route = Just <| Route.ProjectRoute projectId <| Route.ServerList
+                                    [ { route = Just <| Route.ProjectRoute projectId <| Route.ServerList Route.emptyListQuery
                                       , label =
                                             String.join " "
                                                 [ context.localization.virtualComputer
@@ -261,7 +261,7 @@ breadcrumb_ outerModel context =
                                     ]
 
                                 ServerDetail pageModel ->
-                                    [ { route = Just <| Route.ProjectRoute projectId <| Route.ServerList
+                                    [ { route = Just <| Route.ProjectRoute projectId <| Route.ServerList Route.emptyListQuery
                                       , label =
                                             String.join " "
                                                 [ context.localization.virtualComputer
@@ -303,7 +303,7 @@ breadcrumb_ outerModel context =
                                     ]
 
                                 ServerSecurityGroups pageModel ->
-                                    [ { route = Just <| Route.ProjectRoute projectId <| Route.ServerList
+                                    [ { route = Just <| Route.ProjectRoute projectId <| Route.ServerList Route.emptyListQuery
                                       , label =
                                             String.join " "
                                                 [ context.localization.virtualComputer

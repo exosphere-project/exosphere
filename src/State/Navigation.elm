@@ -1,5 +1,6 @@
 module State.Navigation exposing (Navigation(..), classify, viewStateToRoute)
 
+import Page.ServerList
 import Route
 import State.LoginChain
 import Types.View exposing (NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
@@ -26,10 +27,10 @@ classify { credentialFileLoginChainIsActive } viewState route =
         NewPage
 
 
-{-| The route that rebuilds the current page exactly as it stands, for the pages whose whole state
-lives in their URL. Such a page mirrors each change into the URL with `Route.replaceUrl`, which
-fires `onUrlChange` even for a URL it just set; recognising that echo is what spares the page a
-rebuild and a refetch.
+{-| The route describing what the current page holds in its URL, for the pages that mirror each change
+of that state into the URL with `Route.replaceUrl`, which fires `onUrlChange` even for a URL it just
+set. Recognising that echo spares the page a rebuild and a refetch, and keeps whatever it holds
+outside the URL, such as the server list's row selection.
 
 A page belongs here only if its route survives `Route.toUrl` then `Route.fromUrl` unchanged, or its
 own echo would not be recognised. Every other page returns `Nothing` and is rebuilt on any URL
@@ -53,6 +54,9 @@ viewStateToRoute viewState =
 
                     ServerCreateImage model ->
                         Just (Route.ServerCreateImage model.serverUuid (Just model.imageName))
+
+                    ServerList model ->
+                        Just (Route.ServerList (Page.ServerList.listQuery model))
 
                     VolumeAttach model ->
                         Just (Route.VolumeAttach model.maybeServerUuid model.maybeVolumeUuid)

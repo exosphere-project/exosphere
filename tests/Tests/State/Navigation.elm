@@ -1,5 +1,6 @@
 module Tests.State.Navigation exposing (navigationSuite)
 
+import Dict
 import Expect
 import Page.FloatingIpAssign
 import Page.LoginOpenstack
@@ -8,7 +9,9 @@ import Page.SelectProjectRegions
 import Page.ServerCreateImage
 import Page.VolumeAttach
 import Route
+import Set
 import State.Navigation exposing (Navigation(..))
+import Style.Widgets.DataList as DataList
 import Test exposing (Test, describe, test)
 import Types.HelperTypes as HelperTypes
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
@@ -57,6 +60,49 @@ floatingIpAssign =
 serverCreateImage : ViewState
 serverCreateImage =
     ProjectView projectIdentifier (ServerCreateImage (Page.ServerCreateImage.init "srv-1" (Just "nightly")))
+
+
+{-| The server list's own filters need a view context to build, so these stand in for them.
+-}
+serverListDefaults : DataList.SelectedFilterOptions
+serverListDefaults =
+    DataList.getDefaultFilterOptions
+        [ { id = "creator"
+          , label = "Creator"
+          , chipPrefix = "Created by "
+          , filterOptions = \_ -> Dict.empty
+          , filterTypeAndDefaultValue = DataList.MultiselectOption (Set.singleton "alice")
+          , onFilter = \_ _ -> True
+          }
+        , { id = "status"
+          , label = "Status of"
+          , chipPrefix = "Status of "
+          , filterOptions = \_ -> Dict.empty
+          , filterTypeAndDefaultValue = DataList.MultiselectOption Set.empty
+          , onFilter = \_ _ -> True
+          }
+        ]
+
+
+serverList : HelperTypes.ListQuery -> ViewState
+serverList listQuery =
+    ProjectView projectIdentifier
+        (ServerList
+            { showHeading = True
+            , dataListModel = DataList.initWithQuery serverListDefaults listQuery
+            , defaultFilterOptions = serverListDefaults
+            , retainFloatingIpsWhenDeleting = False
+            , deleteFloatingIpsWhenShelving = True
+            , selectedBulkAction = Nothing
+            }
+        )
+
+
+filteredServers : HelperTypes.ListQuery
+filteredServers =
+    { search = "web a+b é"
+    , filters = Dict.fromList [ ( "creator", [ "" ] ), ( "status", [ "Active", "Shelved" ] ) ]
+    }
 
 
 messageLog : ViewState
@@ -120,6 +166,8 @@ echoThroughUrlSuite =
             , ( "Create Image with an empty name", ProjectView projectIdentifier (ServerCreateImage (Page.ServerCreateImage.init "srv-1" (Just ""))) )
             , ( "Create Image with a name that needs escaping", ProjectView projectIdentifier (ServerCreateImage (Page.ServerCreateImage.init "srv-1" (Just "a+b & c=d"))) )
             , ( "message log", messageLog )
+            , ( "server list with default filters", serverList Route.emptyListQuery )
+            , ( "server list with search and filters", serverList filteredServers )
             , ( "message log hiding debug messages", NonProjectView (MessageLog (Page.MessageLog.init (Just False))) )
             ]
 
@@ -172,6 +220,7 @@ newPageSuite =
               , Route.ProjectRoute { projectIdentifier | projectUuid = "proj-2" } (Route.VolumeAttach (Just "srv-1") (Just "vol-1"))
               )
             , ( "another page", volumeAttach, projectRoute Route.VolumeList )
+            , ( "different server list filters", serverList filteredServers, projectRoute (Route.ServerList Route.emptyListQuery) )
             , ( "a page that has not opted in, at its own URL", NonProjectView HelpAbout, Route.HelpAbout )
             , ( "the start-up placeholder at its own URL", NonProjectView LoginPicker, Route.LoginPicker )
             , ( "OpenStack login at its own URL"

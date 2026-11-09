@@ -1,5 +1,6 @@
 module Tests.Route exposing (routeSuite)
 
+import Dict
 import Expect
 import OpenStack.Types as OSTypes
 import Route
@@ -39,6 +40,13 @@ projectRoute constructor =
 regionalProjectRoute : Route.ProjectRouteConstructor -> Route.Route
 regionalProjectRoute constructor =
     Route.ProjectRoute { projectUuid = "proj-1", regionId = Just "RegionOne" } constructor
+
+
+filteredListQuery : HelperTypes.ListQuery
+filteredListQuery =
+    { search = "web 1+é"
+    , filters = Dict.fromList [ ( "creator", [ "" ] ), ( "status", [ "Active", "Shelved" ] ) ]
+    }
 
 
 volumeAttachment : OSTypes.VolumeAttachment
@@ -96,7 +104,8 @@ losslessProjectConstructors =
     , ( "ServerCreateImage with an empty name", Route.ServerCreateImage "srv-1" (Just "") )
     , ( "ServerConsoleLog", Route.ServerConsoleLog "srv-1" )
     , ( "ServerDetail", Route.ServerDetail "srv-1" )
-    , ( "ServerList", Route.ServerList )
+    , ( "ServerList", Route.ServerList Route.emptyListQuery )
+    , ( "ServerList with search and filters", Route.ServerList filteredListQuery )
     , ( "ServerResize", Route.ServerResize "srv-1" )
     , ( "ServerSecurityGroups", Route.ServerSecurityGroups "srv-1" )
     , ( "ShareCreate", Route.ShareCreate )
@@ -294,6 +303,10 @@ toUrlSuite =
             , ( Nothing, projectRoute (Route.SecurityGroupDetail "sg-1"), "/projects/proj-1/securitygroups/sg-1" )
             , ( Nothing, projectRoute Route.SecurityGroupList, "/projects/proj-1/securitygroups" )
             , ( Nothing
+              , projectRoute (Route.ServerList filteredListQuery)
+              , "/projects/proj-1/servers?creator&q=web+1%2Bé&status=Active&status=Shelved"
+              )
+            , ( Nothing
               , projectRoute (Route.ServerCreate "img-1" "My Image+1" (Just [ "f1", "f2" ]) (Just True))
               , "/projects/proj-1/createserver?deployguac=justtrue&imagename=My+Image%2B1&imageuuid=img-1&restrictflavorids=true@f1@f2"
               )
@@ -310,7 +323,7 @@ toUrlSuite =
             , ( Nothing, projectRoute (Route.ServerCreateImage "srv-1" Nothing), "/projects/proj-1/servers/srv-1/image" )
             , ( Nothing, projectRoute (Route.ServerConsoleLog "srv-1"), "/projects/proj-1/servers/srv-1/console-log" )
             , ( Nothing, projectRoute (Route.ServerDetail "srv-1"), "/projects/proj-1/servers/srv-1" )
-            , ( Nothing, projectRoute Route.ServerList, "/projects/proj-1/servers" )
+            , ( Nothing, projectRoute (Route.ServerList Route.emptyListQuery), "/projects/proj-1/servers" )
             , ( Nothing, projectRoute (Route.ServerResize "srv-1"), "/projects/proj-1/servers/srv-1/resize" )
             , ( Nothing, projectRoute (Route.ServerSecurityGroups "srv-1"), "/projects/proj-1/servers/srv-1/securitygroups" )
             , ( Nothing, projectRoute Route.ShareCreate, "/projects/proj-1/createshare" )
@@ -332,7 +345,7 @@ toUrlSuite =
               , projectRoute (Route.VolumeMountInstructions { volumeAttachment | device = Nothing })
               , "/projects/proj-1/attachvolinstructions?attachmentuuid=att-1&serveruuid=srv-1&voluuid=vol-1"
               )
-            , ( Nothing, regionalProjectRoute Route.ServerList, "/projects/proj-1/regions/RegionOne/servers" )
+            , ( Nothing, regionalProjectRoute (Route.ServerList Route.emptyListQuery), "/projects/proj-1/regions/RegionOne/servers" )
             , ( Just "exosphere", Route.Home, "/exosphere/home" )
             , ( Just "exosphere"
               , regionalProjectRoute (Route.ServerDetail "srv-1")
@@ -418,9 +431,21 @@ parseSuite =
                             (Route.VolumeMountInstructions { volumeUuid = "", serverUuid = "", attachmentUuid = "", device = Nothing })
                         )
               }
+            , { description = "server list filters, repeated values and search"
+              , path = "/projects/proj-1/servers?status=Shelved&q=web&status=Active&creator"
+              , expected =
+                    Just
+                        (projectRoute
+                            (Route.ServerList
+                                { search = "web"
+                                , filters = Dict.fromList [ ( "creator", [ "" ] ), ( "status", [ "Shelved", "Active" ] ) ]
+                                }
+                            )
+                        )
+              }
             , { description = "trailing slash"
               , path = "/projects/proj-1/servers/"
-              , expected = Just (projectRoute Route.ServerList)
+              , expected = Just (projectRoute (Route.ServerList Route.emptyListQuery))
               }
             , { description = "double trailing slash"
               , path = "/projects/proj-1/servers/srv-1//"
@@ -428,7 +453,7 @@ parseSuite =
               }
             , { description = "percent escapes in a project UUID segment decode"
               , path = "/projects/proj%201/servers"
-              , expected = Just (Route.ProjectRoute { projectUuid = "proj 1", regionId = Nothing } Route.ServerList)
+              , expected = Just (Route.ProjectRoute { projectUuid = "proj 1", regionId = Nothing } (Route.ServerList Route.emptyListQuery))
               }
             , { description = "a container name that is not a valid percent escape is kept as written"
               , path = "/projects/proj-1/objectstorage/100%"
@@ -566,7 +591,7 @@ analyticsUrlSuite =
     let
         templateCases =
             [ ( Nothing, regionalProjectRoute (Route.ServerDetail "srv-1"), "/projects/:project/regions/RegionOne/servers/:server" )
-            , ( Nothing, projectRoute Route.ServerList, "/projects/:project/servers" )
+            , ( Nothing, projectRoute (Route.ServerList Route.emptyListQuery), "/projects/:project/servers" )
             , ( Just "exosphere"
               , regionalProjectRoute (Route.ServerCreateImage "srv-1" (Just "snap shot"))
               , "/exosphere/projects/:project/regions/RegionOne/servers/:server/image"
@@ -579,10 +604,11 @@ analyticsUrlSuite =
             , ( Nothing, Route.SelectProjectRegions keystoneUrl "proj-1", "/selectprojectregions" )
             , ( Nothing, Route.LoadingUnscopedProjects "token-1", "/loadingprojs" )
             , ( Nothing, Route.MessageLog True, "/msglog" )
+            , ( Just "exosphere", projectRoute (Route.ServerList filteredListQuery), "/exosphere/projects/:project/servers" )
             ]
 
         identifyingFixtures =
-            [ "proj-1", "srv-1", "vol-1", "ip-1", "sg-1", "share-1", "img-1", "att-1", "f1", "f2", "photos", "café", "données", "dossier", "my #1", "literal", "back", "keystone.example", "token-1", "alice", "secret", "Default", "Ubuntu", "My Image", "snap", "sdb" ]
+            [ "proj-1", "srv-1", "vol-1", "ip-1", "sg-1", "share-1", "img-1", "att-1", "f1", "f2", "photos", "café", "données", "dossier", "my #1", "literal", "back", "keystone.example", "token-1", "alice", "secret", "Default", "Ubuntu", "My Image", "snap", "sdb", "web", "Shelved" ]
 
         lossyRoutes =
             [ ( "LoadingUnscopedProjects", Route.LoadingUnscopedProjects "token-1" )

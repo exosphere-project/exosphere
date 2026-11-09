@@ -3,6 +3,7 @@ module Route exposing
     , Route(..)
     , defaultLoginPage
     , defaultRoute
+    , emptyListQuery
     , fromUrl
     , pushUrl
     , replaceUrl
@@ -53,7 +54,7 @@ type ProjectRouteConstructor
     | ServerCreateImage OSTypes.ServerUuid (Maybe String)
     | ServerConsoleLog OSTypes.ServerUuid
     | ServerDetail OSTypes.ServerUuid
-    | ServerList
+    | ServerList HelperTypes.ListQuery
     | ServerResize OSTypes.ServerUuid
     | ServerSecurityGroups OSTypes.ServerUuid
     | ShareCreate
@@ -221,8 +222,8 @@ toUrl maybePathPrefix route =
                         ServerDetail serverUuid ->
                             ( [ "servers", serverUuid ], [] )
 
-                        ServerList ->
-                            ( [ "servers" ], [] )
+                        ServerList listQuery ->
+                            ( [ "servers" ], listQueryParameters listQuery )
 
                         ServerResize serverUuid ->
                             ( [ "servers", serverUuid, "resize" ], [] )
@@ -397,8 +398,8 @@ projectRouteWithoutIdentifiers projectRouteConstructor =
         ServerDetail _ ->
             ServerDetail ":server"
 
-        ServerList ->
-            ServerList
+        ServerList _ ->
+            ServerList emptyListQuery
 
         ServerResize _ ->
             ServerResize ":server"
@@ -450,6 +451,35 @@ normalizePrefix maybePrefix =
 
         other ->
             other
+
+
+emptyListQuery : HelperTypes.ListQuery
+emptyListQuery =
+    { search = "", filters = Dict.empty }
+
+
+{-| The search text goes under `q`, and every other parameter is a filter, so no filter may be named
+`q`.
+-}
+listQueryParameters : HelperTypes.ListQuery -> List ( String, List String )
+listQueryParameters listQuery =
+    ( "q", maybeToList (nonEmpty listQuery.search) ) :: Dict.toList listQuery.filters
+
+
+parseListQuery : AppUrl -> HelperTypes.ListQuery
+parseListQuery appUrl =
+    { search = Maybe.withDefault "" (queryValue "q" appUrl)
+    , filters = Dict.remove "q" appUrl.queryParameters
+    }
+
+
+nonEmpty : String -> Maybe String
+nonEmpty string =
+    if String.isEmpty string then
+        Nothing
+
+    else
+        Just string
 
 
 {-| A query parameter given no values is left out of the URL.
@@ -671,7 +701,7 @@ parseProjectRoute appUrl projectPath =
             Just (ServerDetail serverUuid)
 
         [ "servers" ] ->
-            Just ServerList
+            Just (ServerList (parseListQuery appUrl))
 
         [ "servers", serverUuid, "resize" ] ->
             Just (ServerResize serverUuid)

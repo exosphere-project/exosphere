@@ -18,6 +18,7 @@ module Types.HelperTypes exposing
     , InstanceTypeImageFilters
     , InstanceTypeVersion
     , KeystoneHostname
+    , ListQuery
     , Localization
     , MetadataFilter
     , OpenIdConnectLoginConfig
@@ -71,6 +72,16 @@ type alias KeystoneHostname =
 
 type alias Uuid =
     String
+
+
+{-| A data list's search text and filter selections as its page URL carries them: each filter's
+selected values under the filter's own key. A filter left at its default is absent, and a filter
+deliberately emptied holds a single empty value, so the two stay distinguishable.
+-}
+type alias ListQuery =
+    { search : String
+    , filters : Dict String (List String)
+    }
 
 
 type alias ProjectIdentifier =

@@ -533,7 +533,7 @@ routeToViewStateModelCmd sharedModel route =
                             , newCmd
                             )
 
-                        Route.ServerList ->
+                        Route.ServerList listQuery ->
                             let
                                 ( newSharedModel, cmd ) =
                                     ( sharedModel, Cmd.none )
@@ -552,7 +552,7 @@ routeToViewStateModelCmd sharedModel route =
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestProjectUsages (GetterSetters.projectIdentifier project))
                             in
-                            ( projectViewProto <| ServerList <| Page.ServerList.init newSharedModel.viewContext project True
+                            ( projectViewProto <| ServerList <| Page.ServerList.init newSharedModel.viewContext project True listQuery
                             , newSharedModel
                             , cmd
                             )
