@@ -332,7 +332,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
 
                 applyRequestsToProject : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
                 applyRequestsToProject projectId model =
-                    ( model, otherCmds )
+                    ( model, Cmd.none )
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestServers projectId)
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestSecurityGroups projectId)
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestShares projectId)
@@ -351,7 +351,8 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                     (\projectId modelCmdTuple ->
                         Helpers.pipelineCmd (applyRequestsToProject projectId) modelCmdTuple
                     )
-                    ( hydratedModel, Cmd.none )
+                    -- Sent once, also when there are no projects (e.g. banners for logged-out users).
+                    ( hydratedModel, otherCmds )
 
         outerModel =
             { sharedModel = requestResourcesModel
