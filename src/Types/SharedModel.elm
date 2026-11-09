@@ -1,5 +1,6 @@
 module Types.SharedModel exposing (CloudCorsProxyUrl, LogMessage, LogMessageProject, SharedModel, Style)
 
+import Dict exposing (Dict)
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
 import Style.Types
@@ -11,6 +12,7 @@ import Types.Error exposing (ErrorContext, Toast)
 import Types.HelperTypes as HelperTypes
 import Types.LoginIntent exposing (HeldLoginToken, LoginIntent)
 import Types.Project exposing (Project)
+import Types.StatusPage exposing (StatusPage)
 import UUID
 import View.Types
 
@@ -42,6 +44,7 @@ type alias SharedModel =
     , sentryConfig : Maybe HelperTypes.SentryConfig
     , version : Maybe String
     , latestVersion : RDPP.RemoteDataPlusPlus Types.Error.HttpErrorWithBody AppVersion
+    , statusPages : Dict HelperTypes.KeystoneHostname (RDPP.RemoteDataPlusPlus Types.Error.HttpErrorWithBody StatusPage)
     }
 
 

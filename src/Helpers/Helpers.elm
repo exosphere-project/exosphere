@@ -802,6 +802,7 @@ appVersionUpdateBanner model =
     , level = Types.Banner.BannerInfo
     , startsAt = Nothing
     , endsAt = Nothing
+    , id = Nothing
     }
 
 

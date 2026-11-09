@@ -261,6 +261,11 @@ var cloud_configs = {
           ],
         },
       },
+      statusPage: {
+        provider: "status.io",
+        pageId: "61dc808a7e9a82053ce739d2",
+        url: "https://jetstream.status.io/",
+      },
     },
     {
       keystoneHostname: "keystone.rc.nectar.org.au",

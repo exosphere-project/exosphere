@@ -5,6 +5,7 @@ import Orchestration.GoalNetworkResources exposing (goalPollNetworkResources)
 import Orchestration.GoalProject exposing (goalPollProject)
 import Orchestration.GoalServer exposing (goalNewServer, goalPollServers)
 import Orchestration.GoalShare exposing (goalNewShare)
+import Orchestration.GoalStatusPage exposing (goalPollStatusPages)
 import Orchestration.Helpers exposing (applyProjectStep)
 import Time
 import Types.HelperTypes exposing (CloudSpecificConfig)
@@ -23,8 +24,11 @@ orchModel viewState model time =
                 |> List.map (\proj -> ( Helpers.GetterSetters.cloudSpecificConfigLookup model.viewContext.cloudSpecificConfigs proj, proj ))
                 |> List.map (\( cloudConfig, proj ) -> orchProject model.clientUuid time cloudConfig viewState proj)
                 |> List.unzip
+
+        ( newModel, statusPageCmds ) =
+            goalPollStatusPages time { model | projects = newProjects }
     in
-    ( { model | projects = newProjects }, Cmd.batch newCmds )
+    ( newModel, Cmd.batch (statusPageCmds :: newCmds) )
 
 
 orchProject : UUID.UUID -> Time.Posix -> Maybe CloudSpecificConfig -> ViewState -> Project -> ( Project, Cmd SharedMsg )

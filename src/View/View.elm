@@ -9,6 +9,7 @@ import Element.Region as Region
 import FeatherIcons as Icons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
+import Helpers.StatusPage
 import Helpers.String
 import Html
 import Html.Attributes
@@ -149,6 +150,14 @@ appView windowSize outerModel context =
                                 viewConstructor
                             )
 
+        bannerModel =
+            let
+                { banners } =
+                    outerModel.sharedModel
+            in
+            -- What clouds' status pages report comes before the deployer's banners.
+            { banners | banners = Helpers.StatusPage.banners outerModel.sharedModel ++ banners.banners }
+
         contentContainerAttrs =
             [ Element.padding spacer.px24
             , Element.width Element.fill
@@ -161,7 +170,7 @@ appView windowSize outerModel context =
                 , Element.height Element.fill
                 , Element.scrollbars
                 ]
-                [ Banner.view context.palette (SharedMsg << DismissBanner) outerModel.sharedModel.clientCurrentTime outerModel.sharedModel.banners
+                [ Banner.view context.palette (SharedMsg << DismissBanner) outerModel.sharedModel.clientCurrentTime bannerModel
                 , case header of
                     Just header_ ->
                         let
