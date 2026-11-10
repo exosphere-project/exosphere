@@ -458,10 +458,15 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
 
         statusTransitionInProgress =
             let
-                { targetOpenstackStatus, request } =
+                { targetOpenstackStatus, request, unreachedTarget } =
                     GetterSetters.getServerExoActions project server.osProps.uuid
             in
             case ( request.refreshStatus, request.data, targetOpenstackStatus ) of
+                ( NotLoading Nothing, _, Nothing ) ->
+                    unreachedTarget
+                        |> Maybe.map (renderUnreachedTarget context currentTime server)
+                        |> Maybe.withDefault Element.none
+
                 ( NotLoading (Just ( error, erroredAt )), _, _ ) ->
                     -- Date failures for later sessions.
                     Alert.alert [ Element.width Element.fill ]
@@ -1344,6 +1349,54 @@ serverActionsDropdown context project model server =
 
         Just _ ->
             Element.none
+
+
+{-| Nova accepted the action, then finished it without the server reaching the status we were waiting for. Nova gives
+the reason only in the action history, and records no fault when scheduling fails.
+-}
+renderUnreachedTarget : View.Types.Context -> Time.Posix -> Server -> Types.Server.UnreachedTarget -> Element.Element Msg
+renderUnreachedTarget context currentTime server { statuses, noticedAt } =
+    let
+        relativeTime =
+            DateFormat.Relative.relativeTime currentTime noticedAt
+
+        stillShelved =
+            List.member server.osProps.details.openstackStatus [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
+
+        message =
+            if stillShelved && List.member OSTypes.ServerActive statuses then
+                "Unshelving did not complete. OpenStack stopped trying "
+                    ++ relativeTime
+                    ++ " and the "
+                    ++ context.localization.virtualComputer
+                    ++ " is still shelved. This usually means there is not enough capacity for its "
+                    ++ context.localization.virtualComputerHardwareConfig
+                    ++ " right now. Try again later, or check Action History for details."
+
+            else
+                "This action did not complete. OpenStack stopped trying "
+                    ++ relativeTime
+                    ++ " without the "
+                    ++ context.localization.virtualComputer
+                    ++ " becoming "
+                    ++ String.join " or " (List.map OSTypes.serverStatusToString statuses)
+                    ++ ". Check Action History for details."
+    in
+    Alert.alert [ Element.width Element.fill ]
+        context.palette
+        { state = Alert.Danger
+        , showIcon = False
+        , showContainer = True
+        , content =
+            Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
+                [ Text.p [ Element.width Element.fill ] [ Text.body message ]
+                , Button.button Button.Danger
+                    context.palette
+                    { text = "Clear"
+                    , onPress = Just GotResetServerAction
+                    }
+                ]
+        }
 
 
 renderServerEventHistory :

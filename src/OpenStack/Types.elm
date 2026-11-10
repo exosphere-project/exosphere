@@ -695,6 +695,7 @@ type alias ServerDetails =
     , tags : List ServerTag
     , lockStatus : ServerLockStatus
     , fault : Maybe ServerFault
+    , taskState : Maybe String -- Nova OS-EXT-STS:task_state; Nothing when no task is in progress
     }
 
 

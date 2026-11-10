@@ -10,7 +10,9 @@ module Types.Server exposing
     , ServerFromExoProps
     , ServerOrigin(..)
     , ServerUiStatus(..)
+    , UnreachedTarget
     , abandonActionTargets
+    , abandonTargetIfActionEnded
     , actionIsResumable
     , clearActionTargetIfTargetStatusReached
     , clearQuotaRefreshIntentIfTargetStatusReached
@@ -26,6 +28,7 @@ module Types.Server exposing
     , shelveQuotaRefreshTargetOpenstackStatus
     , shelveTargetOpenstackStatus
     , shouldRefreshQuotaOnTargetStatus
+    , taskStateUiStatus
     )
 
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -60,6 +63,15 @@ type alias ServerExoActions =
     { targetOpenstackStatus : Maybe (List OSTypes.ServerStatus) -- Maybe we have performed an instance action and are waiting for server to reflect that
     , quotaRefreshTargetOpenstackStatus : Maybe (List OSTypes.ServerStatus)
     , request : RDPP.RemoteDataPlusPlus HttpErrorWithBody ()
+    , unreachedTarget : Maybe UnreachedTarget -- Nova accepted the action, then finished without reaching its target
+    }
+
+
+{-| The statuses an accepted action was waiting for when Nova finished working on it without reaching any of them.
+-}
+type alias UnreachedTarget =
+    { statuses : List OSTypes.ServerStatus
+    , noticedAt : Time.Posix
     }
 
 
@@ -68,6 +80,7 @@ initServerExoActions =
     { targetOpenstackStatus = Nothing
     , quotaRefreshTargetOpenstackStatus = Nothing
     , request = RDPP.empty
+    , unreachedTarget = Nothing
     }
 
 
@@ -123,7 +136,96 @@ failAction httpError failedAt exoActions =
     abandonActionTargets
         { exoActions
             | request = RDPP.setNotLoading (Just ( httpError, failedAt )) exoActions.request
+            , unreachedTarget = Nothing
         }
+
+
+{-| How long after Nova accepts an action before we trust that a server response reflects it.
+
+A poll sent before the action was accepted can arrive after it, showing the server as it was. Until the time a request
+was sent is tracked (#1127), wait out any such response.
+
+-}
+actionSettleMillis : Int
+actionSettleMillis =
+    15 * 1000
+
+
+{-| Nova accepted the action (HTTP 202) but may later fail it asynchronously. For example, an unshelve that finds no
+valid host returns the instance to SHELVED\_OFFLOADED with no task in progress, and records no fault.
+
+Once Nova has no task in progress and the server is not in a target status, the action has ended without reaching its
+target. Stop waiting, and record what was missed so the UI can say so.
+
+-}
+abandonTargetIfActionEnded : Time.Posix -> OSTypes.ServerStatus -> Maybe String -> ServerExoActions -> ServerExoActions
+abandonTargetIfActionEnded receivedAt currentStatus taskState exoActions =
+    case ( exoActions.targetOpenstackStatus, exoActions.request.refreshStatus, exoActions.request.data ) of
+        ( Just targets, RDPP.NotLoading Nothing, RDPP.DoHave () acceptedAt ) ->
+            let
+                settled =
+                    Time.posixToMillis receivedAt - Time.posixToMillis acceptedAt >= actionSettleMillis
+
+                -- Nova confirms a resize without setting a task state, so VERIFY_RESIZE with no task is expected while
+                -- a confirmation is underway.
+                confirmingResize =
+                    currentStatus == OSTypes.ServerVerifyResize
+            in
+            if
+                settled
+                    && (taskState == Nothing)
+                    && not (List.member currentStatus targets)
+                    && not confirmingResize
+            then
+                let
+                    abandoned =
+                        abandonActionTargets exoActions
+                in
+                { abandoned | unreachedTarget = Just { statuses = targets, noticedAt = receivedAt } }
+
+            else
+                exoActions
+
+        _ ->
+            exoActions
+
+
+{-| The in-progress UI status that Nova's task state implies, regardless of what Exosphere asked for. This shows
+transitions started outside Exosphere, and ones Exosphere has stopped waiting for.
+-}
+taskStateUiStatus : OSTypes.ServerStatus -> Maybe String -> Maybe ServerUiStatus
+taskStateUiStatus status taskState =
+    case ( status, taskState ) of
+        ( OSTypes.ServerShelved, Just "unshelving" ) ->
+            Just ServerUiStatusUnshelving
+
+        ( OSTypes.ServerShelved, Just "powering-on" ) ->
+            Just ServerUiStatusUnshelving
+
+        ( OSTypes.ServerShelvedOffloaded, Just "unshelving" ) ->
+            Just ServerUiStatusUnshelving
+
+        ( OSTypes.ServerShelvedOffloaded, Just "spawning" ) ->
+            Just ServerUiStatusUnshelving
+
+        ( OSTypes.ServerShelved, _ ) ->
+            -- Includes shelving_offloading, which we continue to show as shelved.
+            Nothing
+
+        ( OSTypes.ServerShelvedOffloaded, _ ) ->
+            Nothing
+
+        ( _, Just "shelving" ) ->
+            Just ServerUiStatusShelving
+
+        ( _, Just "shelving_image_pending_upload" ) ->
+            Just ServerUiStatusShelving
+
+        ( _, Just "shelving_image_uploading" ) ->
+            Just ServerUiStatusShelving
+
+        _ ->
+            Nothing
 
 
 {-| An action that was left loading was probably abandoned in flight.
@@ -146,8 +248,12 @@ actionIsResumable exoActions =
 
                 awaitingQuotaRefresh =
                     exoActions.quotaRefreshTargetOpenstackStatus /= Nothing
+
+                -- Reported to the user until they dismiss it, like an error.
+                reportingUnreachedTarget =
+                    exoActions.unreachedTarget /= Nothing
             in
-            awaitingTransition || awaitingQuotaRefresh
+            awaitingTransition || awaitingQuotaRefresh || reportingUnreachedTarget
 
 
 shelveTargetOpenstackStatus : Maybe (List OSTypes.ServerStatus)

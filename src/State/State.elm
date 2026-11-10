@@ -4879,6 +4879,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                 | targetOpenstackStatus = Server.resizeTargetOpenstackStatus
                                 , quotaRefreshTargetOpenstackStatus = Server.resizeQuotaRefreshTargetOpenstackStatus
                                 , request = RDPP.setLoading exoActions.request
+                                , unreachedTarget = Nothing
                             }
                         )
 
@@ -6055,6 +6056,7 @@ requestShelveServer project server { deleteFloatingIps } =
                         | targetOpenstackStatus = Server.shelveTargetOpenstackStatus
                         , quotaRefreshTargetOpenstackStatus = Server.shelveQuotaRefreshTargetOpenstackStatus
                         , request = RDPP.setLoading exoActions.request
+                        , unreachedTarget = Nothing
                     }
                 )
 
@@ -6132,6 +6134,7 @@ requestServerAction project server action =
                         | targetOpenstackStatus = Server.serverActionTargetOpenstackStatus action
                         , quotaRefreshTargetOpenstackStatus = Server.serverActionQuotaRefreshTargetOpenstackStatus action
                         , request = RDPP.setLoading exoActions.request
+                        , unreachedTarget = Nothing
                     }
                 )
 

@@ -51,6 +51,7 @@ import Rest.Helpers
         , resultToProjectMsgErrorBody
         )
 import Rest.Naming
+import Time
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url)
@@ -884,9 +885,9 @@ receiveServers model project osServers =
             List.foldl
                 (\s p ->
                     let
-                        -- Update server target statuses if they have been reached.
+                        -- Update server target statuses if they have been reached, or will not be.
                         updatedProject =
-                            clearServerExoActionsIfTargetStatusReached p s.osProps.uuid s.osProps.details.openstackStatus
+                            settleServerExoActions model.clientCurrentTime p s.osProps
                     in
                     GetterSetters.projectUpdateServer updatedProject s
                 )
@@ -920,9 +921,9 @@ receiveServer model project interactionLevel osServer =
             in
             { newServer | exoProps = newExoProps }
 
-        -- Update server target statuses if they have been reached.
+        -- Update server target statuses if they have been reached, or will not be.
         projectWithClearedExoActions =
-            clearServerExoActionsIfTargetStatusReached project osServer.uuid osServer.details.openstackStatus
+            settleServerExoActions model.clientCurrentTime project osServer
 
         projectWithClearedQuotaRefreshIntent =
             clearServerQuotaRefreshIntentIfTargetStatusReached
@@ -936,11 +937,18 @@ receiveServer model project interactionLevel osServer =
     ( newProject, cmd )
 
 
-clearServerExoActionsIfTargetStatusReached : Project -> OSTypes.ServerUuid -> OSTypes.ServerStatus -> Project
-clearServerExoActionsIfTargetStatusReached project serverId currentStatus =
+settleServerExoActions : Time.Posix -> Project -> OSTypes.Server -> Project
+settleServerExoActions receivedAt project osServer =
+    let
+        { openstackStatus, taskState } =
+            osServer.details
+    in
     GetterSetters.projectUpdateServerExoActions project
-        serverId
-        (\exoActions -> Server.clearActionTargetIfTargetStatusReached exoActions currentStatus)
+        osServer.uuid
+        (\exoActions ->
+            Server.clearActionTargetIfTargetStatusReached exoActions openstackStatus
+                |> Server.abandonTargetIfActionEnded receivedAt openstackStatus taskState
+        )
 
 
 clearServerQuotaRefreshIntentIfTargetStatusReached : Project -> OSTypes.ServerUuid -> OSTypes.ServerStatus -> Project
@@ -1180,6 +1188,7 @@ serverDetailsDecoder =
         |> Pipeline.required "tags" (Decode.list Decode.string)
         |> Pipeline.required "locked" serverLockStatusDecoder
         |> Pipeline.optional "fault" (serverFaultDecoder |> Decode.andThen (\f -> Decode.succeed <| Just f)) Nothing
+        |> Pipeline.optional "OS-EXT-STS:task_state" (Decode.nullable Decode.string) Nothing
 
 
 parseServerOpenstackStatus : String -> Result String OSTypes.ServerStatus
