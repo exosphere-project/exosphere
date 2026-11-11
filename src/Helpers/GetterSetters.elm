@@ -57,6 +57,7 @@ module Helpers.GetterSetters exposing
     , projectLookupObjectStorageContainerMetadata
     , projectLookupObjectStorageListing
     , projectRemoveServerActionRequestJob
+    , projectS3Url
     , projectSetAutoAllocatedNetworkUuidLoading
     , projectSetDnsRecordSetsLoading
     , projectSetEc2CredentialsLoading
@@ -1449,6 +1450,20 @@ cloudSpecificConfigLookup cloudSpecificConfigs project =
             UrlHelpers.hostnameFromUrl project.endpoints.keystone
     in
     Dict.get projectKeystoneHostname cloudSpecificConfigs
+
+
+{-| The project's S3 endpoint: the catalog's `s3` service if the cloud lists one, else the one that goes with
+a Ceph RGW Swift endpoint, since RGW clouds such as Jetstream2 often list only Swift.
+-}
+projectS3Url : Project -> Maybe HelperTypes.Url
+projectS3Url project =
+    case project.endpoints.s3 of
+        Just url ->
+            Just url
+
+        Nothing ->
+            project.endpoints.swift
+                |> Maybe.andThen ObjectStorage.s3UrlFromSwiftUrl
 
 
 projectUpdateKeypair : SharedModel -> Project -> OSTypes.Keypair -> Project
