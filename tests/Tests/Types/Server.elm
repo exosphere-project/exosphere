@@ -1,4 +1,4 @@
-module Tests.Types.Server exposing (serverActionEndedWithoutTargetSuite, serverActionLifecycleSuite, serverExoActionsSuite)
+module Tests.Types.Server exposing (serverActionEndedWithoutTargetSuite, serverActionLifecycleSuite, serverActionOutcomeUnknownSuite, serverExoActionsSuite)
 
 import Dict
 import Expect
@@ -584,3 +584,110 @@ serverActionEndedWithoutTargetSuite =
                 ++ uiStatusTests
     in
     describe "instance actions Nova accepted but did not complete" tests
+
+
+{-| A timeout or network error does not say whether OpenStack received the request. Nova may have accepted the action
+and only the response was lost, so Exosphere keeps waiting until polling shows whether the action took effect.
+-}
+serverActionOutcomeUnknownSuite : Test
+serverActionOutcomeUnknownSuite =
+    let
+        erroredAt =
+            Time.millisToPosix 1000
+
+        settledAt =
+            Time.millisToPosix 31000
+
+        tooSoonAt =
+            Time.millisToPosix 3000
+
+        timeout =
+            { error = Http.Timeout, body = "" }
+
+        networkError =
+            { error = Http.NetworkError, body = "" }
+
+        rejected =
+            { error = Http.BadStatus 409, body = "conflict" }
+
+        pendingUnshelve =
+            { targetOpenstackStatus = Server.serverActionTargetOpenstackStatus ServerActions.Unshelve
+            , quotaRefreshTargetOpenstackStatus = Server.serverActionQuotaRefreshTargetOpenstackStatus ServerActions.Unshelve
+            , request = RDPP.setLoading RDPP.empty
+            , unreachedTarget = Nothing
+            }
+
+        unconfirmedUnshelve =
+            Server.failAction timeout erroredAt pendingUnshelve
+
+        rejectedUnshelve =
+            Server.failAction rejected erroredAt pendingUnshelve
+
+        unshelvedAfterAll =
+            Server.clearActionTargetIfTargetStatusReached unconfirmedUnshelve OSTypes.ServerActive
+
+        noTask =
+            Nothing
+
+        storeAndRead exoAction =
+            LocalStorage.encodeServerExoActions (Dict.fromList [ ( "server-uuid", exoAction ) ])
+                |> Decode.decodeValue LocalStorage.serverExoActionsDecoder
+
+        tests =
+            [ test "timeouts and network errors leave the outcome unknown" <|
+                \_ ->
+                    List.map Server.requestOutcomeUnknown [ timeout, networkError, rejected ]
+                        |> Expect.equal [ True, True, False ]
+            , test "an unconfirmed action keeps the statuses it is waiting for" <|
+                \_ ->
+                    ( unconfirmedUnshelve.targetOpenstackStatus, unconfirmedUnshelve.quotaRefreshTargetOpenstackStatus )
+                        |> Expect.equal ( pendingUnshelve.targetOpenstackStatus, pendingUnshelve.quotaRefreshTargetOpenstackStatus )
+            , test "an unconfirmed action is awaiting confirmation" <|
+                \_ ->
+                    Server.isAwaitingConfirmation unconfirmedUnshelve
+                        |> Expect.equal True
+            , test "an action OpenStack rejected gives up its statuses" <|
+                \_ ->
+                    ( rejectedUnshelve.targetOpenstackStatus, Server.isAwaitingConfirmation rejectedUnshelve )
+                        |> Expect.equal ( Nothing, False )
+            , test "an unconfirmed action that reaches its target clears the error" <|
+                \_ ->
+                    ( unshelvedAfterAll.targetOpenstackStatus, unshelvedAfterAll.request )
+                        |> Expect.equal ( Nothing, RDPP.empty )
+            , test "an unconfirmed action is kept while Nova is working on it" <|
+                \_ ->
+                    Server.abandonTargetIfActionEnded settledAt OSTypes.ServerShelvedOffloaded (Just "unshelving") unconfirmedUnshelve
+                        |> Expect.equal unconfirmedUnshelve
+            , test "an unconfirmed action is kept while a response may predate the error" <|
+                \_ ->
+                    Server.abandonTargetIfActionEnded tooSoonAt OSTypes.ServerShelvedOffloaded noTask unconfirmedUnshelve
+                        |> Expect.equal unconfirmedUnshelve
+            , test "an unconfirmed action with nothing underway once settled gives up its statuses and keeps the error" <|
+                \_ ->
+                    Server.abandonTargetIfActionEnded settledAt OSTypes.ServerShelvedOffloaded noTask unconfirmedUnshelve
+                        |> Expect.equal
+                            { unconfirmedUnshelve
+                                | targetOpenstackStatus = Nothing
+                                , quotaRefreshTargetOpenstackStatus = Nothing
+                            }
+            , test "an unconfirmed action keeps its statuses across a reload" <|
+                \_ ->
+                    storeAndRead unconfirmedUnshelve
+                        |> Expect.equal (Ok (Dict.fromList [ ( "server-uuid", unconfirmedUnshelve ) ]))
+            , test "an unconfirmed delete waits for the server to be deleted" <|
+                \_ ->
+                    Server.failAction networkError
+                        erroredAt
+                        { initServerExoActionsLoading | targetOpenstackStatus = Server.deleteTargetOpenstackStatus }
+                        |> Server.abandonTargetIfActionEnded settledAt OSTypes.ServerActive (Just "deleting")
+                        |> Server.isAwaitingConfirmation
+                        |> Expect.equal True
+            ]
+
+        initServerExoActionsLoading =
+            { pendingUnshelve
+                | targetOpenstackStatus = Nothing
+                , quotaRefreshTargetOpenstackStatus = Nothing
+            }
+    in
+    describe "instance actions whose request outcome is unknown" tests

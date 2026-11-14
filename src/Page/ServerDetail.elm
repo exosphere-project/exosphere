@@ -460,14 +460,8 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
             let
                 { targetOpenstackStatus, request, unreachedTarget } =
                     GetterSetters.getServerExoActions project server.osProps.uuid
-            in
-            case ( request.refreshStatus, request.data, targetOpenstackStatus ) of
-                ( NotLoading Nothing, _, Nothing ) ->
-                    unreachedTarget
-                        |> Maybe.map (renderUnreachedTarget context currentTime server)
-                        |> Maybe.withDefault Element.none
 
-                ( NotLoading (Just ( error, erroredAt )), _, _ ) ->
+                failedActionAlert error erroredAt =
                     -- Date failures for later sessions.
                     Alert.alert [ Element.width Element.fill ]
                         context.palette
@@ -490,6 +484,44 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                                     }
                                 ]
                         }
+            in
+            case ( request.refreshStatus, request.data, targetOpenstackStatus ) of
+                ( NotLoading Nothing, _, Nothing ) ->
+                    unreachedTarget
+                        |> Maybe.map (renderUnreachedTarget context currentTime server)
+                        |> Maybe.withDefault Element.none
+
+                ( NotLoading (Just ( error, erroredAt )), _, Just _ ) ->
+                    if Types.Server.requestOutcomeUnknown error then
+                        -- Still waiting to see whether OpenStack received the request.
+                        Alert.alert [ Element.width Element.fill ]
+                            context.palette
+                            { state = Alert.Warning
+                            , showIcon = False
+                            , showContainer = True
+                            , content =
+                                Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
+                                    [ Text.p [ Element.width Element.fill ]
+                                        [ Text.body <|
+                                            "Exosphere couldn't confirm that OpenStack received this request "
+                                                ++ DateFormat.Relative.relativeTime currentTime erroredAt
+                                                ++ " ("
+                                                ++ Error.formattedError error
+                                                ++ "). Checking the status to see whether it took effect."
+                                        ]
+                                    , Button.button Button.Warning
+                                        context.palette
+                                        { text = "Clear"
+                                        , onPress = Just GotResetServerAction
+                                        }
+                                    ]
+                            }
+
+                    else
+                        failedActionAlert error erroredAt
+
+                ( NotLoading (Just ( error, erroredAt )), _, _ ) ->
+                    failedActionAlert error erroredAt
 
                 ( Loading, _, _ ) ->
                     Element.none

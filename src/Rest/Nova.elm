@@ -886,10 +886,10 @@ receiveServers model project osServers =
                 (\s p ->
                     let
                         -- Update server target statuses if they have been reached, or will not be.
-                        updatedProject =
-                            settleServerExoActions model.clientCurrentTime p s.osProps
+                        ( updatedProject, settledServer ) =
+                            settleServer model.clientCurrentTime p s
                     in
-                    GetterSetters.projectUpdateServer updatedProject s
+                    GetterSetters.projectUpdateServer updatedProject settledServer
                 )
                 { projectNoDeletedSvrs
                     | knownUsernames =
@@ -922,8 +922,8 @@ receiveServer model project interactionLevel osServer =
             { newServer | exoProps = newExoProps }
 
         -- Update server target statuses if they have been reached, or will not be.
-        projectWithClearedExoActions =
-            settleServerExoActions model.clientCurrentTime project osServer
+        ( projectWithClearedExoActions, settledServer ) =
+            settleServer model.clientCurrentTime project newServerUpdatedSomeExoProps
 
         projectWithClearedQuotaRefreshIntent =
             clearServerQuotaRefreshIntentIfTargetStatusReached
@@ -932,9 +932,48 @@ receiveServer model project interactionLevel osServer =
                 osServer.details.openstackStatus
 
         newProject =
-            GetterSetters.projectUpdateServer projectWithClearedQuotaRefreshIntent newServerUpdatedSomeExoProps
+            GetterSetters.projectUpdateServer projectWithClearedQuotaRefreshIntent settledServer
     in
     ( newProject, cmd )
+
+
+{-| Settle the server's pending action. A delete whose outcome was unknown, and which polling shows did not take
+effect, no longer shows the server as deleting.
+-}
+settleServer : Time.Posix -> Project -> Server -> ( Project, Server )
+settleServer receivedAt project server =
+    let
+        before =
+            GetterSetters.getServerExoActions project server.osProps.uuid
+
+        settledProject =
+            settleServerExoActions receivedAt project server.osProps
+
+        after =
+            GetterSetters.getServerExoActions settledProject server.osProps.uuid
+
+        deleteDidNotTakeEffect =
+            Server.isAwaitingConfirmation before
+                && (before.targetOpenstackStatus == Server.deleteTargetOpenstackStatus)
+                && (after.targetOpenstackStatus == Nothing)
+                -- Reaching a target clears the error; abandoning it keeps the error.
+                && (case after.request.refreshStatus of
+                        RDPP.NotLoading (Just _) ->
+                            True
+
+                        _ ->
+                            False
+                   )
+    in
+    if deleteDidNotTakeEffect then
+        let
+            oldExoProps =
+                server.exoProps
+        in
+        ( settledProject, { server | exoProps = { oldExoProps | deletionAttempted = False } } )
+
+    else
+        ( settledProject, server )
 
 
 settleServerExoActions : Time.Posix -> Project -> OSTypes.Server -> Project

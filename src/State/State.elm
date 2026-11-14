@@ -5078,7 +5078,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                             GetterSetters.modelUpdateProject sharedModel updatedProject
 
                         ( newSharedModel, errCmd ) =
-                            processProjectSynchronousApiError updatedSharedModel errorContext httpError
+                            processProjectSynchronousApiError updatedSharedModel (hintIfOutcomeUnknown httpError errorContext) httpError
                     in
                     ( newSharedModel, errCmd )
                         |> mapToOuterMsg
@@ -5086,8 +5086,27 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
         ResetServerAction ->
             let
+                exoActions =
+                    GetterSetters.getServerExoActions project server.osProps.uuid
+
+                -- Stop showing an unconfirmed delete as deleting; if it did take effect, the server leaves the list.
+                projectWithServer =
+                    if
+                        Server.isAwaitingConfirmation exoActions
+                            && (exoActions.targetOpenstackStatus == Server.deleteTargetOpenstackStatus)
+                    then
+                        let
+                            oldExoProps =
+                                server.exoProps
+                        in
+                        GetterSetters.projectUpdateServer project
+                            { server | exoProps = { oldExoProps | deletionAttempted = False } }
+
+                    else
+                        project
+
                 updatedProject =
-                    GetterSetters.projectDeleteServerExoAction project server.osProps.uuid
+                    GetterSetters.projectDeleteServerExoAction projectWithServer server.osProps.uuid
 
                 updatedSharedModel =
                     GetterSetters.modelUpdateProject sharedModel updatedProject
@@ -5114,6 +5133,18 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                     ++ sharedModel.viewContext.localization.virtualComputer
                                     ++ " has already been deleted"
                           }
+                        )
+
+                    else if Server.requestOutcomeUnknown httpError then
+                        -- The instance may be deleting. Keep showing that, and let polling settle it.
+                        ( GetterSetters.projectUpdateServerExoActions project
+                            server.osProps.uuid
+                            (\exoActions ->
+                                Server.failAction httpError
+                                    sharedModel.clientCurrentTime
+                                    { exoActions | targetOpenstackStatus = Server.deleteTargetOpenstackStatus }
+                            )
+                        , hintIfOutcomeUnknown httpError errorContext
                         )
 
                     else
@@ -6155,6 +6186,20 @@ requestServerAction project server action =
         , floatingIpCmd
         ]
     )
+
+
+{-| Tell the user a failed request may still have reached OpenStack.
+-}
+hintIfOutcomeUnknown : HttpErrorWithBody -> ErrorContext -> ErrorContext
+hintIfOutcomeUnknown httpError errorContext =
+    if Server.requestOutcomeUnknown httpError then
+        { errorContext
+            | recoveryHint =
+                Just "OpenStack may still have received this request. Exosphere will check the status and show whether it took effect."
+        }
+
+    else
+        errorContext
 
 
 requestDeleteServer : Project -> OSTypes.ServerUuid -> Bool -> ( Project, Cmd SharedMsg )

@@ -730,9 +730,14 @@ serverExoActionDecoder =
         |> Decode.map
             (\exoAction ->
                 case exoAction.request.refreshStatus of
-                    RDPP.NotLoading (Just _) ->
-                        -- Stored state can pair a failure with statuses the instance will not reach.
-                        Server.abandonActionTargets exoAction
+                    RDPP.NotLoading (Just ( httpError, _ )) ->
+                        if Server.requestOutcomeUnknown httpError then
+                            -- Polling settles whether OpenStack received the request.
+                            exoAction
+
+                        else
+                            -- Stored state can pair a failure with statuses the instance will not reach.
+                            Server.abandonActionTargets exoAction
 
                     _ ->
                         exoAction
