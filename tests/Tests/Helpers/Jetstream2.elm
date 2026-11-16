@@ -92,6 +92,7 @@ server name flavorId status =
         , lockStatus = OpenStack.Types.ServerUnlocked
         , fault = Nothing
         , taskState = Nothing
+        , taskStateReported = True
         }
     , consoleUrl = RDPP.empty
     }

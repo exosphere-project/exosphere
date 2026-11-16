@@ -5091,10 +5091,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
                 -- Stop showing an unconfirmed delete as deleting; if it did take effect, the server leaves the list.
                 projectWithServer =
-                    if
-                        Server.isAwaitingConfirmation exoActions
-                            && (exoActions.targetOpenstackStatus == Server.deleteTargetOpenstackStatus)
-                    then
+                    if Server.isAwaitingDeleteConfirmation exoActions then
                         let
                             oldExoProps =
                                 server.exoProps

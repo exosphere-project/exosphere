@@ -610,6 +610,52 @@ serverActionOutcomeUnknownSuite =
         rejected =
             { error = Http.BadStatus 409, body = "conflict" }
 
+        badGateway =
+            { error = Http.BadStatus 502, body = "" }
+
+        gatewayTimeout =
+            { error = Http.BadStatus 504, body = "" }
+
+        -- A gateway with no backend to send to returns 503 without forwarding the request.
+        unavailable =
+            { error = Http.BadStatus 503, body = "" }
+
+        unconfirmedDelete =
+            Server.failAction networkError
+                erroredAt
+                { initServerExoActionsLoading | targetOpenstackStatus = Server.deleteTargetOpenstackStatus }
+
+        abandonedDelete =
+            Server.abandonTargetIfActionEnded settledAt OSTypes.ServerActive noTask unconfirmedDelete
+
+        deletedAfterAll =
+            Server.clearActionTargetIfTargetStatusReached unconfirmedDelete OSTypes.ServerDeleted
+
+        details status taskState taskStateReported =
+            { openstackStatus = status
+            , created = Time.millisToPosix 0
+            , powerState = OSTypes.PowerRunning
+            , imageUuid = "image-uuid"
+            , flavorId = "flavor-id"
+            , keypairName = Nothing
+            , metadata = []
+            , userUuid = "user-uuid"
+            , volumesAttached = []
+            , tags = []
+            , lockStatus = OSTypes.ServerUnlocked
+            , fault = Nothing
+            , taskState = taskState
+            , taskStateReported = taskStateReported
+            }
+
+        acceptedUnshelve =
+            { pendingUnshelve
+                | request =
+                    RDPP.RemoteDataPlusPlus
+                        (RDPP.DoHave () erroredAt)
+                        (RDPP.NotLoading Nothing)
+            }
+
         pendingUnshelve =
             { targetOpenstackStatus = Server.serverActionTargetOpenstackStatus ServerActions.Unshelve
             , quotaRefreshTargetOpenstackStatus = Server.serverActionQuotaRefreshTargetOpenstackStatus ServerActions.Unshelve
@@ -634,10 +680,14 @@ serverActionOutcomeUnknownSuite =
                 |> Decode.decodeValue LocalStorage.serverExoActionsDecoder
 
         tests =
-            [ test "timeouts and network errors leave the outcome unknown" <|
+            [ test "timeouts, network errors and gateway failures leave the outcome unknown" <|
                 \_ ->
-                    List.map Server.requestOutcomeUnknown [ timeout, networkError, rejected ]
-                        |> Expect.equal [ True, True, False ]
+                    List.map Server.requestOutcomeUnknown [ timeout, networkError, badGateway, gatewayTimeout ]
+                        |> Expect.equal [ True, True, True, True ]
+            , test "errors OpenStack returned are definite" <|
+                \_ ->
+                    List.map Server.requestOutcomeUnknown [ rejected, unavailable ]
+                        |> Expect.equal [ False, False ]
             , test "an unconfirmed action keeps the statuses it is waiting for" <|
                 \_ ->
                     ( unconfirmedUnshelve.targetOpenstackStatus, unconfirmedUnshelve.quotaRefreshTargetOpenstackStatus )
@@ -676,12 +726,42 @@ serverActionOutcomeUnknownSuite =
                         |> Expect.equal (Ok (Dict.fromList [ ( "server-uuid", unconfirmedUnshelve ) ]))
             , test "an unconfirmed delete waits for the server to be deleted" <|
                 \_ ->
-                    Server.failAction networkError
-                        erroredAt
-                        { initServerExoActionsLoading | targetOpenstackStatus = Server.deleteTargetOpenstackStatus }
+                    unconfirmedDelete
                         |> Server.abandonTargetIfActionEnded settledAt OSTypes.ServerActive (Just "deleting")
-                        |> Server.isAwaitingConfirmation
+                        |> Server.isAwaitingDeleteConfirmation
                         |> Expect.equal True
+            , test "a server with an unconfirmed delete shows as deleting again after a reload" <|
+                \_ ->
+                    Server.deletionAttemptedAfterSettling unconfirmedDelete unconfirmedDelete False
+                        |> Expect.equal True
+            , test "a server whose unconfirmed delete did not take effect stops showing as deleting" <|
+                \_ ->
+                    Server.deletionAttemptedAfterSettling unconfirmedDelete abandonedDelete True
+                        |> Expect.equal False
+            , test "a server whose unconfirmed delete took effect still shows as deleting" <|
+                \_ ->
+                    Server.deletionAttemptedAfterSettling unconfirmedDelete deletedAfterAll True
+                        |> Expect.equal True
+            , test "other actions leave whether a server shows as deleting alone" <|
+                \_ ->
+                    [ Server.deletionAttemptedAfterSettling unconfirmedUnshelve unconfirmedUnshelve False
+                    , Server.deletionAttemptedAfterSettling unconfirmedUnshelve unconfirmedUnshelve True
+                    ]
+                        |> Expect.equal [ False, True ]
+            , test "settling an action abandons it once Nova reports no task in progress" <|
+                \_ ->
+                    Server.settleAction settledAt (details OSTypes.ServerShelvedOffloaded noTask True) acceptedUnshelve
+                        |> .targetOpenstackStatus
+                        |> Expect.equal Nothing
+            , test "settling an action keeps waiting when the server leaves out its task state" <|
+                \_ ->
+                    Server.settleAction settledAt (details OSTypes.ServerShelvedOffloaded noTask False) acceptedUnshelve
+                        |> Expect.equal acceptedUnshelve
+            , test "settling an action clears it once the target is reached, task state or not" <|
+                \_ ->
+                    Server.settleAction settledAt (details OSTypes.ServerActive noTask False) acceptedUnshelve
+                        |> .targetOpenstackStatus
+                        |> Expect.equal Nothing
             ]
 
         initServerExoActionsLoading =

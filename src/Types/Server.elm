@@ -18,16 +18,19 @@ module Types.Server exposing
     , clearQuotaRefreshIntentIfTargetStatusReached
     , currentExoServerVersion
     , deleteTargetOpenstackStatus
+    , deletionAttemptedAfterSettling
     , exoSetupStatusToString
     , exoVersionSupportsFeature
     , failAction
     , initServerExoActions
     , isAwaitingConfirmation
+    , isAwaitingDeleteConfirmation
     , requestOutcomeUnknown
     , resizeQuotaRefreshTargetOpenstackStatus
     , resizeTargetOpenstackStatus
     , serverActionQuotaRefreshTargetOpenstackStatus
     , serverActionTargetOpenstackStatus
+    , settleAction
     , shelveQuotaRefreshTargetOpenstackStatus
     , shelveTargetOpenstackStatus
     , shouldRefreshQuotaOnTargetStatus
@@ -132,8 +135,9 @@ abandonActionTargets exoActions =
     }
 
 
-{-| A timeout or network error says nothing about whether OpenStack received the request. Nova may have accepted the
-action, and only the response was lost.
+{-| Some failures say nothing about whether OpenStack received the request. Nova may have accepted the action, and only
+the response was lost: a timeout, a network error, or a gateway in front of the API that gave up on it (502 Bad Gateway,
+504 Gateway Timeout).
 -}
 requestOutcomeUnknown : HttpErrorWithBody -> Bool
 requestOutcomeUnknown httpError =
@@ -142,6 +146,12 @@ requestOutcomeUnknown httpError =
             True
 
         Http.NetworkError ->
+            True
+
+        Http.BadStatus 502 ->
+            True
+
+        Http.BadStatus 504 ->
             True
 
         _ ->
@@ -159,6 +169,39 @@ isAwaitingConfirmation exoActions =
 
         _ ->
             False
+
+
+{-| Waiting to see whether a delete whose outcome is unknown took effect.
+-}
+isAwaitingDeleteConfirmation : ServerExoActions -> Bool
+isAwaitingDeleteConfirmation exoActions =
+    isAwaitingConfirmation exoActions
+        && (exoActions.targetOpenstackStatus == deleteTargetOpenstackStatus)
+
+
+{-| Whether a server should show as deleting once polling has settled its action.
+
+`deletionAttempted` is not stored, so after a reload it is restored from a stored delete that is still unconfirmed.
+That keeps the UI and orchestration treating the server as deleting. Once polling shows such a delete did not take
+effect, the server no longer shows as deleting.
+
+-}
+deletionAttemptedAfterSettling : ServerExoActions -> ServerExoActions -> Bool -> Bool
+deletionAttemptedAfterSettling before after deletionAttempted =
+    if isAwaitingDeleteConfirmation after then
+        True
+
+    else if isAwaitingDeleteConfirmation before then
+        case after.request.refreshStatus of
+            -- Abandoning the targets keeps the error; reaching one clears it.
+            RDPP.NotLoading (Just _) ->
+                False
+
+            _ ->
+                deletionAttempted
+
+    else
+        deletionAttempted
 
 
 {-| Record a failed action's request.
@@ -246,6 +289,26 @@ abandonTargetIfActionEnded receivedAt currentStatus taskState exoActions =
 
         _ ->
             exoActions
+
+
+{-| Settle an action against the server as OpenStack reports it: clear the targets once one is reached, and abandon
+them once the action has ended without reaching one.
+
+A server without `OS-EXT-STS:task_state` says nothing about whether a task is in progress, so the action is never
+treated as ended. Exosphere then waits as it did before it read the task state.
+
+-}
+settleAction : Time.Posix -> OSTypes.ServerDetails -> ServerExoActions -> ServerExoActions
+settleAction receivedAt details exoActions =
+    let
+        cleared =
+            clearActionTargetIfTargetStatusReached exoActions details.openstackStatus
+    in
+    if details.taskStateReported then
+        abandonTargetIfActionEnded receivedAt details.openstackStatus details.taskState cleared
+
+    else
+        cleared
 
 
 {-| The in-progress UI status that Nova's task state implies, regardless of what Exosphere asked for. This shows

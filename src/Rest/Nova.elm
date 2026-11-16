@@ -937,8 +937,8 @@ receiveServer model project interactionLevel osServer =
     ( newProject, cmd )
 
 
-{-| Settle the server's pending action. A delete whose outcome was unknown, and which polling shows did not take
-effect, no longer shows the server as deleting.
+{-| Settle the server's pending action, and whether the server shows as deleting (see
+`Server.deletionAttemptedAfterSettling`).
 -}
 settleServer : Time.Posix -> Project -> Server -> ( Project, Server )
 settleServer receivedAt project server =
@@ -952,42 +952,20 @@ settleServer receivedAt project server =
         after =
             GetterSetters.getServerExoActions settledProject server.osProps.uuid
 
-        deleteDidNotTakeEffect =
-            Server.isAwaitingConfirmation before
-                && (before.targetOpenstackStatus == Server.deleteTargetOpenstackStatus)
-                && (after.targetOpenstackStatus == Nothing)
-                -- Reaching a target clears the error; abandoning it keeps the error.
-                && (case after.request.refreshStatus of
-                        RDPP.NotLoading (Just _) ->
-                            True
+        oldExoProps =
+            server.exoProps
 
-                        _ ->
-                            False
-                   )
+        deletionAttempted =
+            Server.deletionAttemptedAfterSettling before after oldExoProps.deletionAttempted
     in
-    if deleteDidNotTakeEffect then
-        let
-            oldExoProps =
-                server.exoProps
-        in
-        ( settledProject, { server | exoProps = { oldExoProps | deletionAttempted = False } } )
-
-    else
-        ( settledProject, server )
+    ( settledProject, { server | exoProps = { oldExoProps | deletionAttempted = deletionAttempted } } )
 
 
 settleServerExoActions : Time.Posix -> Project -> OSTypes.Server -> Project
 settleServerExoActions receivedAt project osServer =
-    let
-        { openstackStatus, taskState } =
-            osServer.details
-    in
     GetterSetters.projectUpdateServerExoActions project
         osServer.uuid
-        (\exoActions ->
-            Server.clearActionTargetIfTargetStatusReached exoActions openstackStatus
-                |> Server.abandonTargetIfActionEnded receivedAt openstackStatus taskState
-        )
+        (Server.settleAction receivedAt osServer.details)
 
 
 clearServerQuotaRefreshIntentIfTargetStatusReached : Project -> OSTypes.ServerUuid -> OSTypes.ServerStatus -> Project
@@ -1228,6 +1206,12 @@ serverDetailsDecoder =
         |> Pipeline.required "locked" serverLockStatusDecoder
         |> Pipeline.optional "fault" (serverFaultDecoder |> Decode.andThen (\f -> Decode.succeed <| Just f)) Nothing
         |> Pipeline.optional "OS-EXT-STS:task_state" (Decode.nullable Decode.string) Nothing
+        |> Pipeline.custom
+            (Decode.oneOf
+                [ Decode.field "OS-EXT-STS:task_state" (Decode.succeed True)
+                , Decode.succeed False
+                ]
+            )
 
 
 parseServerOpenstackStatus : String -> Result String OSTypes.ServerStatus
