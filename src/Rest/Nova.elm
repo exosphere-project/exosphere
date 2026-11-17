@@ -461,14 +461,10 @@ requestDeleteServer projectId novaUrl serverId =
                 Nothing
 
         resultToMsg_ =
-            resultToProjectMsgErrorBody
-                projectId
-                errorContext
-                (\_ ->
-                    ProjectMsg projectId <|
-                        ServerMsg serverId <|
-                            ReceiveDeleteServer
-                )
+            \result ->
+                ProjectMsg projectId <|
+                    ServerMsg serverId <|
+                        ReceiveDeleteServer errorContext result
     in
     openstackCredentialedRequest
         projectId
@@ -477,7 +473,7 @@ requestDeleteServer projectId novaUrl serverId =
         []
         ( novaUrl, [ "servers", serverId ], [] )
         Http.emptyBody
-        (expectStringWithErrorBody resultToMsg_)
+        (expectVoidWithErrorBody resultToMsg_)
 
 
 requestShelveServer : ProjectIdentifier -> Url -> OSTypes.ServerUuid -> Cmd SharedMsg

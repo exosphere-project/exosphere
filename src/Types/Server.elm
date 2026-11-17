@@ -10,11 +10,14 @@ module Types.Server exposing
     , ServerFromExoProps
     , ServerOrigin(..)
     , ServerUiStatus(..)
+    , abandonActionTargets
+    , actionIsResumable
     , clearActionTargetIfTargetStatusReached
     , clearQuotaRefreshIntentIfTargetStatusReached
     , currentExoServerVersion
     , exoSetupStatusToString
     , exoVersionSupportsFeature
+    , failAction
     , initServerExoActions
     , resizeQuotaRefreshTargetOpenstackStatus
     , resizeTargetOpenstackStatus
@@ -102,6 +105,49 @@ clearActionTargetIfTargetStatusReached exoActions currentStatus =
 
     else
         exoActions
+
+
+abandonActionTargets : ServerExoActions -> ServerExoActions
+abandonActionTargets exoActions =
+    { exoActions
+        | targetOpenstackStatus = Nothing
+        , quotaRefreshTargetOpenstackStatus = Nothing
+    }
+
+
+{-| The instance will not reach a failed action's target statuses, so the UI falls back to the
+status OpenStack reports.
+-}
+failAction : HttpErrorWithBody -> Time.Posix -> ServerExoActions -> ServerExoActions
+failAction httpError failedAt exoActions =
+    abandonActionTargets
+        { exoActions
+            | request = RDPP.setNotLoading (Just ( httpError, failedAt )) exoActions.request
+        }
+
+
+{-| An action that was left loading was probably abandoned in flight.
+Do not restore it when rehydrating state. Errors, however, are a definite
+outcome & we can show them in the UI.
+-}
+actionIsResumable : ServerExoActions -> Bool
+actionIsResumable exoActions =
+    case exoActions.request.refreshStatus of
+        RDPP.Loading ->
+            False
+
+        RDPP.NotLoading (Just _) ->
+            True
+
+        RDPP.NotLoading Nothing ->
+            let
+                awaitingTransition =
+                    RDPP.gotData exoActions.request && exoActions.targetOpenstackStatus /= Nothing
+
+                awaitingQuotaRefresh =
+                    exoActions.quotaRefreshTargetOpenstackStatus /= Nothing
+            in
+            awaitingTransition || awaitingQuotaRefresh
 
 
 shelveTargetOpenstackStatus : Maybe (List OSTypes.ServerStatus)

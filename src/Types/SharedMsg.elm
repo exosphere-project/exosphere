@@ -229,7 +229,7 @@ type ServerSpecificMsgConstructor
     | ReceiveServerAction ErrorContext (Result HttpErrorWithBody ())
     | ResetServerAction
     | ReceiveConsoleUrl (Result HttpErrorWithBody OSTypes.ConsoleUrl)
-    | ReceiveDeleteServer
+    | ReceiveDeleteServer ErrorContext (Result HttpErrorWithBody ())
     | ReceiveCreateServerFloatingIp ErrorContext (Result HttpErrorWithBody OSTypes.FloatingIp)
     | ReceiveAssignServerFloatingIp OSTypes.FloatingIp
     | ReceiveServerPassphrase OSTypes.ServerPassword
