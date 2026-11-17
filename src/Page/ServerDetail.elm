@@ -1401,9 +1401,9 @@ renderUnreachedTarget context currentTime server { statuses, noticedAt } =
                     ++ relativeTime
                     ++ " and the "
                     ++ context.localization.virtualComputer
-                    ++ " is still shelved. This usually means there is not enough capacity for its "
+                    ++ " is still shelved. This can mean there is not enough capacity for its "
                     ++ context.localization.virtualComputerHardwareConfig
-                    ++ " right now. Try again later, or check Action History for details."
+                    ++ " right now, in which case trying again later may work. Check Action History for details."
 
             else
                 "This action did not complete. OpenStack stopped trying "
@@ -1411,7 +1411,11 @@ renderUnreachedTarget context currentTime server { statuses, noticedAt } =
                     ++ " without the "
                     ++ context.localization.virtualComputer
                     ++ " becoming "
-                    ++ String.join " or " (List.map OSTypes.serverStatusToString statuses)
+                    ++ (statuses
+                            |> List.map targetStatusLabel
+                            |> List.Extra.unique
+                            |> String.join " or "
+                       )
                     ++ ". Check Action History for details."
     in
     Alert.alert [ Element.width Element.fill ]
@@ -1429,6 +1433,48 @@ renderUnreachedTarget context currentTime server { statuses, noticedAt } =
                     }
                 ]
         }
+
+
+{-| How the status badge names a status an action was waiting for.
+-}
+targetStatusLabel : OSTypes.ServerStatus -> String
+targetStatusLabel status =
+    let
+        uiStatus =
+            case status of
+                OSTypes.ServerActive ->
+                    Just ServerUiStatusReady
+
+                OSTypes.ServerShutoff ->
+                    Just ServerUiStatusShutoff
+
+                OSTypes.ServerSuspended ->
+                    Just ServerUiStatusSuspended
+
+                OSTypes.ServerPaused ->
+                    Just ServerUiStatusPaused
+
+                OSTypes.ServerShelved ->
+                    Just ServerUiStatusShelved
+
+                OSTypes.ServerShelvedOffloaded ->
+                    Just ServerUiStatusShelved
+
+                OSTypes.ServerVerifyResize ->
+                    Just ServerUiStatusVerifyResize
+
+                OSTypes.ServerDeleted ->
+                    Just ServerUiStatusDeleted
+
+                OSTypes.ServerSoftDeleted ->
+                    Just ServerUiStatusSoftDeleted
+
+                _ ->
+                    Nothing
+    in
+    uiStatus
+        |> Maybe.map VH.getServerUiStatusStr
+        |> Maybe.withDefault (OSTypes.serverStatusToString status)
 
 
 renderServerEventHistory :
