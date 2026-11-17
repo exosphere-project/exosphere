@@ -5072,13 +5072,18 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         updatedProject =
                             GetterSetters.projectUpdateServerExoActions project
                                 server.osProps.uuid
-                                (Server.failAction httpError sharedModel.clientCurrentTime)
+                                (Server.failAction httpError sharedModel.clientCurrentTime server.osProps.details.openstackStatus)
 
                         updatedSharedModel =
                             GetterSetters.modelUpdateProject sharedModel updatedProject
 
                         ( newSharedModel, errCmd ) =
-                            processProjectSynchronousApiError updatedSharedModel (hintIfOutcomeUnknown httpError errorContext) httpError
+                            processProjectSynchronousApiError updatedSharedModel
+                                (hintIfAwaitingConfirmation
+                                    (GetterSetters.getServerExoActions updatedProject server.osProps.uuid)
+                                    errorContext
+                                )
+                                httpError
                     in
                     ( newSharedModel, errCmd )
                         |> mapToOuterMsg
@@ -5134,14 +5139,21 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
                     else if Server.requestOutcomeUnknown httpError then
                         -- The instance may be deleting. Keep showing that, and let polling settle it.
-                        ( GetterSetters.projectUpdateServerExoActions project
-                            server.osProps.uuid
-                            (\exoActions ->
-                                Server.failAction httpError
-                                    sharedModel.clientCurrentTime
-                                    { exoActions | targetOpenstackStatus = Server.deleteTargetOpenstackStatus }
-                            )
-                        , hintIfOutcomeUnknown httpError errorContext
+                        let
+                            projectAwaitingDelete =
+                                GetterSetters.projectUpdateServerExoActions project
+                                    server.osProps.uuid
+                                    (\exoActions ->
+                                        Server.failAction httpError
+                                            sharedModel.clientCurrentTime
+                                            server.osProps.details.openstackStatus
+                                            { exoActions | targetOpenstackStatus = Server.deleteTargetOpenstackStatus }
+                                    )
+                        in
+                        ( projectAwaitingDelete
+                        , hintIfAwaitingConfirmation
+                            (GetterSetters.getServerExoActions projectAwaitingDelete server.osProps.uuid)
+                            errorContext
                         )
 
                     else
@@ -5155,7 +5167,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         in
                         ( GetterSetters.projectUpdateServerExoActions projectWithServer
                             server.osProps.uuid
-                            (Server.failAction httpError sharedModel.clientCurrentTime)
+                            (Server.failAction httpError sharedModel.clientCurrentTime server.osProps.details.openstackStatus)
                         , errorContext
                         )
             in
@@ -6185,11 +6197,12 @@ requestServerAction project server action =
     )
 
 
-{-| Tell the user a failed request may still have reached OpenStack.
+{-| Tell the user Exosphere will check the outcome, but only when it will: an action with no status to wait for, or
+one the server is already in, cannot be confirmed by polling.
 -}
-hintIfOutcomeUnknown : HttpErrorWithBody -> ErrorContext -> ErrorContext
-hintIfOutcomeUnknown httpError errorContext =
-    if Server.requestOutcomeUnknown httpError then
+hintIfAwaitingConfirmation : Server.ServerExoActions -> ErrorContext -> ErrorContext
+hintIfAwaitingConfirmation exoActions errorContext =
+    if Server.isAwaitingConfirmation exoActions then
         { errorContext
             | recoveryHint =
                 Just "OpenStack may still have received this request. Exosphere will check the status and show whether it took effect."

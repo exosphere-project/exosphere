@@ -227,10 +227,10 @@ serverActionLifecycleSuite =
             }
 
         failedShelve =
-            Server.failAction httpError failedAt pendingShelve
+            Server.failAction httpError failedAt OSTypes.ServerActive pendingShelve
 
         failedAfterAnEarlierAction =
-            Server.failAction httpError failedAt reDispatchedShelve
+            Server.failAction httpError failedAt OSTypes.ServerActive reDispatchedShelve
 
         -- Shelving reaches SHELVED first, leaving the quota refresh owed until SHELVED_OFFLOADED.
         awaitingQuotaRefreshOnly =
@@ -623,6 +623,7 @@ serverActionOutcomeUnknownSuite =
         unconfirmedDelete =
             Server.failAction networkError
                 erroredAt
+                OSTypes.ServerActive
                 { initServerExoActionsLoading | targetOpenstackStatus = Server.deleteTargetOpenstackStatus }
 
         abandonedDelete =
@@ -664,10 +665,10 @@ serverActionOutcomeUnknownSuite =
             }
 
         unconfirmedUnshelve =
-            Server.failAction timeout erroredAt pendingUnshelve
+            Server.failAction timeout erroredAt OSTypes.ServerShelvedOffloaded pendingUnshelve
 
         rejectedUnshelve =
-            Server.failAction rejected erroredAt pendingUnshelve
+            Server.failAction rejected erroredAt OSTypes.ServerShelvedOffloaded pendingUnshelve
 
         unshelvedAfterAll =
             Server.clearActionTargetIfTargetStatusReached unconfirmedUnshelve OSTypes.ServerActive
@@ -762,7 +763,53 @@ serverActionOutcomeUnknownSuite =
                     Server.settleAction settledAt (details OSTypes.ServerActive noTask False) acceptedUnshelve
                         |> .targetOpenstackStatus
                         |> Expect.equal Nothing
+            , test "an unconfirmed reboot of a running server is a definite failure, so its error stays" <|
+                \_ ->
+                    let
+                        failedReboot =
+                            Server.failAction networkError erroredAt OSTypes.ServerActive (pendingAction ServerActions.Reboot)
+
+                        afterPoll =
+                            Server.settleAction settledAt (details OSTypes.ServerActive noTask True) failedReboot
+                    in
+                    ( ( failedReboot.targetOpenstackStatus, Server.isAwaitingConfirmation failedReboot )
+                    , afterPoll.request.refreshStatus
+                    )
+                        |> Expect.equal
+                            ( ( Nothing, False )
+                            , RDPP.NotLoading (Just ( networkError, erroredAt ))
+                            )
+            , test "an unconfirmed start of a stopped server waits for it to start" <|
+                \_ ->
+                    Server.failAction networkError erroredAt OSTypes.ServerShutoff (pendingAction ServerActions.Start)
+                        |> Server.isAwaitingConfirmation
+                        |> Expect.equal True
+            , test "a report that unshelving did not complete stays while the server is still shelved" <|
+                \_ ->
+                    Server.settleAction settledAt (details OSTypes.ServerShelvedOffloaded noTask True) abandonedUnshelve
+                        |> .unreachedTarget
+                        |> Expect.equal abandonedUnshelve.unreachedTarget
+            , test "a report that unshelving did not complete clears once the server is unshelved some other way" <|
+                \_ ->
+                    Server.settleAction settledAt (details OSTypes.ServerActive noTask True) abandonedUnshelve
+                        |> .unreachedTarget
+                        |> Expect.equal Nothing
+            , test "a report that unshelving did not complete clears once Nova starts another task" <|
+                \_ ->
+                    Server.settleAction settledAt (details OSTypes.ServerShelvedOffloaded (Just "unshelving") True) abandonedUnshelve
+                        |> .unreachedTarget
+                        |> Expect.equal Nothing
             ]
+
+        pendingAction action =
+            { targetOpenstackStatus = Server.serverActionTargetOpenstackStatus action
+            , quotaRefreshTargetOpenstackStatus = Server.serverActionQuotaRefreshTargetOpenstackStatus action
+            , request = RDPP.setLoading RDPP.empty
+            , unreachedTarget = Nothing
+            }
+
+        abandonedUnshelve =
+            Server.settleAction settledAt (details OSTypes.ServerShelvedOffloaded noTask True) acceptedUnshelve
 
         initServerExoActionsLoading =
             { pendingUnshelve

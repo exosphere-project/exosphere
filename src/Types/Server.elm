@@ -210,17 +210,25 @@ When OpenStack rejected it, the instance will not reach the target statuses, so 
 OpenStack reports. When we cannot tell whether OpenStack received it, keep the targets: polling either sees the target
 reached, or sees that no action is underway and abandons them (see `abandonTargetIfActionEnded`).
 
+That only works when the server is not already in a target status, as a running instance is for a reboot. Reaching
+the target would then prove nothing, and would clear the error, so treat the failure as definite instead.
+
 -}
-failAction : HttpErrorWithBody -> Time.Posix -> ServerExoActions -> ServerExoActions
-failAction httpError failedAt exoActions =
+failAction : HttpErrorWithBody -> Time.Posix -> OSTypes.ServerStatus -> ServerExoActions -> ServerExoActions
+failAction httpError failedAt currentStatus exoActions =
     let
         failed =
             { exoActions
                 | request = RDPP.setNotLoading (Just ( httpError, failedAt )) exoActions.request
                 , unreachedTarget = Nothing
             }
+
+        alreadyInTarget =
+            exoActions.targetOpenstackStatus
+                |> Maybe.map (List.member currentStatus)
+                |> Maybe.withDefault False
     in
-    if requestOutcomeUnknown httpError then
+    if requestOutcomeUnknown httpError && not alreadyInTarget then
         failed
 
     else
@@ -297,12 +305,30 @@ them once the action has ended without reaching one.
 A server without `OS-EXT-STS:task_state` says nothing about whether a task is in progress, so the action is never
 treated as ended. Exosphere then waits as it did before it read the task state.
 
+A report that an earlier action did not reach its target is dropped once the server reaches one of those statuses
+anyway, or starts a new task, for example after an unshelve from another client.
+
 -}
 settleAction : Time.Posix -> OSTypes.ServerDetails -> ServerExoActions -> ServerExoActions
 settleAction receivedAt details exoActions =
     let
-        cleared =
+        reachedTarget =
             clearActionTargetIfTargetStatusReached exoActions details.openstackStatus
+
+        cleared =
+            case reachedTarget.unreachedTarget of
+                Just { statuses } ->
+                    if
+                        List.member details.openstackStatus statuses
+                            || (details.taskStateReported && details.taskState /= Nothing)
+                    then
+                        { reachedTarget | unreachedTarget = Nothing }
+
+                    else
+                        reachedTarget
+
+                Nothing ->
+                    reachedTarget
     in
     if details.taskStateReported then
         abandonTargetIfActionEnded receivedAt details.openstackStatus details.taskState cleared
