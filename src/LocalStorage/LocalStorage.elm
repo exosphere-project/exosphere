@@ -722,16 +722,22 @@ resumableEntry ( serverId, maybeExoAction ) =
 
 serverExoActionDecoder : Decode.Decoder Server.ServerExoActions
 serverExoActionDecoder =
-    Decode.map3 Server.ServerExoActions
+    Decode.map4 Server.ServerExoActions
         (storedServerStatuses "targetOpenstackStatus")
         (storedServerStatuses "quotaRefreshTargetOpenstackStatus")
         (Decode.field "request" (RDPP.decoder (Decode.succeed ()) httpErrorWithBodyDecoder))
+        storedUnreachedTarget
         |> Decode.map
             (\exoAction ->
                 case exoAction.request.refreshStatus of
-                    RDPP.NotLoading (Just _) ->
-                        -- Stored state can pair a failure with statuses the instance will not reach.
-                        Server.abandonActionTargets exoAction
+                    RDPP.NotLoading (Just ( httpError, _ )) ->
+                        if Server.requestOutcomeUnknown httpError then
+                            -- Polling settles whether OpenStack received the request.
+                            exoAction
+
+                        else
+                            -- Stored state can pair a failure with statuses the instance will not reach.
+                            Server.abandonActionTargets exoAction
 
                     _ ->
                         exoAction
@@ -742,6 +748,22 @@ storedServerStatuses : String -> Decode.Decoder (Maybe (List OSTypes.ServerStatu
 storedServerStatuses field =
     Decode.oneOf
         [ Decode.field field (Decode.nullable <| Decode.list serverStatusDecoder)
+        , Decode.succeed Nothing
+        ]
+
+
+{-| Absent in state stored by earlier versions. An unreadable record is dropped rather than discarding the action.
+-}
+storedUnreachedTarget : Decode.Decoder (Maybe Server.UnreachedTarget)
+storedUnreachedTarget =
+    Decode.oneOf
+        [ Decode.field "unreachedTarget"
+            (Decode.nullable
+                (Decode.map2 Server.UnreachedTarget
+                    (Decode.field "statuses" (Decode.list serverStatusDecoder))
+                    (Decode.field "noticedAt" (Decode.int |> Decode.map Time.millisToPosix))
+                )
+            )
         , Decode.succeed Nothing
         ]
 
@@ -780,4 +802,15 @@ encodeServerExoAction exoAction =
                     Encode.list (Encode.string << OSTypes.serverStatusToString) statuses
           )
         , ( "request", RDPP.encode (\() -> Encode.null) encodeHttpErrorWithBody exoAction.request )
+        , ( "unreachedTarget"
+          , case exoAction.unreachedTarget of
+                Nothing ->
+                    Encode.null
+
+                Just { statuses, noticedAt } ->
+                    Encode.object
+                        [ ( "statuses", Encode.list (Encode.string << OSTypes.serverStatusToString) statuses )
+                        , ( "noticedAt", Encode.int (Time.posixToMillis noticedAt) )
+                        ]
+          )
         ]

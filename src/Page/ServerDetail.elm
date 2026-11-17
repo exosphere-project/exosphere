@@ -458,11 +458,10 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
 
         statusTransitionInProgress =
             let
-                { targetOpenstackStatus, request } =
+                { targetOpenstackStatus, request, unreachedTarget } =
                     GetterSetters.getServerExoActions project server.osProps.uuid
-            in
-            case ( request.refreshStatus, request.data, targetOpenstackStatus ) of
-                ( NotLoading (Just ( error, erroredAt )), _, _ ) ->
+
+                failedActionAlert error erroredAt =
                     -- Date failures for later sessions.
                     Alert.alert [ Element.width Element.fill ]
                         context.palette
@@ -485,6 +484,44 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                                     }
                                 ]
                         }
+            in
+            case ( request.refreshStatus, request.data, targetOpenstackStatus ) of
+                ( NotLoading Nothing, _, Nothing ) ->
+                    unreachedTarget
+                        |> Maybe.map (renderUnreachedTarget context currentTime server)
+                        |> Maybe.withDefault Element.none
+
+                ( NotLoading (Just ( error, erroredAt )), _, Just _ ) ->
+                    if Types.Server.requestOutcomeUnknown error then
+                        -- Still waiting to see whether OpenStack received the request.
+                        Alert.alert [ Element.width Element.fill ]
+                            context.palette
+                            { state = Alert.Warning
+                            , showIcon = False
+                            , showContainer = True
+                            , content =
+                                Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
+                                    [ Text.p [ Element.width Element.fill ]
+                                        [ Text.body <|
+                                            "Exosphere couldn't confirm that OpenStack received this request "
+                                                ++ DateFormat.Relative.relativeTime currentTime erroredAt
+                                                ++ " ("
+                                                ++ Error.formattedError error
+                                                ++ "). Checking the status to see whether it took effect."
+                                        ]
+                                    , Button.button Button.Warning
+                                        context.palette
+                                        { text = "Clear"
+                                        , onPress = Just GotResetServerAction
+                                        }
+                                    ]
+                            }
+
+                    else
+                        failedActionAlert error erroredAt
+
+                ( NotLoading (Just ( error, erroredAt )), _, _ ) ->
+                    failedActionAlert error erroredAt
 
                 ( Loading, _, _ ) ->
                     Element.none
@@ -1344,6 +1381,100 @@ serverActionsDropdown context project model server =
 
         Just _ ->
             Element.none
+
+
+{-| Nova accepted the action, then finished it without the server reaching the status we were waiting for. Nova gives
+the reason only in the action history, and records no fault when scheduling fails.
+-}
+renderUnreachedTarget : View.Types.Context -> Time.Posix -> Server -> Types.Server.UnreachedTarget -> Element.Element Msg
+renderUnreachedTarget context currentTime server { statuses, noticedAt } =
+    let
+        relativeTime =
+            DateFormat.Relative.relativeTime currentTime noticedAt
+
+        stillShelved =
+            List.member server.osProps.details.openstackStatus [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
+
+        message =
+            if stillShelved && List.member OSTypes.ServerActive statuses then
+                "Unshelving did not complete. OpenStack stopped trying "
+                    ++ relativeTime
+                    ++ " and the "
+                    ++ context.localization.virtualComputer
+                    ++ " is still shelved. This can mean there is not enough capacity for its "
+                    ++ context.localization.virtualComputerHardwareConfig
+                    ++ " right now, in which case trying again later may work. Check Action History for details."
+
+            else
+                "This action did not complete. OpenStack stopped trying "
+                    ++ relativeTime
+                    ++ " without the "
+                    ++ context.localization.virtualComputer
+                    ++ " becoming "
+                    ++ (statuses
+                            |> List.map targetStatusLabel
+                            |> List.Extra.unique
+                            |> String.join " or "
+                       )
+                    ++ ". Check Action History for details."
+    in
+    Alert.alert [ Element.width Element.fill ]
+        context.palette
+        { state = Alert.Danger
+        , showIcon = False
+        , showContainer = True
+        , content =
+            Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
+                [ Text.p [ Element.width Element.fill ] [ Text.body message ]
+                , Button.button Button.Danger
+                    context.palette
+                    { text = "Clear"
+                    , onPress = Just GotResetServerAction
+                    }
+                ]
+        }
+
+
+{-| How the status badge names a status an action was waiting for.
+-}
+targetStatusLabel : OSTypes.ServerStatus -> String
+targetStatusLabel status =
+    let
+        uiStatus =
+            case status of
+                OSTypes.ServerActive ->
+                    Just ServerUiStatusReady
+
+                OSTypes.ServerShutoff ->
+                    Just ServerUiStatusShutoff
+
+                OSTypes.ServerSuspended ->
+                    Just ServerUiStatusSuspended
+
+                OSTypes.ServerPaused ->
+                    Just ServerUiStatusPaused
+
+                OSTypes.ServerShelved ->
+                    Just ServerUiStatusShelved
+
+                OSTypes.ServerShelvedOffloaded ->
+                    Just ServerUiStatusShelved
+
+                OSTypes.ServerVerifyResize ->
+                    Just ServerUiStatusVerifyResize
+
+                OSTypes.ServerDeleted ->
+                    Just ServerUiStatusDeleted
+
+                OSTypes.ServerSoftDeleted ->
+                    Just ServerUiStatusSoftDeleted
+
+                _ ->
+                    Nothing
+    in
+    uiStatus
+        |> Maybe.map VH.getServerUiStatusStr
+        |> Maybe.withDefault (OSTypes.serverStatusToString status)
 
 
 renderServerEventHistory :

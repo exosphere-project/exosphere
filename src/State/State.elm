@@ -4879,6 +4879,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                 | targetOpenstackStatus = Server.resizeTargetOpenstackStatus
                                 , quotaRefreshTargetOpenstackStatus = Server.resizeQuotaRefreshTargetOpenstackStatus
                                 , request = RDPP.setLoading exoActions.request
+                                , unreachedTarget = Nothing
                             }
                         )
 
@@ -5071,13 +5072,18 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         updatedProject =
                             GetterSetters.projectUpdateServerExoActions project
                                 server.osProps.uuid
-                                (Server.failAction httpError sharedModel.clientCurrentTime)
+                                (Server.failAction httpError sharedModel.clientCurrentTime server.osProps.details.openstackStatus)
 
                         updatedSharedModel =
                             GetterSetters.modelUpdateProject sharedModel updatedProject
 
                         ( newSharedModel, errCmd ) =
-                            processProjectSynchronousApiError updatedSharedModel errorContext httpError
+                            processProjectSynchronousApiError updatedSharedModel
+                                (hintIfAwaitingConfirmation
+                                    (GetterSetters.getServerExoActions updatedProject server.osProps.uuid)
+                                    errorContext
+                                )
+                                httpError
                     in
                     ( newSharedModel, errCmd )
                         |> mapToOuterMsg
@@ -5085,8 +5091,24 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
         ResetServerAction ->
             let
+                exoActions =
+                    GetterSetters.getServerExoActions project server.osProps.uuid
+
+                -- Stop showing an unconfirmed delete as deleting; if it did take effect, the server leaves the list.
+                projectWithServer =
+                    if Server.isAwaitingDeleteConfirmation exoActions then
+                        let
+                            oldExoProps =
+                                server.exoProps
+                        in
+                        GetterSetters.projectUpdateServer project
+                            { server | exoProps = { oldExoProps | deletionAttempted = False } }
+
+                    else
+                        project
+
                 updatedProject =
-                    GetterSetters.projectDeleteServerExoAction project server.osProps.uuid
+                    GetterSetters.projectDeleteServerExoAction projectWithServer server.osProps.uuid
 
                 updatedSharedModel =
                     GetterSetters.modelUpdateProject sharedModel updatedProject
@@ -5115,6 +5137,25 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                           }
                         )
 
+                    else if Server.requestOutcomeUnknown httpError then
+                        -- The instance may be deleting. Keep showing that, and let polling settle it.
+                        let
+                            projectAwaitingDelete =
+                                GetterSetters.projectUpdateServerExoActions project
+                                    server.osProps.uuid
+                                    (\exoActions ->
+                                        Server.failAction httpError
+                                            sharedModel.clientCurrentTime
+                                            server.osProps.details.openstackStatus
+                                            { exoActions | targetOpenstackStatus = Server.deleteTargetOpenstackStatus }
+                                    )
+                        in
+                        ( projectAwaitingDelete
+                        , hintIfAwaitingConfirmation
+                            (GetterSetters.getServerExoActions projectAwaitingDelete server.osProps.uuid)
+                            errorContext
+                        )
+
                     else
                         let
                             oldExoProps =
@@ -5126,7 +5167,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         in
                         ( GetterSetters.projectUpdateServerExoActions projectWithServer
                             server.osProps.uuid
-                            (Server.failAction httpError sharedModel.clientCurrentTime)
+                            (Server.failAction httpError sharedModel.clientCurrentTime server.osProps.details.openstackStatus)
                         , errorContext
                         )
             in
@@ -6055,6 +6096,7 @@ requestShelveServer project server { deleteFloatingIps } =
                         | targetOpenstackStatus = Server.shelveTargetOpenstackStatus
                         , quotaRefreshTargetOpenstackStatus = Server.shelveQuotaRefreshTargetOpenstackStatus
                         , request = RDPP.setLoading exoActions.request
+                        , unreachedTarget = Nothing
                     }
                 )
 
@@ -6132,6 +6174,7 @@ requestServerAction project server action =
                         | targetOpenstackStatus = Server.serverActionTargetOpenstackStatus action
                         , quotaRefreshTargetOpenstackStatus = Server.serverActionQuotaRefreshTargetOpenstackStatus action
                         , request = RDPP.setLoading exoActions.request
+                        , unreachedTarget = Nothing
                     }
                 )
 
@@ -6152,6 +6195,21 @@ requestServerAction project server action =
         , floatingIpCmd
         ]
     )
+
+
+{-| Tell the user Exosphere will check the outcome, but only when it will: an action with no status to wait for, or
+one the server is already in, cannot be confirmed by polling.
+-}
+hintIfAwaitingConfirmation : Server.ServerExoActions -> ErrorContext -> ErrorContext
+hintIfAwaitingConfirmation exoActions errorContext =
+    if Server.isAwaitingConfirmation exoActions then
+        { errorContext
+            | recoveryHint =
+                Just "OpenStack may still have received this request. Exosphere will check the status and show whether it took effect."
+        }
+
+    else
+        errorContext
 
 
 requestDeleteServer : Project -> OSTypes.ServerUuid -> Bool -> ( Project, Cmd SharedMsg )

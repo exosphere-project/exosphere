@@ -570,157 +570,168 @@ getServerUiStatus project server =
         ServerUiStatusDeleting
 
     else
-        let
-            maybeFirstTargetStatus =
-                (GetterSetters.getServerExoActions project server.osProps.uuid).targetOpenstackStatus
-                    |> Maybe.andThen List.head
+        -- Nova's task state is authoritative; fall back to the status Exosphere is waiting for.
+        case Types.Server.taskStateUiStatus server.osProps.details.openstackStatus server.osProps.details.taskState of
+            Just inProgressStatus ->
+                inProgressStatus
 
-            targetStatusActive =
-                maybeFirstTargetStatus == Just OSTypes.ServerActive
-        in
-        case server.osProps.details.openstackStatus of
-            OSTypes.ServerActive ->
-                case ( maybeFirstTargetStatus, server.exoProps.serverOrigin ) of
-                    ( Just OSTypes.ServerDeleted, _ ) ->
-                        ServerUiStatusDeleting
+            Nothing ->
+                getServerUiStatusFromTarget project server
 
-                    ( Just OSTypes.ServerResize, _ ) ->
-                        ServerUiStatusResizing
 
-                    ( Just OSTypes.ServerShelved, _ ) ->
-                        ServerUiStatusShelving
+getServerUiStatusFromTarget : Project -> Server -> ServerUiStatus
+getServerUiStatusFromTarget project server =
+    let
+        maybeFirstTargetStatus =
+            (GetterSetters.getServerExoActions project server.osProps.uuid).targetOpenstackStatus
+                |> Maybe.andThen List.head
 
-                    ( Just OSTypes.ServerShelvedOffloaded, _ ) ->
-                        ServerUiStatusShelving
+        targetStatusActive =
+            maybeFirstTargetStatus == Just OSTypes.ServerActive
+    in
+    case server.osProps.details.openstackStatus of
+        OSTypes.ServerActive ->
+            case ( maybeFirstTargetStatus, server.exoProps.serverOrigin ) of
+                ( Just OSTypes.ServerDeleted, _ ) ->
+                    ServerUiStatusDeleting
 
-                    ( Just OSTypes.ServerSoftDeleted, _ ) ->
-                        ServerUiStatusDeleting
+                ( Just OSTypes.ServerResize, _ ) ->
+                    ServerUiStatusResizing
 
-                    ( Just OSTypes.ServerSuspended, _ ) ->
-                        ServerUiStatusSuspending
+                ( Just OSTypes.ServerShelved, _ ) ->
+                    ServerUiStatusShelving
 
-                    ( _, ServerFromExo serverFromExoProps ) ->
-                        if serverFromExoProps.exoServerVersion < 4 then
-                            ServerUiStatusReady
+                ( Just OSTypes.ServerShelvedOffloaded, _ ) ->
+                    ServerUiStatusShelving
 
-                        else
-                            case serverFromExoProps.exoSetupStatus.data of
-                                RDPP.DoHave ( status, _ ) _ ->
-                                    case status of
-                                        ExoSetupWaiting ->
-                                            ServerUiStatusBuilding
+                ( Just OSTypes.ServerSoftDeleted, _ ) ->
+                    ServerUiStatusDeleting
 
-                                        ExoSetupStarting ->
-                                            ServerUiStatusRunningSetup
+                ( Just OSTypes.ServerSuspended, _ ) ->
+                    ServerUiStatusSuspending
 
-                                        ExoSetupRunning ->
-                                            ServerUiStatusRunningSetup
-
-                                        ExoSetupComplete ->
-                                            ServerUiStatusReady
-
-                                        ExoSetupError ->
-                                            ServerUiStatusError
-
-                                        ExoSetupTimeout ->
-                                            ServerUiStatusError
-
-                                        ExoSetupUnknown ->
-                                            ServerUiStatusUnknown
-
-                                RDPP.DontHave ->
-                                    ServerUiStatusUnknown
-
-                    ( _, ServerNotFromExo ) ->
+                ( _, ServerFromExo serverFromExoProps ) ->
+                    if serverFromExoProps.exoServerVersion < 4 then
                         ServerUiStatusReady
 
-            OSTypes.ServerBuild ->
-                ServerUiStatusBuilding
+                    else
+                        case serverFromExoProps.exoSetupStatus.data of
+                            RDPP.DoHave ( status, _ ) _ ->
+                                case status of
+                                    ExoSetupWaiting ->
+                                        ServerUiStatusBuilding
 
-            OSTypes.ServerDeleted ->
-                ServerUiStatusDeleted
+                                    ExoSetupStarting ->
+                                        ServerUiStatusRunningSetup
 
-            OSTypes.ServerError ->
-                ServerUiStatusError
+                                    ExoSetupRunning ->
+                                        ServerUiStatusRunningSetup
 
-            OSTypes.ServerHardReboot ->
-                ServerUiStatusRebooting
+                                    ExoSetupComplete ->
+                                        ServerUiStatusReady
 
-            OSTypes.ServerMigrating ->
-                ServerUiStatusMigrating
+                                    ExoSetupError ->
+                                        ServerUiStatusError
 
-            OSTypes.ServerPassword ->
-                ServerUiStatusPassword
+                                    ExoSetupTimeout ->
+                                        ServerUiStatusError
 
-            OSTypes.ServerPaused ->
-                if targetStatusActive then
-                    ServerUiStatusUnpausing
+                                    ExoSetupUnknown ->
+                                        ServerUiStatusUnknown
 
-                else
-                    ServerUiStatusPaused
+                            RDPP.DontHave ->
+                                ServerUiStatusUnknown
 
-            OSTypes.ServerReboot ->
-                ServerUiStatusRebooting
-
-            OSTypes.ServerRebuild ->
-                ServerUiStatusBuilding
-
-            OSTypes.ServerRescue ->
-                ServerUiStatusRescued
-
-            OSTypes.ServerResize ->
-                ServerUiStatusResizing
-
-            OSTypes.ServerRevertResize ->
-                ServerUiStatusRevertingResize
-
-            OSTypes.ServerShelved ->
-                if targetStatusActive then
-                    ServerUiStatusUnshelving
-
-                else
-                    ServerUiStatusShelved
-
-            OSTypes.ServerShelvedOffloaded ->
-                if targetStatusActive then
-                    ServerUiStatusUnshelving
-
-                else
-                    ServerUiStatusShelved
-
-            OSTypes.ServerShutoff ->
-                if targetStatusActive then
-                    ServerUiStatusStarting
-
-                else
-                    ServerUiStatusShutoff
-
-            OSTypes.ServerSoftDeleted ->
-                ServerUiStatusSoftDeleted
-
-            OSTypes.ServerStopped ->
-                if targetStatusActive then
-                    ServerUiStatusStarting
-
-                else
-                    ServerUiStatusStopped
-
-            OSTypes.ServerSuspended ->
-                if targetStatusActive then
-                    ServerUiStatusResuming
-
-                else
-                    ServerUiStatusSuspended
-
-            OSTypes.ServerUnknown ->
-                ServerUiStatusUnknown
-
-            OSTypes.ServerVerifyResize ->
-                if targetStatusActive then
+                ( _, ServerNotFromExo ) ->
                     ServerUiStatusReady
 
-                else
-                    ServerUiStatusVerifyResize
+        OSTypes.ServerBuild ->
+            ServerUiStatusBuilding
+
+        OSTypes.ServerDeleted ->
+            ServerUiStatusDeleted
+
+        OSTypes.ServerError ->
+            ServerUiStatusError
+
+        OSTypes.ServerHardReboot ->
+            ServerUiStatusRebooting
+
+        OSTypes.ServerMigrating ->
+            ServerUiStatusMigrating
+
+        OSTypes.ServerPassword ->
+            ServerUiStatusPassword
+
+        OSTypes.ServerPaused ->
+            if targetStatusActive then
+                ServerUiStatusUnpausing
+
+            else
+                ServerUiStatusPaused
+
+        OSTypes.ServerReboot ->
+            ServerUiStatusRebooting
+
+        OSTypes.ServerRebuild ->
+            ServerUiStatusBuilding
+
+        OSTypes.ServerRescue ->
+            ServerUiStatusRescued
+
+        OSTypes.ServerResize ->
+            ServerUiStatusResizing
+
+        OSTypes.ServerRevertResize ->
+            ServerUiStatusRevertingResize
+
+        OSTypes.ServerShelved ->
+            if targetStatusActive then
+                ServerUiStatusUnshelving
+
+            else
+                ServerUiStatusShelved
+
+        OSTypes.ServerShelvedOffloaded ->
+            if targetStatusActive then
+                ServerUiStatusUnshelving
+
+            else
+                ServerUiStatusShelved
+
+        OSTypes.ServerShutoff ->
+            if targetStatusActive then
+                ServerUiStatusStarting
+
+            else
+                ServerUiStatusShutoff
+
+        OSTypes.ServerSoftDeleted ->
+            ServerUiStatusSoftDeleted
+
+        OSTypes.ServerStopped ->
+            if targetStatusActive then
+                ServerUiStatusStarting
+
+            else
+                ServerUiStatusStopped
+
+        OSTypes.ServerSuspended ->
+            if targetStatusActive then
+                ServerUiStatusResuming
+
+            else
+                ServerUiStatusSuspended
+
+        OSTypes.ServerUnknown ->
+            ServerUiStatusUnknown
+
+        OSTypes.ServerVerifyResize ->
+            if targetStatusActive then
+                ServerUiStatusReady
+
+            else
+                ServerUiStatusVerifyResize
 
 
 shareStatusBadge : ExoPalette -> ShareStatus -> Element.Element msg

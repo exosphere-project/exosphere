@@ -1,4 +1,4 @@
-module Tests.Types.Server exposing (serverActionLifecycleSuite, serverExoActionsSuite)
+module Tests.Types.Server exposing (serverActionEndedWithoutTargetSuite, serverActionLifecycleSuite, serverActionOutcomeUnknownSuite, serverExoActionsSuite)
 
 import Dict
 import Expect
@@ -21,6 +21,7 @@ serverExoActionsSuite =
             { targetOpenstackStatus = Server.shelveTargetOpenstackStatus
             , quotaRefreshTargetOpenstackStatus = Server.shelveQuotaRefreshTargetOpenstackStatus
             , request = RDPP.empty
+            , unreachedTarget = Nothing
             }
 
         actionAfterShelved =
@@ -36,6 +37,7 @@ serverExoActionsSuite =
             { targetOpenstackStatus = Server.resizeTargetOpenstackStatus
             , quotaRefreshTargetOpenstackStatus = Server.resizeQuotaRefreshTargetOpenstackStatus
             , request = RDPP.empty
+            , unreachedTarget = Nothing
             }
 
         actionsWithoutGenericQuotaRefreshTargets =
@@ -198,6 +200,7 @@ serverActionLifecycleSuite =
             { targetOpenstackStatus = Server.shelveTargetOpenstackStatus
             , quotaRefreshTargetOpenstackStatus = Server.shelveQuotaRefreshTargetOpenstackStatus
             , request = RDPP.setLoading RDPP.empty
+            , unreachedTarget = Nothing
             }
 
         acknowledgedShelve =
@@ -220,13 +223,14 @@ serverActionLifecycleSuite =
                 RDPP.RemoteDataPlusPlus
                     (RDPP.DoHave () acknowledgedAt)
                     (RDPP.NotLoading Nothing)
+            , unreachedTarget = Nothing
             }
 
         failedShelve =
-            Server.failAction httpError failedAt pendingShelve
+            Server.failAction httpError failedAt OSTypes.ServerActive pendingShelve
 
         failedAfterAnEarlierAction =
-            Server.failAction httpError failedAt reDispatchedShelve
+            Server.failAction httpError failedAt OSTypes.ServerActive reDispatchedShelve
 
         -- Shelving reaches SHELVED first, leaving the quota refresh owed until SHELVED_OFFLOADED.
         awaitingQuotaRefreshOnly =
@@ -292,6 +296,7 @@ serverActionLifecycleSuite =
                 RDPP.setNotLoading
                     (Just ( { error = Http.BadStatus 503, body = "service unavailable" }, Time.millisToPosix 2000 ))
                     RDPP.empty
+            , unreachedTarget = Nothing
             }
 
         storedPendingShelve =
@@ -429,6 +434,7 @@ serverActionLifecycleSuite =
                                             RDPP.RemoteDataPlusPlus
                                                 (RDPP.DoHave () (Time.millisToPosix 1000))
                                                 (RDPP.NotLoading Nothing)
+                                        , unreachedTarget = Nothing
                                         }
                                       )
                                     ]
@@ -437,3 +443,378 @@ serverActionLifecycleSuite =
             ]
     in
     describe "instance action lifecycle" tests
+
+
+{-| Nova can accept an action (HTTP 202) and then fail it asynchronously, e.g. an unshelve that
+finds no valid host. The instance then returns to its prior status with no task in progress, and
+will never reach the status Exosphere is waiting for.
+-}
+serverActionEndedWithoutTargetSuite : Test
+serverActionEndedWithoutTargetSuite =
+    let
+        acceptedAt =
+            Time.millisToPosix 1000
+
+        -- Comfortably after the grace period for responses to polls sent before the action.
+        settledAt =
+            Time.millisToPosix 31000
+
+        -- Soon enough after acceptance that the response may predate the action.
+        tooSoonAt =
+            Time.millisToPosix 3000
+
+        acceptedUnshelve =
+            { targetOpenstackStatus = Server.serverActionTargetOpenstackStatus ServerActions.Unshelve
+            , quotaRefreshTargetOpenstackStatus = Server.serverActionQuotaRefreshTargetOpenstackStatus ServerActions.Unshelve
+            , request =
+                RDPP.RemoteDataPlusPlus
+                    (RDPP.DoHave () acceptedAt)
+                    (RDPP.NotLoading Nothing)
+            , unreachedTarget = Nothing
+            }
+
+        noTask =
+            Nothing
+
+        abandonedUnshelve =
+            Server.abandonTargetIfActionEnded settledAt OSTypes.ServerShelvedOffloaded noTask acceptedUnshelve
+
+        storeAndRead exoAction =
+            LocalStorage.encodeServerExoActions (Dict.fromList [ ( "server-uuid", exoAction ) ])
+                |> Decode.decodeValue LocalStorage.serverExoActionsDecoder
+
+        unchangedCases =
+            [ ( "Nova is still working on it"
+              , Server.abandonTargetIfActionEnded settledAt OSTypes.ServerShelvedOffloaded (Just "spawning") acceptedUnshelve
+              , acceptedUnshelve
+              )
+            , ( "the response may predate the action"
+              , Server.abandonTargetIfActionEnded tooSoonAt OSTypes.ServerShelvedOffloaded noTask acceptedUnshelve
+              , acceptedUnshelve
+              )
+            , ( "the action request is still in flight"
+              , Server.abandonTargetIfActionEnded settledAt
+                    OSTypes.ServerShelvedOffloaded
+                    noTask
+                    { acceptedUnshelve | request = RDPP.setLoading acceptedUnshelve.request }
+              , { acceptedUnshelve | request = RDPP.setLoading acceptedUnshelve.request }
+              )
+            , ( "the action has no status to wait for"
+              , Server.abandonTargetIfActionEnded settledAt
+                    OSTypes.ServerActive
+                    noTask
+                    { acceptedUnshelve | targetOpenstackStatus = Nothing, quotaRefreshTargetOpenstackStatus = Nothing }
+              , { acceptedUnshelve | targetOpenstackStatus = Nothing, quotaRefreshTargetOpenstackStatus = Nothing }
+              )
+            , ( "the target status was reached"
+              , Server.abandonTargetIfActionEnded settledAt OSTypes.ServerActive noTask acceptedUnshelve
+              , acceptedUnshelve
+              )
+            , ( "a resize confirmation is underway, which Nova runs without a task state"
+              , Server.abandonTargetIfActionEnded settledAt
+                    OSTypes.ServerVerifyResize
+                    noTask
+                    { acceptedUnshelve
+                        | targetOpenstackStatus = Server.serverActionTargetOpenstackStatus ServerActions.ConfirmResize
+                    }
+              , { acceptedUnshelve
+                    | targetOpenstackStatus = Server.serverActionTargetOpenstackStatus ServerActions.ConfirmResize
+                }
+              )
+            ]
+
+        unchangedTests =
+            List.map
+                (\( name, actual, expected ) ->
+                    test ("the target is kept when " ++ name) <|
+                        \_ -> Expect.equal expected actual
+                )
+                unchangedCases
+
+        uiStatusCases =
+            [ ( OSTypes.ServerShelvedOffloaded, Just "unshelving", Just Server.ServerUiStatusUnshelving )
+            , ( OSTypes.ServerShelvedOffloaded, Just "spawning", Just Server.ServerUiStatusUnshelving )
+            , ( OSTypes.ServerShelved, Just "powering-on", Just Server.ServerUiStatusUnshelving )
+            , ( OSTypes.ServerShelvedOffloaded, Nothing, Nothing )
+            , ( OSTypes.ServerShutoff, Just "shelving", Just Server.ServerUiStatusShelving )
+            , ( OSTypes.ServerActive, Just "shelving_image_uploading", Just Server.ServerUiStatusShelving )
+            , ( OSTypes.ServerActive, Just "shelving_image_pending_upload", Just Server.ServerUiStatusShelving )
+
+            -- Offloading an already-shelved instance is still shown as shelved.
+            , ( OSTypes.ServerShelved, Just "shelving_offloading", Nothing )
+            , ( OSTypes.ServerActive, Just "rebooting", Nothing )
+            , ( OSTypes.ServerActive, Nothing, Nothing )
+            ]
+
+        uiStatusTests =
+            List.map
+                (\( status, taskState, expected ) ->
+                    test
+                        (OSTypes.serverStatusToString status
+                            ++ " with task state "
+                            ++ Maybe.withDefault "none" taskState
+                            ++ " has the expected in-progress status"
+                        )
+                    <|
+                        \_ ->
+                            Server.taskStateUiStatus status taskState
+                                |> Expect.equal expected
+                )
+                uiStatusCases
+
+        tests =
+            [ test "an accepted unshelve that Nova abandoned gives up the statuses it was waiting for" <|
+                \_ ->
+                    ( abandonedUnshelve.targetOpenstackStatus, abandonedUnshelve.quotaRefreshTargetOpenstackStatus )
+                        |> Expect.equal ( Nothing, Nothing )
+            , test "an abandoned action records what it was waiting for and when that was noticed" <|
+                \_ ->
+                    abandonedUnshelve.unreachedTarget
+                        |> Expect.equal (Just { statuses = [ OSTypes.ServerActive ], noticedAt = settledAt })
+            , test "an abandoned action is not reported as an HTTP error" <|
+                \_ ->
+                    abandonedUnshelve.request.refreshStatus
+                        |> Expect.equal (RDPP.NotLoading Nothing)
+            , test "an abandoned action survives being stored so it can still be reported" <|
+                \_ ->
+                    storeAndRead abandonedUnshelve
+                        |> Expect.equal (Ok (Dict.fromList [ ( "server-uuid", abandonedUnshelve ) ]))
+            ]
+                ++ unchangedTests
+                ++ uiStatusTests
+    in
+    describe "instance actions Nova accepted but did not complete" tests
+
+
+{-| A timeout or network error does not say whether OpenStack received the request. Nova may have accepted the action
+and only the response was lost, so Exosphere keeps waiting until polling shows whether the action took effect.
+-}
+serverActionOutcomeUnknownSuite : Test
+serverActionOutcomeUnknownSuite =
+    let
+        erroredAt =
+            Time.millisToPosix 1000
+
+        settledAt =
+            Time.millisToPosix 31000
+
+        tooSoonAt =
+            Time.millisToPosix 3000
+
+        timeout =
+            { error = Http.Timeout, body = "" }
+
+        networkError =
+            { error = Http.NetworkError, body = "" }
+
+        rejected =
+            { error = Http.BadStatus 409, body = "conflict" }
+
+        badGateway =
+            { error = Http.BadStatus 502, body = "" }
+
+        gatewayTimeout =
+            { error = Http.BadStatus 504, body = "" }
+
+        -- A gateway with no backend to send to returns 503 without forwarding the request.
+        unavailable =
+            { error = Http.BadStatus 503, body = "" }
+
+        unconfirmedDelete =
+            Server.failAction networkError
+                erroredAt
+                OSTypes.ServerActive
+                { initServerExoActionsLoading | targetOpenstackStatus = Server.deleteTargetOpenstackStatus }
+
+        abandonedDelete =
+            Server.abandonTargetIfActionEnded settledAt OSTypes.ServerActive noTask unconfirmedDelete
+
+        deletedAfterAll =
+            Server.clearActionTargetIfTargetStatusReached unconfirmedDelete OSTypes.ServerDeleted
+
+        details status taskState taskStateReported =
+            { openstackStatus = status
+            , created = Time.millisToPosix 0
+            , powerState = OSTypes.PowerRunning
+            , imageUuid = "image-uuid"
+            , flavorId = "flavor-id"
+            , keypairName = Nothing
+            , metadata = []
+            , userUuid = "user-uuid"
+            , volumesAttached = []
+            , tags = []
+            , lockStatus = OSTypes.ServerUnlocked
+            , fault = Nothing
+            , taskState = taskState
+            , taskStateReported = taskStateReported
+            }
+
+        acceptedUnshelve =
+            { pendingUnshelve
+                | request =
+                    RDPP.RemoteDataPlusPlus
+                        (RDPP.DoHave () erroredAt)
+                        (RDPP.NotLoading Nothing)
+            }
+
+        pendingUnshelve =
+            { targetOpenstackStatus = Server.serverActionTargetOpenstackStatus ServerActions.Unshelve
+            , quotaRefreshTargetOpenstackStatus = Server.serverActionQuotaRefreshTargetOpenstackStatus ServerActions.Unshelve
+            , request = RDPP.setLoading RDPP.empty
+            , unreachedTarget = Nothing
+            }
+
+        unconfirmedUnshelve =
+            Server.failAction timeout erroredAt OSTypes.ServerShelvedOffloaded pendingUnshelve
+
+        rejectedUnshelve =
+            Server.failAction rejected erroredAt OSTypes.ServerShelvedOffloaded pendingUnshelve
+
+        unshelvedAfterAll =
+            Server.clearActionTargetIfTargetStatusReached unconfirmedUnshelve OSTypes.ServerActive
+
+        noTask =
+            Nothing
+
+        storeAndRead exoAction =
+            LocalStorage.encodeServerExoActions (Dict.fromList [ ( "server-uuid", exoAction ) ])
+                |> Decode.decodeValue LocalStorage.serverExoActionsDecoder
+
+        tests =
+            [ test "timeouts, network errors and gateway failures leave the outcome unknown" <|
+                \_ ->
+                    List.map Server.requestOutcomeUnknown [ timeout, networkError, badGateway, gatewayTimeout ]
+                        |> Expect.equal [ True, True, True, True ]
+            , test "errors OpenStack returned are definite" <|
+                \_ ->
+                    List.map Server.requestOutcomeUnknown [ rejected, unavailable ]
+                        |> Expect.equal [ False, False ]
+            , test "an unconfirmed action keeps the statuses it is waiting for" <|
+                \_ ->
+                    ( unconfirmedUnshelve.targetOpenstackStatus, unconfirmedUnshelve.quotaRefreshTargetOpenstackStatus )
+                        |> Expect.equal ( pendingUnshelve.targetOpenstackStatus, pendingUnshelve.quotaRefreshTargetOpenstackStatus )
+            , test "an unconfirmed action is awaiting confirmation" <|
+                \_ ->
+                    Server.isAwaitingConfirmation unconfirmedUnshelve
+                        |> Expect.equal True
+            , test "an action OpenStack rejected gives up its statuses" <|
+                \_ ->
+                    ( rejectedUnshelve.targetOpenstackStatus, Server.isAwaitingConfirmation rejectedUnshelve )
+                        |> Expect.equal ( Nothing, False )
+            , test "an unconfirmed action that reaches its target clears the error" <|
+                \_ ->
+                    ( unshelvedAfterAll.targetOpenstackStatus, unshelvedAfterAll.request )
+                        |> Expect.equal ( Nothing, RDPP.empty )
+            , test "an unconfirmed action is kept while Nova is working on it" <|
+                \_ ->
+                    Server.abandonTargetIfActionEnded settledAt OSTypes.ServerShelvedOffloaded (Just "unshelving") unconfirmedUnshelve
+                        |> Expect.equal unconfirmedUnshelve
+            , test "an unconfirmed action is kept while a response may predate the error" <|
+                \_ ->
+                    Server.abandonTargetIfActionEnded tooSoonAt OSTypes.ServerShelvedOffloaded noTask unconfirmedUnshelve
+                        |> Expect.equal unconfirmedUnshelve
+            , test "an unconfirmed action with nothing underway once settled gives up its statuses and keeps the error" <|
+                \_ ->
+                    Server.abandonTargetIfActionEnded settledAt OSTypes.ServerShelvedOffloaded noTask unconfirmedUnshelve
+                        |> Expect.equal
+                            { unconfirmedUnshelve
+                                | targetOpenstackStatus = Nothing
+                                , quotaRefreshTargetOpenstackStatus = Nothing
+                            }
+            , test "an unconfirmed action keeps its statuses across a reload" <|
+                \_ ->
+                    storeAndRead unconfirmedUnshelve
+                        |> Expect.equal (Ok (Dict.fromList [ ( "server-uuid", unconfirmedUnshelve ) ]))
+            , test "an unconfirmed delete waits for the server to be deleted" <|
+                \_ ->
+                    unconfirmedDelete
+                        |> Server.abandonTargetIfActionEnded settledAt OSTypes.ServerActive (Just "deleting")
+                        |> Server.isAwaitingDeleteConfirmation
+                        |> Expect.equal True
+            , test "a server with an unconfirmed delete shows as deleting again after a reload" <|
+                \_ ->
+                    Server.deletionAttemptedAfterSettling unconfirmedDelete unconfirmedDelete False
+                        |> Expect.equal True
+            , test "a server whose unconfirmed delete did not take effect stops showing as deleting" <|
+                \_ ->
+                    Server.deletionAttemptedAfterSettling unconfirmedDelete abandonedDelete True
+                        |> Expect.equal False
+            , test "a server whose unconfirmed delete took effect still shows as deleting" <|
+                \_ ->
+                    Server.deletionAttemptedAfterSettling unconfirmedDelete deletedAfterAll True
+                        |> Expect.equal True
+            , test "other actions leave whether a server shows as deleting alone" <|
+                \_ ->
+                    [ Server.deletionAttemptedAfterSettling unconfirmedUnshelve unconfirmedUnshelve False
+                    , Server.deletionAttemptedAfterSettling unconfirmedUnshelve unconfirmedUnshelve True
+                    ]
+                        |> Expect.equal [ False, True ]
+            , test "settling an action abandons it once Nova reports no task in progress" <|
+                \_ ->
+                    Server.settleAction settledAt (details OSTypes.ServerShelvedOffloaded noTask True) acceptedUnshelve
+                        |> .targetOpenstackStatus
+                        |> Expect.equal Nothing
+            , test "settling an action keeps waiting when the server leaves out its task state" <|
+                \_ ->
+                    Server.settleAction settledAt (details OSTypes.ServerShelvedOffloaded noTask False) acceptedUnshelve
+                        |> Expect.equal acceptedUnshelve
+            , test "settling an action clears it once the target is reached, task state or not" <|
+                \_ ->
+                    Server.settleAction settledAt (details OSTypes.ServerActive noTask False) acceptedUnshelve
+                        |> .targetOpenstackStatus
+                        |> Expect.equal Nothing
+            , test "an unconfirmed reboot of a running server is a definite failure, so its error stays" <|
+                \_ ->
+                    let
+                        failedReboot =
+                            Server.failAction networkError erroredAt OSTypes.ServerActive (pendingAction ServerActions.Reboot)
+
+                        afterPoll =
+                            Server.settleAction settledAt (details OSTypes.ServerActive noTask True) failedReboot
+                    in
+                    ( ( failedReboot.targetOpenstackStatus, Server.isAwaitingConfirmation failedReboot )
+                    , afterPoll.request.refreshStatus
+                    )
+                        |> Expect.equal
+                            ( ( Nothing, False )
+                            , RDPP.NotLoading (Just ( networkError, erroredAt ))
+                            )
+            , test "an unconfirmed start of a stopped server waits for it to start" <|
+                \_ ->
+                    Server.failAction networkError erroredAt OSTypes.ServerShutoff (pendingAction ServerActions.Start)
+                        |> Server.isAwaitingConfirmation
+                        |> Expect.equal True
+            , test "a report that unshelving did not complete stays while the server is still shelved" <|
+                \_ ->
+                    Server.settleAction settledAt (details OSTypes.ServerShelvedOffloaded noTask True) abandonedUnshelve
+                        |> .unreachedTarget
+                        |> Expect.equal abandonedUnshelve.unreachedTarget
+            , test "a report that unshelving did not complete clears once the server is unshelved some other way" <|
+                \_ ->
+                    Server.settleAction settledAt (details OSTypes.ServerActive noTask True) abandonedUnshelve
+                        |> .unreachedTarget
+                        |> Expect.equal Nothing
+            , test "a report that unshelving did not complete clears once Nova starts another task" <|
+                \_ ->
+                    Server.settleAction settledAt (details OSTypes.ServerShelvedOffloaded (Just "unshelving") True) abandonedUnshelve
+                        |> .unreachedTarget
+                        |> Expect.equal Nothing
+            ]
+
+        pendingAction action =
+            { targetOpenstackStatus = Server.serverActionTargetOpenstackStatus action
+            , quotaRefreshTargetOpenstackStatus = Server.serverActionQuotaRefreshTargetOpenstackStatus action
+            , request = RDPP.setLoading RDPP.empty
+            , unreachedTarget = Nothing
+            }
+
+        abandonedUnshelve =
+            Server.settleAction settledAt (details OSTypes.ServerShelvedOffloaded noTask True) acceptedUnshelve
+
+        initServerExoActionsLoading =
+            { pendingUnshelve
+                | targetOpenstackStatus = Nothing
+                , quotaRefreshTargetOpenstackStatus = Nothing
+            }
+    in
+    describe "instance actions whose request outcome is unknown" tests

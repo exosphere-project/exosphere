@@ -10,25 +10,35 @@ module Types.Server exposing
     , ServerFromExoProps
     , ServerOrigin(..)
     , ServerUiStatus(..)
+    , UnreachedTarget
     , abandonActionTargets
+    , abandonTargetIfActionEnded
     , actionIsResumable
     , clearActionTargetIfTargetStatusReached
     , clearQuotaRefreshIntentIfTargetStatusReached
     , currentExoServerVersion
+    , deleteTargetOpenstackStatus
+    , deletionAttemptedAfterSettling
     , exoSetupStatusToString
     , exoVersionSupportsFeature
     , failAction
     , initServerExoActions
+    , isAwaitingConfirmation
+    , isAwaitingDeleteConfirmation
+    , requestOutcomeUnknown
     , resizeQuotaRefreshTargetOpenstackStatus
     , resizeTargetOpenstackStatus
     , serverActionQuotaRefreshTargetOpenstackStatus
     , serverActionTargetOpenstackStatus
+    , settleAction
     , shelveQuotaRefreshTargetOpenstackStatus
     , shelveTargetOpenstackStatus
     , shouldRefreshQuotaOnTargetStatus
+    , taskStateUiStatus
     )
 
 import Helpers.RemoteDataPlusPlus as RDPP
+import Http
 import OpenStack.ServerActions as ServerActions
 import OpenStack.Types as OSTypes
 import Time
@@ -60,6 +70,15 @@ type alias ServerExoActions =
     { targetOpenstackStatus : Maybe (List OSTypes.ServerStatus) -- Maybe we have performed an instance action and are waiting for server to reflect that
     , quotaRefreshTargetOpenstackStatus : Maybe (List OSTypes.ServerStatus)
     , request : RDPP.RemoteDataPlusPlus HttpErrorWithBody ()
+    , unreachedTarget : Maybe UnreachedTarget -- Nova accepted the action, then finished without reaching its target
+    }
+
+
+{-| The statuses an accepted action was waiting for when Nova finished working on it without reaching any of them.
+-}
+type alias UnreachedTarget =
+    { statuses : List OSTypes.ServerStatus
+    , noticedAt : Time.Posix
     }
 
 
@@ -68,6 +87,7 @@ initServerExoActions =
     { targetOpenstackStatus = Nothing
     , quotaRefreshTargetOpenstackStatus = Nothing
     , request = RDPP.empty
+    , unreachedTarget = Nothing
     }
 
 
@@ -115,15 +135,244 @@ abandonActionTargets exoActions =
     }
 
 
-{-| The instance will not reach a failed action's target statuses, so the UI falls back to the
-status OpenStack reports.
+{-| Some failures say nothing about whether OpenStack received the request. Nova may have accepted the action, and only
+the response was lost: a timeout, a network error, or a gateway in front of the API that gave up on it (502 Bad Gateway,
+504 Gateway Timeout).
 -}
-failAction : HttpErrorWithBody -> Time.Posix -> ServerExoActions -> ServerExoActions
-failAction httpError failedAt exoActions =
-    abandonActionTargets
-        { exoActions
-            | request = RDPP.setNotLoading (Just ( httpError, failedAt )) exoActions.request
-        }
+requestOutcomeUnknown : HttpErrorWithBody -> Bool
+requestOutcomeUnknown httpError =
+    case httpError.error of
+        Http.Timeout ->
+            True
+
+        Http.NetworkError ->
+            True
+
+        Http.BadStatus 502 ->
+            True
+
+        Http.BadStatus 504 ->
+            True
+
+        _ ->
+            False
+
+
+{-| The action's request failed in a way that does not tell us whether OpenStack received it, and we are still waiting
+for the server to show whether it did.
+-}
+isAwaitingConfirmation : ServerExoActions -> Bool
+isAwaitingConfirmation exoActions =
+    case ( exoActions.targetOpenstackStatus, exoActions.request.refreshStatus ) of
+        ( Just _, RDPP.NotLoading (Just ( httpError, _ )) ) ->
+            requestOutcomeUnknown httpError
+
+        _ ->
+            False
+
+
+{-| Waiting to see whether a delete whose outcome is unknown took effect.
+-}
+isAwaitingDeleteConfirmation : ServerExoActions -> Bool
+isAwaitingDeleteConfirmation exoActions =
+    isAwaitingConfirmation exoActions
+        && (exoActions.targetOpenstackStatus == deleteTargetOpenstackStatus)
+
+
+{-| Whether a server should show as deleting once polling has settled its action.
+
+`deletionAttempted` is not stored, so after a reload it is restored from a stored delete that is still unconfirmed.
+That keeps the UI and orchestration treating the server as deleting. Once polling shows such a delete did not take
+effect, the server no longer shows as deleting.
+
+-}
+deletionAttemptedAfterSettling : ServerExoActions -> ServerExoActions -> Bool -> Bool
+deletionAttemptedAfterSettling before after deletionAttempted =
+    if isAwaitingDeleteConfirmation after then
+        True
+
+    else if isAwaitingDeleteConfirmation before then
+        case after.request.refreshStatus of
+            -- Abandoning the targets keeps the error; reaching one clears it.
+            RDPP.NotLoading (Just _) ->
+                False
+
+            _ ->
+                deletionAttempted
+
+    else
+        deletionAttempted
+
+
+{-| Record a failed action's request.
+
+When OpenStack rejected it, the instance will not reach the target statuses, so the UI falls back to the status
+OpenStack reports. When we cannot tell whether OpenStack received it, keep the targets: polling either sees the target
+reached, or sees that no action is underway and abandons them (see `abandonTargetIfActionEnded`).
+
+That only works when the server is not already in a target status, as a running instance is for a reboot. Reaching
+the target would then prove nothing, and would clear the error, so treat the failure as definite instead.
+
+-}
+failAction : HttpErrorWithBody -> Time.Posix -> OSTypes.ServerStatus -> ServerExoActions -> ServerExoActions
+failAction httpError failedAt currentStatus exoActions =
+    let
+        failed =
+            { exoActions
+                | request = RDPP.setNotLoading (Just ( httpError, failedAt )) exoActions.request
+                , unreachedTarget = Nothing
+            }
+
+        alreadyInTarget =
+            exoActions.targetOpenstackStatus
+                |> Maybe.map (List.member currentStatus)
+                |> Maybe.withDefault False
+    in
+    if requestOutcomeUnknown httpError && not alreadyInTarget then
+        failed
+
+    else
+        abandonActionTargets failed
+
+
+{-| How long after Nova accepts an action before we trust that a server response reflects it.
+
+A poll sent before the action was accepted can arrive after it, showing the server as it was. Until the time a request
+was sent is tracked (#1127), wait out any such response.
+
+-}
+actionSettleMillis : Int
+actionSettleMillis =
+    15 * 1000
+
+
+{-| Nova accepted the action (HTTP 202) but may later fail it asynchronously. For example, an unshelve that finds no
+valid host returns the instance to SHELVED\_OFFLOADED with no task in progress, and records no fault.
+
+Once Nova has no task in progress and the server is not in a target status, the action has ended without reaching its
+target. Stop waiting, and record what was missed so the UI can say so.
+
+The same check settles a request whose outcome is unknown (see `requestOutcomeUnknown`). If no action is underway once
+the error has settled, OpenStack never received the request, or received it and has finished without reaching the
+target. Either way, stop waiting and leave the error for the UI to report.
+
+-}
+abandonTargetIfActionEnded : Time.Posix -> OSTypes.ServerStatus -> Maybe String -> ServerExoActions -> ServerExoActions
+abandonTargetIfActionEnded receivedAt currentStatus taskState exoActions =
+    let
+        actionEnded targets since =
+            let
+                settled =
+                    Time.posixToMillis receivedAt - Time.posixToMillis since >= actionSettleMillis
+
+                -- Nova confirms a resize without setting a task state, so VERIFY_RESIZE with no task is expected while
+                -- a confirmation is underway.
+                confirmingResize =
+                    currentStatus == OSTypes.ServerVerifyResize
+            in
+            settled
+                && (taskState == Nothing)
+                && not (List.member currentStatus targets)
+                && not confirmingResize
+    in
+    case ( exoActions.targetOpenstackStatus, exoActions.request.refreshStatus, exoActions.request.data ) of
+        ( Just targets, RDPP.NotLoading Nothing, RDPP.DoHave () acceptedAt ) ->
+            if actionEnded targets acceptedAt then
+                let
+                    abandoned =
+                        abandonActionTargets exoActions
+                in
+                { abandoned | unreachedTarget = Just { statuses = targets, noticedAt = receivedAt } }
+
+            else
+                exoActions
+
+        ( Just targets, RDPP.NotLoading (Just ( httpError, erroredAt )), _ ) ->
+            -- Any request sent before the error was sent before the action, too, so settle from the error.
+            if requestOutcomeUnknown httpError && actionEnded targets erroredAt then
+                abandonActionTargets exoActions
+
+            else
+                exoActions
+
+        _ ->
+            exoActions
+
+
+{-| Settle an action against the server as OpenStack reports it: clear the targets once one is reached, and abandon
+them once the action has ended without reaching one.
+
+A server without `OS-EXT-STS:task_state` says nothing about whether a task is in progress, so the action is never
+treated as ended. Exosphere then waits as it did before it read the task state.
+
+A report that an earlier action did not reach its target is dropped once the server reaches one of those statuses
+anyway, or starts a new task, for example after an unshelve from another client.
+
+-}
+settleAction : Time.Posix -> OSTypes.ServerDetails -> ServerExoActions -> ServerExoActions
+settleAction receivedAt details exoActions =
+    let
+        reachedTarget =
+            clearActionTargetIfTargetStatusReached exoActions details.openstackStatus
+
+        cleared =
+            case reachedTarget.unreachedTarget of
+                Just { statuses } ->
+                    if
+                        List.member details.openstackStatus statuses
+                            || (details.taskStateReported && details.taskState /= Nothing)
+                    then
+                        { reachedTarget | unreachedTarget = Nothing }
+
+                    else
+                        reachedTarget
+
+                Nothing ->
+                    reachedTarget
+    in
+    if details.taskStateReported then
+        abandonTargetIfActionEnded receivedAt details.openstackStatus details.taskState cleared
+
+    else
+        cleared
+
+
+{-| The in-progress UI status that Nova's task state implies, regardless of what Exosphere asked for. This shows
+transitions started outside Exosphere, and ones Exosphere has stopped waiting for.
+-}
+taskStateUiStatus : OSTypes.ServerStatus -> Maybe String -> Maybe ServerUiStatus
+taskStateUiStatus status taskState =
+    case ( status, taskState ) of
+        ( OSTypes.ServerShelved, Just "unshelving" ) ->
+            Just ServerUiStatusUnshelving
+
+        ( OSTypes.ServerShelved, Just "powering-on" ) ->
+            Just ServerUiStatusUnshelving
+
+        ( OSTypes.ServerShelvedOffloaded, Just "unshelving" ) ->
+            Just ServerUiStatusUnshelving
+
+        ( OSTypes.ServerShelvedOffloaded, Just "spawning" ) ->
+            Just ServerUiStatusUnshelving
+
+        ( OSTypes.ServerShelved, _ ) ->
+            -- Includes shelving_offloading, which we continue to show as shelved.
+            Nothing
+
+        ( OSTypes.ServerShelvedOffloaded, _ ) ->
+            Nothing
+
+        ( _, Just "shelving" ) ->
+            Just ServerUiStatusShelving
+
+        ( _, Just "shelving_image_pending_upload" ) ->
+            Just ServerUiStatusShelving
+
+        ( _, Just "shelving_image_uploading" ) ->
+            Just ServerUiStatusShelving
+
+        _ ->
+            Nothing
 
 
 {-| An action that was left loading was probably abandoned in flight.
@@ -146,8 +395,20 @@ actionIsResumable exoActions =
 
                 awaitingQuotaRefresh =
                     exoActions.quotaRefreshTargetOpenstackStatus /= Nothing
+
+                -- Reported to the user until they dismiss it, like an error.
+                reportingUnreachedTarget =
+                    exoActions.unreachedTarget /= Nothing
             in
-            awaitingTransition || awaitingQuotaRefresh
+            awaitingTransition || awaitingQuotaRefresh || reportingUnreachedTarget
+
+
+{-| A deleted server leaves the server list, so reaching these is rarely observed. They let polling settle a delete
+whose outcome is unknown.
+-}
+deleteTargetOpenstackStatus : Maybe (List OSTypes.ServerStatus)
+deleteTargetOpenstackStatus =
+    Just [ OSTypes.ServerDeleted, OSTypes.ServerSoftDeleted ]
 
 
 shelveTargetOpenstackStatus : Maybe (List OSTypes.ServerStatus)

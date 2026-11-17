@@ -51,6 +51,7 @@ import Rest.Helpers
         , resultToProjectMsgErrorBody
         )
 import Rest.Naming
+import Time
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url)
@@ -884,11 +885,11 @@ receiveServers model project osServers =
             List.foldl
                 (\s p ->
                     let
-                        -- Update server target statuses if they have been reached.
-                        updatedProject =
-                            clearServerExoActionsIfTargetStatusReached p s.osProps.uuid s.osProps.details.openstackStatus
+                        -- Update server target statuses if they have been reached, or will not be.
+                        ( updatedProject, settledServer ) =
+                            settleServer model.clientCurrentTime p s
                     in
-                    GetterSetters.projectUpdateServer updatedProject s
+                    GetterSetters.projectUpdateServer updatedProject settledServer
                 )
                 { projectNoDeletedSvrs
                     | knownUsernames =
@@ -920,9 +921,9 @@ receiveServer model project interactionLevel osServer =
             in
             { newServer | exoProps = newExoProps }
 
-        -- Update server target statuses if they have been reached.
-        projectWithClearedExoActions =
-            clearServerExoActionsIfTargetStatusReached project osServer.uuid osServer.details.openstackStatus
+        -- Update server target statuses if they have been reached, or will not be.
+        ( projectWithClearedExoActions, settledServer ) =
+            settleServer model.clientCurrentTime project newServerUpdatedSomeExoProps
 
         projectWithClearedQuotaRefreshIntent =
             clearServerQuotaRefreshIntentIfTargetStatusReached
@@ -931,16 +932,40 @@ receiveServer model project interactionLevel osServer =
                 osServer.details.openstackStatus
 
         newProject =
-            GetterSetters.projectUpdateServer projectWithClearedQuotaRefreshIntent newServerUpdatedSomeExoProps
+            GetterSetters.projectUpdateServer projectWithClearedQuotaRefreshIntent settledServer
     in
     ( newProject, cmd )
 
 
-clearServerExoActionsIfTargetStatusReached : Project -> OSTypes.ServerUuid -> OSTypes.ServerStatus -> Project
-clearServerExoActionsIfTargetStatusReached project serverId currentStatus =
+{-| Settle the server's pending action, and whether the server shows as deleting (see
+`Server.deletionAttemptedAfterSettling`).
+-}
+settleServer : Time.Posix -> Project -> Server -> ( Project, Server )
+settleServer receivedAt project server =
+    let
+        before =
+            GetterSetters.getServerExoActions project server.osProps.uuid
+
+        settledProject =
+            settleServerExoActions receivedAt project server.osProps
+
+        after =
+            GetterSetters.getServerExoActions settledProject server.osProps.uuid
+
+        oldExoProps =
+            server.exoProps
+
+        deletionAttempted =
+            Server.deletionAttemptedAfterSettling before after oldExoProps.deletionAttempted
+    in
+    ( settledProject, { server | exoProps = { oldExoProps | deletionAttempted = deletionAttempted } } )
+
+
+settleServerExoActions : Time.Posix -> Project -> OSTypes.Server -> Project
+settleServerExoActions receivedAt project osServer =
     GetterSetters.projectUpdateServerExoActions project
-        serverId
-        (\exoActions -> Server.clearActionTargetIfTargetStatusReached exoActions currentStatus)
+        osServer.uuid
+        (Server.settleAction receivedAt osServer.details)
 
 
 clearServerQuotaRefreshIntentIfTargetStatusReached : Project -> OSTypes.ServerUuid -> OSTypes.ServerStatus -> Project
@@ -1180,6 +1205,13 @@ serverDetailsDecoder =
         |> Pipeline.required "tags" (Decode.list Decode.string)
         |> Pipeline.required "locked" serverLockStatusDecoder
         |> Pipeline.optional "fault" (serverFaultDecoder |> Decode.andThen (\f -> Decode.succeed <| Just f)) Nothing
+        |> Pipeline.optional "OS-EXT-STS:task_state" (Decode.nullable Decode.string) Nothing
+        |> Pipeline.custom
+            (Decode.oneOf
+                [ Decode.field "OS-EXT-STS:task_state" (Decode.succeed True)
+                , Decode.succeed False
+                ]
+            )
 
 
 parseServerOpenstackStatus : String -> Result String OSTypes.ServerStatus
