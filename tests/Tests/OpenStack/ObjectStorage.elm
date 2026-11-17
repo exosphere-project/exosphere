@@ -29,6 +29,7 @@ module Tests.OpenStack.ObjectStorage exposing
     , rawAclChangeSuite
     , rcloneConfigSnippetSuite
     , readAclIsPublicSuite
+    , s3UrlFromSwiftUrlSuite
     , stitchPageSuite
     , stripPrefixSuite
     , uploadIdGuardSuite
@@ -1007,6 +1008,42 @@ publicContainerUrlSuite =
                 Expect.equal
                     "https://swift.example.com/v1/AUTH_abc/my%20b%C3%B6x"
                     (ObjectStorage.publicContainerUrl "https://swift.example.com/v1/AUTH_abc" "my böx")
+        ]
+
+
+s3UrlFromSwiftUrlSuite : Test
+s3UrlFromSwiftUrlSuite =
+    describe "s3UrlFromSwiftUrl finds the S3 address that goes with a Ceph RGW Swift address"
+        [ test "Jetstream2's Swift address gives the same server without the path" <|
+            \_ ->
+                Expect.equal
+                    (Just "https://js2.jetstream-cloud.org:8001")
+                    (ObjectStorage.s3UrlFromSwiftUrl "https://js2.jetstream-cloud.org:8001/swift/v1")
+        , test "an RGW address with the account in it works too" <|
+            \_ ->
+                Expect.equal
+                    (Just "https://rgw.example.org")
+                    (ObjectStorage.s3UrlFromSwiftUrl "https://rgw.example.org/swift/v1/AUTH_abc123")
+        , test "a trailing slash makes no difference" <|
+            \_ ->
+                Expect.equal
+                    (Just "https://rgw.example.org:8001")
+                    (ObjectStorage.s3UrlFromSwiftUrl "https://rgw.example.org:8001/swift/v1/")
+        , test "a plain Swift address gives nothing, since plain Swift may not serve S3" <|
+            \_ ->
+                Expect.equal
+                    Nothing
+                    (ObjectStorage.s3UrlFromSwiftUrl "https://swift.example.com:8080/v1/AUTH_abc")
+        , test "an RGW path under another prefix gives nothing rather than a guess" <|
+            \_ ->
+                Expect.equal
+                    Nothing
+                    (ObjectStorage.s3UrlFromSwiftUrl "https://cloud.example.org/object-store/swift/v1")
+        , test "something that isn't a URL gives nothing" <|
+            \_ ->
+                Expect.equal
+                    Nothing
+                    (ObjectStorage.s3UrlFromSwiftUrl "not a url")
         ]
 
 

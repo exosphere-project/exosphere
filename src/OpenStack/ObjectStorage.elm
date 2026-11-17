@@ -53,6 +53,7 @@ module OpenStack.ObjectStorage exposing
     , rcloneConfigSnippet
     , readAclIsPublic
     , removeGrant
+    , s3UrlFromSwiftUrl
     , serializeAcl
     , setAclListings
     , setAclPublicRead
@@ -899,6 +900,38 @@ publicContainerUrl swiftBaseUrl containerName =
         swiftBaseUrl
         [ Url.percentEncode containerName ]
         []
+
+
+{-| The S3 address that goes with a Ceph RGW Swift address.
+
+RGW serves Swift under `/swift/v1` and S3 at the root of the same server, so
+`https://rgw.example.org:8001/swift/v1` gives `https://rgw.example.org:8001`. Any other Swift address gives
+`Nothing`, because plain Swift may not serve S3 at all.
+
+-}
+s3UrlFromSwiftUrl : String -> Maybe String
+s3UrlFromSwiftUrl swiftUrl =
+    let
+        isRgwSwiftPath path =
+            case String.split "/" path |> List.filter (not << String.isEmpty) of
+                [ "swift", "v1" ] ->
+                    True
+
+                [ "swift", "v1", account ] ->
+                    String.startsWith "AUTH_" account
+
+                _ ->
+                    False
+    in
+    Url.fromString swiftUrl
+        |> Maybe.andThen
+            (\url ->
+                if isRgwSwiftPath url.path then
+                    Just (Url.toString { url | path = "", query = Nothing, fragment = Nothing })
+
+                else
+                    Nothing
+            )
 
 
 {-| Path-style S3 config matches Ceph RGW/s3api; the placeholder region satisfies S3 clients.

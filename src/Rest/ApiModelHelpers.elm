@@ -293,7 +293,7 @@ requestObjectStorageContainers projectUuid model =
 
 {-| Load the project's EC2/S3 credentials (Keystone OS-EC2), no-op when the s3 endpoint is absent.
 
-Guarded on `project.endpoints.s3` (not keystone, which always exists) so s3-less clouds never issue
+Guarded on `GetterSetters.projectS3Url` (not keystone, which always exists) so s3-less clouds never issue
 the OS-EC2 GET; the ObjectStorageList route-load then fires this unconditionally, matching how the
 Swift wrappers self-guard.
 
@@ -302,7 +302,7 @@ requestEc2Credentials : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd S
 requestEc2Credentials projectUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
-            case project.endpoints.s3 of
+            case GetterSetters.projectS3Url project of
                 Just _ ->
                     ( project
                         |> GetterSetters.projectSetEc2CredentialsLoading

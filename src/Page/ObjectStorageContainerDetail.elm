@@ -595,7 +595,7 @@ containerInfoStrip context project currentTime containerName metadata =
         -- When the cloud advertises an S3 endpoint this Swift container is also reachable as an S3
         -- bucket of the same name (RGW/s3api share the namespace).
         s3BucketFact =
-            project.endpoints.s3
+            GetterSetters.projectS3Url project
                 |> Maybe.map
                     (\_ -> fact [ Element.el [ subdued ] (Element.text "S3 bucket "), Element.text containerName ])
 

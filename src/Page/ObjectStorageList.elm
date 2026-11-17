@@ -197,7 +197,7 @@ s3ConnectPanel context project model =
         , Element.width Element.fill
         , Font.color (SH.toElementColor context.palette.neutral.text.default)
         ]
-        (case project.endpoints.s3 of
+        (case GetterSetters.projectS3Url project of
             Just url ->
                 s3ConnectContents context project model url
 
