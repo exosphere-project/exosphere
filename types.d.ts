@@ -136,6 +136,12 @@ declare namespace Exosphere {
     }>;
   };
 
+  type CloudStatusPage = {
+    provider: "status.io";
+    pageId: string;
+    url: string;
+  };
+
   type CloudConfig = {
     keystoneHostname: string;
     friendlyName: string;
@@ -148,6 +154,7 @@ declare namespace Exosphere {
     customResources?: Array<CloudCustomResource>;
     securityGroups?: null | { [region in string]: CloudSecurityGroup };
     desktopMessage: null | string;
+    statusPage?: null | CloudStatusPage;
   };
 
   type CloudConfigs = {

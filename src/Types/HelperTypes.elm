@@ -47,6 +47,7 @@ import OpenStack.ServerActions exposing (ServerActionName)
 import OpenStack.Types as OSTypes
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput)
 import Types.Error exposing (HttpErrorWithBody)
+import Types.StatusPage exposing (StatusPageConfig)
 import Url.Builder
 
 
@@ -206,6 +207,7 @@ type alias CloudSpecificConfig =
     , customResources : List CustomResource
     , securityGroups : Maybe (Dict.Dict String OSTypes.SecurityGroupTemplate)
     , desktopMessage : Maybe String
+    , statusPage : Maybe StatusPageConfig
     }
 
 

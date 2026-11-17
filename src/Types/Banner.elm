@@ -2,7 +2,7 @@ module Types.Banner exposing (Banner, BannerLevel(..), BannerModel, Banners, ban
 
 import ISO8601
 import Json.Decode as Decode
-import Json.Decode.Pipeline exposing (optional, required)
+import Json.Decode.Pipeline exposing (hardcoded, optional, required)
 import Set exposing (Set)
 import Time
 
@@ -20,6 +20,7 @@ type alias Banner =
     , level : BannerLevel
     , startsAt : Maybe Time.Posix
     , endsAt : Maybe Time.Posix
+    , id : Maybe String
     }
 
 
@@ -42,9 +43,11 @@ empty url =
     }
 
 
+{-| Identifies a banner, e.g. to remember that it was dismissed. Banners from banners.json are identified by their message.
+-}
 bannerId : Banner -> String
 bannerId banner =
-    banner.message
+    Maybe.withDefault banner.message banner.id
 
 
 stringToBannerLevel : String -> Maybe BannerLevel
@@ -96,6 +99,7 @@ decodeBanner =
         |> optional "level" bannerLevelDecoder BannerDefault
         |> optional "startsAt" (iso8601TimeDecoder |> Decode.map Just) Nothing
         |> optional "endsAt" (iso8601TimeDecoder |> Decode.map Just) Nothing
+        |> hardcoded Nothing
 
 
 decodeBanners : Decode.Decoder (List Banner)

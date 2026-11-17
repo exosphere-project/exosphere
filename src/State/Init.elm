@@ -37,6 +37,7 @@ import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project, ProjectSecret(..))
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (SharedMsg)
+import Types.StatusPage as StatusPageTypes
 import Types.View exposing (NonProjectViewConstructor(..), ViewState(..))
 import UUID
 import Url
@@ -255,6 +256,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
             , sentryConfig = flags.sentryConfig
             , version = flags.version
             , latestVersion = RDPP.empty
+            , statusPages = Dict.empty
             }
 
         ( requestResourcesModel, requestResourcesCmd ) =
@@ -392,6 +394,7 @@ cloudSpecificConfigDecoder =
         |> Pipeline.optional "customResources" (Decode.list customResourceDecoder) []
         |> Pipeline.optional "securityGroups" (Decode.nullable securityGroupsRegionConfigDecoder) Nothing
         |> Pipeline.optional "desktopMessage" (Decode.nullable Decode.string) Nothing
+        |> Pipeline.optional "statusPage" StatusPageTypes.statusPageConfigDecoder Nothing
         |> Decode.andThen
             (\cloudSpecificConfig ->
                 Decode.field "keystoneHostname" Decode.string

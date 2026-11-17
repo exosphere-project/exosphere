@@ -12,6 +12,7 @@ import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ServerActionRequestQueue exposing (marshalServerActionRequestQueue)
 import Helpers.ServerResourceUsage
+import Helpers.StatusPage
 import Helpers.String exposing (indefiniteArticle, pluralize, toTitleCase)
 import Helpers.UnifiedLimits
 import Helpers.Url
@@ -898,8 +899,13 @@ processSharedMsg sharedMsg outerModel =
                                         |> List.map bannerId
                                         |> Set.fromList
                             in
-                            -- Discard dismissed banners that are no longer relevant.
-                            { newBanners | dismissedBanners = Set.intersect newBannerIds newBanners.dismissedBanners }
+                            -- Discard dismissed banners that are no longer relevant. Status page banners are pruned when their status page is read.
+                            { newBanners
+                                | dismissedBanners =
+                                    Set.filter
+                                        (\id -> Set.member id newBannerIds || Helpers.StatusPage.isStatusBannerId id)
+                                        newBanners.dismissedBanners
+                            }
                     in
                     ( { sharedModel | banners = newDismissedBanners }, cmd )
 
@@ -931,6 +937,48 @@ processSharedMsg sharedMsg outerModel =
             )
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
+
+        ReceiveStatusPage keystoneHostname result ->
+            let
+                updateStatusPage maybeStatusPage =
+                    case result of
+                        Ok newData ->
+                            Just <|
+                                RDPP.RemoteDataPlusPlus
+                                    (RDPP.DoHave newData sharedModel.clientCurrentTime)
+                                    (RDPP.NotLoading Nothing)
+
+                        Err error ->
+                            -- Stay silent and keep the last data we had; the next poll tries again.
+                            maybeStatusPage
+                                |> Maybe.withDefault RDPP.empty
+                                |> RDPP.setNotLoading (Just ( error, sharedModel.clientCurrentTime ))
+                                |> Just
+
+                withStatusPage =
+                    { sharedModel | statusPages = Dict.update keystoneHostname updateStatusPage sharedModel.statusPages }
+
+                newSharedModel =
+                    case result of
+                        Ok _ ->
+                            let
+                                oldBanners =
+                                    withStatusPage.banners
+                            in
+                            { withStatusPage
+                                | banners =
+                                    { oldBanners
+                                        | dismissedBanners =
+                                            Helpers.StatusPage.pruneDismissedStatusBanners keystoneHostname
+                                                (Helpers.StatusPage.banners withStatusPage)
+                                                oldBanners.dismissedBanners
+                                    }
+                            }
+
+                        Err _ ->
+                            withStatusPage
+            in
+            ( { outerModel | sharedModel = newSharedModel }, Cmd.none )
 
         NetworkConnection online ->
             let

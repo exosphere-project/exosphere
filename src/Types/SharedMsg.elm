@@ -28,6 +28,7 @@ import Types.HelperTypes as HelperTypes
 import Types.Interactivity exposing (InteractionLevel)
 import Types.Jetstream2Accounting
 import Types.LoginIntent
+import Types.StatusPage exposing (StatusPage)
 import Url
 
 
@@ -52,6 +53,7 @@ type SharedMsg
     | ReceiveBanners ErrorContext (Result HttpErrorWithBody BannerTypes.Banners)
     | RequestAppVersion
     | ReceiveAppVersion ErrorContext (Result HttpErrorWithBody AppVersion)
+    | ReceiveStatusPage HelperTypes.KeystoneHostname (Result HttpErrorWithBody StatusPage)
     | ProjectMsg HelperTypes.ProjectIdentifier ProjectSpecificMsgConstructor
     | OpenNewWindow String
     | LinkClicked Browser.UrlRequest

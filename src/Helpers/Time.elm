@@ -2,12 +2,14 @@ module Helpers.Time exposing
     ( hoursToMillis
     , humanReadableDate
     , humanReadableDateAndTime
+    , humanReadableDateAndTimeInZone
     , iso8601StringToPosix
     , makeIso8601StringToPosixDecoder
     , minutesToMillis
     , relativeTimeNoAffixes
     )
 
+import DateFormat
 import DateFormat.Relative
 import ISO8601
 import Json.Decode exposing (Decoder, fail, succeed)
@@ -36,6 +38,25 @@ humanReadableDateAndTime posix =
     , " UTC"
     ]
         |> String.concat
+
+
+{-| Date and time to the minute in the given time zone, without naming the zone, e.g. "2026-11-05 20:00".
+-}
+humanReadableDateAndTimeInZone : Time.Zone -> Time.Posix -> String
+humanReadableDateAndTimeInZone zone posix =
+    DateFormat.format
+        [ DateFormat.yearNumber
+        , DateFormat.text "-"
+        , DateFormat.monthFixed
+        , DateFormat.text "-"
+        , DateFormat.dayOfMonthFixed
+        , DateFormat.text " "
+        , DateFormat.hourMilitaryFixed
+        , DateFormat.text ":"
+        , DateFormat.minuteFixed
+        ]
+        zone
+        posix
 
 
 humanReadableDate : Time.Posix -> String
